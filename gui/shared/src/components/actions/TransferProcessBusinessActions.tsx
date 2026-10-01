@@ -17,9 +17,9 @@ export const TransferProcessBusinessActions = ({
   const containerClassName = cva("", {
     variants: {
       tiny: {
-        true: "inline-flex items-center ",
+        true: "inline-flex items-center gap-2",
         false:
-          "w-[calc(100%+2px-var(--sidebar-width))] p-6 fixed bottom-0 -right-px bg-background/80 backdrop-blur-sm border border-t-stroke z-50 [&>*>button]:min-w-20",
+          "fixed bottom-0 right-0 left-0 md:left-[var(--sidebar-width)] peer-data-[state=collapsed]:md:left-[var(--sidebar-width-icon)] z-30 px-6 py-3.5 bg-background/85 backdrop-blur-md border-t border-ink/10 shadow-lg transition-[left] duration-200 ease-linear [&>*>button]:min-w-20",
       },
     },
   });
@@ -79,32 +79,43 @@ export const TransferProcessBusinessActions = ({
 
   const actions = getActions();
 
-  const isTerminalState = () =>
-    process.state === "COMPLETED" || process.state === "TERMINATED";
+  const isTerminalState = () => process.state === "COMPLETED" || process.state === "TERMINATED";
 
-  const showSwitchToStandard = () =>
-    actions.length === 0 && !isTerminalState();
+  const showSwitchToStandard = () => actions.length === 0 && !isTerminalState();
+
+  if (!tiny && actions.length === 0 && !isTerminalState() && !showSwitchToStandard()) {
+    return null;
+  }
 
   return (
-    <div className={containerClassName({ tiny })}>
-      <div className="space-x-2">
-        {actions.map((action, idx) => (
-          <ProcessActionDialog
-            key={idx}
-            label={action.label}
-            variant={action.variant as any}
-            tiny={tiny}
-            DialogComponent={action.Component}
-            process={process}
-          />
-        ))}
-        {isTerminalState() && <NoFurtherActions />}
-        {showSwitchToStandard() && (
-          <span className="text-xs text-white/40 italic">
-            This step is only visible in Standard mode
-          </span>
-        )}
+    <>
+      {!tiny && <div className="h-24 w-full shrink-0 pointer-events-none" aria-hidden="true" />}
+      <div className={containerClassName({ tiny })}>
+        <div
+          className={
+            tiny
+              ? "inline-flex items-center gap-2"
+              : "flex items-center justify-start gap-2.5 flex-wrap w-full"
+          }
+        >
+          {actions.map((action, idx) => (
+            <ProcessActionDialog
+              key={idx}
+              label={action.label}
+              variant={action.variant as any}
+              tiny={tiny}
+              DialogComponent={action.Component}
+              process={process}
+            />
+          ))}
+          {isTerminalState() && <NoFurtherActions />}
+          {showSwitchToStandard() && (
+            <span className="text-xs text-ink/40 italic">
+              This step is only visible in Standard mode
+            </span>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };

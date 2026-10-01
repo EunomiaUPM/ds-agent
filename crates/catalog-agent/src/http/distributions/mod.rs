@@ -15,10 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::distributions::{
-    DistributionEntityTrait, EditDistributionDto, NewDistributionDto,
-};
+use crate::entities::distributions::{DistributionDto, EditDistributionDto, NewDistributionDto};
+use crate::entities::filters::DistributionFilter;
 use crate::http::common::to_camel_case::ToCamelCase;
+use crate::services::distributions::DistributionServiceTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::http::StatusCode;
@@ -28,6 +28,7 @@ use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
 use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
+use common::query::QuerySpec;
 use serde::Deserialize;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -35,17 +36,14 @@ use ymir::utils::{extract_path_urn, extract_payload};
 
 #[derive(Clone)]
 pub struct DistributionEntityRouter {
-    service: Arc<dyn DistributionEntityTrait>,
+    service: Arc<dyn DistributionServiceTrait>,
     config: Arc<CatalogConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
+pub use common::paginated_spec::PaginationParams;
+pub type DistributionQuery = QuerySpec<DistributionFilter>;
 
-impl FromRef<DistributionEntityRouter> for Arc<dyn DistributionEntityTrait> {
+impl FromRef<DistributionEntityRouter> for Arc<dyn DistributionServiceTrait> {
     fn from_ref(state: &DistributionEntityRouter) -> Self {
         state.service.clone()
     }
@@ -58,7 +56,7 @@ impl FromRef<DistributionEntityRouter> for Arc<CatalogConfig> {
 }
 
 impl DistributionEntityRouter {
-    pub fn new(service: Arc<dyn DistributionEntityTrait>, config: Arc<CatalogConfig>) -> Self {
+    pub fn new(service: Arc<dyn DistributionServiceTrait>, config: Arc<CatalogConfig>) -> Self {
         Self { service, config }
     }
 
@@ -83,45 +81,58 @@ impl DistributionEntityRouter {
 
     async fn handle_get_all_distributions(
         State(state): State<DistributionEntityRouter>,
-        Query(params): Query<PaginationParams>,
+        scope: common::auth::AccessScope,
+        Query(query): Query<DistributionQuery>,
     ) -> impl IntoResponse {
+        let (filter, page, sort) = query.into_domain();
         match state
             .service
-            .get_all_distributions(params.limit, params.page)
+            .get_all_distributions(&scope, &filter, &page, &sort)
             .await
         {
             Ok(distributions) => (StatusCode::OK, Json(ToCamelCase(distributions))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_batch_distributions(
         State(state): State<DistributionEntityRouter>,
+        scope: common::auth::AccessScope,
         input: Result<Json<BatchRequests>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.get_batch_distributions(&input.ids).await {
+        match state
+            .service
+            .get_batch_distributions(&scope, &input.ids)
+            .await
+        {
             Ok(distributions) => (StatusCode::OK, Json(ToCamelCase(distributions))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_distributions_by_dataset_id(
         State(state): State<DistributionEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
             Err(resp) => return resp.into_response(),
         };
-        match state.service.get_distributions_by_dataset_id(&id_urn).await {
+        match state
+            .service
+            .get_distributions_by_dataset_id(&scope, &id_urn)
+            .await
+        {
             Ok(distributions) => (StatusCode::OK, Json(ToCamelCase(distributions))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_distribution_by_dataset_id_and_dct_format(
         State(state): State<DistributionEntityRouter>,
+        scope: common::auth::AccessScope,
         Path((id, dct_format)): Path<(String, String)>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
@@ -130,34 +141,30 @@ impl DistributionEntityRouter {
         };
         match state
             .service
-            .get_distribution_by_dataset_id_and_dct_format(&id_urn, &dct_format)
+            .get_distribution_by_dataset_id_and_dct_format(&scope, &id_urn, &dct_format)
             .await
         {
             Ok(distribution) => (StatusCode::OK, Json(ToCamelCase(distribution))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_distribution_by_id(
         State(state): State<DistributionEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
             Err(resp) => return resp.into_response(),
         };
-        match state.service.get_distribution_by_id(&id_urn).await {
-            Ok(Some(distribution)) => {
-                (StatusCode::OK, Json(ToCamelCase(distribution))).into_response()
-            }
-            Ok(None) => {
-                let err = CommonErrors::missing_resource_new(id.as_str(), "Distribution not found");
-                err.into_response()
-            }
-            Err(e) => return e.into_response(),
+        match state.service.get_distribution_by_id(&scope, &id_urn).await {
+            Ok(distribution) => (StatusCode::OK, Json(ToCamelCase(distribution))).into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_put_distribution_by_id(
         State(state): State<DistributionEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
         input: Result<Json<EditDistributionDto>, JsonRejection>,
     ) -> impl IntoResponse {
@@ -169,35 +176,45 @@ impl DistributionEntityRouter {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.put_distribution_by_id(&id_urn, &input).await {
+        match state
+            .service
+            .put_distribution_by_id(&scope, &id_urn, &input)
+            .await
+        {
             Ok(distribution) => (StatusCode::OK, Json(ToCamelCase(distribution))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_create_distribution(
         State(state): State<DistributionEntityRouter>,
+        scope: common::auth::AccessScope,
         input: Result<Json<NewDistributionDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.create_distribution(&input).await {
+        match state.service.create_distribution(&scope, &input).await {
             Ok(distribution) => (StatusCode::OK, Json(ToCamelCase(distribution))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_delete_distribution_by_id(
         State(state): State<DistributionEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
             Err(resp) => return resp.into_response(),
         };
-        match state.service.delete_distribution_by_id(&id_urn).await {
+        match state
+            .service
+            .delete_distribution_by_id(&scope, &id_urn)
+            .await
+        {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
 }

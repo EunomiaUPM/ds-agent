@@ -15,10 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::cache::cache_traits::redis_cache_connector_trait::RedisCacheConnectorTrait;
-use crate::cache::cache_traits::utils_trait::UtilsCacheTrait;
+use crate::cache::cache_traits::DESIRED_CACHE_TTL;
 use crate::CatalogDto;
 use async_trait::async_trait;
+use common::cache::{RedisCacheConnectorTrait, UtilsCacheTrait};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use urn::Urn;
@@ -35,6 +35,10 @@ impl CatalogCacheForRedis {
 
 impl UtilsCacheTrait for CatalogCacheForRedis {
     type Dto = CatalogDto;
+
+    fn key_namespace(&self) -> &str {
+        "ds_agent_catalogs"
+    }
 }
 impl RedisCacheConnectorTrait for CatalogCacheForRedis {
     type Dto = CatalogDto;
@@ -44,14 +48,17 @@ impl RedisCacheConnectorTrait for CatalogCacheForRedis {
     fn get_entity_name(&self) -> &str {
         "catalogs"
     }
+    fn cache_ttl(&self) -> i32 {
+        DESIRED_CACHE_TTL
+    }
 }
 
 #[cfg(test)]
 mod test_catalog_complete {
     use super::*;
-    use crate::cache::cache_traits::entity_cache_trait::EntityCacheTrait;
-    use crate::cache::cache_traits::utils_trait::UtilsCacheTrait;
     use crate::data::entities::catalog::Model;
+    use common::cache::EntityCacheTrait;
+    use common::cache::UtilsCacheTrait;
     use urn::UrnBuilder;
     use uuid::Uuid;
 
@@ -72,6 +79,7 @@ mod test_catalog_complete {
         let dto = CatalogDto {
             inner: Model {
                 id: id.to_string(),
+                tenant_id: "default".to_string(),
                 foaf_home_page: None,
                 dct_conforms_to: None,
                 dct_title: Some(title.to_string()),
@@ -87,19 +95,20 @@ mod test_catalog_complete {
     }
 
     #[tokio::test]
+    #[ignore = "Requires running Redis instance"]
     async fn test_main_pointer_flow() {
         let mut cache = setup().await;
         let (id, dto) = mock_catalog("Main Entry");
 
         // Debug keys
         dbg!(cache.format_key_name_with_id("catalogs", &id));
-        dbg!(cache.format_key_name_main("catalogs"));
+        dbg!(cache.format_key_name_main("catalogs", "tenant-1"));
 
         // Set main entry
-        cache.set_main(&id, &dto).await.unwrap();
+        cache.set_main("tenant-1", &id, &dto).await.unwrap();
 
         // Retrieve via main pointer
-        let result = cache.get_main().await.unwrap();
+        let result = cache.get_main("tenant-1").await.unwrap();
         dbg!(&result);
 
         assert!(result.is_some());
@@ -107,6 +116,7 @@ mod test_catalog_complete {
     }
 
     #[tokio::test]
+    #[ignore = "Requires running Redis instance"]
     async fn test_batch_hydration() {
         let mut cache = setup().await;
         let (id1, dto1) = mock_catalog("Batch 1");
@@ -127,8 +137,16 @@ mod test_catalog_complete {
     }
 
     #[tokio::test]
+    #[ignore = "Requires running Redis instance"]
     async fn test_collection_pagination() {
         let mut cache = setup().await;
+        let all_key = cache.format_key_name_all("catalogs");
+        let _: () = redis::cmd("DEL")
+            .arg(&all_key)
+            .query_async(&mut cache.redis_connection)
+            .await
+            .unwrap();
+
         let (id1, dto1) = mock_catalog("Oldest");
         let (id2, dto2) = mock_catalog("Newest");
 
@@ -151,6 +169,7 @@ mod test_catalog_complete {
     }
 
     #[tokio::test]
+    #[ignore = "Requires running Redis instance"]
     async fn test_deletion_integrity() {
         let mut cache = setup().await;
         let (id, dto) = mock_catalog("To Be Deleted");

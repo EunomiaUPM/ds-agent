@@ -8,11 +8,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use crate::services::{HasGateKeeper, HasRepo};
@@ -25,10 +25,12 @@ use ymir::types::verification::VerifyPayload;
 
 #[async_trait]
 pub trait VerifierModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync + 'static {
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn get_vpd(&self, state: String) -> Outcome<VPDef> {
         let verification = self.repo().recv_verification().get_by_state(&state).await?;
         self.verifier().generate_vpd(&verification)
     }
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn verify(
         &self,
         state: String,

@@ -73,8 +73,8 @@ export function DataPlaneTab({ dp, info }: DataPlaneTabProps) {
                         variant="info"
                         className={
                           dp.interactionMode === "PULL"
-                            ? "text-sky-300 border-sky-500/40"
-                            : "text-orange-300 border-orange-500/40"
+                            ? "text-sky-700 dark:text-sky-300 border-sky-500/40"
+                            : "text-orange-700 dark:text-orange-300 border-orange-500/40"
                         }
                       >
                         {dp.interactionMode}
@@ -147,7 +147,7 @@ export function DataPlaneTab({ dp, info }: DataPlaneTabProps) {
                         type: "custom",
                         content: info.ingress_url ? (
                           <div className="flex items-center gap-1 min-w-0">
-                            <span className="font-mono text-xs break-all text-sky-400">
+                            <span className="font-mono text-xs break-all text-sky-700 dark:text-sky-400">
                               {info.ingress_url}
                             </span>
                             <CopyButton text={info.ingress_url} />
@@ -175,7 +175,7 @@ export function DataPlaneTab({ dp, info }: DataPlaneTabProps) {
                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                       Ingress Config
                     </div>
-                    <div className="rounded-md border border-white/10 bg-muted/30 px-3 py-1">
+                    <div className="rounded-md border border-ink/10 bg-muted/30 px-3 py-1">
                       <ConfigGrid data={dp.ingressConfig as Record<string, unknown>} />
                     </div>
                   </div>
@@ -185,7 +185,7 @@ export function DataPlaneTab({ dp, info }: DataPlaneTabProps) {
                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                       Egress Config
                     </div>
-                    <div className="rounded-md border border-white/10 bg-muted/30 px-3 py-1">
+                    <div className="rounded-md border border-ink/10 bg-muted/30 px-3 py-1">
                       <ConfigGrid data={dp.egressConfig as Record<string, unknown>} />
                     </div>
                   </div>
@@ -195,7 +195,7 @@ export function DataPlaneTab({ dp, info }: DataPlaneTabProps) {
                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                       Flow Control
                     </div>
-                    <div className="rounded-md border border-white/10 bg-muted/30 px-3 py-1">
+                    <div className="rounded-md border border-ink/10 bg-muted/30 px-3 py-1">
                       <ConfigGrid data={dp.flowControl as Record<string, unknown>} />
                     </div>
                   </div>

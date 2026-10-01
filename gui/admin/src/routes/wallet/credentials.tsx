@@ -148,7 +148,7 @@ const WalletCredentials = () => {
       {/* Credentials List */}
       <PageSection title="Verifiable Credentials">
         {credentials.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border border-dashed border-white/10 rounded-2xl bg-white/2">
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border border-dashed border-ink/10 rounded-2xl bg-ink/2">
             <ShieldAlert className="h-12 w-12 opacity-10 mb-4" />
             <p className="text-sm font-medium">No credentials found in this wallet.</p>
             <p className="text-xs opacity-60">Your claimed credentials will appear here.</p>
@@ -190,10 +190,10 @@ const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => P
   return (
     <div
       className={cn(
-        "group relative overflow-hidden bg-white/[0.03] border border-white/10 rounded-2xl transition-all duration-300",
+        "group relative overflow-hidden bg-ink/[0.03] border border-ink/10 rounded-2xl transition-all duration-300",
         isExpanded
-          ? "border-primary/40 bg-white/[0.06] ring-1 ring-primary/20"
-          : "hover:border-white/20 hover:bg-white/[0.05]",
+          ? "border-primary/40 bg-ink/[0.06] ring-1 ring-primary/20"
+          : "hover:border-ink/20 hover:bg-ink/[0.05]",
       )}
     >
       {/* Card Header Area */}
@@ -207,7 +207,7 @@ const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => P
               "p-3 rounded-xl transition-colors duration-300",
               isExpanded
                 ? "bg-primary/20 text-primary"
-                : "bg-white/5 text-muted-foreground group-hover:bg-white/10",
+                : "bg-ink/5 text-muted-foreground group-hover:bg-ink/10",
             )}
           >
             <Fingerprint className="h-6 w-6" />
@@ -216,7 +216,7 @@ const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => P
             <div className="flex items-center gap-2">
               <h4 className="font-bold text-lg tracking-tight">{displayType}</h4>
               {types.length > 1 && (
-                <Badge variant="info" className="text-[10px] h-4 py-0 font-mono opacity-60">
+                <Badge variant="info" className="text-xs h-4 py-0 font-mono opacity-60">
                   +{types.length - 1} more
                 </Badge>
               )}
@@ -226,17 +226,17 @@ const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => P
                 <Building2 className="h-3.5 w-3.5 opacity-60" />
                 {issuerName}
               </span>
-              <span className="flex items-center gap-1.5 font-mono text-[11px] opacity-60">
+              <span className="flex items-center gap-1.5 font-mono text-xs opacity-60">
                 ID: {vc.id?.substring(0, 16)}...
               </span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between md:justify-end gap-6 border-t md:border-t-0 pt-4 md:pt-0 border-white/5">
+        <div className="flex items-center justify-between md:justify-end gap-6 border-t md:border-t-0 pt-4 md:pt-0 border-ink/5">
           <div className="flex items-center gap-4 text-xs text-muted-foreground/60">
             <div className="flex flex-col items-end">
-              <span className="uppercase text-[9px] font-bold tracking-widest opacity-40">
+              <span className="uppercase text-xs font-bold tracking-widest opacity-40">
                 Added
               </span>
               <span className="flex items-center gap-1 mt-0.5">
@@ -245,7 +245,7 @@ const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => P
               </span>
             </div>
             <div className="flex flex-col items-end">
-              <span className="uppercase text-[9px] font-bold tracking-widest opacity-40">
+              <span className="uppercase text-xs font-bold tracking-widest opacity-40">
                 Expires
               </span>
               <span className="flex items-center gap-1 mt-0.5">
@@ -264,13 +264,13 @@ const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => P
       <div
         className={cn(
           "grid transition-all duration-500 ease-in-out",
-          isExpanded ? "grid-rows-[1fr] border-t border-white/10" : "grid-rows-[0fr]",
+          isExpanded ? "grid-rows-[1fr] border-t border-ink/10" : "grid-rows-[0fr]",
         )}
       >
         <div className="overflow-hidden">
           <div className="p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-primary/60 flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-widest text-primary/60 flex items-center gap-2">
                 <FileJson className="h-3 w-3" />
                 Raw Credential Document
               </span>
@@ -278,7 +278,7 @@ const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => P
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 text-[10px] font-mono hover:bg-destructive/10 hover:text-destructive"
+                  className="h-7 text-xs font-mono hover:bg-destructive/10 hover:text-destructive"
                   onClick={handleDelete}
                   disabled={isDeleting}
                 >
@@ -292,7 +292,7 @@ const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => P
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 text-[10px] font-mono hover:bg-primary/10 hover:text-primary"
+                  className="h-7 text-xs font-mono hover:bg-primary/10 hover:text-primary"
                   onClick={(e) => {
                     e.stopPropagation();
                     navigator.clipboard.writeText(JSON.stringify(vc, null, 2));
@@ -302,7 +302,7 @@ const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => P
                 </Button>
               </div>
             </div>
-            <div className="relative rounded-xl bg-black/40 border border-white/5 p-4 font-mono text-[11px] leading-relaxed text-muted-foreground/90 overflow-x-auto shadow-inner">
+            <div className="relative rounded-xl bg-sunken/40 border border-ink/5 p-4 font-mono text-xs leading-relaxed text-muted-foreground/90 overflow-x-auto shadow-inner">
               <pre className="whitespace-pre-wrap break-all">{JSON.stringify(vc, null, 2)}</pre>
             </div>
           </div>
@@ -335,7 +335,7 @@ const ComplianceStepCard = ({
     step === 4
       ? "bg-green-500/10 border-green-500/20 shadow-lg"
       : step === 1
-        ? "bg-white/2 border-white/5 opacity-90"
+        ? "bg-ink/2 border-ink/5 opacity-90"
         : "bg-primary/5 border-primary/20 shadow-lg shadow-primary/5",
   );
 
@@ -347,11 +347,15 @@ const ComplianceStepCard = ({
             <ShieldCheck
               className={cn(
                 "h-5 w-5",
-                step === 4 ? "text-green-500" : step === 1 ? "text-muted-foreground" : "text-primary",
+                step === 4
+                  ? "text-green-500"
+                  : step === 1
+                    ? "text-muted-foreground"
+                    : "text-primary",
               )}
             />
             <h3 className="font-semibold text-lg">{stepTitle(step)}</h3>
-            <Badge variant="info" className="font-mono text-[10px]">
+            <Badge variant="info" className="font-mono text-xs">
               Step {step} of 4
             </Badge>
           </div>
@@ -404,11 +408,7 @@ const StepCta = ({
   }
   if (step === 2) {
     return (
-      <Button
-        disabled={isGenerating}
-        onClick={onGenerate}
-        className="md:min-w-[220px]"
-      >
+      <Button disabled={isGenerating} onClick={onGenerate} className="md:min-w-[220px]">
         {isGenerating ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -473,7 +473,12 @@ const Hint = ({ tone, text }: { tone: "amber" | "primary"; text: string }) => {
       ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
       : "bg-primary/10 border-primary/20 text-primary";
   return (
-    <div className={cn("mt-4 p-3 rounded-lg text-[10px] flex items-center gap-2 font-mono border", cls)}>
+    <div
+      className={cn(
+        "mt-4 p-3 rounded-lg text-xs flex items-center gap-2 font-mono border",
+        cls,
+      )}
+    >
       <ShieldAlert className="h-3 w-3" />
       {text}
     </div>
@@ -496,27 +501,25 @@ const StepTrail = ({ step }: { step: 1 | 2 | 3 | 4 }) => {
           <div key={it.n} className="flex items-center gap-2">
             <div
               className={cn(
-                "h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold border",
+                "h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold border",
                 done
                   ? "bg-green-500/20 border-green-500/40 text-green-500"
                   : current
                     ? "bg-primary/20 border-primary/40 text-primary"
-                    : "bg-white/5 border-white/10 text-muted-foreground",
+                    : "bg-ink/5 border-ink/10 text-muted-foreground",
               )}
             >
               {done ? <Check className="h-3 w-3" /> : it.n}
             </div>
             <span
               className={cn(
-                "text-[10px] uppercase tracking-widest",
+                "text-xs uppercase tracking-widest",
                 current ? "text-primary font-bold" : "text-muted-foreground",
               )}
             >
               {it.label}
             </span>
-            {idx < items.length - 1 && (
-              <div className="h-px w-6 bg-white/10" aria-hidden />
-            )}
+            {idx < items.length - 1 && <div className="h-px w-6 bg-ink/10" aria-hidden />}
           </div>
         );
       })}

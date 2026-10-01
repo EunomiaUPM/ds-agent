@@ -109,10 +109,9 @@ function ReceivedRequestDetails() {
   const { data: response, isLoading } = useQuery({
     queryKey: ["gate-received-details", requestId],
     queryFn: () =>
-      customInstance<DetailsResponse>(
-        `/gate/request/${encodeURIComponent(requestId)}/details`,
-        { method: "GET" },
-      ),
+      customInstance<DetailsResponse>(`/gate/request/${encodeURIComponent(requestId)}/details`, {
+        method: "GET",
+      }),
     enabled: !!requestId,
   });
 
@@ -228,7 +227,7 @@ function ReceivedRequestDetails() {
                       <div className="space-y-1">
                         <p className="text-sm font-medium text-muted-foreground">{event.title}</p>
                         {event.date && (
-                          <p className="text-[10px] text-muted-foreground/60 flex items-center gap-1 font-mono">
+                          <p className="text-xs text-muted-foreground/60 flex items-center gap-1 font-mono">
                             <Clock className="h-3 w-3" />
                             <FormatDate date={event.date} />
                           </p>
@@ -282,28 +281,30 @@ function ReceivedRequestDetails() {
                   <div className="flex flex-wrap gap-1">
                     {(interaction.start ?? []).map((s, idx) => (
                       <Badge key={idx} variant="role">
-                        {typeof s === "string" ? s : Object.keys(s ?? {})[0] ?? "?"}
+                        {typeof s === "string" ? s : (Object.keys(s ?? {})[0] ?? "?")}
                       </Badge>
                     ))}
                   </div>
                 </DetailItem>
                 <DetailItem label="Callback URI">
-                  <span className="font-mono text-[10px] break-all">{interaction.callback_uri}</span>
+                  <span className="font-mono text-xs break-all">
+                    {interaction.callback_uri}
+                  </span>
                 </DetailItem>
                 <DetailItem label="Continue Endpoint">
-                  <span className="font-mono text-[10px] break-all">
+                  <span className="font-mono text-xs break-all">
                     {interaction.continue_endpoint}
                   </span>
                 </DetailItem>
                 <DetailItem label="Hash Method">
-                  <span className="font-mono text-[10px]">
+                  <span className="font-mono text-xs">
                     {typeof interaction.hash_method === "string"
                       ? interaction.hash_method
-                      : Object.keys(interaction.hash_method ?? {})[0] ?? "—"}
+                      : (Object.keys(interaction.hash_method ?? {})[0] ?? "—")}
                   </span>
                 </DetailItem>
                 <DetailItem label="Continue Wait">
-                  <span className="font-mono text-[10px]">{interaction.continue_wait ?? "—"}</span>
+                  <span className="font-mono text-xs">{interaction.continue_wait ?? "—"}</span>
                 </DetailItem>
                 <DetailItem label="Interact Ref">
                   <SecretField value={interaction.interact_ref} />
@@ -354,11 +355,11 @@ function ReceivedRequestDetails() {
                   <SecretField value={verification.nonce} />
                 </DetailItem>
                 <DetailItem label="Audience">
-                  <span className="font-mono text-[10px] break-all">{verification.audience}</span>
+                  <span className="font-mono text-xs break-all">{verification.audience}</span>
                 </DetailItem>
                 <DetailItem label="Holder">
                   {verification.holder ? (
-                    <span className="font-mono text-[10px] break-all">{verification.holder}</span>
+                    <span className="font-mono text-xs break-all">{verification.holder}</span>
                   ) : (
                     <span className="text-xs text-muted-foreground">—</span>
                   )}
@@ -370,7 +371,7 @@ function ReceivedRequestDetails() {
                     <div className="flex flex-wrap gap-1">
                       {verification.vc_type.map((t, idx) => (
                         <Badge key={idx} variant="role">
-                          {typeof t === "string" ? t : Object.keys(t ?? {})[0] ?? "?"}
+                          {typeof t === "string" ? t : (Object.keys(t ?? {})[0] ?? "?")}
                         </Badge>
                       ))}
                     </div>
@@ -497,7 +498,7 @@ function ResourceReqCard({ resourceReq }: { resourceReq: ResourceReq | null }) {
           </DetailItem>
           <DetailItem label="Identifier">
             {resourceReq.identifier ? (
-              <span className="font-mono text-[10px] break-all">{resourceReq.identifier}</span>
+              <span className="font-mono text-xs break-all">{resourceReq.identifier}</span>
             ) : (
               <span className="text-xs text-muted-foreground">—</span>
             )}
@@ -528,7 +529,7 @@ function ResourceReqCard({ resourceReq }: { resourceReq: ResourceReq | null }) {
             ) : (
               <div className="flex flex-col gap-1">
                 {resourceReq.locations!.map((loc, idx) => (
-                  <span key={idx} className="font-mono text-[10px] break-all">
+                  <span key={idx} className="font-mono text-xs break-all">
                     {loc}
                   </span>
                 ))}
@@ -582,16 +583,16 @@ function ResourceReqCard({ resourceReq }: { resourceReq: ResourceReq | null }) {
 
 function SecretField({ value }: { value?: string | null }) {
   const [revealed, setRevealed] = useState(false);
-  if (!value) return <span className="font-mono text-[10px] text-muted-foreground">—</span>;
+  if (!value) return <span className="font-mono text-xs text-muted-foreground">—</span>;
   return (
     <div className="flex items-center gap-2">
-      <span className="font-mono text-[10px] break-all flex-1 select-all">
+      <span className="font-mono text-xs break-all flex-1 select-all">
         {revealed ? value : "•".repeat(Math.min(value.length, 24))}
       </span>
       <button
         type="button"
         onClick={() => setRevealed((v) => !v)}
-        className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-white/5"
+        className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-ink/5"
         aria-label={revealed ? "Hide value" : "Reveal value"}
         title={revealed ? "Hide" : "Reveal"}
       >
@@ -628,10 +629,10 @@ function RawDetails({ details }: { details: DetailsResponse["data"] | null }) {
   const [open, setOpen] = useState(false);
   if (!details) return null;
   return (
-    <div className="mt-6 border border-white/10 rounded-xl overflow-hidden bg-white/[0.02]">
+    <div className="mt-6 border border-ink/10 rounded-xl overflow-hidden bg-ink/[0.02]">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-3 text-xs font-mono uppercase tracking-widest text-muted-foreground hover:bg-white/[0.04] transition-colors"
+        className="w-full flex items-center justify-between p-3 text-xs font-mono uppercase tracking-widest text-muted-foreground hover:bg-ink/[0.04] transition-colors"
       >
         <span className="flex items-center gap-2">
           <FileJson className="h-3 w-3" />
@@ -640,11 +641,10 @@ function RawDetails({ details }: { details: DetailsResponse["data"] | null }) {
         <span>{open ? "−" : "+"}</span>
       </button>
       {open && (
-        <pre className="p-4 bg-black/40 font-mono text-[11px] text-muted-foreground/90 whitespace-pre-wrap break-all leading-relaxed overflow-x-auto">
+        <pre className="p-4 bg-sunken/40 font-mono text-xs text-muted-foreground/90 whitespace-pre-wrap break-all leading-relaxed overflow-x-auto">
           {JSON.stringify(details, null, 2)}
         </pre>
       )}
     </div>
   );
 }
-

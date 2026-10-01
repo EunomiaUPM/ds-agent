@@ -15,32 +15,40 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::connector_instance::{ConnectorInstanceTrait, ConnectorInstantiationDto};
+use crate::entities::connector_instance::{ConnectorInstanceDto, ConnectorInstantiationDto};
+use crate::entities::filters::ConnectorInstanceFilter;
+use crate::services::connector_instance::ConnectorInstanceServiceTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
+use common::auth::AccessScope;
+use common::query::QuerySpec;
 use std::sync::Arc;
 use ymir::errors::Errors;
 use ymir::utils::{extract_path_urn, extract_payload};
 
+pub use common::paginated_spec::PaginationParams;
+pub type ConnectorInstanceQuery = QuerySpec<ConnectorInstanceFilter>;
+
 #[derive(Clone)]
 pub struct ConnectorInstanceRouter {
-    service: Arc<dyn ConnectorInstanceTrait>,
+    service: Arc<dyn ConnectorInstanceServiceTrait>,
 }
 
-impl FromRef<ConnectorInstanceRouter> for Arc<dyn ConnectorInstanceTrait> {
+impl FromRef<ConnectorInstanceRouter> for Arc<dyn ConnectorInstanceServiceTrait> {
     fn from_ref(state: &ConnectorInstanceRouter) -> Self {
         state.service.clone()
     }
 }
 
 impl ConnectorInstanceRouter {
-    pub fn new(service: Arc<dyn ConnectorInstanceTrait>) -> Self {
+    pub fn new(service: Arc<dyn ConnectorInstanceServiceTrait>) -> Self {
         Self { service }
     }
+
     pub fn router(self) -> Router {
         Router::new()
             .route("/", post(Self::handle_upsert_instance))
@@ -55,26 +63,29 @@ impl ConnectorInstanceRouter {
 
     async fn handle_upsert_instance(
         State(state): State<ConnectorInstanceRouter>,
+        scope: AccessScope,
         input: Result<Json<ConnectorInstantiationDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let mut input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.upsert_instance(&mut input).await {
+        match state.service.upsert_instance(&scope, &mut input).await {
             Ok(instance) => (StatusCode::OK, Json(instance)).into_response(),
             Err(err) => err.into_response(),
         }
     }
+
     async fn handle_get_instance_by_id(
         State(state): State<ConnectorInstanceRouter>,
+        scope: AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id = match extract_path_urn(&id) {
             Ok(urn) => urn,
             Err(err) => return err.into_response(),
         };
-        match state.service.get_instance_by_id(&id).await {
+        match state.service.get_instance_by_id(&scope, &id).await {
             Ok(Some(instance)) => (StatusCode::OK, Json(instance)).into_response(),
             Ok(None) => {
                 let err = Errors::missing_resource("instance", "Instance not found", None);
@@ -83,15 +94,21 @@ impl ConnectorInstanceRouter {
             Err(err) => err.into_response(),
         }
     }
+
     async fn get_instance_by_distribution(
         State(state): State<ConnectorInstanceRouter>,
+        scope: AccessScope,
         Path(did): Path<String>,
     ) -> impl IntoResponse {
         let did = match extract_path_urn(&did) {
             Ok(urn) => urn,
             Err(err) => return err.into_response(),
         };
-        match state.service.get_instance_by_distribution(&did).await {
+        match state
+            .service
+            .get_instance_by_distribution(&scope, &did)
+            .await
+        {
             Ok(Some(instance)) => (StatusCode::OK, Json(instance)).into_response(),
             Ok(None) => {
                 let err = Errors::missing_resource("instance", "Instance not found", None);
@@ -100,15 +117,17 @@ impl ConnectorInstanceRouter {
             Err(err) => err.into_response(),
         }
     }
+
     async fn handle_delete_instance_by_id(
         State(state): State<ConnectorInstanceRouter>,
+        scope: AccessScope,
         Path(did): Path<String>,
     ) -> impl IntoResponse {
         let did = match extract_path_urn(&did) {
             Ok(urn) => urn,
             Err(err) => return err.into_response(),
         };
-        match state.service.delete_instance_by_id(&did).await {
+        match state.service.delete_instance_by_id(&scope, &did).await {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
             Err(err) => err.into_response(),
         }

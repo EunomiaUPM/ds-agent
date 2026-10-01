@@ -9,6 +9,8 @@ import {
 } from "shared/src/data/orval/keystore-parameters/keystore-parameters";
 import { KeystoreParameterView } from "shared/src/data/orval/model";
 import { PageSection } from "shared/src/components/layout/PageSection";
+import { DataTable } from "shared/src/components/DataTable";
+import { FormatDate } from "shared/src/components/ui/format-date";
 import { Skeleton } from "shared/src/components/ui/skeleton";
 import { Button } from "shared/src/components/ui/button";
 import { Badge } from "shared/src/components/ui/badge";
@@ -22,8 +24,7 @@ import {
   DialogFooter,
 } from "shared/src/components/ui/dialog";
 import { useState } from "react";
-import { cn } from "shared/src/lib/utils";
-import { ChevronDown, ChevronUp, Trash2, SlidersHorizontal, Pencil, Plus } from "lucide-react";
+import { Eye, Trash2, Pencil, Plus } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // New dialog
@@ -207,7 +208,7 @@ const EditParameterDialog = ({ param, open, onClose }: EditParameterDialogProps)
             />
           </div>
 
-          <p className="text-[11px] text-muted-foreground/60">
+          <p className="text-xs text-muted-foreground/60">
             Current version: {param.version} — will be incremented on save
           </p>
         </div>
@@ -227,118 +228,23 @@ const EditParameterDialog = ({ param, open, onClose }: EditParameterDialogProps)
 
 // ---------------------------------------------------------------------------
 // Row
+// Page
 // ---------------------------------------------------------------------------
 
-const ParameterRow = ({ param }: { param: KeystoreParameterView }) => {
+const KeystoreParameters = () => {
   const queryClient = useQueryClient();
-  const [expanded, setExpanded] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const { data: response, isLoading, error } = useListParameters();
+  const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<KeystoreParameterView | null>(null);
+  const [inspecting, setInspecting] = useState<KeystoreParameterView | null>(null);
 
-  const { mutate: del, isPending: isDeleting } = useDeleteParameter({
+  const { mutate: del } = useDeleteParameter({
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListParametersQueryKey() });
       },
     },
   });
-
-  const valueStr = JSON.stringify(param.value, null, 2);
-
-  return (
-    <>
-      <div className="bg-white/[0.03] border border-white/10 rounded-xl overflow-hidden">
-        <div
-          className="flex items-start justify-between gap-4 p-4 cursor-pointer select-none"
-          onClick={() => setExpanded((v) => !v)}
-        >
-          <div className="flex items-start gap-3 min-w-0">
-            <SlidersHorizontal className="h-4 w-4 mt-0.5 text-primary/70 shrink-0" />
-            <div className="min-w-0 space-y-1">
-              <p className="font-mono text-sm text-foreground/90 truncate">{param.key}</p>
-              {param.description && (
-                <p className="text-xs text-muted-foreground">{param.description}</p>
-              )}
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="info" className="text-[10px] h-4 px-1.5">
-                  v{param.version}
-                </Badge>
-                <span className="text-[10px] text-muted-foreground/60">
-                  {new Date(param.updatedAt).toLocaleString()}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1 shrink-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={(e) => {
-                e.stopPropagation();
-                setExpanded((v) => !v);
-              }}
-            >
-              {expanded ? (
-                <ChevronUp className="h-3.5 w-3.5" />
-              ) : (
-                <ChevronDown className="h-3.5 w-3.5" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground"
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditing(true);
-              }}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-destructive/70 hover:text-destructive"
-              isLoading={isDeleting}
-              onClick={(e) => {
-                e.stopPropagation();
-                del({ key: param.key.replace(/^\//, "") });
-              }}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
-
-        <div
-          className={cn(
-            "grid transition-all duration-200 ease-in-out",
-            expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-          )}
-        >
-          <div className="overflow-hidden">
-            <pre className="px-4 pb-4 text-xs font-mono text-muted-foreground/80 bg-black/20 whitespace-pre-wrap break-all">
-              {valueStr}
-            </pre>
-          </div>
-        </div>
-      </div>
-
-      {editing && (
-        <EditParameterDialog param={param} open={editing} onClose={() => setEditing(false)} />
-      )}
-    </>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
-
-const KeystoreParameters = () => {
-  const { data: response, isLoading, error } = useListParameters();
-  const [creating, setCreating] = useState(false);
 
   if (isLoading) {
     return (
@@ -365,7 +271,7 @@ const KeystoreParameters = () => {
   return (
     <>
       <PageSection
-        title={`Parameters (${params.length})`}
+        title="Parameters"
         action={
           <Button size="sm" onClick={() => setCreating(true)}>
             <Plus className="h-3.5 w-3.5 mr-1" />
@@ -373,21 +279,109 @@ const KeystoreParameters = () => {
           </Button>
         }
       >
-        {params.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[200px] border border-dashed border-white/10 rounded-xl bg-white/5 p-8">
-            <SlidersHorizontal className="h-8 w-8 text-muted-foreground/40 mb-3" />
-            <p className="text-muted-foreground text-sm">No parameters yet</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {params.map((p) => (
-              <ParameterRow key={p.key} param={p} />
-            ))}
-          </div>
-        )}
+        <DataTable
+          className="text-sm"
+          data={params}
+          keyExtractor={(p) => p.key}
+          searchPlaceholder="Filter parameters by key or description..."
+          emptyMessage="No parameters yet"
+          defaultSortKey="key"
+          defaultSortDirection="asc"
+          pageSize={10}
+          columns={[
+            {
+              header: "Key",
+              accessorKey: "key",
+              cell: (p) => <span className="font-mono text-xs">{p.key}</span>,
+            },
+            {
+              header: "Description",
+              accessorKey: "description",
+              cell: (p) =>
+                p.description ? (
+                  <span className="text-xs text-muted-foreground block max-w-[280px] truncate">
+                    {p.description}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground/50">—</span>
+                ),
+            },
+            {
+              header: "Version",
+              accessorKey: "version",
+              cell: (p) => <Badge variant="info">v{p.version}</Badge>,
+            },
+            {
+              header: "Value",
+              sortable: false,
+              searchValue: (p) => JSON.stringify(p.value),
+              cell: (p) => (
+                <span className="font-mono text-xs text-muted-foreground block max-w-[260px] truncate">
+                  {JSON.stringify(p.value)}
+                </span>
+              ),
+            },
+            {
+              header: "Updated at",
+              accessorKey: "updatedAt",
+              sortValue: (p) => new Date(p.updatedAt).getTime(),
+              cell: (p) => <FormatDate date={p.updatedAt} />,
+            },
+            {
+              header: "Actions",
+              sortable: false,
+              searchable: false,
+              cell: (p) => (
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setInspecting(p)}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                    onClick={() => setEditing(p)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => del({ key: p.key.replace(/^\//, "") })}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ),
+            },
+          ]}
+        />
       </PageSection>
 
       {creating && <NewParameterDialog open={creating} onClose={() => setCreating(false)} />}
+      {editing && (
+        <EditParameterDialog param={editing} open={!!editing} onClose={() => setEditing(null)} />
+      )}
+
+      <Dialog open={!!inspecting} onOpenChange={() => setInspecting(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="font-mono text-sm">{inspecting?.key}</DialogTitle>
+          </DialogHeader>
+          <pre className="flex-1 overflow-y-auto rounded bg-muted/40 p-4 text-xs font-mono whitespace-pre-wrap break-all">
+            {JSON.stringify(inspecting?.value, null, 2)}
+          </pre>
+          <DialogFooter>
+            <Button onClick={() => setInspecting(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

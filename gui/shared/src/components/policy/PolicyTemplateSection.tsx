@@ -129,7 +129,7 @@ export const PolicyTemplateSection: React.FC<PolicyTemplateSectionProps> = ({
             </SelectTrigger>
             <SelectContent>
               {selectOptions?.map((opt: any) => (
-                <SelectItem className="text-white/70 min-w-fit" key={opt.value} value={opt.value}>
+                <SelectItem className="text-ink/70 min-w-fit" key={opt.value} value={opt.value}>
                   {/* Display localized label if available, fallback to value */}
                   {opt.label?.find((l: any) => l["@language"] === "en")?.["@value"]}
                   {opt.value}
@@ -165,7 +165,7 @@ export const PolicyTemplateSection: React.FC<PolicyTemplateSectionProps> = ({
       <AccordionItem value="item-1" className={currentStyle.accordionItem}>
         {/* Section Header */}
         <AccordionTrigger
-          className={`text-white/70 flex ${currentStyle.trigger} uppercase overflow-hidden rounded-md data-[state=open]:rounded-b-none`}
+          className={`text-ink/70 flex ${currentStyle.trigger} uppercase overflow-hidden rounded-md data-[state=open]:rounded-b-none`}
         >
           <div className="flex items-center w-full">
             <p className="text-current">{type}</p>
@@ -179,7 +179,7 @@ export const PolicyTemplateSection: React.FC<PolicyTemplateSectionProps> = ({
 
           {/* Policy items from template */}
           {(items || []).map((item, i) => (
-            <div key={i} className="border-b border-white/20 last:border-0 first:mt-0 mt-3">
+            <div key={i} className="border-b border-ink/20 last:border-0 first:mt-0 mt-3">
               <div className="policy-item-template">
                 {/* Action display (read-only) */}
                 <div className="flex gap-3">

@@ -1,5 +1,6 @@
 import { Apple, Archive, ChartBarIncreasing } from "lucide-react";
 import logoImg from "./../img/eunomia_logo_lg_light.svg";
+import logoImgDark from "./../img/eunomia_logo_lg_dark.svg";
 import React, { useContext } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
@@ -13,6 +14,7 @@ import {
 } from "./ui/sidebar";
 
 import { AuthContext, AuthContextType } from "shared/src/context/AuthContext";
+import { useTheme } from "shared/src/hooks/useTheme";
 
 const businessItems = [
   {
@@ -49,6 +51,7 @@ const customerItems = [
  */
 export function AppSidebarBusiness() {
   const routerState = useRouterState();
+  const { resolvedTheme } = useTheme();
   const { participant } = useContext<AuthContextType | null>(AuthContext)!;
 
   return (
@@ -56,7 +59,7 @@ export function AppSidebarBusiness() {
       <SidebarContent>
         <SidebarGroup>
           <img
-            src={logoImg}
+            src={resolvedTheme === "dark" ? logoImg : logoImgDark}
             className="h-11 mt-2 mb-4 mr-auto ml-1 flex justify-start object-contain"
           ></img>
 
@@ -69,7 +72,7 @@ export function AppSidebarBusiness() {
                       <Link
                         to={item.url}
                         className={
-                          routerState.location.pathname === item.url ? "bg-white/10 text-white" : ""
+                          routerState.location.pathname === item.url ? "bg-ink/10 text-ink" : ""
                         }
                       >
                         <item.icon />
@@ -85,7 +88,7 @@ export function AppSidebarBusiness() {
                       <Link
                         to={item.url}
                         className={
-                          routerState.location.pathname === item.url ? "bg-white/10 text-white" : ""
+                          routerState.location.pathname === item.url ? "bg-ink/10 text-ink" : ""
                         }
                       >
                         <item.icon />

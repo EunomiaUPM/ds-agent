@@ -1,32 +1,30 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::protocol::persistence::OrchestrationPersistenceForProtocol;
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageTrait, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
-use ymir::data::entities::shared::participant::Model as Mates;
+use crate::services::negotiation_process::views::NegotiationProcessView;
 use std::sync::Arc;
+use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
-// ─── Contexts ─────────────────────────────────────────────────────────────────
+// Contexts ─────────────────────────────────────────────────────────────────
 
 /// Context for steps that create a new negotiation process (initial request and
 /// initial offer).
@@ -47,7 +45,7 @@ pub(super) struct NegotiationContinuationContext {
     pub id: String,
 }
 
-// ─── Lifecycle step template ──────────────────────────────────────────────────
+// Lifecycle step template ──────────────────────────────────────────────────
 
 /// Template trait for a single inbound DSP negotiation protocol lifecycle step.
 ///
@@ -58,8 +56,8 @@ pub(super) struct NegotiationContinuationContext {
 /// [`ProtocolOrchestratorService::run_lifecycle`]:
 ///
 /// 1. **`validate`**        – reject malformed or out-of-sequence input
-/// 2. **`prepare_context`** – resolve routing info; may return an early ack
-///                            (idempotency hook for future use)
+/// 2. **`prepare_context`** – resolve routing info; may return an early ack (idempotency hook for
+///    future use)
 /// 3. **`persist`**         – record the state transition in the database
 ///
 /// Unlike the transfer agent's [`ProtocolStep`], there is no `post_hook` because
@@ -114,24 +112,26 @@ pub(super) trait NegotiationProtocolStep: Send + Sync + 'static {
         ctx: &Self::Context,
         input: &NegotiationProcessMessageWrapper<Self::Dto>,
         mate: &Mates,
-    ) -> Outcome<NegotiationProcessDto>;
+    ) -> Outcome<NegotiationProcessView>;
 }
 
-// ─── Shared helpers for continuation steps ────────────────────────────────────
+// Shared helpers for continuation steps ────────────────────────────────────
 
-/// Build the continuation context by verifying the process identified by `id` exists.
+/// Build the continuation context by verifying the process identified by `id` exists and
+/// belongs to the calling peer.
 ///
 /// Called by all six continuation steps from their `prepare_context`
 /// implementations.  If the process is not found the error propagates and
 /// terminates the request before any state mutation occurs.
 pub(super) async fn continuation_prepare_context(
     id: &str,
+    mate: &Mates,
     persistence: &Arc<OrchestrationPersistenceForProtocol>,
 ) -> Outcome<(
     NegotiationContinuationContext,
     Option<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>,
 )> {
-    // Eagerly verify existence; propagate the error if the process is not found.
-    persistence.fetch_process(id).await?;
+    // Fails as "not found" unless the process exists and `mate` is its counterparty.
+    persistence.fetch_process(id, mate).await?;
     Ok((NegotiationContinuationContext { id: id.to_string() }, None))
 }

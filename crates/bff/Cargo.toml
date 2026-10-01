@@ -1,6 +1,6 @@
 [package]
 name = "bff"
-version = "0.3.8"
+version = "0.4.0"
 edition = "2021"
 
 [lib]
@@ -12,25 +12,22 @@ name = "bff"
 path = "src/main.rs"
 
 [dependencies]
-common = { version = "0.3.8", path = "../common", default-features = false }
+common = { version = "0.4.0", path = "../common", default-features = false }
+oauth = { version = "0.4.0", path = "../oauth", default-features = false }
 
 serde_json = { workspace = true }
-clap = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 axum = { workspace = true }
-reqwest = { workspace = true }
 futures-util = { workspace = true }
 http-body-util = { workspace = true }
-bytes = { workspace = true }
-http-body = { workspace = true }
 tower-http = { workspace = true }
-fs_extra = { workspace = true }
+sea-orm = { workspace = true }
+sea-orm-migration = { workspace = true }
 mime_guess = { workspace = true }
 rust-embed = { workspace = true }
 ymir = { workspace = true }
 tokio-util = { workspace = true }
 uuid = { workspace = true }
 async-trait = { workspace = true }
-json_to_table = { workspace = true }

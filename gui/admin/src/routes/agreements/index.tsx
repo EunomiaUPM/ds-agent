@@ -1,16 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { formatUrn, formatIdentifier } from "shared/src/lib/utils";
+import { formatIdentifier } from "shared/src/lib/utils";
 import { useGetAgreements } from "shared/src/data/orval/negotiations/negotiations";
 import { DataTable } from "shared/src/components/DataTable";
 import { FormatDate } from "shared/src/components/ui/format-date";
-import { Button } from "shared/src/components/ui/button.tsx";
-import { Badge } from "shared/src/components/ui/badge.tsx";
-import { Input } from "shared/src/components/ui/input.tsx";
+import { Button } from "shared/src/components/ui/button";
+import { Badge } from "shared/src/components/ui/badge";
 import { ArrowRight } from "lucide-react";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { AgreementActions } from "shared/src/components/actions/AgreementActions";
+import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
+
+import { keepPreviousData } from "@tanstack/react-query";
 
 /**
  * Route for listing all agreements.
@@ -20,7 +22,20 @@ export const Route = createFileRoute("/agreements/")({
 });
 
 function RouteComponent() {
-  const { data: response } = useGetAgreements();
+  const { params: queryParams, apiParams, onQueryChange } = useTableQueryParams({
+    defaultLimit: 10,
+    defaultSort: "created_at_desc",
+  });
+
+  const { data: response, isFetching } = useGetAgreements({
+    query: {
+      queryKey: ["/negotiations/agreements", apiParams],
+      placeholderData: keepPreviousData,
+    },
+    request: {
+      params: apiParams,
+    },
+  });
   const agreements = response?.status === 200 ? response.data : [];
 
   return (
@@ -30,43 +45,73 @@ function RouteComponent() {
         <DataTable
           className="text-sm"
           data={agreements ?? []}
+          serverSide={true}
+          loading={isFetching}
+          queryParams={queryParams}
+          onQueryChange={onQueryChange}
           keyExtractor={(a) => a.id}
+          searchPlaceholder="Filter agreements by ID, participant, or state..."
+          filters={[
+            {
+              id: "state",
+              label: "Status",
+              options: [
+                { label: "All Statuses", value: "all" },
+                { label: "Finalized", value: "FINALIZED" },
+                { label: "Active", value: "ACTIVE" },
+                { label: "Terminated", value: "TERMINATED" },
+              ],
+            },
+          ]}
           columns={[
             {
               header: "Provider",
+              accessorKey: "providerParticipantId" as any,
+              sortValue: (a: any) => a.providerParticipantId,
               cell: (a: any) => (
                 <p className="capitalize">{formatIdentifier(a.providerParticipantId, 3)}</p>
               ),
             },
             {
               header: "Consumer",
+              accessorKey: "consumerParticipantId" as any,
+              sortValue: (a: any) => a.consumerParticipantId,
               cell: (a: any) => (
                 <p className="capitalize">{formatIdentifier(a.consumerParticipantId, 3)}</p>
               ),
             },
             {
               header: "Agreement Id",
-              cell: (a) => <Badge variant={"info"}>{formatIdentifier(a.id)}</Badge>,
+              accessorKey: "id" as any,
+              cell: (a: any) => <Badge variant="info">{formatIdentifier(a.id)}</Badge>,
             },
             {
               header: "Status",
-              cell: (a) => (
-                <Badge variant={"status"} state={a.state ? "ACTIVE" : "PAUSE"}>
+              accessorKey: "state" as any,
+              cell: (a: any) => (
+                <Badge variant="status" state={a.state ? "ACTIVE" : "PAUSE"}>
                   {a.state}
                 </Badge>
               ),
             },
             {
               header: "Created at",
-              cell: (a) => <FormatDate date={a.createdAt} />,
+              accessorKey: "createdAt" as any,
+              sortKey: "created_at",
+              sortValue: (a: any) => new Date(a.createdAt).getTime(),
+              cell: (a: any) => <FormatDate date={a.createdAt} />,
             },
             {
               header: "Actions",
-              cell: (p) => <AgreementActions process={p} tiny={true} />,
+              sortable: false,
+              searchable: false,
+              cell: (p: any) => <AgreementActions process={p} tiny={true} />,
             },
             {
               header: "Link",
-              cell: (a) => (
+              sortable: false,
+              searchable: false,
+              cell: (a: any) => (
                 <Link to="/agreements/$agreementId" params={{ agreementId: a.id }}>
                   <Button variant="link">
                     See details

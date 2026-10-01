@@ -62,7 +62,7 @@ export function PageSection({ title, action, className, children, ...props }: Pa
         {title && (
           <Heading
             level="h6"
-            className="mt-2 text-white/80 uppercase tracking-wide text-xs font-semibold"
+            className="mt-2 text-ink/80 uppercase tracking-wide text-xs font-semibold"
           >
             {title}
           </Heading>

@@ -17,6 +17,7 @@
 
 use std::fmt::{Display, Formatter};
 
+use crate::dsp_common::well_known_types::DSPProtocolVersions;
 use serde::{Deserialize, Serialize};
 use ymir::errors::{BadFormat, Errors, Outcome};
 
@@ -56,6 +57,33 @@ impl ContextField {
 impl Display for ContextField {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str(CONTEXT)
+    }
+}
+
+/// The protocol version a `@context` URL implies (DSP 4.3).
+///
+/// The endpoint version and the vocabulary version are formally different things
+/// — the first comes from the mount path, the second from `@context` — but a
+/// conformant peer uses the context of the version it is speaking, so this is a
+/// sound derivation and a great deal better than a constant.
+pub fn version_from_context_url(url: &str) -> Option<DSPProtocolVersions> {
+    match url {
+        "https://w3id.org/dspace/2024/1/context.json" => Some(DSPProtocolVersions::V2024_1),
+        "https://w3id.org/dspace/2025/1/context.jsonld" => Some(DSPProtocolVersions::V2025_1),
+        _ => None,
+    }
+}
+
+/// The version implied by a message's `@context`, whatever shape it takes: a bare
+/// string, or an array where the DSP context sits among profile contexts.
+pub fn version_from_payload(payload: &serde_json::Value) -> Option<DSPProtocolVersions> {
+    match payload.get("@context")? {
+        serde_json::Value::String(s) => version_from_context_url(s),
+        serde_json::Value::Array(items) => items
+            .iter()
+            .filter_map(serde_json::Value::as_str)
+            .find_map(version_from_context_url),
+        _ => None,
     }
 }
 

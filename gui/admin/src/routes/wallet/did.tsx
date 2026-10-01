@@ -5,8 +5,17 @@ import { PageSection } from "shared/src/components/layout/PageSection";
 import { Skeleton } from "shared/src/components/ui/skeleton";
 import { Button } from "shared/src/components/ui/button";
 import { Badge } from "shared/src/components/ui/badge";
+import { DataTable } from "shared/src/components/DataTable";
 import { Input } from "shared/src/components/ui/input";
+import { Checkbox } from "shared/src/components/ui/checkbox";
 import { Label } from "shared/src/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "shared/src/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -117,12 +126,9 @@ const WalletDIDPage = () => {
 
   return (
     <div className="space-y-8 pb-20">
-      <PageSection
-        title="DIDs"
-        action={<NewDidDialog onCreated={invalidate} />}
-      >
+      <PageSection title="DIDs" action={<NewDidDialog onCreated={invalidate} />}>
         {dids.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border border-dashed border-white/10 rounded-2xl bg-white/2">
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border border-dashed border-ink/10 rounded-2xl bg-ink/2">
             <Key className="h-12 w-12 opacity-10 mb-4" />
             <p className="text-sm font-medium">No DIDs registered yet.</p>
           </div>
@@ -133,9 +139,7 @@ const WalletDIDPage = () => {
                 key={d.did}
                 did={d}
                 onSetDefault={() => setDefaultDid.mutate(d.id)}
-                isSettingDefault={
-                  setDefaultDid.isPending && setDefaultDid.variables === d.id
-                }
+                isSettingDefault={setDefaultDid.isPending && setDefaultDid.variables === d.id}
                 onChanged={invalidate}
               />
             ))}
@@ -165,10 +169,9 @@ const DidPanel = ({
 
   const addKey = useMutation({
     mutationFn: (keyId: string) =>
-      customInstance(
-        `/wallet/did/${encodeURIComponent(did.id)}/key/${encodeURIComponent(keyId)}`,
-        { method: "POST" },
-      ),
+      customInstance(`/wallet/did/${encodeURIComponent(did.id)}/key/${encodeURIComponent(keyId)}`, {
+        method: "POST",
+      }),
     onSuccess: async () => {
       toast.success("Key added to DID");
       setNewKeyId("");
@@ -179,10 +182,9 @@ const DidPanel = ({
 
   const removeKey = useMutation({
     mutationFn: (keyId: string) =>
-      customInstance(
-        `/wallet/did/${encodeURIComponent(did.id)}/key/${encodeURIComponent(keyId)}`,
-        { method: "DELETE" },
-      ),
+      customInstance(`/wallet/did/${encodeURIComponent(did.id)}/key/${encodeURIComponent(keyId)}`, {
+        method: "DELETE",
+      }),
     onSuccess: async () => {
       toast.success("Key removed from DID");
       await onChanged();
@@ -223,7 +225,7 @@ const DidPanel = ({
   };
 
   return (
-    <div className="group border border-white/10 rounded-xl overflow-hidden bg-white/[0.02] transition-all hover:bg-white/[0.04]">
+    <div className="group border border-ink/10 rounded-xl overflow-hidden bg-ink/[0.02] transition-all hover:bg-ink/[0.04]">
       <div className="w-full flex items-center justify-between p-4 gap-3">
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -239,7 +241,7 @@ const DidPanel = ({
           </div>
           <span className="text-sm font-semibold">{did.alias}</span>
           {did.default && <Badge variant="default">PRIMARY</Badge>}
-          <Badge variant="info" className="font-mono text-[10px]">
+          <Badge variant="info" className="font-mono text-xs">
             {did.type}
           </Badge>
           <span
@@ -252,12 +254,7 @@ const DidPanel = ({
 
         <div className="flex items-center gap-2 shrink-0">
           {!did.default && (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={isSettingDefault}
-              onClick={onSetDefault}
-            >
+            <Button size="sm" variant="outline" disabled={isSettingDefault} onClick={onSetDefault}>
               {isSettingDefault ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
@@ -271,11 +268,7 @@ const DidPanel = ({
             variant="ghost"
             disabled={did.default || deleteDid.isPending}
             onClick={() => deleteDid.mutate()}
-            title={
-              did.default
-                ? "Cannot delete the active default DID"
-                : "Delete this DID"
-            }
+            title={did.default ? "Cannot delete the active default DID" : "Delete this DID"}
           >
             {deleteDid.isPending ? (
               <Loader2 className="h-3 w-3 animate-spin" />
@@ -296,31 +289,48 @@ const DidPanel = ({
                 Attached Keys
               </h5>
             </div>
-            <div className="space-y-2">
-              {did.keys.map((k) => {
-                const isDefault = k.internal === did.default_key?.internal;
-                return (
-                  <div
-                    key={`${k.internal}-${k.fragment}`}
-                    className="flex items-center justify-between gap-3 bg-white/5 rounded-lg p-3 border border-white/5"
-                  >
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="font-mono text-xs text-foreground/80 truncate">
-                        #{k.fragment}
-                      </div>
-                      <div className="font-mono text-[10px] text-muted-foreground truncate">
-                        {k.internal}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {isDefault ? (
-                        <Badge variant="default" className="text-[10px]">
-                          DEFAULT
-                        </Badge>
-                      ) : (
+            <DataTable
+              className="text-sm"
+              data={did.keys}
+              keyExtractor={(k) => `${k.internal}-${k.fragment}`}
+              hideToolbar
+              columns={[
+                {
+                  header: "Fragment",
+                  accessorKey: "fragment",
+                  cell: (k) => <span className="font-mono text-xs">#{k.fragment}</span>,
+                },
+                {
+                  header: "Internal id",
+                  accessorKey: "internal",
+                  cell: (k) => (
+                    <span className="font-mono text-xs text-muted-foreground block max-w-[280px] truncate">
+                      {k.internal}
+                    </span>
+                  ),
+                },
+                {
+                  header: "Default",
+                  sortValue: (k) => k.internal === did.default_key?.internal,
+                  searchable: false,
+                  cell: (k) =>
+                    k.internal === did.default_key?.internal ? (
+                      <Badge variant="success">Default</Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground/50">—</span>
+                    ),
+                },
+                {
+                  header: "Actions",
+                  sortable: false,
+                  searchable: false,
+                  cell: (k) => (
+                    <div className="flex items-center gap-1">
+                      {k.internal !== did.default_key?.internal && (
                         <Button
-                          size="sm"
+                          size="icon"
                           variant="ghost"
+                          className="h-7 w-7"
                           disabled={!isWeb || setDefaultKey.isPending}
                           onClick={() => setDefaultKey.mutate(k.internal)}
                           title={
@@ -333,8 +343,9 @@ const DidPanel = ({
                         </Button>
                       )}
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="ghost"
+                        className="h-7 w-7"
                         disabled={!isWeb || did.keys.length === 1 || removeKey.isPending}
                         onClick={() => removeKey.mutate(k.internal)}
                         title={
@@ -348,10 +359,10 @@ const DidPanel = ({
                         <Trash2 className="h-3 w-3 text-destructive" />
                       </Button>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  ),
+                },
+              ]}
+            />
 
             {isWeb ? (
               <KeyPicker
@@ -363,7 +374,7 @@ const DidPanel = ({
                 isSubmitting={addKey.isPending}
               />
             ) : (
-              <p className="mt-3 text-[10px] text-muted-foreground italic">
+              <p className="mt-3 text-xs text-muted-foreground italic">
                 did:jwk DIDs hold a single key bound to their identifier. Create a new DID instead.
               </p>
             )}
@@ -371,15 +382,15 @@ const DidPanel = ({
 
           {/* ===== Raw document ============================================================== */}
           <div>
-            <div className="bg-black/40 rounded-xl border border-white/5 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-white/[0.02]">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-primary/60 flex items-center gap-2">
+            <div className="bg-sunken/40 rounded-xl border border-ink/5 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-ink/5 bg-ink/[0.02]">
+                <span className="text-xs font-bold uppercase tracking-widest text-primary/60 flex items-center gap-2">
                   <FileJson className="h-3 w-3" />
                   DID Document
                 </span>
                 <button
                   onClick={handleCopy}
-                  className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground hover:text-primary transition-colors"
+                  className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground hover:text-primary transition-colors"
                 >
                   {copied ? (
                     <Check className="h-3 w-3 text-green-500" />
@@ -390,7 +401,7 @@ const DidPanel = ({
                 </button>
               </div>
               <div className="p-4 overflow-x-auto">
-                <pre className="font-mono text-[11px] text-muted-foreground/90 whitespace-pre-wrap break-all leading-relaxed">
+                <pre className="font-mono text-xs text-muted-foreground/90 whitespace-pre-wrap break-all leading-relaxed">
                   {formattedDoc}
                 </pre>
               </div>
@@ -427,22 +438,26 @@ const KeyPicker = ({
 
   return (
     <div className="mt-4 space-y-2">
-      <Label className="text-[10px] uppercase tracking-widest text-muted-foreground/70">
+      <Label className="text-xs uppercase tracking-widest text-muted-foreground/70">
         Attach existing key
       </Label>
       <div className="flex items-center gap-2">
-        <select
-          className="flex-1 bg-black/30 border border-white/10 rounded px-3 py-2 text-xs font-mono text-foreground"
+        <Select
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onValueChange={onChange}
+          disabled={disabled || candidates.length === 0}
         >
-          <option value="">— Choose a key —</option>
-          {candidates.map((k) => (
-            <option key={k.id} value={k.id}>
-              {k.alias ? `${k.alias} (${k.id})` : k.id}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="flex-1 font-mono text-xs">
+            <SelectValue placeholder="— Choose a key —" />
+          </SelectTrigger>
+          <SelectContent>
+            {candidates.map((k) => (
+              <SelectItem key={k.id} value={k.id} className="font-mono text-xs">
+                {k.alias ? `${k.alias} (${k.id})` : k.id}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button size="sm" disabled={!value || disabled} onClick={onSubmit}>
           {isSubmitting ? (
             <Loader2 className="h-3 w-3 animate-spin" />
@@ -453,7 +468,7 @@ const KeyPicker = ({
         </Button>
       </div>
       {candidates.length === 0 && (
-        <p className="text-[10px] text-muted-foreground italic">
+        <p className="text-xs text-muted-foreground italic">
           No spare keys available. Create one from the Keys tab.
         </p>
       )}
@@ -473,11 +488,7 @@ interface DidServiceInput {
   serviceEndpoint: string;
 }
 
-const SERVICE_TYPES = [
-  "AuthorizationServer",
-  "CredentialIssuer",
-  "FederatedCatalog",
-] as const;
+const SERVICE_TYPES = ["AuthorizationServer", "CredentialIssuer", "FederatedCatalog"] as const;
 
 type DidKind = "jwk" | "web";
 
@@ -550,16 +561,12 @@ const NewDidDialog = ({ onCreated }: { onCreated: () => Promise<void> }) => {
     if (kind === "jwk") {
       setKeysId([id]); // jwk binds to a single key
     } else {
-      setKeysId((curr) =>
-        curr.includes(id) ? curr.filter((k) => k !== id) : [...curr, id],
-      );
+      setKeysId((curr) => (curr.includes(id) ? curr.filter((k) => k !== id) : [...curr, id]));
     }
   };
 
-  const addService = () =>
-    setServices((s) => [...s, { type: "", serviceEndpoint: "" }]);
-  const removeService = (idx: number) =>
-    setServices((s) => s.filter((_, i) => i !== idx));
+  const addService = () => setServices((s) => [...s, { type: "", serviceEndpoint: "" }]);
+  const removeService = (idx: number) => setServices((s) => s.filter((_, i) => i !== idx));
   const patchService = (idx: number, patch: Partial<DidServiceInput>) =>
     setServices((s) => s.map((v, i) => (i === idx ? { ...v, ...patch } : v)));
 
@@ -608,7 +615,7 @@ const NewDidDialog = ({ onCreated }: { onCreated: () => Promise<void> }) => {
                 did:web
               </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground italic">
+            <p className="text-xs text-muted-foreground italic">
               {kind === "jwk"
                 ? "did:jwk derives the identifier from a single key's public material."
                 : "did:web is hosted at the given URL; you can bind multiple keys."}
@@ -662,26 +669,32 @@ const NewDidDialog = ({ onCreated }: { onCreated: () => Promise<void> }) => {
               {kind === "jwk" ? "Bind key (single)" : "Attach keys (one or more)"}
             </Label>
             {allKeys.length === 0 ? (
-              <p className="text-[10px] text-muted-foreground italic">
+              <p className="text-xs text-muted-foreground italic">
                 No keys available. Create one from the Keys tab.
               </p>
             ) : (
-              <div className="space-y-1 max-h-40 overflow-y-auto border border-white/10 rounded-lg p-2">
+              <div className="space-y-1 max-h-40 overflow-y-auto border border-ink/10 rounded-lg p-2">
                 {allKeys.map((k) => (
                   <label
                     key={k.id}
-                    className="flex items-center gap-2 p-1 text-xs cursor-pointer hover:bg-white/5 rounded"
+                    className="flex items-center gap-2 p-1 text-xs cursor-pointer hover:bg-ink/5 rounded"
                   >
-                    <input
-                      type={kind === "jwk" ? "radio" : "checkbox"}
-                      name="did-keys"
-                      checked={keysId.includes(k.id)}
-                      onChange={() => toggleKey(k.id)}
-                    />
+                    {kind === "jwk" ? (
+                      <input
+                        type="radio"
+                        name="did-keys"
+                        checked={keysId.includes(k.id)}
+                        onChange={() => toggleKey(k.id)}
+                        className="accent-primary h-3.5 w-3.5 [color-scheme:dark]"
+                      />
+                    ) : (
+                      <Checkbox
+                        checked={keysId.includes(k.id)}
+                        onCheckedChange={() => toggleKey(k.id)}
+                      />
+                    )}
                     <span className="font-mono">{k.alias || k.id}</span>
-                    <span className="font-mono text-[10px] text-muted-foreground truncate">
-                      {k.id}
-                    </span>
+                    <span className="font-mono text-xs text-muted-foreground truncate">{k.id}</span>
                   </label>
                 ))}
               </div>
@@ -698,7 +711,7 @@ const NewDidDialog = ({ onCreated }: { onCreated: () => Promise<void> }) => {
               </Button>
             </div>
             {services.length === 0 ? (
-              <p className="text-[10px] text-muted-foreground italic">
+              <p className="text-xs text-muted-foreground italic">
                 Declare any service endpoint to expose in the DID document.
               </p>
             ) : (
@@ -706,17 +719,17 @@ const NewDidDialog = ({ onCreated }: { onCreated: () => Promise<void> }) => {
                 {services.map((svc, idx) => (
                   <div
                     key={idx}
-                    className="border border-white/10 rounded-lg p-3 space-y-2 bg-white/[0.02]"
+                    className="border border-ink/10 rounded-lg p-3 space-y-2 bg-ink/[0.02]"
                   >
                     <div className="flex items-center gap-2">
                       <div className="flex-1 space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">Type</Label>
-                        <input
+                        <Label className="text-xs text-muted-foreground">Type</Label>
+                        <Input
                           list={`service-types-${idx}`}
-                          className="w-full bg-black/30 border border-white/10 rounded px-2 py-1.5 text-xs font-mono text-foreground"
                           placeholder="AuthorizationServer / CredentialIssuer / ..."
                           value={svc.type}
                           onChange={(e) => patchService(idx, { type: e.target.value })}
+                          className="font-mono text-xs"
                         />
                         <datalist id={`service-types-${idx}`}>
                           {SERVICE_TYPES.map((t) => (
@@ -734,13 +747,11 @@ const NewDidDialog = ({ onCreated }: { onCreated: () => Promise<void> }) => {
                       </Button>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] text-muted-foreground">Service Endpoint</Label>
+                      <Label className="text-xs text-muted-foreground">Service Endpoint</Label>
                       <Input
                         placeholder="https://example.com/oidc"
                         value={svc.serviceEndpoint}
-                        onChange={(e) =>
-                          patchService(idx, { serviceEndpoint: e.target.value })
-                        }
+                        onChange={(e) => patchService(idx, { serviceEndpoint: e.target.value })}
                       />
                     </div>
                   </div>

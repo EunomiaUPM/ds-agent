@@ -1,20 +1,18 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use crate::data::migrations::m20251128_0000001_dataplane_transfers::DataplaneTransfers;
@@ -40,6 +38,11 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null()
                             .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(DataplaneFields::TenantId)
+                            .string()
+                            .not_null(),
                     )
                     .col(ColumnDef::new(DataplaneFields::Key).string().not_null())
                     .col(ColumnDef::new(DataplaneFields::Value).string())
@@ -70,6 +73,7 @@ impl MigrationTrait for Migration {
 pub enum DataplaneFields {
     Table,
     Id,
+    TenantId,
     Key,
     Value,
     DataplaneProcessId,

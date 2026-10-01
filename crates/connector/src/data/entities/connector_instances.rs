@@ -27,6 +27,7 @@ use urn::{Urn, UrnBuilder};
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
+    pub tenant_id: String,
     pub template_name: String,
     pub template_version: String,
     pub distribution_id: String,
@@ -41,8 +42,8 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::connector_templates::Entity",
-        from = "(Column::TemplateName, Column::TemplateVersion)",
-        to = "(super::connector_templates::Column::Name, super::connector_templates::Column::Version)"
+        from = "(Column::TenantId, Column::TemplateName, Column::TemplateVersion)",
+        to = "(super::connector_templates::Column::TenantId, super::connector_templates::Column::Name, super::connector_templates::Column::Version)"
     )]
     ConnectorTemplate,
 }
@@ -58,6 +59,7 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(Clone)]
 pub struct NewConnectorInstanceModel {
     pub id: Option<Urn>,
+    pub tenant_id: String,
     pub template_name: String,
     pub template_version: String,
     pub distribution_id: String,
@@ -79,6 +81,7 @@ impl From<NewConnectorInstanceModel> for ActiveModel {
 
         Self {
             id: ActiveValue::Set(dto.id.clone().unwrap_or(new_urn).to_string()),
+            tenant_id: ActiveValue::Set(dto.tenant_id),
             template_name: ActiveValue::Set(dto.template_name),
             template_version: ActiveValue::Set(dto.template_version),
             distribution_id: ActiveValue::Set(dto.distribution_id),

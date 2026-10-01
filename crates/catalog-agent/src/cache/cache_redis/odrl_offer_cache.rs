@@ -15,9 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::cache::cache_traits::redis_cache_connector_trait::RedisCacheConnectorTrait;
-use crate::cache::cache_traits::utils_trait::UtilsCacheTrait;
+use crate::cache::cache_traits::DESIRED_CACHE_TTL;
 use crate::{CatalogDto, DataServiceDto, OdrlPolicyDto};
+use common::cache::{RedisCacheConnectorTrait, UtilsCacheTrait};
 use common::dsp_common::odrl::OdrlOffer;
 use std::str::FromStr;
 use urn::Urn;
@@ -34,6 +34,10 @@ impl OdrlOfferCacheForRedis {
 
 impl UtilsCacheTrait for OdrlOfferCacheForRedis {
     type Dto = OdrlPolicyDto;
+
+    fn key_namespace(&self) -> &str {
+        "ds_agent_catalogs"
+    }
 }
 
 impl RedisCacheConnectorTrait for OdrlOfferCacheForRedis {
@@ -43,5 +47,8 @@ impl RedisCacheConnectorTrait for OdrlOfferCacheForRedis {
     }
     fn get_entity_name(&self) -> &str {
         "odrl-offers"
+    }
+    fn cache_ttl(&self) -> i32 {
+        DESIRED_CACHE_TTL
     }
 }

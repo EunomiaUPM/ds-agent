@@ -15,25 +15,37 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::policy_templates::{NewPolicyTemplateDto, PolicyTemplateEntityTrait};
+mod mappers;
+
+use std::sync::Arc;
+
 use crate::grpc::api::catalog_agent::policy_template_entity_service_server::PolicyTemplateEntityService;
 use crate::grpc::api::catalog_agent::{
-    CreatePolicyTemplateRequest, DeleteByIdRequest, DeleteByVersionRequest, GetAllRequest,
-    GetBatchRequest, GetByIdRequest, GetByVersionRequest, PolicyTemplate,
-    PolicyTemplateListResponse, PolicyTemplateResponse,
+    CreatePolicyTemplateRequest, DeleteByVersionRequest, GetBatchRequest, GetByIdRequest,
+    GetByVersionRequest, ListPolicyTemplatesRequest, PolicyTemplateListResponse,
+    PolicyTemplateResponse,
 };
-use std::str::FromStr;
-use std::sync::Arc;
+use crate::services::policy_templates::PolicyTemplateServiceTrait;
+use common::auth::grpc::GrpcAuth;
+use common::auth::OauthTokenValidator;
+use common::grpc::{IntoStatus, ListParams};
 use tonic::{Request, Response, Status};
-use urn::Urn;
+use ymir::errors::Errors;
 
 pub struct PolicyTemplateEntityGrpc {
-    service: Arc<dyn PolicyTemplateEntityTrait>,
+    service: Arc<dyn PolicyTemplateServiceTrait>,
+    auth: GrpcAuth,
 }
 
 impl PolicyTemplateEntityGrpc {
-    pub fn new(service: Arc<dyn PolicyTemplateEntityTrait>) -> Self {
-        Self { service }
+    pub fn new(
+        service: Arc<dyn PolicyTemplateServiceTrait>,
+        validator: Arc<dyn OauthTokenValidator>,
+    ) -> Self {
+        Self {
+            service,
+            auth: GrpcAuth::new(validator),
+        }
     }
 }
 
@@ -41,113 +53,84 @@ impl PolicyTemplateEntityGrpc {
 impl PolicyTemplateEntityService for PolicyTemplateEntityGrpc {
     async fn get_all_policy_templates(
         &self,
-        request: Request<GetAllRequest>,
+        request: Request<ListPolicyTemplatesRequest>,
     ) -> Result<Response<PolicyTemplateListResponse>, Status> {
-        let req = request.into_inner();
-        let templates = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let params = ListParams::try_from(request.into_inner())?;
+        let result = self
             .service
-            .get_all_policy_templates(req.limit, req.page)
+            .get_all_policy_templates(&scope, &params.filter, &params.page, &params.sort)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        let proto_templates: Vec<PolicyTemplate> = templates.into_iter().map(Into::into).collect();
-
-        Ok(Response::new(PolicyTemplateListResponse {
-            policy_templates: proto_templates,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(result.try_into()?))
     }
 
     async fn get_batch_policy_templates(
         &self,
         request: Request<GetBatchRequest>,
     ) -> Result<Response<PolicyTemplateListResponse>, Status> {
-        let req = request.into_inner();
-        let urns = req.ids;
-
-        let templates = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let ids = request.into_inner().ids;
+        let dtos = self
             .service
-            .get_batch_policy_templates(&urns)
+            .get_batch_policy_templates(&scope, &ids)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        let proto_templates: Vec<PolicyTemplate> = templates.into_iter().map(Into::into).collect();
-
-        Ok(Response::new(PolicyTemplateListResponse {
-            policy_templates: proto_templates,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(dtos.try_into()?))
     }
 
     async fn get_policy_templates_by_id(
         &self,
         request: Request<GetByIdRequest>,
     ) -> Result<Response<PolicyTemplateListResponse>, Status> {
-        let req = request.into_inner();
-        let policy_template = req.id;
-
-        let templates = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id;
+        let dtos = self
             .service
-            .get_policies_template_by_id(&policy_template)
+            .get_policies_template_by_id(&scope, &id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        let proto_templates: Vec<PolicyTemplate> = templates.into_iter().map(Into::into).collect();
-
-        Ok(Response::new(PolicyTemplateListResponse {
-            policy_templates: proto_templates,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(dtos.try_into()?))
     }
 
     async fn get_policy_template_by_version(
         &self,
         request: Request<GetByVersionRequest>,
     ) -> Result<Response<PolicyTemplateResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
-        let policy_template = req.id;
-        let version = req.version;
-        let templates = self
+        let dto = self
             .service
-            .get_policies_template_by_version_and_id(&policy_template, &version)
+            .get_policies_template_by_version_and_id(&scope, &req.id, &req.version)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        match templates {
-            Some(dto) => Ok(Response::new(PolicyTemplateResponse {
-                policy_template: Some(dto.into()),
-            })),
-            None => Err(Status::not_found("Policy template not found")),
-        }
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(dto.try_into()?))
     }
 
     async fn create_policy_template(
         &self,
         request: Request<CreatePolicyTemplateRequest>,
     ) -> Result<Response<PolicyTemplateResponse>, Status> {
-        let req = request.into_inner();
-        let new_template_dto: NewPolicyTemplateDto = req.try_into()?;
-
-        let created_dto = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let dto = request.into_inner().try_into()?;
+        let created = self
             .service
-            .create_policy_template(&new_template_dto)
+            .create_policy_template(&scope, &dto)
             .await
-            .map_err(|e| Status::internal(format!("Failed to create Policy Template: {}", e)))?;
-
-        Ok(Response::new(PolicyTemplateResponse {
-            policy_template: Some(created_dto.into()),
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(created.try_into()?))
     }
 
     async fn delete_policy_template_by_version(
         &self,
         request: Request<DeleteByVersionRequest>,
     ) -> Result<Response<()>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
-        let policy_template = req.id;
-        let version = req.version;
-
-        let _ = self
-            .service
-            .delete_policy_template_by_version_and_id(&policy_template, &version)
+        self.service
+            .delete_policy_template_by_version_and_id(&scope, &req.id, &req.version)
             .await
-            .map_err(|e| Status::internal(format!("Failed to create Policy Template: {}", e)))?;
-
+            .map_err(Errors::into_status)?;
         Ok(Response::new(()))
     }
 }

@@ -8,19 +8,19 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use axum::http::header::AUTHORIZATION;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
-use reqwest::header::AUTHORIZATION;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 use tracing::info;
 use ymir::capabilities::HttpSig;
@@ -108,6 +108,7 @@ impl CallbackTrait for BasicCallbackService {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn send_continue_req(&self, interaction: &interaction::Model) -> Outcome<GrantResponse> {
         info!("Continuing grant request");
 

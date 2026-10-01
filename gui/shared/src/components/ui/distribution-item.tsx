@@ -1,7 +1,14 @@
 import React from "react";
 import Heading from "shared/src/components/ui/heading";
-import { ExternalLink } from "lucide-react";
+import { ArrowRight, Layers, Server } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "shared/src/components/ui/card";
 
 interface DistributionItemProps {
   title?: string;
@@ -22,54 +29,63 @@ const DistributionItem: React.FC<DistributionItemProps> = ({
   dataserviceId,
 }) => {
   return (
-    <div className="distribution-container  max-w-[600px] h-full dataset-item-container bg-brand-sky/5 border rounded-md border-white/15 flex flex-col p-4 gap-3">
-      <div className="distribution-text">
-        <Heading level="h4" className="mb-3">
-          {title ? title : "Distribution Title"}
-        </Heading>
-        <p className="text-sm">{description ? description : "Distribution Description"}</p>
-      </div>
-      {ownDataset ? (
-        <div className="distribution-table text-sm">
-          <div className="grid grid-cols-5 border-y border-white/10 py-2 gap-x-5 ">
-            <span className="font-bold col-span-2">Associated Connector:</span>
-            <Link
-              target="_blank"
-              to={"/catalog/$prevRoute/distribution-connector/$distributionId"}
-              params={{
-                prevRoute: prevRoute!,
-                distributionId: distribuionId!,
-              }}
-              className="col-span-3"
-            >
-              <span className="underline-offset-2 hover:underline flex gap-2 ">
-                Connector Distribution <ExternalLink className="h-4 w-4" />
-              </span>
-            </Link>
-          </div>
-          <div className="grid grid-cols-5 border-b border-white/10 py-2 gap-x-5">
-            <span className="font-bold col-span-2">Associated Dataservice:</span>
-            <Link
-              target="_blank"
-              to={
-                ownDataset
-                  ? "/catalog/$prevRoute/data-service/$dataserviceId"
-                  : "/catalog/participant/$prevRoute/data-service/$dataserviceId"
-              }
-              params={{
-                prevRoute: prevRoute!,
-                dataserviceId: dataserviceId!,
-              }}
-              className="col-span-3"
-            >
-              <span className="underline-offset-2 hover:underline flex gap-2">
-                Dataservice <ExternalLink className="h-4 w-4" />
-              </span>
-            </Link>
-          </div>
+    <Card className="h-full flex flex-col justify-between hover:border-ink/20 transition-colors">
+      <CardHeader className="pb-3 space-y-1.5">
+        <div className="flex items-center gap-2">
+          <Layers className="h-4 w-4 text-brand-sky flex-shrink-0" />
+          <CardTitle className="text-base font-semibold">{title || "Distribution"}</CardTitle>
         </div>
-      ) : null}
-    </div>
+        <CardDescription className="line-clamp-3">
+          {description || "No description provided for this distribution."}
+        </CardDescription>
+      </CardHeader>
+
+      {ownDataset && (
+        <CardContent className="pt-2">
+          <div className="rounded-lg border border-ink/10 bg-background-800/30 divide-y divide-ink/5 text-xs">
+            <div className="flex items-center justify-between p-2.5">
+              <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                <Server className="h-3.5 w-3.5 text-brand-sky" />
+                Connector Instance
+              </span>
+              <Link
+                to={"/catalog/$prevRoute/distribution-connector/$distributionId"}
+                params={{
+                  prevRoute: prevRoute!,
+                  distributionId: distribuionId!,
+                }}
+                className="inline-flex items-center gap-1 text-primary hover:underline font-mono text-xs group"
+              >
+                <span>View Details</span>
+                <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            </div>
+
+            <div className="flex items-center justify-between p-2.5">
+              <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                <Server className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400" />
+                Dataservice
+              </span>
+              <Link
+                to={
+                  ownDataset
+                    ? "/catalog/$prevRoute/data-service/$dataserviceId"
+                    : "/catalog/participant/$prevRoute/data-service/$dataserviceId"
+                }
+                params={{
+                  prevRoute: prevRoute!,
+                  dataserviceId: dataserviceId!,
+                }}
+                className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 hover:underline font-mono text-xs group"
+              >
+                <span>Endpoint Details</span>
+                <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            </div>
+          </div>
+        </CardContent>
+      )}
+    </Card>
   );
 };
 

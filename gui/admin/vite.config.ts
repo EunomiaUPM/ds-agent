@@ -19,6 +19,27 @@ export default defineConfig(() => {
     optimizeDeps: {
       exclude: ["lucide-react"],
     },
+    server: {
+      port: 5174,
+      proxy: {
+        "/admin/api": {
+          target: process.env.VITE_GATEWAY_TARGET || `http://127.0.0.1:${process.env.VITE_GATEWAY_PORT || "1100"}`,
+          changeOrigin: true,
+        },
+        "/api": {
+          target: process.env.VITE_GATEWAY_TARGET || `http://127.0.0.1:${process.env.VITE_GATEWAY_PORT || "1100"}`,
+          changeOrigin: true,
+        },
+        "/oauth": {
+          target: process.env.VITE_GATEWAY_TARGET || `http://127.0.0.1:${process.env.VITE_GATEWAY_PORT || "1100"}`,
+          changeOrigin: true,
+        },
+        "/.well-known": {
+          target: process.env.VITE_GATEWAY_TARGET || `http://127.0.0.1:${process.env.VITE_GATEWAY_PORT || "1100"}`,
+          changeOrigin: true,
+        },
+      },
+    },
     build: {
       rollupOptions: {
         output: {

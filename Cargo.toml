@@ -10,7 +10,9 @@ members = [
     "crates/catalog-agent",
     "crates/negotiation-agent",
     "crates/transfer-agent",
-    "crates/connector", "crates/keystore",
+    "crates/connector",
+    "crates/oauth",
+    "crates/keystore",
 ]
 exclude = [
     "static",
@@ -32,19 +34,21 @@ clap = { version = "4.4.9", features = [
 base64 = "0.22.1"
 tokio = { version = "1.35.0", features = ["full"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-opentelemetry = "0.34"
+opentelemetry = "0.33"
+opentelemetry_sdk = "0.33"
+opentelemetry-otlp = { version = "0.33", default-features = false, features = ["grpc-tonic", "trace", "metrics"] }
 axum = { version = "0.8.8", features = ["ws"] }
 tower-http = { version = "0.6.2", features = ["trace", "cors", "fs"] }
+tower = { version = "0.5" }
 dotenvy = "0.15"
-reqwest = { version = "0.13.3", default-features = false, features = ["json", "rustls", "form", "http2"] }
 once_cell = "1.19.0"
 thiserror = "2.0.12"
-jsonschema = "0.45.0"
 chrono = { version = "0.4.38", features = ["serde"] }
 uuid = { version = "1.8.0", features = ["serde", "default", "v4", "v5"] }
 urn = { version = "0.7.0", features = ["serde"] }
 log = "0.4.21"
-tower = "0.5.2"
 http-body-util = "0.1.2"
 sea-orm = { version = "1.1.1", features = ["sqlx-postgres", "sqlx-sqlite", "runtime-tokio", "macros", "with-json", "serde_json"] }
 sea-orm-migration = { version = "1.1.1" }
@@ -54,7 +58,7 @@ url = { version = "2.5.4", features = ["default"] }
 urlencoding = { version = "2.1.3" }
 sha2 = "0.10.9"
 rand = "0.10.0"
-jsonwebtoken = "10.3.0"
+jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
 json_value_merge = "2.0.1"
 serde_norway = "0.9.42"
 rustls = { version = "0.23", features = ["ring"] }
@@ -81,5 +85,7 @@ convert_case = "0.11.0"
 redis = { version = "1.0.2", features = ["default", "aio", "tokio-comp", "json"] }
 regex = "1.12.2"
 tonic-prost-build = "0.14.5"
+compact_str = { version = "0.8", features = ["serde"] }
+argon2 = "0.5.3"
 #ymir = {git = "https://github.com/EunomiaUPM/ymir.git", tag = "v0.8.2"}
 ymir = { path = "./../ymir" }

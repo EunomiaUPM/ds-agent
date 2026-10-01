@@ -24,6 +24,7 @@ use serde::{Deserialize, Serialize};
 pub struct Model {
     #[sea_orm(primary_key)]
     pub distribution_id: String,
+    pub tenant_id: String,
     pub connector_instance_id: String,
 }
 

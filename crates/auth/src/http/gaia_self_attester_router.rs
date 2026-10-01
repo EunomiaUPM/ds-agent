@@ -8,11 +8,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use std::sync::Arc;
@@ -21,6 +21,7 @@ use crate::modules::GaiaSelfAttesterModule;
 use axum::extract::State;
 use axum::routing::post;
 use axum::Router;
+use common::auth::AccessScope;
 use ymir::errors::AppResult;
 
 pub struct GaiaSelfAttesterRouter {
@@ -38,7 +39,10 @@ impl GaiaSelfAttesterRouter {
             .with_state(self.gaia)
     }
 
-    async fn generate(State(gaia): State<Arc<dyn GaiaSelfAttesterModule>>) -> AppResult<()> {
-        gaia.generate_gaia_vcs().await
+    async fn generate(
+        State(gaia): State<Arc<dyn GaiaSelfAttesterModule>>,
+        scope: AccessScope,
+    ) -> AppResult<()> {
+        gaia.generate_gaia_vcs(&scope).await
     }
 }

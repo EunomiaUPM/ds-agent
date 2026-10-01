@@ -1,26 +1,28 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+mod admin_module;
 mod boot;
-pub mod cmd;
-mod db_migrations;
-mod grpc_worker;
-mod http_worker;
+mod composition;
+pub(crate) mod context;
+mod ports;
+mod seeders;
 
-pub use http_worker::create_root_http_router;
+pub use boot::CatalogAgentBoot;
+pub use composition::CatalogAgentModule;
+pub use ports::CatalogPorts;
+pub use seeders::{AdminTenantProvisioner, PolicyTemplateLoader};

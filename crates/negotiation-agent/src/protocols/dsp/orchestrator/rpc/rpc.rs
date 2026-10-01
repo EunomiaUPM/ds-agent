@@ -1,23 +1,20 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::rpc::RPCOrchestratorTrait;
 use crate::protocols::dsp::orchestrator::rpc::step_agreement::RpcAgreementStep;
 use crate::protocols::dsp::orchestrator::rpc::step_event_accepted::RpcEventAcceptedStep;
@@ -41,13 +38,15 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
+use crate::services::negotiation_process::views::NegotiationProcessView;
+use common::auth::AccessScope;
 use common::config::services::ContractsConfig;
-use common::facades::ssi_auth_facade::MatesFacadeTrait;
-use common::http_client::HttpClient;
+use common::dsp_common::DspActor;
+use common::facades::mates_facade::MatesFacadeTrait;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
-// ─── Service ──────────────────────────────────────────────────────────────────
+// Service ──────────────────────────────────────────────────────────────────
 
 /// RPC orchestrator for outbound negotiation operations.
 ///
@@ -62,7 +61,6 @@ pub struct RPCOrchestratorService {
     validator: Arc<dyn ValidationRpcSteps>,
     persistence_service: Arc<dyn NegotiationRpcPersistenceTrait>,
     _config: Arc<ContractsConfig>,
-    http_client: Arc<HttpClient>,
     mates_service: Arc<dyn MatesFacadeTrait>,
 }
 
@@ -71,29 +69,31 @@ impl RPCOrchestratorService {
         validator: Arc<dyn ValidationRpcSteps>,
         persistence_service: Arc<dyn NegotiationRpcPersistenceTrait>,
         _config: Arc<ContractsConfig>,
-        http_client: Arc<HttpClient>,
         mates_service: Arc<dyn MatesFacadeTrait>,
     ) -> RPCOrchestratorService {
         RPCOrchestratorService {
             validator,
             persistence_service,
             _config,
-            http_client,
             mates_service,
         }
     }
 }
 
-// ─── Trait implementation ──────────────────────────────────────────────────────
+// Trait implementation ──────────────────────────────────────────────────────
 
 #[async_trait::async_trait]
 impl RPCOrchestratorTrait for RPCOrchestratorService {
     /// Sends an initial `ContractRequestMessage` to the Provider (Consumer-initiated flow).
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_request_init_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcNegotiationRequestInitMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationRequestInitMessageDto>> {
-        let (response, process) = self.run_lifecycle::<RpcRequestInitStep>(input).await?;
+        let (response, process) = self
+            .run_lifecycle::<RpcRequestInitStep>(scope, input)
+            .await?;
         Ok(RpcNegotiationMessageDto {
             request: input.clone(),
             response,
@@ -102,11 +102,13 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     }
 
     /// Sends a continuation `ContractRequestMessage` (Consumer counter-offer).
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_request_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcNegotiationRequestMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationRequestMessageDto>> {
-        let (response, process) = self.run_lifecycle::<RpcRequestStep>(input).await?;
+        let (response, process) = self.run_lifecycle::<RpcRequestStep>(scope, input).await?;
         Ok(RpcNegotiationMessageDto {
             request: input.clone(),
             response,
@@ -115,11 +117,13 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     }
 
     /// Sends an initial `ContractOfferMessage` to the Consumer (Provider-initiated flow).
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_offer_init_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcNegotiationOfferInitMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationOfferInitMessageDto>> {
-        let (response, process) = self.run_lifecycle::<RpcOfferInitStep>(input).await?;
+        let (response, process) = self.run_lifecycle::<RpcOfferInitStep>(scope, input).await?;
         Ok(RpcNegotiationMessageDto {
             request: input.clone(),
             response,
@@ -128,11 +132,13 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     }
 
     /// Sends a continuation `ContractOfferMessage` (Provider counter-offer).
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_offer_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcNegotiationOfferMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationOfferMessageDto>> {
-        let (response, process) = self.run_lifecycle::<RpcOfferStep>(input).await?;
+        let (response, process) = self.run_lifecycle::<RpcOfferStep>(scope, input).await?;
         Ok(RpcNegotiationMessageDto {
             request: input.clone(),
             response,
@@ -144,12 +150,14 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     ///
     /// The agreement body is enriched with offer policy fields and participant
     /// IDs in [`RpcAgreementStep::prepare_context`].
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_agreement_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcNegotiationAgreementMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationAgreementMessageDto>> {
         dbg!(&input);
-        let (response, process) = self.run_lifecycle::<RpcAgreementStep>(input).await?;
+        let (response, process) = self.run_lifecycle::<RpcAgreementStep>(scope, input).await?;
         Ok(RpcNegotiationMessageDto {
             request: input.clone(),
             response,
@@ -158,11 +166,15 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     }
 
     /// Sends a `ContractAgreementVerificationMessage` to the Provider.
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_agreement_verification_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcNegotiationVerificationMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationVerificationMessageDto>> {
-        let (response, process) = self.run_lifecycle::<RpcVerificationStep>(input).await?;
+        let (response, process) = self
+            .run_lifecycle::<RpcVerificationStep>(scope, input)
+            .await?;
         Ok(RpcNegotiationMessageDto {
             request: input.clone(),
             response,
@@ -171,11 +183,15 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     }
 
     /// Sends a `ContractNegotiationEventMessage` with event type `ACCEPTED`.
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_event_accepted_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcNegotiationEventAcceptedMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationEventAcceptedMessageDto>> {
-        let (response, process) = self.run_lifecycle::<RpcEventAcceptedStep>(input).await?;
+        let (response, process) = self
+            .run_lifecycle::<RpcEventAcceptedStep>(scope, input)
+            .await?;
         Ok(RpcNegotiationMessageDto {
             request: input.clone(),
             response,
@@ -184,11 +200,15 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     }
 
     /// Sends a `ContractNegotiationEventMessage` with event type `FINALIZED`.
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_event_finalized_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcNegotiationEventFinalizedMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationEventFinalizedMessageDto>> {
-        let (response, process) = self.run_lifecycle::<RpcEventFinalizedStep>(input).await?;
+        let (response, process) = self
+            .run_lifecycle::<RpcEventFinalizedStep>(scope, input)
+            .await?;
         Ok(RpcNegotiationMessageDto {
             request: input.clone(),
             response,
@@ -197,11 +217,15 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     }
 
     /// Sends a `ContractNegotiationTerminationMessage` to the peer.
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_termination_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcNegotiationTerminationMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationTerminationMessageDto>> {
-        let (response, process) = self.run_lifecycle::<RpcTerminationStep>(input).await?;
+        let (response, process) = self
+            .run_lifecycle::<RpcTerminationStep>(scope, input)
+            .await?;
         Ok(RpcNegotiationMessageDto {
             request: input.clone(),
             response,
@@ -210,7 +234,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     }
 }
 
-// ─── Template engine ───────────────────────────────────────────────────────────
+// Template engine ───────────────────────────────────────────────────────────
 
 impl RPCOrchestratorService {
     /// Execute any RPC negotiation lifecycle step using the
@@ -223,16 +247,18 @@ impl RPCOrchestratorService {
     /// because negotiation does not involve a data-plane session.
     async fn run_lifecycle<S: NegotiationRpcStep>(
         &self,
+        scope: &AccessScope,
         input: &S::Input,
     ) -> Outcome<(
         NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
-        NegotiationProcessDto,
+        NegotiationProcessView,
     )> {
-        S::validate(&self.validator, input).await?;
-        let ctx = S::prepare_context(input, &self.persistence_service, &self.mates_service).await?;
-        S::apply_auth_token(&self.mates_service, &self.http_client, S::auth_peer(&ctx)).await;
+        S::validate(&self.validator, &DspActor::user(scope), input).await?;
+        let ctx = S::prepare_context(scope, input, &self.persistence_service, &self.mates_service)
+            .await?;
+        let headers = S::peer_headers(&self.mates_service, S::auth_peer(&ctx)).await?;
         let (response, process) =
-            S::send_and_persist(&self.http_client, &self.persistence_service, &ctx, input).await?;
+            S::send_and_persist(headers, &self.persistence_service, &ctx, input).await?;
         Ok((response, process))
     }
 }

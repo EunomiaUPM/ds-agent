@@ -21,6 +21,7 @@ use crate::data::repo_traits::connector_instance_repo::ConnectorInstanceRepoTrai
 use crate::data::repo_traits::connector_repo_errors::{
     ConnectorAgentRepoErrors, ConnectorInstanceRepoErrors,
 };
+use sea_orm::QueryTrait;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, RuntimeErr, SqlxError,
 };
@@ -38,6 +39,7 @@ impl ConnectorInstanceRepoForSql {
 
 #[async_trait::async_trait]
 impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_instance(
         &self,
         new_instance_model: &NewConnectorInstanceModel,
@@ -85,11 +87,16 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_instance_by_id(
         &self,
-        instance_id: &String,
+        tenant_id: Option<String>,
+        instance_id: &str,
     ) -> Outcome<Option<connector_instances::Model>> {
         let result = connector_instances::Entity::find_by_id(instance_id)
+            .apply_if(tenant_id, |q, t| {
+                q.filter(connector_instances::Column::TenantId.eq(t))
+            })
             .one(&self.db_connection)
             .await;
         match result {
@@ -101,14 +108,17 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_instance_by_name_and_version(
         &self,
-        name: &String,
-        version: &String,
+        tenant_id: &str,
+        name: &str,
+        version: &str,
     ) -> Outcome<Option<connector_instances::Model>> {
         let result = connector_instances::Entity::find()
             .filter(connector_instances::Column::TemplateName.eq(name))
             .filter(connector_instances::Column::TemplateVersion.eq(version))
+            .filter(connector_instances::Column::TenantId.eq(tenant_id))
             .one(&self.db_connection)
             .await;
         match result {
@@ -120,12 +130,15 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_instances_by_distribution(
         &self,
-        distribution_id: &String,
+        tenant_id: &str,
+        distribution_id: &str,
     ) -> Outcome<Option<connector_instances::Model>> {
         let result = connector_instances::Entity::find()
             .filter(connector_instances::Column::DistributionId.eq(distribution_id))
+            .filter(connector_instances::Column::TenantId.eq(tenant_id))
             .one(&self.db_connection)
             .await;
         match result {
@@ -137,22 +150,17 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_instance_by_name_and_version(
         &self,
-        name: &String,
-        version: &String,
+        tenant_id: &str,
+        name: &str,
+        version: &str,
     ) -> Outcome<()> {
-        let instance = self
-            .get_instance_by_name_and_version(name, &version)
-            .await?;
-        if instance.is_none() {
-            return Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
-                ConnectorInstanceRepoErrors::InstanceNotFound,
-            )
-            .into_errors());
-        }
-        let instance = instance.unwrap();
-        let result = connector_instances::Entity::delete_by_id(instance.id)
+        let result = connector_instances::Entity::delete_many()
+            .filter(connector_instances::Column::TemplateName.eq(name))
+            .filter(connector_instances::Column::TemplateVersion.eq(version))
+            .filter(connector_instances::Column::TenantId.eq(tenant_id))
             .exec(&self.db_connection)
             .await;
 
@@ -171,23 +179,34 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         }
     }
 
-    async fn delete_instance_by_id(&self, instance_id: &String) -> Outcome<()> {
-        let result = connector_instances::Entity::delete_by_id(instance_id)
-            .exec(&self.db_connection)
-            .await;
-
-        match result {
-            Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn delete_instance_by_id(
+        &self,
+        tenant_id: Option<String>,
+        instance_id: &str,
+    ) -> Outcome<String> {
+        let deleted = connector_instances::Entity::delete_many()
+            .filter(connector_instances::Column::Id.eq(instance_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(connector_instances::Column::TenantId.eq(t))
+            })
+            .exec_with_returning(&self.db_connection)
+            .await
+            .map_err(|err| {
+                ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
+                    ConnectorInstanceRepoErrors::ErrorDeletingInstance(err.to_string()),
+                )
+                .into_errors()
+            })?;
+        deleted
+            .into_iter()
+            .next()
+            .map(|instance| instance.tenant_id)
+            .ok_or_else(|| {
+                ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                     ConnectorInstanceRepoErrors::InstanceNotFound,
                 )
-                .into_errors()),
-                _ => Ok(()),
-            },
-            Err(err) => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
-                ConnectorInstanceRepoErrors::ErrorDeletingInstance(err.to_string()),
-            )
-            .into_errors()),
-        }
+                .into_errors()
+            })
     }
 }

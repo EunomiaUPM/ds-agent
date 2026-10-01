@@ -11,6 +11,9 @@ export VAULT_APP_PRIV_KEY="private_key.json.example"
 export VAULT_APP_PUB_PKEY="public_key.json.example"
 export VAULT_APP_CERT="cert.json.example"
 export RUST_BACKTRACE="1"
+# Tracing/metrics (opt-in): start docker-compose.observability.yaml, then uncomment.
+# export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
+# export OTEL_RESOURCE_ATTRIBUTES="participant=consumer"
 export VITE_GATEWAY_PORT=1100
 
 cleanup() {

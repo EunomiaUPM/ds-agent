@@ -10,6 +10,7 @@ import {
   GlobalInfoContext,
 } from "shared/src/context/GlobalInfoContext.tsx";
 import { SSIAuthContextProvider } from "shared/src/context/SSIAuthContext.tsx";
+import { ThemeContextProvider } from "shared/src/context/ThemeContext.tsx";
 
 /**
  * Global QueryClient instance.
@@ -33,7 +34,8 @@ const App = () => {
 };
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <GlobalInfoContextProvider>
+  <ThemeContextProvider>
+    <GlobalInfoContextProvider>
     <QueryClientProvider client={queryClient}>
       <AuthContextProvider>
         <SSIAuthContextProvider>
@@ -41,5 +43,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         </SSIAuthContextProvider>
       </AuthContextProvider>
     </QueryClientProvider>
-  </GlobalInfoContextProvider>,
+    </GlobalInfoContextProvider>
+  </ThemeContextProvider>,
 );

@@ -47,7 +47,7 @@ export interface PageLayoutProps extends React.HTMLAttributes<HTMLDivElement> {}
  */
 export function PageLayout({ className, children, ...props }: PageLayoutProps) {
   return (
-    <div className={cn("space-y-2 pb-2 px-3 w-full", className)} {...props}>
+    <div className={cn("space-y-4 pb-8 px-3 w-full", className)} {...props}>
       {children}
     </div>
   );

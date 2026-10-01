@@ -15,24 +15,36 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::catalogs::{CatalogEntityTrait, EditCatalogDto, NewCatalogDto};
+mod mappers;
+
+use std::sync::Arc;
+
 use crate::grpc::api::catalog_agent::catalog_entity_service_server::CatalogEntityService;
 use crate::grpc::api::catalog_agent::{
-    Catalog, CatalogListResponse, CatalogResponse, CreateCatalogRequest, DeleteByIdRequest,
-    GetAllCatalogsRequest, GetBatchRequest, GetByIdRequest, PutCatalogRequest,
+    CatalogListResponse, CatalogResponse, CreateCatalogRequest, DeleteByIdRequest, GetBatchRequest,
+    GetByIdRequest, ListCatalogsRequest, PutCatalogRequest,
 };
-use std::str::FromStr;
-use std::sync::Arc;
+use crate::services::catalogs::CatalogServiceTrait;
+use common::auth::grpc::GrpcAuth;
+use common::auth::OauthTokenValidator;
+use common::grpc::{IntoStatus, ListParams, ProtoField, ProtoFieldList};
 use tonic::{Request, Response, Status};
-use urn::Urn;
+use ymir::errors::Errors;
 
 pub struct CatalogEntityGrpc {
-    service: Arc<dyn CatalogEntityTrait>,
+    service: Arc<dyn CatalogServiceTrait>,
+    auth: GrpcAuth,
 }
 
 impl CatalogEntityGrpc {
-    pub fn new(service: Arc<dyn CatalogEntityTrait>) -> Self {
-        Self { service }
+    pub fn new(
+        service: Arc<dyn CatalogServiceTrait>,
+        validator: Arc<dyn OauthTokenValidator>,
+    ) -> Self {
+        Self {
+            service,
+            auth: GrpcAuth::new(validator),
+        }
     }
 }
 
@@ -40,154 +52,113 @@ impl CatalogEntityGrpc {
 impl CatalogEntityService for CatalogEntityGrpc {
     async fn get_all_catalogs(
         &self,
-        request: Request<GetAllCatalogsRequest>,
+        request: Request<ListCatalogsRequest>,
     ) -> Result<Response<CatalogListResponse>, Status> {
-        let req = request.into_inner();
-        let catalogs = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let params = ListParams::try_from(request.into_inner())?;
+        let result = self
             .service
-            .get_all_catalogs(req.limit, req.page, req.with_main_catalog)
+            .get_all_catalogs(&scope, &params.filter, &params.page, &params.sort)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        let proto_catalogs: Vec<Catalog> = catalogs.into_iter().map(Into::into).collect();
-
-        Ok(Response::new(CatalogListResponse {
-            catalogs: proto_catalogs,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(result.into()))
     }
 
     async fn get_batch_catalogs(
         &self,
         request: Request<GetBatchRequest>,
     ) -> Result<Response<CatalogListResponse>, Status> {
-        let req = request.into_inner();
-
-        let urns: Vec<Urn> = req
-            .ids
-            .iter()
-            .map(|id| Urn::from_str(id))
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|_| Status::invalid_argument("One or more IDs are invalid URNs"))?;
-
-        let catalogs = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let ids = request.into_inner().ids.urns("ids")?;
+        let dtos = self
             .service
-            .get_batch_catalogs(&urns)
+            .get_batch_catalogs(&scope, &ids)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        let proto_catalogs = catalogs.into_iter().map(Into::into).collect();
-
-        Ok(Response::new(CatalogListResponse {
-            catalogs: proto_catalogs,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(dtos.into()))
     }
 
     async fn get_catalog_by_id(
         &self,
         request: Request<GetByIdRequest>,
     ) -> Result<Response<CatalogResponse>, Status> {
-        let req = request.into_inner();
-        let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
-
-        let catalog_opt = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id.urn("id")?;
+        let dto = self
             .service
-            .get_catalog_by_id(&urn)
+            .get_catalog_by_id(&scope, &id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        match catalog_opt {
-            Some(dto) => Ok(Response::new(CatalogResponse {
-                catalog: Some(dto.into()),
-            })),
-            None => Err(Status::not_found("Catalog not found")),
-        }
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(dto.into()))
     }
 
     async fn get_main_catalog(
         &self,
-        _request: Request<()>,
+        request: Request<()>,
     ) -> Result<Response<CatalogResponse>, Status> {
-        let catalog_opt = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let dto = self
             .service
-            .get_main_catalog()
+            .get_main_catalog(&scope)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        match catalog_opt {
-            Some(dto) => Ok(Response::new(CatalogResponse {
-                catalog: Some(dto.into()),
-            })),
-            None => Err(Status::not_found("Main catalog not configured")),
-        }
+            .map_err(Errors::into_status)?
+            .ok_or_else(|| Status::not_found("main catalog not configured"))?;
+        Ok(Response::new(dto.into()))
     }
 
     async fn create_catalog(
         &self,
         request: Request<CreateCatalogRequest>,
     ) -> Result<Response<CatalogResponse>, Status> {
-        let req = request.into_inner();
-        let new_catalog_dto: NewCatalogDto = req.try_into()?;
-
-        let created_dto = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let dto = request.into_inner().try_into()?;
+        let created = self
             .service
-            .create_catalog(&new_catalog_dto)
+            .create_catalog(&scope, &dto)
             .await
-            .map_err(|e| Status::internal(format!("Failed to create catalog: {}", e)))?;
-
-        Ok(Response::new(CatalogResponse {
-            catalog: Some(created_dto.into()),
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(created.into()))
     }
 
     async fn create_main_catalog(
         &self,
         request: Request<CreateCatalogRequest>,
     ) -> Result<Response<CatalogResponse>, Status> {
-        let req = request.into_inner();
-        let new_catalog_dto: NewCatalogDto = req.try_into()?;
-
-        let created_dto = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let dto = request.into_inner().try_into()?;
+        let created = self
             .service
-            .create_main_catalog(&new_catalog_dto)
+            .create_main_catalog(&scope, &dto)
             .await
-            .map_err(|e| Status::internal(format!("Failed to create main catalog: {}", e)))?;
-
-        Ok(Response::new(CatalogResponse {
-            catalog: Some(created_dto.into()),
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(created.into()))
     }
 
     async fn put_catalog_by_id(
         &self,
         request: Request<PutCatalogRequest>,
     ) -> Result<Response<CatalogResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
-        let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
-        let edit_dto: EditCatalogDto = req.into();
-
-        let updated_dto = self
+        let id = req.id.urn("id")?;
+        let updated = self
             .service
-            .put_catalog_by_id(&urn, &edit_dto)
+            .put_catalog_by_id(&scope, &id, &req.into())
             .await
-            .map_err(|e| Status::internal(format!("Failed to update catalog: {}", e)))?;
-
-        Ok(Response::new(CatalogResponse {
-            catalog: Some(updated_dto.into()),
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(updated.into()))
     }
 
     async fn delete_catalog_by_id(
         &self,
         request: Request<DeleteByIdRequest>,
     ) -> Result<Response<()>, Status> {
-        let req = request.into_inner();
-        let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
-
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id.urn("id")?;
         self.service
-            .delete_catalog_by_id(&urn)
+            .delete_catalog_by_id(&scope, &id)
             .await
-            .map_err(|e| Status::internal(format!("Failed to delete catalog: {}", e)))?;
-
+            .map_err(Errors::into_status)?;
         Ok(Response::new(()))
     }
 }

@@ -66,7 +66,7 @@ const WalletInfoPage = () => {
   return (
     <div className="space-y-12 pb-20">
       <PageSection title="General Information">
-        <div className="bg-white/5 border border-white/10 rounded-xl p-8 backdrop-blur-sm shadow-xl">
+        <div className="bg-ink/5 border border-ink/10 rounded-xl p-8 backdrop-blur-sm shadow-xl">
           <InfoList
             items={[
               { label: "Wallet ID", value: info.id },
@@ -84,6 +84,7 @@ const WalletInfoPage = () => {
           <span className="font-semibold text-primary">DID</span> tab.
         </p>
         <DataTable
+          searchable={false}
           data={info.dids}
           keyExtractor={(d) => d.did}
           columns={[
@@ -97,7 +98,7 @@ const WalletInfoPage = () => {
               accessorKey: "did",
               cell: (d) => (
                 <span
-                  className="font-mono text-[10px] text-muted-foreground block max-w-[260px] truncate"
+                  className="font-mono text-xs text-muted-foreground block max-w-[260px] truncate"
                   title={d.did}
                 >
                   {d.did}
@@ -124,9 +125,7 @@ const WalletInfoPage = () => {
             },
             {
               header: "# Keys",
-              cell: (d) => (
-                <span className="text-xs text-muted-foreground">{d.keys.length}</span>
-              ),
+              cell: (d) => <span className="text-xs text-muted-foreground">{d.keys.length}</span>,
             },
           ]}
         />

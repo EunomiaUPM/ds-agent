@@ -19,12 +19,43 @@ use crate::data::entities::catalog;
 use crate::data::entities::catalog::{EditCatalogModel, NewCatalogModel};
 use crate::data::repo_traits::catalog_db_errors::{CatalogAgentRepoErrors, CatalogRepoErrors};
 use crate::data::repo_traits::catalog_repo::CatalogRepositoryTrait;
+use crate::entities::filters::CatalogFilter;
+use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use common::query::FilterApplier;
+use sea_orm::QueryTrait;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    QuerySelect,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
+    QueryFilter, QueryOrder, QuerySelect, Select,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+
+impl FilterApplier<Select<catalog::Entity>> for CatalogFilter {
+    fn apply_to(&self, mut q: Select<catalog::Entity>) -> Select<catalog::Entity> {
+        if let Some(ref tenant_id) = self.tenant_id {
+            q = q.filter(catalog::Column::TenantId.eq(tenant_id));
+        }
+        if let Some(ref title) = self.title {
+            q = q.filter(catalog::Column::DctTitle.contains(title));
+        }
+        if let Some(ref creator) = self.creator {
+            q = q.filter(catalog::Column::DctCreator.eq(creator));
+        }
+        if let Some(ref participant_id) = self.participant_id {
+            q = q.filter(catalog::Column::DspaceParticipantId.eq(participant_id));
+        }
+        if let Some(false) = self.with_main_catalog {
+            q = q.filter(catalog::Column::DspaceMainCatalog.eq(false));
+        }
+        if let Some(after) = self.created_after {
+            q = q.filter(catalog::Column::DctIssued.gte(after));
+        }
+        if let Some(before) = self.created_before {
+            q = q.filter(catalog::Column::DctIssued.lte(before));
+        }
+        q
+    }
+}
 
 pub struct CatalogRepositoryForSql {
     db_connection: DatabaseConnection,
@@ -38,45 +69,50 @@ impl CatalogRepositoryForSql {
 
 #[async_trait::async_trait]
 impl CatalogRepositoryTrait for CatalogRepositoryForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_catalogs(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-        with_main_catalog: bool,
-    ) -> Outcome<Vec<catalog::Model>> {
-        let page_limit = limit.unwrap_or(25);
-        let page_number = page.unwrap_or(1);
-        let calculated_offset = (page_number.max(1) - 1) * page_limit;
-        let catalogs = match with_main_catalog {
-            false => {
-                catalog::Entity::find()
-                    .filter(catalog::Column::DspaceMainCatalog.eq(false))
-                    .limit(page_limit)
-                    .offset(calculated_offset)
-                    .all(&self.db_connection)
-                    .await
-            }
-            true => {
-                catalog::Entity::find()
-                    .limit(page_limit)
-                    .offset(calculated_offset)
-                    .all(&self.db_connection)
-                    .await
-            }
-        };
+        filters: &CatalogFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<catalog::Model>, Option<u64>)> {
+        let q = filters.apply_to(catalog::Entity::find());
 
-        match catalogs {
-            Ok(catalogs) => Ok(catalogs),
-            Err(err) => Err(CatalogAgentRepoErrors::CatalogRepoErrors(
-                CatalogRepoErrors::ErrorFetchingCatalog(err.into()),
+        let total = q.clone().count(&self.db_connection).await.map_err(|err| {
+            CatalogAgentRepoErrors::CatalogRepoErrors(CatalogRepoErrors::ErrorFetchingCatalog(
+                err.into(),
+            ))
+            .into_errors()
+        })?;
+
+        let items = q
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                catalog::Column::DctIssued,
+                catalog::Column::Id,
             )
-            .into_errors()),
-        }
+            .all(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::CatalogRepoErrors(CatalogRepoErrors::ErrorFetchingCatalog(
+                    err.into(),
+                ))
+                .into_errors()
+            })?;
+
+        Ok((items, Some(total)))
     }
 
-    async fn get_batch_catalogs(&self, ids: &Vec<Urn>) -> Outcome<Vec<catalog::Model>> {
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn get_batch_catalogs(
+        &self,
+        tenant_id: Option<String>,
+        ids: &[Urn],
+    ) -> Outcome<Vec<catalog::Model>> {
         let catalog_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let catalog_process = catalog::Entity::find()
+            .apply_if(tenant_id, |q, t| q.filter(catalog::Column::TenantId.eq(t)))
             .filter(catalog::Column::Id.is_in(catalog_ids))
             .all(&self.db_connection)
             .await;
@@ -89,9 +125,15 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         }
     }
 
-    async fn get_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<Option<catalog::Model>> {
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn get_catalog_by_id(
+        &self,
+        tenant_id: Option<String>,
+        catalog_id: &Urn,
+    ) -> Outcome<Option<catalog::Model>> {
         let catalog_id = catalog_id.to_string();
         let catalog = catalog::Entity::find_by_id(catalog_id)
+            .apply_if(tenant_id, |q, t| q.filter(catalog::Column::TenantId.eq(t)))
             .one(&self.db_connection)
             .await;
         match catalog {
@@ -103,8 +145,10 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         }
     }
 
-    async fn get_main_catalog(&self) -> Outcome<Option<catalog::Model>> {
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn get_main_catalog(&self, tenant_id: &str) -> Outcome<Option<catalog::Model>> {
         let catalog = catalog::Entity::find()
+            .filter(catalog::Column::TenantId.eq(tenant_id))
             .filter(catalog::Column::DspaceMainCatalog.eq(true))
             .one(&self.db_connection)
             .await
@@ -117,13 +161,16 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         Ok(catalog)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_catalog_by_id(
         &self,
+        tenant_id: Option<String>,
         catalog_id: &Urn,
         edit_catalog_model: &EditCatalogModel,
     ) -> Outcome<catalog::Model> {
         let catalog_id = catalog_id.to_string();
         let old_model = catalog::Entity::find_by_id(catalog_id)
+            .apply_if(tenant_id, |q, t| q.filter(catalog::Column::TenantId.eq(t)))
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -169,8 +216,9 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_catalog(&self, new_catalog_model: &NewCatalogModel) -> Outcome<catalog::Model> {
-        let main_catalog = self.get_main_catalog().await?;
+        let main_catalog = self.get_main_catalog(&new_catalog_model.tenant_id).await?;
         if main_catalog.is_none() {
             return Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                 CatalogRepoErrors::ErrorCreatingCatalog(
@@ -192,11 +240,12 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_main_catalog(
         &self,
         new_catalog_model: &NewCatalogModel,
     ) -> Outcome<catalog::Model> {
-        let main_catalog = self.get_main_catalog().await?;
+        let main_catalog = self.get_main_catalog(&new_catalog_model.tenant_id).await?;
         if main_catalog.is_some() {
             return Ok(main_catalog.unwrap());
         }
@@ -215,23 +264,26 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         }
     }
 
-    async fn delete_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<()> {
-        let catalog_id = catalog_id.to_string();
-        let catalog = catalog::Entity::delete_by_id(catalog_id)
-            .exec(&self.db_connection)
-            .await;
-        match catalog {
-            Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(CatalogAgentRepoErrors::CatalogRepoErrors(
-                    CatalogRepoErrors::CatalogNotFound,
-                )
-                .into_errors()),
-                _ => Ok(()),
-            },
-            Err(err) => Err(CatalogAgentRepoErrors::CatalogRepoErrors(
-                CatalogRepoErrors::ErrorDeletingCatalog(err.into()),
-            )
-            .into_errors()),
-        }
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn delete_catalog_by_id(
+        &self,
+        tenant_id: Option<String>,
+        catalog_id: &Urn,
+    ) -> Outcome<catalog::Model> {
+        let deleted = catalog::Entity::delete_many()
+            .filter(catalog::Column::Id.eq(catalog_id.to_string()))
+            .apply_if(tenant_id, |q, t| q.filter(catalog::Column::TenantId.eq(t)))
+            .exec_with_returning(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::CatalogRepoErrors(CatalogRepoErrors::ErrorDeletingCatalog(
+                    err.into(),
+                ))
+                .into_errors()
+            })?;
+        deleted.into_iter().next().ok_or_else(|| {
+            CatalogAgentRepoErrors::CatalogRepoErrors(CatalogRepoErrors::CatalogNotFound)
+                .into_errors()
+        })
     }
 }

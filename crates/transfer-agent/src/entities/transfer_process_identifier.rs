@@ -1,0 +1,57 @@
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+use urn::Urn;
+
+/// Extra Identifiers for TransferProcess in case there is some dependence of
+/// protocol-dependant identifiers
+#[derive(Clone)]
+pub(crate) struct TransferProcessIdentifier {
+    pub tenant_id: String,
+    pub transfer_process_id: Urn,
+    pub key: String,
+    pub value: Option<String>,
+}
+
+impl TransferProcessIdentifier {
+    pub fn new(
+        transfer_process_id: Urn,
+        key: impl Into<String>,
+        value: impl Into<Option<String>>,
+    ) -> Self {
+        Self {
+            tenant_id: String::new(),
+            transfer_process_id,
+            key: key.into(),
+            value: value.into(),
+        }
+    }
+
+    pub fn with_tenant(
+        tenant_id: impl Into<String>,
+        transfer_process_id: Urn,
+        key: impl Into<String>,
+        value: impl Into<Option<String>>,
+    ) -> Self {
+        Self {
+            tenant_id: tenant_id.into(),
+            transfer_process_id,
+            key: key.into(),
+            value: value.into(),
+        }
+    }
+}

@@ -15,14 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod data_services;
-
 use crate::data::entities::dataservice;
 use crate::data::entities::dataservice::{EditDataServiceModel, Model, NewDataServiceModel};
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
-use urn::{Urn, UrnBuilder};
-use ymir::errors::Outcome;
+use urn::Urn;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -36,6 +32,8 @@ pub struct DataServiceDto {
 #[serde(deny_unknown_fields)]
 pub struct NewDataServiceDto {
     pub id: Option<Urn>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tenant_id: Option<String>,
     pub dcat_endpoint_description: Option<String>,
     pub dcat_endpoint_url: String,
     pub dct_conforms_to: Option<String>,
@@ -49,13 +47,14 @@ impl Default for NewDataServiceDto {
     fn default() -> Self {
         Self {
             id: None,
+            tenant_id: None,
             dcat_endpoint_description: None,
             dcat_endpoint_url: "".to_string(),
             dct_conforms_to: None,
             dct_creator: None,
             dct_title: None,
             dct_description: None,
-            catalog_id: Urn::from_str("urn:fake-urn:000").unwrap(),
+            catalog_id: std::str::FromStr::from_str("urn:fake-urn:000").unwrap(),
         }
     }
 }
@@ -72,17 +71,18 @@ pub struct EditDataServiceDto {
     pub dct_description: Option<String>,
 }
 
-impl From<NewDataServiceDto> for NewDataServiceModel {
-    fn from(dto: NewDataServiceDto) -> Self {
-        Self {
-            id: dto.id,
-            dcat_endpoint_description: dto.dcat_endpoint_description,
-            dcat_endpoint_url: dto.dcat_endpoint_url,
-            dct_conforms_to: dto.dct_conforms_to,
-            dct_creator: dto.dct_creator,
-            dct_title: dto.dct_title,
-            dct_description: dto.dct_description,
-            catalog_id: dto.catalog_id,
+impl NewDataServiceDto {
+    pub fn into_model(self, tenant_id: String) -> NewDataServiceModel {
+        NewDataServiceModel {
+            id: self.id,
+            tenant_id,
+            dcat_endpoint_description: self.dcat_endpoint_description,
+            dcat_endpoint_url: self.dcat_endpoint_url,
+            dct_conforms_to: self.dct_conforms_to,
+            dct_creator: self.dct_creator,
+            dct_title: self.dct_title,
+            dct_description: self.dct_description,
+            catalog_id: self.catalog_id,
             dspace_main_data_service: false,
         }
     }
@@ -105,40 +105,4 @@ impl From<dataservice::Model> for DataServiceDto {
     fn from(value: Model) -> Self {
         Self { inner: value }
     }
-}
-
-#[mockall::automock]
-#[async_trait::async_trait]
-pub trait DataServiceEntityTrait: Send + Sync {
-    async fn get_all_data_services(
-        &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<DataServiceDto>>;
-    async fn get_batch_data_services(&self, ids: &Vec<Urn>) -> Outcome<Vec<DataServiceDto>>;
-
-    async fn get_data_services_by_catalog_id(
-        &self,
-        catalog_id: &Urn,
-    ) -> Outcome<Vec<DataServiceDto>>;
-
-    async fn get_main_data_service(&self) -> Outcome<Option<DataServiceDto>>;
-    async fn get_data_service_by_id(
-        &self,
-        data_service_id: &Urn,
-    ) -> Outcome<Option<DataServiceDto>>;
-    async fn put_data_service_by_id(
-        &self,
-        data_service_id: &Urn,
-        edit_data_service_model: &EditDataServiceDto,
-    ) -> Outcome<DataServiceDto>;
-    async fn create_data_service(
-        &self,
-        new_data_service_model: &NewDataServiceDto,
-    ) -> Outcome<DataServiceDto>;
-    async fn create_main_data_service(
-        &self,
-        new_data_service_model: &NewDataServiceDto,
-    ) -> Outcome<DataServiceDto>;
-    async fn delete_data_service_by_id(&self, data_service_id: &Urn) -> Outcome<()>;
 }

@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Connector template DTOs and the template service trait.
+//! Connector template DTOs.
 //!
 //! A *connector template* is the reusable, parameterised blueprint from which
 //! connector instances are created.  It declares:
@@ -23,8 +23,8 @@
 //! - [`ConnectorMetadata`] — name, version, author, description.
 //! - An [`AuthenticationConfig`] section with `{{__PARAM__}}` placeholders.
 //! - An [`InteractionConfig`] section with `{{__PARAM__}}` placeholders.
-//! - A `parameters` list ([`ParameterDefinition`]) that declares the name, type,
-//!   and optional default for every placeholder used in the template.
+//! - A `parameters` list ([`ParameterDefinition`]) that declares the name, type, and optional
+//!   default for every placeholder used in the template.
 //!
 //! When a template is created the engine validates that every placeholder in
 //! the auth/interaction sections has a matching declaration in `parameters`, and
@@ -34,8 +34,6 @@
 //! [`InteractionConfig`]: crate::entities::interaction::InteractionConfig
 //! [`ParameterDefinition`]: crate::entities::parameters::ParameterDefinition
 
-pub(crate) mod service;
-
 use crate::data::entities::connector_templates::NewConnectorTemplateModel;
 use crate::entities::auth_config::AuthenticationConfig;
 use crate::entities::interaction::InteractionConfig;
@@ -43,7 +41,7 @@ use crate::entities::parameters::ParameterDefinition;
 use sea_orm::prelude::DateTimeWithTimeZone;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 
 /// Display and versioning metadata for a connector template.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,17 +66,16 @@ pub struct ConnectorTemplateDto {
     pub parameters: Vec<ParameterDefinition>,
 }
 
-impl TryFrom<ConnectorTemplateDto> for NewConnectorTemplateModel {
-    type Error = Errors;
-
-    fn try_from(value: ConnectorTemplateDto) -> Outcome<Self> {
-        let authentication = serde_json::to_value(value.authentication)?;
-        let interaction = serde_json::to_value(value.interaction)?;
-        let parameters = serde_json::to_value(value.parameters)?;
-        Ok(Self {
-            name: Option::from(value.metadata.name.clone()),
-            version: Option::from(value.metadata.version.clone()),
-            author: Option::from(value.metadata.author.clone()),
+impl ConnectorTemplateDto {
+    pub fn into_model(self, tenant_id: String) -> Outcome<NewConnectorTemplateModel> {
+        let authentication = serde_json::to_value(self.authentication)?;
+        let interaction = serde_json::to_value(self.interaction)?;
+        let parameters = serde_json::to_value(self.parameters)?;
+        Ok(NewConnectorTemplateModel {
+            tenant_id,
+            name: self.metadata.name,
+            version: self.metadata.version,
+            author: self.metadata.author,
             spec: json!({
                 "authentication": authentication,
                 "interaction": interaction,
@@ -86,30 +83,4 @@ impl TryFrom<ConnectorTemplateDto> for NewConnectorTemplateModel {
             }),
         })
     }
-}
-
-/// Service interface for connector template CRUD operations.
-#[async_trait::async_trait]
-pub trait ConnectorTemplateEntitiesTrait: Send + Sync {
-    async fn get_all_templates(
-        &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<ConnectorTemplateDto>>;
-    async fn get_templates_by_id(&self, template_id: &String)
-        -> Outcome<Vec<ConnectorTemplateDto>>;
-    async fn get_template_by_name_and_version(
-        &self,
-        name: &String,
-        version: &String,
-    ) -> Outcome<Option<ConnectorTemplateDto>>;
-    async fn create_template(
-        &self,
-        new_template: &mut ConnectorTemplateDto,
-    ) -> Outcome<ConnectorTemplateDto>;
-    async fn delete_template_by_name_and_version(
-        &self,
-        name: &String,
-        version: &String,
-    ) -> Outcome<()>;
 }

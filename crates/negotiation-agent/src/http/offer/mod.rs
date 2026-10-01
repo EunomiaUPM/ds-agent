@@ -1,215 +1,154 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- * * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- * *
- * * This program is free software: you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License as published by
- * * the Free Software Foundation, either version 3 of the License, or
- * * (at your option) any later version.
- * *
- * * This program is distributed in the hope that it will be useful,
- * * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * * GNU General Public License for more details.
- * *
- * * You should have received a copy of the GNU General Public License
- * * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::offer::{NegotiationAgentOffersTrait, NewOfferDto};
-use crate::errors::error_adapter::CustomToResponse;
-use crate::http::common::{extract_payload, parse_urn};
-use axum::{
-    Json, Router,
-    extract::{FromRef, Path, Query, State, rejection::JsonRejection},
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-};
+//! HTTP router for offer management endpoints.
+
+use crate::entities::filters::OfferFilter;
+use crate::entities::offer::NewOfferDto;
+use crate::services::offer::OfferServiceTrait;
+use crate::services::offer::views::OfferView;
+use axum::extract::rejection::JsonRejection;
+use axum::extract::{FromRef, Path, Query, State};
+use axum::http::{HeaderMap, StatusCode};
+use axum::routing::{get, post};
+use axum::{Json, Router};
+use common::auth::access::AccessScope;
+use common::auth::http::ExtractedHeaders;
 use common::batch_requests::BatchRequests;
-use common::config::services::ContractsConfig;
-use serde::Deserialize;
+use common::query::{Paginated, QuerySpec, Sort};
 use std::sync::Arc;
+use ymir::errors::AppResult;
+use ymir::utils::{extract_path_urn, extract_payload};
+
+pub type OfferQuery = QuerySpec<OfferFilter, Sort>;
 
 #[derive(Clone)]
 pub struct NegotiationAgentOffersRouter {
-    service: Arc<dyn NegotiationAgentOffersTrait>,
-    config: Arc<ContractsConfig>,
+    service: Arc<dyn OfferServiceTrait>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
-
-impl FromRef<NegotiationAgentOffersRouter> for Arc<dyn NegotiationAgentOffersTrait> {
+impl FromRef<NegotiationAgentOffersRouter> for Arc<dyn OfferServiceTrait> {
     fn from_ref(state: &NegotiationAgentOffersRouter) -> Self {
         state.service.clone()
     }
 }
 
-impl FromRef<NegotiationAgentOffersRouter> for Arc<ContractsConfig> {
-    fn from_ref(state: &NegotiationAgentOffersRouter) -> Self {
-        state.config.clone()
-    }
-}
-
 impl NegotiationAgentOffersRouter {
-    pub fn new(
-        service: Arc<dyn NegotiationAgentOffersTrait>,
-        config: Arc<ContractsConfig>,
-    ) -> Self {
-        Self { service, config }
+    pub fn new(service: Arc<dyn OfferServiceTrait>) -> Self {
+        Self { service }
     }
 
     pub fn router(self) -> Router {
         Router::new()
-            .route(
-                "/",
-                get(Self::handle_get_all_offers).post(Self::handle_create_offer),
-            )
-            .route("/batch", post(Self::handle_get_batch_offers))
+            .route("/", get(Self::handle_get_all).post(Self::handle_create))
+            .route("/batch", post(Self::handle_batch))
             .route(
                 "/{id}",
-                get(Self::handle_get_offer_by_id).delete(Self::handle_delete_offer),
+                get(Self::handle_get_one).delete(Self::handle_delete),
             )
-            .route(
-                "/process/{process_id}",
-                get(Self::handle_get_offers_by_negotiation_process),
-            )
-            .route(
-                "/message/{message_id}",
-                get(Self::handle_get_offer_by_negotiation_message),
-            )
-            .route(
-                "/offer-id/{offer_id}",
-                get(Self::handle_get_offer_by_offer_id),
-            )
+            .route("/process/{process_id}", get(Self::handle_get_by_process))
+            .route("/offer-id/{offer_id}", get(Self::handle_get_by_offer_id))
             .with_state(self)
     }
 
-    async fn handle_get_all_offers(
-        State(state): State<NegotiationAgentOffersRouter>,
-        Query(params): Query<PaginationParams>,
-    ) -> impl IntoResponse {
-        match state
-            .service
-            .get_all_offers(params.limit, params.page)
-            .await
-        {
-            Ok(offers) => (StatusCode::OK, Json(offers)).into_response(),
-            Err(err) => err.to_response(),
-        }
+    async fn handle_get_all(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        Query(q): Query<OfferQuery>,
+    ) -> AppResult<(HeaderMap, Json<Paginated<OfferView>>)> {
+        let (filter, page, sort) = q.into_domain();
+        let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
+        let response_headers = headers.response_headers_paged(result.total);
+        Ok((response_headers, Json(result)))
     }
 
-    async fn handle_get_batch_offers(
-        State(state): State<NegotiationAgentOffersRouter>,
-        input: Result<Json<BatchRequests>, JsonRejection>,
-    ) -> impl IntoResponse {
-        let input = match extract_payload(input) {
-            Ok(v) => v,
-            Err(e) => return e,
-        };
-        match state.service.get_batch_offers(&input.ids).await {
-            Ok(offers) => (StatusCode::OK, Json(offers)).into_response(),
-            Err(err) => err.to_response(),
-        }
-    }
-
-    async fn handle_create_offer(
-        State(state): State<NegotiationAgentOffersRouter>,
-        input: Result<Json<NewOfferDto>, JsonRejection>,
-    ) -> impl IntoResponse {
-        let input = match extract_payload(input) {
-            Ok(v) => v,
-            Err(e) => return e,
-        };
-        match state.service.create_offer(&input).await {
-            Ok(created) => (StatusCode::CREATED, Json(created)).into_response(),
-            Err(err) => err.to_response(),
-        }
-    }
-
-    async fn handle_get_offer_by_id(
-        State(state): State<NegotiationAgentOffersRouter>,
-        Path(id): Path<String>,
-    ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        match state.service.get_offer_by_id(&id_urn).await {
-            Ok(Some(offer)) => (StatusCode::OK, Json(offer)).into_response(),
-            Ok(None) => (StatusCode::NOT_FOUND).into_response(),
-            Err(err) => err.to_response(),
-        }
-    }
-
-    async fn handle_delete_offer(
-        State(state): State<NegotiationAgentOffersRouter>,
-        Path(id): Path<String>,
-    ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        match state.service.delete_offer(&id_urn).await {
-            Ok(_) => (StatusCode::NO_CONTENT).into_response(),
-            Err(err) => err.to_response(),
-        }
-    }
-
-    async fn handle_get_offers_by_negotiation_process(
-        State(state): State<NegotiationAgentOffersRouter>,
+    async fn handle_get_by_process(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
         Path(process_id): Path<String>,
-    ) -> impl IntoResponse {
-        let process_urn = match parse_urn(&process_id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        match state
-            .service
-            .get_offers_by_negotiation_process(&process_urn)
-            .await
-        {
-            Ok(offers) => (StatusCode::OK, Json(offers)).into_response(),
-            Err(err) => err.to_response(),
-        }
+        Query(q): Query<OfferQuery>,
+    ) -> AppResult<(HeaderMap, Json<Paginated<OfferView>>)> {
+        let process_urn = extract_path_urn(&process_id)?;
+        let (mut filter, page, sort) = q.into_domain();
+        filter.process_id = Some(process_urn.to_string());
+        let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
+        let response_headers = headers.response_headers_paged(result.total);
+        Ok((response_headers, Json(result)))
     }
 
-    async fn handle_get_offer_by_negotiation_message(
-        State(state): State<NegotiationAgentOffersRouter>,
-        Path(message_id): Path<String>,
-    ) -> impl IntoResponse {
-        let message_urn = match parse_urn(&message_id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        match state
-            .service
-            .get_offer_by_negotiation_message(&message_urn)
-            .await
-        {
-            Ok(Some(offer)) => (StatusCode::OK, Json(offer)).into_response(),
-            Ok(None) => (StatusCode::NOT_FOUND).into_response(),
-            Err(err) => err.to_response(),
-        }
-    }
-
-    async fn handle_get_offer_by_offer_id(
-        State(state): State<NegotiationAgentOffersRouter>,
+    async fn handle_get_by_offer_id(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
         Path(offer_id): Path<String>,
-    ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&offer_id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        match state.service.get_offer_by_offer_id(&id_urn).await {
-            Ok(Some(offer)) => (StatusCode::OK, Json(offer)).into_response(),
-            Ok(None) => (StatusCode::NOT_FOUND).into_response(),
-            Err(err) => err.to_response(),
-        }
+        Query(q): Query<OfferQuery>,
+    ) -> AppResult<(HeaderMap, Json<Paginated<OfferView>>)> {
+        let (mut filter, page, sort) = q.into_domain();
+        filter.offer_id = Some(offer_id);
+        let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
+        let response_headers = headers.response_headers_paged(result.total);
+        Ok((response_headers, Json(result)))
+    }
+
+    async fn handle_batch(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        payload: Result<Json<BatchRequests>, JsonRejection>,
+    ) -> AppResult<(HeaderMap, Json<Vec<OfferView>>)> {
+        let payload = extract_payload(payload)?;
+        let views = state.service.batch(&scope, &payload).await?;
+        let count = views.len() as u64;
+        Ok((headers.response_headers_paged(Some(count)), Json(views)))
+    }
+
+    async fn handle_get_one(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        Path(id): Path<String>,
+    ) -> AppResult<(HeaderMap, Json<OfferView>)> {
+        let urn = extract_path_urn(&id)?;
+        let view = state.service.get_one(&scope, &urn).await?;
+        Ok((headers.response_headers(), Json(view)))
+    }
+
+    async fn handle_create(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        payload: Result<Json<NewOfferDto>, JsonRejection>,
+    ) -> AppResult<(StatusCode, HeaderMap, Json<OfferView>)> {
+        let payload = extract_payload(payload)?;
+        let view = state.service.create(&scope, &payload).await?;
+        let response_headers = headers.response_headers();
+        Ok((StatusCode::CREATED, response_headers, Json(view)))
+    }
+
+    async fn handle_delete(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        Path(id): Path<String>,
+    ) -> AppResult<(StatusCode, HeaderMap)> {
+        let urn = extract_path_urn(&id)?;
+        state.service.delete(&scope, &urn).await?;
+        Ok((StatusCode::NO_CONTENT, headers.response_headers()))
     }
 }

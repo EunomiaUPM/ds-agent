@@ -1,23 +1,20 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::protocol::persistence::OrchestrationPersistenceForProtocol;
 use crate::protocols::dsp::orchestrator::protocol::step_trait::{
     NegotiationInitialContext, NegotiationProtocolStep,
@@ -26,10 +23,11 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageWrapper, NegotiationRequestInitMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
-use ymir::data::entities::shared::participant::Model as Mates;
+use crate::services::negotiation_process::views::NegotiationProcessView;
 use std::sync::Arc;
+use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
-// ─── InitialContractRequestStep ───────────────────────────────────────────────
+// InitialContractRequestStep ───────────────────────────────────────────────
 
 /// Handles an inbound `ContractRequestMessage` that initiates a new negotiation
 /// process (Consumer - Provider, first message of the request flow).
@@ -46,6 +44,7 @@ impl NegotiationProtocolStep for InitialContractRequestStep {
     type Dto = NegotiationRequestInitMessageDto;
     type Context = NegotiationInitialContext;
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn validate(
         validator: &Arc<dyn ValidationDspSteps>,
         _id: &str,
@@ -56,6 +55,7 @@ impl NegotiationProtocolStep for InitialContractRequestStep {
     }
 
     /// No existing process to look up; always proceeds to persist.
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn prepare_context(
         _id: &str,
         _mate: &Mates,
@@ -69,13 +69,14 @@ impl NegotiationProtocolStep for InitialContractRequestStep {
     }
 
     /// Creates the new negotiation process record with the initial consumer offer.
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn persist(
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
         _id: &str,
         _ctx: &NegotiationInitialContext,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>,
         mate: &Mates,
-    ) -> Outcome<NegotiationProcessDto> {
+    ) -> Outcome<NegotiationProcessView> {
         persistence.create_new(&input.dto, mate).await
     }
 }

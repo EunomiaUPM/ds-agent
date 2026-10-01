@@ -34,7 +34,7 @@ export function DataplaneLogsTab({ logs }: { logs: DataplaneTransferLogDto[] }) 
                     <FormatDate date={log.created_at} />
                   </TableCell>
                   <TableCell>
-                    <span className="font-mono text-xs bg-muted/70 border border-white/10 px-1.5 py-0.5 rounded whitespace-nowrap">
+                    <span className="font-mono text-xs bg-muted/70 border border-ink/10 px-1.5 py-0.5 rounded whitespace-nowrap">
                       {log.trigger ?? "—"}
                     </span>
                   </TableCell>

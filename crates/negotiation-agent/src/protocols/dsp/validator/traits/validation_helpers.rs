@@ -1,28 +1,27 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #![allow(unused)]
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::protocol_types::{
     NegotiationProcessMessageTrait, NegotiationProcessState,
 };
+use crate::services::negotiation_process::views::NegotiationProcessView;
 use common::config::types::roles::RoleConfig;
+use common::dsp_common::DspActor;
 use urn::Urn;
 use ymir::errors::Outcome;
 
@@ -33,18 +32,23 @@ pub trait ValidationHelpers: Send + Sync + 'static {
     async fn parse_role_into_identifier(&self, role: &RoleConfig) -> Outcome<&str>;
     async fn get_current_dto_from_payload(
         &self,
+        actor: &DspActor,
         payload: &dyn NegotiationProcessMessageTrait,
-    ) -> Outcome<NegotiationProcessDto>;
+    ) -> Outcome<NegotiationProcessView>;
     async fn get_current_dto_from_payload_by_provider(
         &self,
+        actor: &DspActor,
         payload: &dyn NegotiationProcessMessageTrait,
-    ) -> Outcome<NegotiationProcessDto>;
-    async fn get_pid_by_role(&self, dto: &NegotiationProcessDto, role: &RoleConfig)
-    -> Outcome<Urn>;
-    async fn get_role_from_dto(&self, dto: &NegotiationProcessDto) -> Outcome<RoleConfig>;
+    ) -> Outcome<NegotiationProcessView>;
+    async fn get_pid_by_role(
+        &self,
+        dto: &NegotiationProcessView,
+        role: &RoleConfig,
+    ) -> Outcome<Urn>;
+    async fn get_role_from_dto(&self, dto: &NegotiationProcessView) -> Outcome<RoleConfig>;
     async fn get_state_from_dto(
         &self,
-        dto: &NegotiationProcessDto,
+        dto: &NegotiationProcessView,
     ) -> Outcome<NegotiationProcessState>;
-    async fn get_state_attribute_from_dto(&self, dto: &NegotiationProcessDto) -> Outcome<String>;
+    async fn get_state_attribute_from_dto(&self, dto: &NegotiationProcessView) -> Outcome<String>;
 }

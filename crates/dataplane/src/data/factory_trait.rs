@@ -15,12 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::data::repo_traits::dataplane_fields_repo::DataplaneFieldRepoTrait;
-use crate::data::repo_traits::dataplane_transfer_logs_repo::DataplaneTransferLogsRepo;
-use crate::data::repo_traits::dataplane_transfers_repo::DataplaneTransfersRepo;
-use crate::data::repo_traits::transfer_event_repo::TransferEventRepo;
+use crate::data::repo::dataplane_field::DataplaneFieldRepoTrait;
+use crate::data::repo::dataplane_transfer::DataplaneTransfersRepo;
+use crate::data::repo::dataplane_transfer_log::DataplaneTransferLogsRepo;
+use crate::data::repo::transfer_event::TransferEventRepo;
 use std::sync::Arc;
 
+#[mockall::automock]
 pub trait DataplaneRepoTrait: Send + Sync + 'static {
     fn get_dataplane_transfers_repo(&self) -> Arc<dyn DataplaneTransfersRepo>;
     fn get_dataplane_fields_repo(&self) -> Arc<dyn DataplaneFieldRepoTrait>;

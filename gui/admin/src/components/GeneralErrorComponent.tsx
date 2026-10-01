@@ -34,7 +34,7 @@ export function GeneralErrorComponent({ error, reset }: GeneralErrorComponentPro
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md bg-white/50 p-3 text-sm font-medium text-red-800 dark:bg-black/20 dark:text-red-200">
+          <div className="rounded-md bg-white/50 p-3 text-sm font-medium text-red-800 dark:bg-sunken/20 dark:text-red-200">
             {error.message || "Unknown error"}
           </div>
         </CardContent>

@@ -68,6 +68,7 @@ export function AuthorityStep() {
             </div>
             <div className="rounded-md border">
               <DataTable
+                searchable={false}
                 columns={vcRequestColumns}
                 data={Array.isArray(ssiAuthContext.authRequests) ? ssiAuthContext.authRequests : []}
                 keyExtractor={(item) => item.id}

@@ -21,9 +21,39 @@ use crate::data::repo_traits::catalog_db_errors::{
     CatalogAgentRepoErrors, OdrlOfferRepoErrors, PolicyTemplatesRepoErrors,
 };
 use crate::data::repo_traits::policy_template_repo::PolicyTemplatesRepositoryTrait;
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
+use crate::entities::filters::PolicyTemplateFilter;
+use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use common::query::FilterApplier;
+use sea_orm::{
+    ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
+    QuerySelect, Select,
+};
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+
+impl FilterApplier<Select<policy_template::Entity>> for PolicyTemplateFilter {
+    fn apply_to(&self, mut q: Select<policy_template::Entity>) -> Select<policy_template::Entity> {
+        if let Some(ref tenant_id) = self.tenant_id {
+            q = q.filter(policy_template::Column::TenantId.eq(tenant_id));
+        }
+        if let Some(ref id) = self.id {
+            q = q.filter(policy_template::Column::Id.eq(id));
+        }
+        if let Some(ref version) = self.version {
+            q = q.filter(policy_template::Column::Version.eq(version));
+        }
+        if let Some(ref author) = self.author {
+            q = q.filter(policy_template::Column::Author.eq(author));
+        }
+        if let Some(after) = self.created_after {
+            q = q.filter(policy_template::Column::Date.gte(after));
+        }
+        if let Some(before) = self.created_before {
+            q = q.filter(policy_template::Column::Date.lte(before));
+        }
+        q
+    }
+}
 
 pub struct PolicyTemplatesRepositoryForSql {
     db_connection: DatabaseConnection,
@@ -37,36 +67,51 @@ impl PolicyTemplatesRepositoryForSql {
 
 #[async_trait::async_trait]
 impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_policy_templates(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<policy_template::Model>> {
-        let page_limit = limit.unwrap_or(25);
-        let page_number = page.unwrap_or(1);
-        let calculated_offset = (page_number.max(1) - 1) * page_limit;
+        filters: &PolicyTemplateFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<policy_template::Model>, Option<u64>)> {
+        let mut q = policy_template::Entity::find();
+        q = filters.apply_to(q);
 
-        match policy_template::Entity::find()
-            .order_by_desc(policy_template::Column::Date)
-            .limit(page_limit)
-            .offset(calculated_offset)
-            .all(&self.db_connection)
-            .await
-        {
-            Ok(templates) => Ok(templates),
-            Err(err) => Err(CatalogAgentRepoErrors::PolicyTemplatesRepoErrors(
+        let total = q.clone().count(&self.db_connection).await.map_err(|err| {
+            CatalogAgentRepoErrors::PolicyTemplatesRepoErrors(
                 PolicyTemplatesRepoErrors::ErrorFetchingPolicyTemplate(err.into()),
             )
-            .into_errors()),
-        }
+            .into_errors()
+        })?;
+
+        let items = q
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                policy_template::Column::Date,
+                policy_template::Column::Id,
+            )
+            .all(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::PolicyTemplatesRepoErrors(
+                    PolicyTemplatesRepoErrors::ErrorFetchingPolicyTemplate(err.into()),
+                )
+                .into_errors()
+            })?;
+
+        Ok((items, Some(total)))
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_policy_templates(
         &self,
-        ids: &Vec<String>,
+        tenant_id: &str,
+        ids: &[String],
     ) -> Outcome<Vec<policy_template::Model>> {
-        let policy_ids = ids.clone();
+        let policy_ids = ids.to_vec();
         let policy_process = policy_template::Entity::find()
+            .filter(policy_template::Column::TenantId.eq(tenant_id))
             .filter(policy_template::Column::Id.is_in(policy_ids))
             .all(&self.db_connection)
             .await;
@@ -79,9 +124,14 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
         }
     }
 
-    async fn get_policy_templates_by_id(&self, template_id: &String) -> Outcome<Vec<Model>> {
-        let template_id = template_id.to_string();
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn get_policy_templates_by_id(
+        &self,
+        tenant_id: &str,
+        template_id: &str,
+    ) -> Outcome<Vec<Model>> {
         match policy_template::Entity::find()
+            .filter(policy_template::Column::TenantId.eq(tenant_id))
             .filter(policy_template::Column::Id.eq(template_id))
             .all(&self.db_connection)
             .await
@@ -94,12 +144,17 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_policy_template_by_id_and_version(
         &self,
-        template_id: &String,
-        version: &String,
+        tenant_id: &str,
+        template_id: &str,
+        version: &str,
     ) -> Outcome<Option<Model>> {
-        match policy_template::Entity::find_by_id((template_id.clone(), version.clone()))
+        match policy_template::Entity::find()
+            .filter(policy_template::Column::TenantId.eq(tenant_id))
+            .filter(policy_template::Column::Id.eq(template_id))
+            .filter(policy_template::Column::Version.eq(version))
             .one(&self.db_connection)
             .await
         {
@@ -111,6 +166,7 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_policy_template(
         &self,
         new_policy_template: &NewPolicyTemplateModel,
@@ -128,12 +184,17 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_policy_template_by_id_and_version(
         &self,
-        template_id: &String,
-        version: &String,
+        tenant_id: &str,
+        template_id: &str,
+        version: &str,
     ) -> Outcome<()> {
-        match policy_template::Entity::delete_by_id((template_id.clone(), version.clone()))
+        match policy_template::Entity::delete_many()
+            .filter(policy_template::Column::TenantId.eq(tenant_id))
+            .filter(policy_template::Column::Id.eq(template_id))
+            .filter(policy_template::Column::Version.eq(version))
             .exec(&self.db_connection)
             .await
         {

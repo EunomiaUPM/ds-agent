@@ -47,8 +47,6 @@ tags:
     description: "Transfer process operations (\u2192 transfer-agent)"
   - name: TransferRPC
     description: "Transfer RPC commands (\u2192 transfer-agent)"
-  - name: Subscriptions
-    description: "Pub/sub subscription operations (\u2192 transfer-agent)"
   - name: Dataplane Transfers
     description: "Dataplane transfer operations (\u2192 transfer-agent)"
   - name: Dataplane Logs
@@ -69,6 +67,14 @@ tags:
     description: "Sensitive key/value entries — values are masked in all responses (→ keystore)"
   - name: Keystore Config
     description: "Runtime application configuration (→ keystore)"
+  - name: OAuth
+    description: "OAuth 2.0 token, authorization, introspection, and user management (→ oauth)"
+  - name: OAuth Clients
+    description: "OAuth 2.0 registered client applications (→ oauth)"
+  - name: Personal Access Tokens
+    description: "Personal Access Token (PAT) management (→ oauth)"
+  - name: Events
+    description: "Real-time pub/sub event stream, audit feed, webhook subscriptions, and Dead Letter Queue (→ events / bff)"
 paths:
   /fe-config:
     get:
@@ -83,90 +89,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FeConfig"
-        "400":
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "404":
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-  /incoming-notification:
-    post:
-      operationId: postIncomingNotification
-      summary: Send a notification to connected WebSocket clients
-      tags:
-        - Gateway
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        "202":
-          description: Notification accepted
-        "400":
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "404":
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-  /ws:
-    get:
-      operationId: websocket
-      summary: WebSocket endpoint for real-time notifications
-      tags:
-        - Gateway
-      responses:
-        "101":
-          description: Switching Protocols (WebSocket upgrade)
         "400":
           description: Bad Request
           content:
@@ -335,6 +257,50 @@ paths:
                 $ref: "#/components/schemas/ErrorInfo"
         "404":
           description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInfo"
+  /dataset-offerings:
+    post:
+      operationId: createDatasetOffering
+      summary: Publish a dataset with its distribution and, optionally, its policy
+      description: Creates the dataset (in the main catalog unless catalogId is given), its distribution (served by the main data service unless accessServiceId is given) and an ODRL offer. A failure after the dataset removes it again.
+      tags:
+        - Catalogs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDatasetOfferingRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatasetOfferingResultDto"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInfo"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInfo"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInfo"
+        "502":
+          description: Bad Gateway
           content:
             application/json:
               schema:
@@ -4790,211 +4756,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorInfo"
-  /subscriptions:
-    get:
-      operationId: getSubscriptions
-      summary: List subscriptions
-      tags:
-        - Subscriptions
-      parameters:
-        - name: callback_address
-          in: query
-          required: false
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Subscription"
-        "400":
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "404":
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-  /subscriptions/{subscriptionId}:
-    get:
-      operationId: getSubscriptionById
-      summary: Get subscription by ID
-      tags:
-        - Subscriptions
-      parameters:
-        - name: subscriptionId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Subscription"
-        "400":
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "404":
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-  /subscriptions/{subscriptionId}/notifications:
-    get:
-      operationId: getNotificationsBySubscriptionId
-      summary: Get notifications for a subscription
-      tags:
-        - Subscriptions
-      parameters:
-        - name: subscriptionId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/NotificationSub"
-        "400":
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "404":
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-  /subscriptions/{subscriptionId}/notifications-pending:
-    get:
-      operationId: getPendingNotificationsBySubscriptionId
-      summary: Get pending notifications for a subscription
-      tags:
-        - Subscriptions
-      parameters:
-        - name: subscriptionId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/NotificationSub"
-        "400":
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "404":
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
   /mates/all:
     get:
       operationId: getAllParticipants
@@ -5013,13 +4774,6 @@ paths:
               - authorities
               - all
             default: all
-        - name: exclude
-          in: query
-          required: false
-          description: When `true`, excludes the own identity (is_me) from the results.
-          schema:
-            type: boolean
-            default: false
       responses:
         "200":
           description: OK
@@ -5603,8 +5357,695 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /oauth/token:
+    post:
+      tags:
+        - OAuth
+      summary: Issue OAuth 2.0 access token
+      operationId: createOAuthToken
+      description: Exchange client credentials, authorization code + PKCE, refresh token, or RFC 7523 JWT Profile for an access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OAuthTokenRequest"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/OAuthTokenRequest"
+      responses:
+        "200":
+          description: Token issued successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthTokenResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /oauth/revoke:
+    post:
+      tags:
+        - OAuth
+      summary: Revoke access or refresh token
+      operationId: revokeOAuthToken
+      description: RFC 7009 token revocation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OAuthRevokeRequest"
+      responses:
+        "200":
+          description: Token revoked
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /oauth/introspect:
+    post:
+      tags:
+        - OAuth
+      summary: Introspect token
+      operationId: introspectOAuthToken
+      description: RFC 7662 token introspection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OAuthRevokeRequest"
+      responses:
+        "200":
+          description: Introspection result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenIntrospectionResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /oauth/userinfo:
+    get:
+      tags:
+        - OAuth
+      summary: Get user info
+      operationId: getOAuthUserInfo
+      description: OpenID Connect UserInfo endpoint
+      responses:
+        "200":
+          description: User information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthUserInfo"
+        "401":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /oauth/.well-known/jwks.json:
+    get:
+      tags:
+        - OAuth
+      summary: Get JSON Web Key Set
+      operationId: getOAuthJwks
+      responses:
+        "200":
+          description: JWKS public keys
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JwksResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /oauth/users:
+    get:
+      tags:
+        - OAuth
+      summary: List users
+      operationId: listOAuthUsers
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/PageNumber"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: List of registered users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OAuthUser"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - OAuth
+      summary: Create user
+      operationId: createOAuthUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserCommand"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthUser"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /oauth/clients:
+    get:
+      tags:
+        - OAuth Clients
+      summary: List registered OAuth clients
+      operationId: listOAuthClients
+      responses:
+        "200":
+          description: List of OAuth client applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OAuthClient"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - OAuth Clients
+      summary: Register OAuth client
+      operationId: registerOAuthClient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClientCommand"
+      responses:
+        "201":
+          description: OAuth client registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RotateSecretResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /oauth/clients/{clientId}:
+    get:
+      tags:
+        - OAuth Clients
+      summary: Get OAuth client details
+      operationId: getOAuthClientById
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OAuth client details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthClient"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - OAuth Clients
+      summary: Delete OAuth client
+      operationId: deleteOAuthClient
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Client deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /oauth/clients/{clientId}/secret:
+    post:
+      tags:
+        - OAuth Clients
+      summary: Rotate OAuth client secret
+      operationId: rotateOAuthClientSecret
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: New client secret generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RotateSecretResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /oauth/pats:
+    get:
+      tags:
+        - Personal Access Tokens
+      summary: List Personal Access Tokens
+      operationId: listPersonalAccessTokens
+      responses:
+        "200":
+          description: List of PATs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PatRecord"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Personal Access Tokens
+      summary: Create Personal Access Token
+      operationId: createPersonalAccessToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePatCommand"
+      responses:
+        "201":
+          description: PAT created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatePatResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /oauth/pats/{patId}:
+    delete:
+      tags:
+        - Personal Access Tokens
+      summary: Revoke Personal Access Token
+      operationId: revokePersonalAccessToken
+      parameters:
+        - name: patId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: PAT revoked
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /events:
+    get:
+      tags:
+        - Events
+      summary: List events feed
+      operationId: listEventsFeed
+      parameters:
+        - name: topic
+          in: query
+          required: false
+          description: Topic pattern; `*` matches one segment and `**` any number of them.
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/PageNumber"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Sort"
+      responses:
+        "200":
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventEnvelope"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Events
+      summary: Publish event
+      operationId: publishEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishEventCommand"
+      responses:
+        "201":
+          description: Event published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /events/{eventId}:
+    get:
+      tags:
+        - Events
+      summary: Get event by ID
+      operationId: getEventById
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Event details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventEnvelope"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /events/stream:
+    get:
+      tags:
+        - Events
+      summary: Stream events via Server-Sent Events
+      operationId: streamEventsSse
+      description: EventSource cannot send headers, so the bearer token and the acting tenant go in the query.
+      parameters:
+        - name: topic
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: tenant
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: SSE event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /events/subscriptions:
+    get:
+      tags:
+        - Events
+      summary: List event subscriptions
+      operationId: listEventSubscriptions
+      parameters:
+        - name: active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/PageNumber"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Sort"
+      responses:
+        "200":
+          description: List of webhook subscriptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventSubscription"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Events
+      summary: Create event subscription
+      operationId: createEventSubscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubscriptionCommand"
+      responses:
+        "201":
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventSubscription"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /events/subscriptions/{subscriptionId}:
+    get:
+      tags:
+        - Events
+      summary: Get event subscription by ID
+      operationId: getEventSubscriptionById
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Subscription details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventSubscription"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      tags:
+        - Events
+      summary: Update event subscription
+      operationId: updateEventSubscription
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSubscriptionCommand"
+      responses:
+        "200":
+          description: Subscription updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventSubscription"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - Events
+      summary: Delete event subscription
+      operationId: deleteEventSubscription
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Subscription deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /events/dlq:
+    get:
+      tags:
+        - Events
+      summary: List Dead Letter Queue records
+      operationId: listDeadLetters
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [Unresolved, Replayed, Purged]
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/PageNumber"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Sort"
+      responses:
+        "200":
+          description: List of dead letters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeadLetterRecord"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /events/dlq/replay-all:
+    post:
+      tags:
+        - Events
+      summary: Replay all dead letter messages
+      operationId: replayAllDeadLetters
+      responses:
+        "200":
+          description: Number of messages replayed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReplayAllResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /events/dlq/{dlqId}:
+    get:
+      tags:
+        - Events
+      summary: Get Dead Letter Queue record
+      operationId: getDeadLetterById
+      parameters:
+        - name: dlqId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Dead letter details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeadLetterRecord"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - Events
+      summary: Delete Dead Letter Queue record
+      operationId: deleteDeadLetter
+      parameters:
+        - name: dlqId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Dead letter deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /events/dlq/{dlqId}/replay:
+    post:
+      tags:
+        - Events
+      summary: Replay a single dead letter message
+      operationId: replayDeadLetter
+      parameters:
+        - name: dlqId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Delivery re-enqueued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventDeliveryRecord"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
 components:
   parameters:
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 10
+        maximum: 100
+    PageNumber:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque cursor from `nextCursor` of the previous page; takes precedence over `page`.
+      schema:
+        type: string
+    Sort:
+      name: sort
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [created_at_desc, created_at_asc, updated_at_desc, updated_at_asc]
+        default: created_at_desc
     catalogId:
       name: catalogId
       in: path
@@ -5690,6 +6131,68 @@ components:
         type: string
         example: /service
   schemas:
+    CreateDatasetOfferingRequest:
+      type: object
+      required:
+        - dataset
+        - distribution
+      properties:
+        dataset:
+          $ref: "#/components/schemas/DatasetOfferingInput"
+        distribution:
+          $ref: "#/components/schemas/DistributionOfferingInput"
+        policy:
+          $ref: "#/components/schemas/PolicyOfferingInput"
+    DatasetOfferingInput:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        conformsTo:
+          type: string
+        creator:
+          type: string
+        catalogId:
+          type: string
+    DistributionOfferingInput:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        formats:
+          type: string
+        accessServiceId:
+          type: string
+    PolicyOfferingInput:
+      type: object
+      properties:
+        description:
+          type: string
+        action:
+          type: string
+        profile:
+          type: string
+        constraints:
+          type: array
+          items:
+            type: object
+    DatasetOfferingResultDto:
+      type: object
+      properties:
+        dataset:
+          type: object
+        distribution:
+          type: object
+        policy:
+          type: object
     FeConfig:
       type: object
       properties:
@@ -7201,8 +7704,6 @@ components:
         extra_fields:
           type: object
           additionalProperties: true
-        is_me:
-          type: boolean
     PeerCatalogEntry:
       type: object
       properties:
@@ -7510,37 +8011,6 @@ components:
           type: array
           items:
             type: string
-    Subscription:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        target:
-          type: string
-        subscriber:
-          type: string
-        callbackAddress:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-    NotificationSub:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        subscriptionId:
-          type: string
-          format: uuid
-        event:
-          type: object
-        status:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
     RPCResponse:
       type: object
       properties:
@@ -9229,6 +9699,600 @@ components:
       type: object
       description: Full runtime application configuration. Shape depends on deployment.
       additionalProperties: true
+    OAuthTokenRequest:
+      type: object
+      required:
+        - grant_type
+      properties:
+        grant_type:
+          type: string
+          example: client_credentials
+        client_id:
+          type: string
+          nullable: true
+          example: app-client-1
+        client_secret:
+          type: string
+          nullable: true
+          example: secret-123
+        code:
+          type: string
+          nullable: true
+        code_verifier:
+          type: string
+          nullable: true
+        refresh_token:
+          type: string
+          nullable: true
+        assertion:
+          type: string
+          nullable: true
+        scope:
+          type: string
+          nullable: true
+          example: "openid profile read:catalog"
+
+    OAuthTokenResponse:
+      type: object
+      required:
+        - access_token
+        - token_type
+        - expires_in
+      properties:
+        access_token:
+          type: string
+          example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+        token_type:
+          type: string
+          example: Bearer
+        expires_in:
+          type: integer
+          example: 3600
+        refresh_token:
+          type: string
+          nullable: true
+        scope:
+          type: string
+          nullable: true
+          example: "openid profile"
+
+    OAuthRevokeRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          example: eyJhbGci...
+        token_type_hint:
+          type: string
+          nullable: true
+          example: access_token
+
+    TokenIntrospectionResponse:
+      type: object
+      required:
+        - active
+      properties:
+        active:
+          type: boolean
+          example: true
+        sub:
+          type: string
+          nullable: true
+          example: user-123
+        client_id:
+          type: string
+          nullable: true
+          example: client-app
+        scope:
+          type: string
+          nullable: true
+          example: "read write"
+        exp:
+          type: integer
+          nullable: true
+          example: 1780000000
+
+    OAuthUserInfo:
+      type: object
+      required:
+        - sub
+      properties:
+        sub:
+          type: string
+          example: admin-user
+        name:
+          type: string
+          nullable: true
+          example: Administrator
+        email:
+          type: string
+          nullable: true
+          example: admin@eunomia.org
+        roles:
+          type: array
+          items:
+            type: string
+          example: ["Admin", "Provider"]
+
+    JwksResponse:
+      type: object
+      required:
+        - keys
+      properties:
+        keys:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    OAuthUser:
+      type: object
+      required:
+        - id
+        - tenantId
+        - username
+        - role
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+        username:
+          type: string
+          example: admin
+        role:
+          type: string
+          example: Admin
+        created_at:
+          type: string
+          format: date-time
+
+    CreateUserCommand:
+      type: object
+      required:
+        - username
+        - password
+        - role
+      properties:
+        username:
+          type: string
+          example: dev_user
+        password:
+          type: string
+          example: P@ssw0rd123!
+        role:
+          type: string
+          enum: [Admin, User, Auditor, Service]
+          example: User
+
+    OAuthClient:
+      type: object
+      required:
+        - client_id
+        - client_name
+        - role
+        - scopes
+        - created_at
+      properties:
+        client_id:
+          type: string
+          example: cli-m2m-agent
+        client_name:
+          type: string
+          example: Data Plane Transfer Agent
+        role:
+          type: string
+          example: Service
+        scopes:
+          type: array
+          items:
+            type: string
+          example: ["events:read", "transfers:write"]
+        created_at:
+          type: string
+          format: date-time
+
+    CreateClientCommand:
+      type: object
+      required:
+        - client_name
+        - role
+        - scopes
+      properties:
+        client_name:
+          type: string
+          example: External Partner Gateway
+        role:
+          type: string
+          enum: [Admin, User, Auditor, Service]
+          example: Service
+        scopes:
+          type: array
+          items:
+            type: string
+          example: ["catalog:read", "transfers:read"]
+
+    RotateSecretResponse:
+      type: object
+      required:
+        - client_id
+        - client_name
+        - client_secret
+      properties:
+        client_id:
+          type: string
+          example: client-123
+        client_name:
+          type: string
+          example: My Client
+        client_secret:
+          type: string
+          description: Plaintext secret, only returned once upon generation or rotation
+          example: sec_x89aF29bCd...
+
+    PatRecord:
+      type: object
+      required:
+        - id
+        - name
+        - token_prefix
+        - role
+        - scopes
+        - revoked
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: CI/CD Pipeline Deployment Token
+        token_prefix:
+          type: string
+          example: pat_live_...
+        role:
+          type: string
+          example: Service
+        scopes:
+          type: array
+          items:
+            type: string
+          example: ["events:*", "transfers:*"]
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+        revoked:
+          type: boolean
+          example: false
+        created_at:
+          type: string
+          format: date-time
+
+    CreatePatCommand:
+      type: object
+      required:
+        - name
+        - role
+        - scopes
+      properties:
+        name:
+          type: string
+          example: Nightly Backup Script
+        role:
+          type: string
+          enum: [Admin, User, Auditor, Service]
+          example: Service
+        scopes:
+          type: array
+          items:
+            type: string
+          example: ["events:read", "transfers:read"]
+        expires_in_days:
+          type: integer
+          nullable: true
+          example: 90
+
+    CreatePatResponse:
+      type: object
+      required:
+        - pat
+        - token
+      properties:
+        pat:
+          $ref: "#/components/schemas/PatRecord"
+        token:
+          type: string
+          description: Plaintext personal access token, only shown once
+          example: pat_x89aF29bCd...
+
+    EventEnvelope:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - topic
+        - source_crate
+        - schema_version
+        - timestamp
+        - payload
+      properties:
+        id:
+          type: string
+          example: urn:uuid:f47ac10b-58cc-4372-a567-0e02b2c3d479
+        tenant_id:
+          type: string
+        topic:
+          type: string
+          example: transfers.process.completed
+        source_crate:
+          type: string
+          example: transfer-agent
+        schema_version:
+          type: integer
+          example: 1
+        correlation_id:
+          type: string
+          nullable: true
+          example: urn:uuid:a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-09-06T12:00:00Z"
+        payload:
+          type: object
+          description: Any valid JSON event payload
+          additionalProperties: true
+
+    PublishEventCommand:
+      type: object
+      required:
+        - topic
+        - payload
+      properties:
+        topic:
+          type: string
+          example: custom.notification
+        source_crate:
+          type: string
+          nullable: true
+          example: gui-admin
+        schema_version:
+          type: integer
+          nullable: true
+          example: 1
+        correlation_id:
+          type: string
+          nullable: true
+          example: urn:uuid:a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        payload:
+          type: object
+          description: Event payload data
+          additionalProperties: true
+
+    EventSubscription:
+      type: object
+      required:
+        - id
+        - callback_address
+        - topic_pattern
+        - active
+        - created_at
+      properties:
+        id:
+          type: string
+          example: 123e4567-e89b-12d3-a456-426614174000
+        callback_address:
+          type: string
+          example: https://partner.example.com/webhook
+        topic_pattern:
+          type: string
+          example: "transfers.*"
+        secret:
+          type: string
+          nullable: true
+          example: whsec_abc123...
+        headers:
+          type: object
+          nullable: true
+          additionalProperties:
+            type: string
+        retry_limit:
+          type: integer
+          nullable: true
+          example: 5
+        active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        expiration_time:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreateSubscriptionCommand:
+      type: object
+      required:
+        - callback_address
+        - topic_pattern
+      properties:
+        callback_address:
+          type: string
+          example: https://partner.example.com/webhook
+        topic_pattern:
+          type: string
+          example: "transfers.*"
+        secret:
+          type: string
+          nullable: true
+          example: my-hmac-secret-key
+        headers:
+          type: object
+          nullable: true
+          additionalProperties:
+            type: string
+        retry_limit:
+          type: integer
+          nullable: true
+          example: 5
+        expiration_time:
+          type: string
+          format: date-time
+          nullable: true
+
+    UpdateSubscriptionCommand:
+      type: object
+      properties:
+        callback_address:
+          type: string
+          nullable: true
+        topic_pattern:
+          type: string
+          nullable: true
+        secret:
+          type: string
+          nullable: true
+        headers:
+          type: object
+          nullable: true
+          additionalProperties:
+            type: string
+        retry_limit:
+          type: integer
+          nullable: true
+        active:
+          type: boolean
+          nullable: true
+        expiration_time:
+          type: string
+          format: date-time
+          nullable: true
+
+    EventDeliveryRecord:
+      type: object
+      required:
+        - id
+        - event_id
+        - subscription_id
+        - status
+        - attempts
+        - created_at
+      properties:
+        id:
+          type: string
+          example: del-123
+        event_id:
+          type: string
+          example: urn:uuid:...
+        subscription_id:
+          type: string
+          example: sub-456
+        status:
+          type: string
+          enum: [Pending, Delivered, Failed, DeadLetter]
+          example: Delivered
+        attempts:
+          type: integer
+          example: 1
+        last_attempt_at:
+          type: string
+          format: date-time
+          nullable: true
+        next_retry_at:
+          type: string
+          format: date-time
+          nullable: true
+        error_message:
+          type: string
+          nullable: true
+        response_status_code:
+          type: integer
+          nullable: true
+          example: 200
+        delivered_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    DeadLetterRecord:
+      type: object
+      required:
+        - id
+        - event_id
+        - subscription_id
+        - topic
+        - callback_address
+        - payload
+        - error_message
+        - attempts
+        - status
+        - failed_at
+      properties:
+        id:
+          type: string
+          example: dlq-123
+        delivery_id:
+          type: string
+          nullable: true
+          example: del-456
+        event_id:
+          type: string
+          example: urn:uuid:...
+        subscription_id:
+          type: string
+          example: sub-789
+        topic:
+          type: string
+          example: transfers.started
+        callback_address:
+          type: string
+          example: https://unreachable.host.com/webhook
+        payload:
+          type: object
+          additionalProperties: true
+        error_message:
+          type: string
+          example: "Connection refused: connect"
+        attempts:
+          type: integer
+          example: 5
+        status:
+          type: string
+          enum: [Unresolved, Replayed, Purged]
+          example: Unresolved
+        failed_at:
+          type: string
+          format: date-time
+        replayed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ReplayAllResponse:
+      type: object
+      required:
+        - replayed_count
+      properties:
+        replayed_count:
+          type: integer
+          example: 3
   responses:
     InternalServerError:
       description: Internal Server Error

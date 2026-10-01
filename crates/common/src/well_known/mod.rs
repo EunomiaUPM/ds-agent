@@ -19,12 +19,15 @@ use std::sync::Arc;
 
 use ymir::errors::Outcome;
 
+use crate::auth::ServiceHttpClient;
 use crate::config::types::min_known_config::MinKnownConfig;
-use crate::facades::ssi_auth_facade::mates_facade::MatesFacadeService;
-use crate::http_client::HttpClient;
+use crate::config::types::traits::MinKnownConfigTrait;
+use crate::facades::mates_facade::remote::MatesRemoteFacade;
+use crate::facades::mates_facade::MatesFacadeTrait;
 use crate::well_known::dspace_version::dspace_version::WellKnownDSpaceVersionService;
 use crate::well_known::router::WellKnownRouter;
 use crate::well_known::rpc::rpc::WellKnownRPCService;
+use ymir::config::types::HostType;
 
 pub mod dspace_version;
 pub mod router;
@@ -32,17 +35,25 @@ pub mod rpc;
 
 pub struct WellKnownRoot;
 impl WellKnownRoot {
-    pub fn get_well_known_router(config: &MinKnownConfig) -> Outcome<axum::Router> {
-        let config = Arc::new(config.clone());
-        let http_client = Arc::new(HttpClient::new(2, 3));
-        let mates_facade = Arc::new(MatesFacadeService::new(config.clone(), http_client.clone()));
+    /// `mates` is the process's resolved port; without one, participants are read over HTTP.
+    pub fn get_well_known_router(
+        config: &MinKnownConfig,
+        mates: Option<Arc<dyn MatesFacadeTrait>>,
+    ) -> Outcome<axum::Router> {
+        let mates_facade = mates.unwrap_or_else(|| Self::remote_mates(config));
 
         let dspace_version_service = WellKnownDSpaceVersionService::new();
-        let dspace_version_rpc = Arc::new(WellKnownRPCService::new(
-            http_client.clone(),
-            mates_facade.clone(),
-        ));
+        let dspace_version_rpc = Arc::new(WellKnownRPCService::new(mates_facade.clone()));
         let router = WellKnownRouter::new(dspace_version_service, dspace_version_rpc.clone());
         Ok(router.router())
+    }
+
+    fn remote_mates(config: &MinKnownConfig) -> Arc<dyn MatesFacadeTrait> {
+        let config = Arc::new(config.clone());
+        let service_client = Arc::new(ServiceHttpClient::new(
+            &config.service_client,
+            &config.get_host(HostType::Http),
+        ));
+        Arc::new(MatesRemoteFacade::new(config, service_client))
     }
 }

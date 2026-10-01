@@ -1,51 +1,94 @@
 import * as React from "react";
-import { useRouterState } from "@tanstack/react-router";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { cn } from "shared/src/lib/utils";
 
+export interface InputProps extends React.ComponentProps<"input"> {
+  startIcon?: React.ReactNode;
+  endIcon?: React.ReactNode;
+  containerClassName?: string;
+  onClear?: () => void;
+}
+
 /**
- * Input component with specialized behavior for search placeholders based on route.
+ * Enterprise shadcn Input component with dark styling, icons, and clear button support.
  */
-const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
-    const routerState = useRouterState();
-    let pathsArray = routerState.location.pathname.split("/");
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  (
+    {
+      className,
+      containerClassName,
+      type = "text",
+      placeholder,
+      startIcon,
+      endIcon,
+      onClear,
+      value,
+      ...props
+    },
+    ref,
+  ) => {
+    const isSearch = type === "search";
+    const hasDecorator = Boolean(startIcon || endIcon || onClear || isSearch);
 
-    pathsArray.map((path, index) => {
-      path.includes("urn") ? pathsArray.splice(index) : "";
+    const baseInputStyles =
+      "w-full rounded-md border border-ink/15 bg-background-800/90 px-3 py-1.5 text-xs text-brand-snow placeholder:text-muted-foreground/60 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-sky/60 focus-visible:border-brand-sky/60 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]";
 
-      return pathsArray;
-    });
-    pathsArray.splice(0, 1);
-    let stringPathsArray = JSON.stringify(pathsArray);
-    // console.log(pathsArray, "pathsArray2");
-    let pathFormat = stringPathsArray
-      .replace(/["[\]]/g, "")
-      .split("-")
-      .join(" ");
-    let placeHolderText;
-
-    if (type === "search") {
-      placeHolderText = "Search for " + pathFormat;
-    } else {
-      placeHolderText = "Enter text";
+    if (!hasDecorator) {
+      return (
+        <input
+          {...props}
+          ref={ref}
+          type={type}
+          value={value}
+          placeholder={placeholder}
+          className={cn("flex h-9", baseInputStyles, className)}
+        />
+      );
     }
+
+    const defaultPlaceholder = isSearch ? "Search..." : undefined;
+    const resolvedPlaceholder = placeholder !== undefined ? placeholder : defaultPlaceholder;
 
     return (
       <div
         className={cn(
-          "flex h-7 items-center rounded-sm border-0 border-input bg-white/10 pl-2 text-sm focus-within:ring-1 focus-within:ring-ring/50",
-          className,
+          "flex h-9 w-full items-center rounded-md border border-ink/15 bg-background-800/90 px-2.5 text-xs text-brand-snow transition-all focus-within:border-brand-sky/60 focus-within:ring-1 focus-within:ring-brand-sky/60 hover:border-ink/25",
+          containerClassName,
         )}
       >
-        {type === "search" && <Search className="h-4 w-4" />}
+        {startIcon ? (
+          <span className="mr-2 flex items-center text-muted-foreground/70 shrink-0">
+            {startIcon}
+          </span>
+        ) : isSearch ? (
+          <Search className="mr-2 h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+        ) : null}
+
         <input
           {...props}
-          type="search"
           ref={ref}
-          placeholder={placeHolderText}
-          className="bg-transparent w-full p-1 placeholder:text-muted-foreground/70 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          type={type}
+          value={value}
+          placeholder={resolvedPlaceholder}
+          className={cn(
+            "w-full bg-transparent text-xs text-brand-snow placeholder:text-muted-foreground/60 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]",
+            className,
+          )}
         />
+
+        {onClear && value && String(value).length > 0 ? (
+          <button
+            type="button"
+            onClick={onClear}
+            className="ml-1 text-muted-foreground/60 hover:text-ink transition-colors shrink-0"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        ) : endIcon ? (
+          <span className="ml-2 flex items-center text-muted-foreground/70 shrink-0">
+            {endIcon}
+          </span>
+        ) : null}
       </div>
     );
   },
@@ -53,3 +96,4 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
 Input.displayName = "Input";
 
 export { Input };
+

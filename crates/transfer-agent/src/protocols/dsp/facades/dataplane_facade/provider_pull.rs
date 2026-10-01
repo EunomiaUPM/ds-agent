@@ -15,42 +15,47 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::context::DspTransferContext;
+use crate::protocols::dsp::entities::context_common::TransferContextConnectorRole;
+use crate::protocols::dsp::entities::context_dsp::TransferDSPContextDomain;
+
+use crate::protocols::dsp::entities::data_address::DataAddressDto;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
-use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
+use crate::protocols::dsp::facades::dataplane_facade::to_dataplane_address;
 use dataplane::{
     DataplaneAddress, DataplaneCommand, DataplaneCommandResponse, DataplaneContinuation,
     DataplaneInitCommandDirection, DataplaneInitCommandTypes, DataplaneManager,
 };
-use std::str::FromStr;
-use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 pub(super) struct ProviderPullStrategy;
 
 #[async_trait::async_trait]
 impl DataPlaneStrategy for ProviderPullStrategy {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_request_pre(
         &self,
-        _ctx: &DspTransferContext,
+        _ctx: &TransferDSPContextDomain,
         _mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
         // noop
         Ok(None)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_request_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        let id = process_urn(ctx, "provider pull request_post")?;
-        let connector_instance = ctx
-            .connector_instance
-            .as_ref()
-            .ok_or_else(|| Errors::crazy("Connector instance should be defined", None))?;
+        let id = ctx.process_urn("provider pull request_post")?;
+        let TransferContextConnectorRole::ProviderHavingConnector(connector_instance) =
+            &ctx.connector_instance
+        else {
+            return Err(Errors::crazy("Connector instance should be defined", None));
+        };
         let cmd = DataplaneCommand::SetInit(DataplaneInitCommandTypes::AsProvider {
             transfer_process_id: id,
+            tenant_id: ctx.tenant_id().to_string(),
             connector_instance: connector_instance.clone(),
             direction: DataplaneInitCommandDirection::Pull { data_address: None },
         });
@@ -59,21 +64,22 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_start_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
         if !ctx.is_restart {
-            let id = process_urn(ctx, "provider pull start_pre")?;
+            let id = ctx.process_urn("provider pull start_pre")?;
             let res = mgr
                 .execute_command(DataplaneCommand::GetAssociated(DataplaneContinuation {
                     transfer_dto_urn: id,
+                    tenant_id: ctx.tenant_id().to_string(),
                 }))
                 .await?;
 
             return if let DataplaneCommandResponse::OkWithAddress(address) = res {
-                dbg!(&address);
                 Ok(Some(address.into()))
             } else {
                 Err(Errors::crazy(
@@ -88,22 +94,22 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_start_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
-        dbg!(&ctx);
-
-        let id = process_urn(ctx, "provider pull start_post")?;
+        let id = ctx.process_urn("provider pull start_post")?;
         if !ctx.is_restart {
             let continuation = DataplaneContinuation {
                 transfer_dto_urn: id,
+                tenant_id: ctx.tenant_id().to_string(),
             };
             let dataplane: DataplaneAddress = ctx
                 .resolved_data_address
                 .clone()
-                .map(|addr| addr.into())
+                .map(|addr| to_dataplane_address(&addr))
                 .ok_or_else(|| {
                     Errors::crazy(
                         "Dataplane_address required for provider pull start_post",
@@ -117,6 +123,7 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         if ctx.is_restart {
             mgr.execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
                 transfer_dto_urn: id,
+                tenant_id: ctx.tenant_id().to_string(),
             }))
             .await?;
             return Ok(None);
@@ -124,73 +131,72 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_suspend_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_suspend_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
-            transfer_dto_urn: process_urn(ctx, "provider pull suspend_post")?,
+            transfer_dto_urn: ctx.process_urn("provider pull suspend_post")?,
+            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_complete_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_complete_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
-            transfer_dto_urn: process_urn(ctx, "provider pull complete_post")?,
+            transfer_dto_urn: ctx.process_urn("provider pull complete_post")?,
+            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_terminate_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_terminate_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
-            transfer_dto_urn: process_urn(ctx, "provider pull terminate_post")?,
+            transfer_dto_urn: ctx.process_urn("provider pull terminate_post")?,
+            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(())
     }
-}
-
-fn process_urn(ctx: &DspTransferContext, location: &str) -> Outcome<Urn> {
-    let id = &ctx
-        .process
-        .as_ref()
-        .ok_or_else(|| Errors::crazy(format!("process required for {location}"), None))?
-        .inner
-        .id;
-    Ok(Urn::from_str(id)?)
 }

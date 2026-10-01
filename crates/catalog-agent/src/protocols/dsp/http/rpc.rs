@@ -25,6 +25,7 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use common::auth::AccessScope;
 use std::sync::Arc;
 use ymir::utils::extract_payload;
 
@@ -58,6 +59,7 @@ impl RpcRouter {
 
     async fn handle_rpc_catalog_request(
         State(state): State<RpcRouter>,
+        scope: AccessScope,
         input: Result<Json<RpcCatalogRequestMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
@@ -67,7 +69,7 @@ impl RpcRouter {
         match state
             .orchestrator
             .get_rpc_service()
-            .setup_catalog_request_rpc(&input)
+            .setup_catalog_request_rpc(&scope, &input)
             .await
         {
             Ok(catalog) => (StatusCode::OK, Json(catalog)).into_response(),
@@ -76,6 +78,7 @@ impl RpcRouter {
     }
     async fn handle_rpc_dataset_request(
         State(state): State<RpcRouter>,
+        scope: AccessScope,
         input: Result<Json<RpcDatasetRequestMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
@@ -85,7 +88,7 @@ impl RpcRouter {
         match state
             .orchestrator
             .get_rpc_service()
-            .setup_dataset_request_rpc(&input)
+            .setup_dataset_request_rpc(&scope, &input)
             .await
         {
             Ok(dataset) => (StatusCode::OK, Json(dataset)).into_response(),

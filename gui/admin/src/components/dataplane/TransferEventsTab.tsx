@@ -60,7 +60,7 @@ export function TransferEventsTab({ events }: { events: TransferEventDto[] }) {
   return (
     <TabsContent value="transfer-events" className="w-full">
       {/* Activity chart */}
-      <div className="mt-4 mb-4 rounded-md border border-white/10 bg-muted/20 p-4">
+      <div className="mt-4 mb-4 rounded-md border border-ink/10 bg-muted/20 p-4">
         <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
           Activity — Events per Minute
         </div>

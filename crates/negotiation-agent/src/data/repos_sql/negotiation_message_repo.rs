@@ -1,20 +1,18 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- * * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- * *
- * * This program is free software: you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License as published by
- * * the Free Software Foundation, either version 3 of the License, or
- * * (at your option) any later version.
- * *
- * * This program is distributed in the hope that it will be useful,
- * * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * * GNU General Public License for more details.
- * *
- * * You should have received a copy of the GNU General Public License
- * * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use crate::data::entities::negotiation_message;
@@ -22,9 +20,48 @@ use crate::data::entities::negotiation_message::{Model, NewNegotiationMessageMod
 use crate::data::repo_traits::negotiation_message_repo::{
     NegotiationMessageRepoErrors, NegotiationMessageRepoTrait,
 };
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
+use crate::entities::filters::NegotiationMessageFilter;
+use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use common::query::FilterApplier;
+use sea_orm::QueryTrait;
+use sea_orm::{
+    ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Select,
+};
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+
+impl FilterApplier<Select<negotiation_message::Entity>> for NegotiationMessageFilter {
+    fn apply_to(
+        &self,
+        mut q: Select<negotiation_message::Entity>,
+    ) -> Select<negotiation_message::Entity> {
+        if let Some(ref id) = self.id {
+            q = q.filter(negotiation_message::Column::Id.eq(id));
+        }
+        if let Some(ref tenant_id) = self.tenant_id {
+            q = q.filter(negotiation_message::Column::TenantId.eq(tenant_id));
+        }
+        if let Some(ref process_id) = self.process_id {
+            q = q.filter(negotiation_message::Column::NegotiationAgentProcessId.eq(process_id));
+        }
+        if let Some(ref protocol) = self.protocol {
+            q = q.filter(negotiation_message::Column::Protocol.eq(protocol));
+        }
+        if let Some(ref message_type) = self.message_type {
+            q = q.filter(negotiation_message::Column::MessageType.eq(message_type));
+        }
+        if let Some(ref direction) = self.direction {
+            q = q.filter(negotiation_message::Column::Direction.eq(direction));
+        }
+        if let Some(after) = self.created_after {
+            q = q.filter(negotiation_message::Column::CreatedAt.gte(after));
+        }
+        if let Some(before) = self.created_before {
+            q = q.filter(negotiation_message::Column::CreatedAt.lte(before));
+        }
+        q
+    }
+}
 
 pub struct NegotiationMessageRepoForSql {
     db_connection: DatabaseConnection,
@@ -38,15 +75,49 @@ impl NegotiationMessageRepoForSql {
 
 #[async_trait::async_trait]
 impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_negotiation_messages(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
+        filters: &NegotiationMessageFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<Model>, Option<u64>)> {
+        let mut q = negotiation_message::Entity::find();
+        q = filters.apply_to(q);
+
+        let total = q.clone().count(&self.db_connection).await.map_err(|e| {
+            NegotiationMessageRepoErrors::ErrorFetchingNegotiationMessage(e.into()).into_errors()
+        })?;
+
+        let items = q
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                negotiation_message::Column::CreatedAt,
+                negotiation_message::Column::Id,
+            )
+            .all(&self.db_connection)
+            .await
+            .map_err(|e| {
+                NegotiationMessageRepoErrors::ErrorFetchingNegotiationMessage(e.into())
+                    .into_errors()
+            })?;
+
+        Ok((items, Some(total)))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn get_batch_negotiation_messages(
+        &self,
+        tenant_id: Option<String>,
+        ids: &[Urn],
     ) -> Outcome<Vec<Model>> {
+        let message_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let messages = negotiation_message::Entity::find()
-            .limit(limit.unwrap_or(20))
-            .offset(page.map(|p| p * limit.unwrap_or(20)).unwrap_or(0))
-            .order_by_desc(negotiation_message::Column::CreatedAt)
+            .apply_if(tenant_id, |q, t| {
+                q.filter(negotiation_message::Column::TenantId.eq(t))
+            })
+            .filter(negotiation_message::Column::Id.is_in(message_ids))
             .all(&self.db_connection)
             .await;
 
@@ -59,9 +130,17 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
         }
     }
 
-    async fn get_messages_by_process_id(&self, process_id: &Urn) -> Outcome<Vec<Model>> {
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn get_messages_by_process_id(
+        &self,
+        tenant_id: Option<String>,
+        process_id: &Urn,
+    ) -> Outcome<Vec<Model>> {
         let pid = process_id.to_string();
         let messages = negotiation_message::Entity::find()
+            .apply_if(tenant_id, |q, t| {
+                q.filter(negotiation_message::Column::TenantId.eq(t))
+            })
             .filter(negotiation_message::Column::NegotiationAgentProcessId.eq(pid))
             .order_by_asc(negotiation_message::Column::CreatedAt)
             .all(&self.db_connection)
@@ -76,9 +155,17 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
         }
     }
 
-    async fn get_negotiation_message_by_id(&self, id: &Urn) -> Outcome<Option<Model>> {
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn get_negotiation_message_by_id(
+        &self,
+        tenant_id: Option<String>,
+        id: &Urn,
+    ) -> Outcome<Option<Model>> {
         let mid = id.to_string();
         let message = negotiation_message::Entity::find_by_id(mid)
+            .apply_if(tenant_id, |q, t| {
+                q.filter(negotiation_message::Column::TenantId.eq(t))
+            })
             .one(&self.db_connection)
             .await;
         match message {
@@ -90,6 +177,7 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_negotiation_message(
         &self,
         new_model: &NewNegotiationMessageModel,
@@ -107,17 +195,29 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
         }
     }
 
-    async fn delete_negotiation_message(&self, id: &Urn) -> Outcome<()> {
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn delete_negotiation_message(
+        &self,
+        tenant_id: Option<String>,
+        id: &Urn,
+    ) -> Outcome<String> {
         let mid = id.to_string();
-        let result = negotiation_message::Entity::delete_by_id(mid)
-            .exec(&self.db_connection)
+        let result = negotiation_message::Entity::delete_many()
+            .filter(negotiation_message::Column::Id.eq(&mid))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(negotiation_message::Column::TenantId.eq(t))
+            })
+            .exec_with_returning(&self.db_connection)
             .await;
 
         match result {
-            Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(NegotiationMessageRepoErrors::NegotiationMessageNotFound.into_errors()),
-                _ => Ok(()),
-            },
+            Ok(rows) => rows
+                .into_iter()
+                .next()
+                .map(|row| row.tenant_id)
+                .ok_or_else(|| {
+                    NegotiationMessageRepoErrors::NegotiationMessageNotFound.into_errors()
+                }),
             Err(e) => Err(
                 NegotiationMessageRepoErrors::ErrorDeletingNegotiationMessage(e.into())
                     .into_errors(),

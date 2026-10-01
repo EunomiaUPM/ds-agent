@@ -15,9 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::instantiation_engine::{NewPolicyInstantiationDto, PolicyInstantiationTrait};
-use crate::entities::policy_templates::{NewPolicyTemplateDto, PolicyTemplateEntityTrait};
+use crate::entities::filters::PolicyTemplateFilter;
+use crate::entities::policy_instantiation::NewPolicyInstantiationDto;
+use crate::entities::policy_templates::{NewPolicyTemplateDto, PolicyTemplateDto};
 use crate::http::common::to_camel_case::ToCamelCase;
+use crate::services::policy_instantiation::PolicyInstantiationServiceTrait;
+use crate::services::policy_templates::PolicyTemplateServiceTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::http::StatusCode;
@@ -27,6 +30,7 @@ use axum::{Json, Router};
 use common::batch_requests::BatchRequestsAsString;
 use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
+use common::query::QuerySpec;
 use serde::Deserialize;
 use std::sync::Arc;
 use ymir::errors::Errors;
@@ -34,29 +38,26 @@ use ymir::utils::extract_payload;
 
 #[derive(Clone)]
 pub struct PolicyTemplateEntityRouter {
-    service: Arc<dyn PolicyTemplateEntityTrait>,
-    policy_engine: Arc<dyn PolicyInstantiationTrait>,
+    service: Arc<dyn PolicyTemplateServiceTrait>,
+    policy_engine: Arc<dyn PolicyInstantiationServiceTrait>,
     config: Arc<CatalogConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
+pub use common::paginated_spec::PaginationParams;
+pub type PolicyTemplateQuery = QuerySpec<PolicyTemplateFilter>;
 
 #[derive(Deserialize)]
 pub struct SilentParams {
     pub silent: Option<bool>,
 }
 
-impl FromRef<PolicyTemplateEntityRouter> for Arc<dyn PolicyTemplateEntityTrait> {
+impl FromRef<PolicyTemplateEntityRouter> for Arc<dyn PolicyTemplateServiceTrait> {
     fn from_ref(state: &PolicyTemplateEntityRouter) -> Self {
         state.service.clone()
     }
 }
 
-impl FromRef<PolicyTemplateEntityRouter> for Arc<dyn PolicyInstantiationTrait> {
+impl FromRef<PolicyTemplateEntityRouter> for Arc<dyn PolicyInstantiationServiceTrait> {
     fn from_ref(state: &PolicyTemplateEntityRouter) -> Self {
         state.policy_engine.clone()
     }
@@ -70,8 +71,8 @@ impl FromRef<PolicyTemplateEntityRouter> for Arc<CatalogConfig> {
 
 impl PolicyTemplateEntityRouter {
     pub fn new(
-        service: Arc<dyn PolicyTemplateEntityTrait>,
-        policy_engine: Arc<dyn PolicyInstantiationTrait>,
+        service: Arc<dyn PolicyTemplateServiceTrait>,
+        policy_engine: Arc<dyn PolicyInstantiationServiceTrait>,
         config: Arc<CatalogConfig>,
     ) -> Self {
         Self {
@@ -104,58 +105,63 @@ impl PolicyTemplateEntityRouter {
 
     async fn handle_get_all_policy_templates(
         State(state): State<PolicyTemplateEntityRouter>,
-        Query(params): Query<PaginationParams>,
+        scope: common::auth::AccessScope,
+        Query(query): Query<PolicyTemplateQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_policy_templates(params.limit, params.page)
+            .get_all_policy_templates(&scope, &query.filter, &query.page, &query.sort)
             .await
         {
             Ok(templates) => (StatusCode::OK, Json(ToCamelCase(templates))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_batch_policy_templates(
         State(state): State<PolicyTemplateEntityRouter>,
+        scope: common::auth::AccessScope,
         input: Result<Json<BatchRequestsAsString>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.get_batch_policy_templates(&input.ids).await {
+        match state
+            .service
+            .get_batch_policy_templates(&scope, &input.ids)
+            .await
+        {
             Ok(templates) => (StatusCode::OK, Json(ToCamelCase(templates))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_policy_template_by_id(
         State(state): State<PolicyTemplateEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
-        match state.service.get_policies_template_by_id(&id).await {
+        match state.service.get_policies_template_by_id(&scope, &id).await {
             Ok(templates) => (StatusCode::OK, Json(ToCamelCase(templates))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_policy_template_by_id_and_version(
         State(state): State<PolicyTemplateEntityRouter>,
+        scope: common::auth::AccessScope,
         Path((id, version)): Path<(String, String)>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_policies_template_by_version_and_id(&id, &version)
+            .get_policies_template_by_version_and_id(&scope, &id, &version)
             .await
         {
-            Ok(Some(template)) => (StatusCode::OK, Json(ToCamelCase(template))).into_response(),
-            Ok(None) => {
-                let err = Errors::missing_resource(id.as_str(), "Policy template not found", None);
-                err.into_response()
-            }
-            Err(e) => return e.into_response(),
+            Ok(template) => (StatusCode::OK, Json(ToCamelCase(template))).into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_create_policy_template(
         State(state): State<PolicyTemplateEntityRouter>,
+        scope: common::auth::AccessScope,
         Query(params): Query<SilentParams>,
         input: Result<Json<NewPolicyTemplateDto>, JsonRejection>,
     ) -> impl IntoResponse {
@@ -165,13 +171,12 @@ impl PolicyTemplateEntityRouter {
             Err(e) => {
                 if silent {
                     tracing::warn!("Silent mode: Invalid JSON payload ignored: {}", e);
-                    // RETORNO TEMPRANO: Devolvemos 200 OK y terminamos la ejecución
                     return (StatusCode::OK).into_response();
                 }
-                return (StatusCode::BAD_REQUEST, format!("Invalid JSON: {}", e)).into_response();
+                return (StatusCode::BAD_REQUEST, format!("Invalid JSON: {e}")).into_response();
             }
         };
-        match state.service.create_policy_template(&input).await {
+        match state.service.create_policy_template(&scope, &input).await {
             Ok(template) => (StatusCode::OK, Json(ToCamelCase(template))).into_response(),
             Err(Errors::DatabaseError { reason, .. })
                 if silent && reason.contains("duplicate key") =>
@@ -183,32 +188,34 @@ impl PolicyTemplateEntityRouter {
                 );
                 StatusCode::OK.into_response()
             }
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_delete_policy_template_by_id_and_version(
         State(state): State<PolicyTemplateEntityRouter>,
+        scope: common::auth::AccessScope,
         Path((id, version)): Path<(String, String)>,
     ) -> impl IntoResponse {
         match state
             .service
-            .delete_policy_template_by_version_and_id(&id, &version)
+            .delete_policy_template_by_version_and_id(&scope, &id, &version)
             .await
         {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
 
     async fn handle_instantiate_offer(
         State(state): State<PolicyTemplateEntityRouter>,
+        scope: common::auth::AccessScope,
         input: Result<Json<NewPolicyInstantiationDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.policy_engine.instantiate_policy(&input).await {
+        match state.policy_engine.instantiate_policy(&scope, &input).await {
             Ok(dto) => (StatusCode::ACCEPTED, Json(ToCamelCase(dto))).into_response(),
             Err(e) => e.into_response(),
         }

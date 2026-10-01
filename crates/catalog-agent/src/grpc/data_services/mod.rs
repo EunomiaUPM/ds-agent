@@ -15,27 +15,37 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::data_services::{
-    DataServiceEntityTrait, EditDataServiceDto, NewDataServiceDto,
-};
+mod mappers;
+
+use std::sync::Arc;
+
 use crate::grpc::api::catalog_agent::data_service_entity_service_server::DataServiceEntityService;
 use crate::grpc::api::catalog_agent::{
-    CreateDataServiceRequest, DataService, DataServiceListResponse, DataServiceResponse,
-    DeleteByIdRequest, GetAllRequest, GetBatchRequest, GetByIdRequest, GetByParentIdRequest,
+    CreateDataServiceRequest, DataServiceListResponse, DataServiceResponse, DeleteByIdRequest,
+    GetBatchRequest, GetByIdRequest, GetByParentIdRequest, ListDataServicesRequest,
     PutDataServiceRequest,
 };
-use std::str::FromStr;
-use std::sync::Arc;
+use crate::services::data_services::DataServiceServiceTrait;
+use common::auth::grpc::GrpcAuth;
+use common::auth::OauthTokenValidator;
+use common::grpc::{IntoStatus, ListParams, ProtoField, ProtoFieldList};
 use tonic::{Request, Response, Status};
-use urn::Urn;
+use ymir::errors::Errors;
 
 pub struct DataServiceEntityGrpc {
-    service: Arc<dyn DataServiceEntityTrait>,
+    service: Arc<dyn DataServiceServiceTrait>,
+    auth: GrpcAuth,
 }
 
 impl DataServiceEntityGrpc {
-    pub fn new(service: Arc<dyn DataServiceEntityTrait>) -> Self {
-        Self { service }
+    pub fn new(
+        service: Arc<dyn DataServiceServiceTrait>,
+        validator: Arc<dyn OauthTokenValidator>,
+    ) -> Self {
+        Self {
+            service,
+            auth: GrpcAuth::new(validator),
+        }
     }
 }
 
@@ -43,177 +53,127 @@ impl DataServiceEntityGrpc {
 impl DataServiceEntityService for DataServiceEntityGrpc {
     async fn get_all_data_services(
         &self,
-        request: Request<GetAllRequest>,
+        request: Request<ListDataServicesRequest>,
     ) -> Result<Response<DataServiceListResponse>, Status> {
-        let req = request.into_inner();
-        let data_services = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let params = ListParams::try_from(request.into_inner())?;
+        let result = self
             .service
-            .get_all_data_services(req.limit, req.page)
+            .get_all_data_services(&scope, &params.filter, &params.page, &params.sort)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        let proto_services: Vec<DataService> = data_services.into_iter().map(Into::into).collect();
-
-        Ok(Response::new(DataServiceListResponse {
-            data_services: proto_services,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(result.into()))
     }
 
     async fn get_batch_data_services(
         &self,
         request: Request<GetBatchRequest>,
     ) -> Result<Response<DataServiceListResponse>, Status> {
-        let req = request.into_inner();
-
-        let urns: Vec<Urn> = req
-            .ids
-            .iter()
-            .map(|id| Urn::from_str(id))
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|_| Status::invalid_argument("One or more IDs are invalid URNs"))?;
-
-        let data_services = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let ids = request.into_inner().ids.urns("ids")?;
+        let dtos = self
             .service
-            .get_batch_data_services(&urns)
+            .get_batch_data_services(&scope, &ids)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        let proto_services: Vec<DataService> = data_services.into_iter().map(Into::into).collect();
-
-        Ok(Response::new(DataServiceListResponse {
-            data_services: proto_services,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(dtos.into()))
     }
 
     async fn get_data_services_by_catalog_id(
         &self,
         request: Request<GetByParentIdRequest>,
     ) -> Result<Response<DataServiceListResponse>, Status> {
-        let req = request.into_inner();
-        let catalog_urn = Urn::from_str(&req.parent_id)
-            .map_err(|_| Status::invalid_argument("Invalid Catalog URN"))?;
-
-        let data_services = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let catalog_id = request.into_inner().parent_id.urn("parent_id")?;
+        let dtos = self
             .service
-            .get_data_services_by_catalog_id(&catalog_urn)
+            .get_data_services_by_catalog_id(&scope, &catalog_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        let proto_services: Vec<DataService> = data_services.into_iter().map(Into::into).collect();
-
-        Ok(Response::new(DataServiceListResponse {
-            data_services: proto_services,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(dtos.into()))
     }
 
     async fn get_data_service_by_id(
         &self,
         request: Request<GetByIdRequest>,
     ) -> Result<Response<DataServiceResponse>, Status> {
-        let req = request.into_inner();
-        let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
-
-        let data_service_opt = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id.urn("id")?;
+        let dto = self
             .service
-            .get_data_service_by_id(&urn)
+            .get_data_service_by_id(&scope, &id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        match data_service_opt {
-            Some(dto) => Ok(Response::new(DataServiceResponse {
-                data_service: Some(dto.into()),
-            })),
-            None => Err(Status::not_found("DataService not found")),
-        }
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(dto.into()))
     }
 
     async fn get_main_data_service(
         &self,
         request: Request<()>,
     ) -> Result<Response<DataServiceResponse>, Status> {
-        let _req = request.into_inner();
-
-        let data_service_opt = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let dto = self
             .service
-            .get_main_data_service()
+            .get_main_data_service(&scope)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        match data_service_opt {
-            Some(dto) => Ok(Response::new(DataServiceResponse {
-                data_service: Some(dto.into()),
-            })),
-            None => Err(Status::not_found("DataService not found")),
-        }
+            .map_err(Errors::into_status)?
+            .ok_or_else(|| Status::not_found("main data service not configured"))?;
+        Ok(Response::new(dto.into()))
     }
 
     async fn create_data_service(
         &self,
         request: Request<CreateDataServiceRequest>,
     ) -> Result<Response<DataServiceResponse>, Status> {
-        let req = request.into_inner();
-        let new_data_service_dto: NewDataServiceDto = req.try_into()?;
-
-        let created_dto = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let dto = request.into_inner().try_into()?;
+        let created = self
             .service
-            .create_data_service(&new_data_service_dto)
+            .create_data_service(&scope, &dto)
             .await
-            .map_err(|e| Status::internal(format!("Failed to create data service: {}", e)))?;
-
-        Ok(Response::new(DataServiceResponse {
-            data_service: Some(created_dto.into()),
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(created.into()))
     }
 
     async fn create_main_main_catalog(
         &self,
         request: Request<CreateDataServiceRequest>,
     ) -> Result<Response<DataServiceResponse>, Status> {
-        let req = request.into_inner();
-        let new_data_service_dto: NewDataServiceDto = req.try_into()?;
-
-        let created_dto = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let dto = request.into_inner().try_into()?;
+        let created = self
             .service
-            .create_main_data_service(&new_data_service_dto)
+            .create_main_data_service(&scope, &dto)
             .await
-            .map_err(|e| Status::internal(format!("Failed to create data service: {}", e)))?;
-
-        Ok(Response::new(DataServiceResponse {
-            data_service: Some(created_dto.into()),
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(created.into()))
     }
 
     async fn put_data_service_by_id(
         &self,
         request: Request<PutDataServiceRequest>,
     ) -> Result<Response<DataServiceResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
-        let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
-        let edit_dto: EditDataServiceDto = req.into();
-
-        let updated_dto = self
+        let id = req.id.urn("id")?;
+        let updated = self
             .service
-            .put_data_service_by_id(&urn, &edit_dto)
+            .put_data_service_by_id(&scope, &id, &req.into())
             .await
-            .map_err(|e| Status::internal(format!("Failed to update data service: {}", e)))?;
-
-        Ok(Response::new(DataServiceResponse {
-            data_service: Some(updated_dto.into()),
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(updated.into()))
     }
 
     async fn delete_data_service_by_id(
         &self,
         request: Request<DeleteByIdRequest>,
     ) -> Result<Response<()>, Status> {
-        let req = request.into_inner();
-        let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
-
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id.urn("id")?;
         self.service
-            .delete_data_service_by_id(&urn)
+            .delete_data_service_by_id(&scope, &id)
             .await
-            .map_err(|e| Status::internal(format!("Failed to delete data service: {}", e)))?;
-
+            .map_err(Errors::into_status)?;
         Ok(Response::new(()))
     }
 }

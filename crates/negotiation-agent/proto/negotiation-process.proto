@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 syntax = "proto3";
 
 package negotiation_agent.v1;
@@ -7,7 +24,7 @@ import "google/protobuf/empty.proto";
 import "models.proto";
 
 service NegotiationAgentProcessesService {
-  rpc GetAllNegotiationProcesses (GetAllNegotiationProcessesRequest) returns (NegotiationProcessListResponse);
+  rpc GetAllNegotiationProcesses (ListNegotiationProcessesRequest) returns (NegotiationProcessListResponse);
   rpc GetBatchNegotiationProcesses (GetBatchNegotiationProcessesRequest) returns (NegotiationProcessListResponse);
   rpc GetNegotiationProcessById (GetNegotiationProcessByIdRequest) returns (NegotiationProcessResponse);
   rpc GetNegotiationProcessByKeyId (GetNegotiationProcessByKeyIdRequest) returns (NegotiationProcessResponse);
@@ -17,9 +34,18 @@ service NegotiationAgentProcessesService {
   rpc DeleteNegotiationProcess (DeleteNegotiationProcessRequest) returns (google.protobuf.Empty);
 }
 
-message GetAllNegotiationProcessesRequest {
-  optional uint64 limit = 1;
-  optional uint64 page = 2;
+// Auth: authorization Bearer <token> required; x-tenant-id metadata defaults to the token tenant.
+// Filter strings: "" = any.
+message ListNegotiationProcessesRequest {
+  string state = 1;
+  string role = 2;
+  string protocol = 3;
+  string associated_agent_peer = 4;
+  string created_after = 5;  // RFC3339
+  string created_before = 6; // RFC3339
+  uint32 limit = 7;           // 0 = default (20)
+  string cursor = 8;          // "" = first page
+  string sort = 9;            // "" = created_at_desc | created_at_asc | updated_at_asc | updated_at_desc
 }
 
 message GetBatchNegotiationProcessesRequest {
@@ -27,7 +53,9 @@ message GetBatchNegotiationProcessesRequest {
 }
 
 message NegotiationProcessListResponse {
-  repeated NegotiationProcess processes = 1;
+  repeated NegotiationProcess items = 1;
+  string next_cursor = 2; // "" = no next page
+  uint64 total = 3;       // 0 = unknown
 }
 
 message GetNegotiationProcessByIdRequest {

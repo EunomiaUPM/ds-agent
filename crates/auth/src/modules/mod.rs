@@ -8,23 +8,23 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-mod gatekeeper;
-mod verifier;
 mod gaia_self_attester;
+mod gatekeeper;
 mod participant;
 mod peer_connector;
 mod vc_requester;
+mod verifier;
 
-pub use gatekeeper::GateKeeperModule;
-pub use verifier::VerifierModule;
 pub use gaia_self_attester::GaiaSelfAttesterModule;
+pub use gatekeeper::GateKeeperModule;
 pub use participant::ParticipantModule;
 pub use peer_connector::PeerConnectorModule;
 pub use vc_requester::VcRequesterModule;
+pub use verifier::VerifierModule;

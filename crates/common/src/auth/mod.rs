@@ -15,5 +15,25 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod business;
-pub mod header;
+//! Authentication, authorization, RBAC, and transport middleware.
+
+pub mod access;
+pub mod claims;
+pub mod grpc;
+pub mod http;
+pub mod rules;
+pub mod service_client;
+pub mod token;
+pub mod validators;
+
+pub use access::{AccessScope, Rbac};
+pub use claims::{Claims, RbacRole};
+pub use rules::AuthRules;
+pub use service_client::ServiceHttpClient;
+pub use token::{OauthTokenValidator, TokenVerifier};
+pub use validators::AuthValidators;
+
+/// Header / metadata key carrying the bearer token.
+pub const AUTHORIZATION_HEADER: &str = "authorization";
+/// Header / metadata key selecting the tenant the caller acts on.
+pub const TENANT_HEADER: &str = "x-tenant-id";

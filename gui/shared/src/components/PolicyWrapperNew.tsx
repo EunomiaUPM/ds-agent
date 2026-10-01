@@ -104,7 +104,7 @@ export const PolicyWrapperNew: FC<{
           />
         </Accordion>
       </div>
-      <div className="h-24  bottom-0 bg-background border-t border-white/30 w-full p-6">
+      <div className="h-24  bottom-0 bg-background border-t border-ink/30 w-full p-6">
         <Button onClick={() => submitHandler()}>Add policy</Button>
       </div>
     </div>

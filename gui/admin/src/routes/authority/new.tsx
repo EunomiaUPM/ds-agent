@@ -1,33 +1,51 @@
-import { AlertCircle, CheckCircle2, Info, Loader2, Search } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { PageHeader } from 'shared/src/components/layout/PageHeader';
-import { PageLayout } from 'shared/src/components/layout/PageLayout';
-import { PageSection } from 'shared/src/components/layout/PageSection';
-import { Badge } from 'shared/src/components/ui/badge';
-import { Button } from 'shared/src/components/ui/button';
+import { AlertCircle, CheckCircle2, Info, Loader2, Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { PageHeader } from "shared/src/components/layout/PageHeader";
+import { PageLayout } from "shared/src/components/layout/PageLayout";
+import { PageSection } from "shared/src/components/layout/PageSection";
+import { Badge } from "shared/src/components/ui/badge";
+import { Button } from "shared/src/components/ui/button";
 import {
-    Card, CardContent, CardDescription, CardHeader, CardTitle
-} from 'shared/src/components/ui/card';
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "shared/src/components/ui/card";
 import {
-    Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage
-} from 'shared/src/components/ui/form';
-import { Input } from 'shared/src/components/ui/input';
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "shared/src/components/ui/form";
+import { Input } from "shared/src/components/ui/input";
+import { Checkbox } from "shared/src/components/ui/checkbox";
 import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from 'shared/src/components/ui/select';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "shared/src/components/ui/select";
 import {
-    Tooltip, TooltipContent, TooltipProvider, TooltipTrigger
-} from 'shared/src/components/ui/tooltip';
-import WizardDialog from 'shared/src/components/WizardDialog';
-import { customInstance } from 'shared/src/data/orval-mutator';
-import { useGetAllParticipants } from 'shared/src/data/orval/participants/participants';
-import { useFederatedCatalog } from 'shared/src/data/useFederatedCatalog';
-import { formatIdentifier, getFriendlyVCType } from 'shared/src/lib/utils';
-import * as z from 'zod';
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "shared/src/components/ui/tooltip";
+import WizardDialog from "shared/src/components/WizardDialog";
+import { customInstance } from "shared/src/data/orval-mutator";
+import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
+import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
+import { formatIdentifier, getFriendlyVCType } from "shared/src/lib/utils";
+import * as z from "zod";
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),
@@ -77,7 +95,7 @@ function LabelWithInfo({ label, children }: { label: string; children: React.Rea
           </TooltipTrigger>
           <TooltipContent
             side="top"
-            className="max-w-xs bg-background-300 border border-secondary-800 text-white text-xs leading-relaxed p-3"
+            className="max-w-xs bg-background-300 border border-secondary-800 text-ink text-xs leading-relaxed p-3"
           >
             {children}
           </TooltipContent>
@@ -100,9 +118,7 @@ function NewAuthorityRequest() {
   const navigate = useNavigate();
   const search = Route.useSearch();
   const recommended = search.recommended ?? DEMO_VC_TYPE_ID;
-  const recommendedMethod: "cert" | "oidc4vp" = recommended.startsWith(
-    "gx_LabelCredential",
-  )
+  const recommendedMethod: "cert" | "oidc4vp" = recommended.startsWith("gx_LabelCredential")
     ? "oidc4vp"
     : "cert";
   const [isDiscovering, setIsDiscovering] = useState(false);
@@ -369,13 +385,13 @@ function NewAuthorityRequest() {
                             Example: http://host.docker.internal:1500
                           </FormDescription>
                           {url && url.includes("host.docker.internal") && (
-                            <p className="text-[10px] text-muted-foreground mt-1 flex items-start gap-1">
+                            <p className="text-xs text-muted-foreground mt-1 flex items-start gap-1">
                               <Info className="h-3 w-3 mt-0.5 shrink-0" />
                               <span>
                                 Browser fetch will use{" "}
-                                <code className="font-mono text-[10px]">127.0.0.1</code> — the back
+                                <code className="font-mono text-xs">127.0.0.1</code> — the back
                                 receives{" "}
-                                <code className="font-mono text-[10px]">host.docker.internal</code>{" "}
+                                <code className="font-mono text-xs">host.docker.internal</code>{" "}
                                 unchanged.
                               </span>
                             </p>
@@ -387,7 +403,7 @@ function NewAuthorityRequest() {
                     <FormField
                       control={form.control as any}
                       name="nick"
-                      render={({ field }) => (  
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Nickname</FormLabel>
                           <FormControl>
@@ -439,7 +455,7 @@ function NewAuthorityRequest() {
                                     <span className="flex items-center gap-2">
                                       {getFriendlyVCType(type)}
                                       {isRecommended && (
-                                        <Badge variant="info" className="text-[10px]">
+                                        <Badge variant="info" className="text-xs">
                                           Recommended
                                         </Badge>
                                       )}
@@ -514,20 +530,16 @@ function NewAuthorityRequest() {
                               {/* Recommendation hint (fades, no layout shift) */}
                               <div className="h-5 flex items-center justify-end gap-2">
                                 <span
-                                  className={`text-[10px] uppercase tracking-widest text-muted-foreground transition-opacity duration-500 ${
-                                    field.value !== recommendedMethod
-                                      ? "opacity-100"
-                                      : "opacity-0"
+                                  className={`text-xs uppercase tracking-widest text-muted-foreground transition-opacity duration-500 ${
+                                    field.value !== recommendedMethod ? "opacity-100" : "opacity-0"
                                   }`}
                                 >
                                   Recommended:
                                 </span>
                                 <Badge
                                   variant="info"
-                                  className={`text-[10px] transition-opacity duration-500 ${
-                                    field.value !== recommendedMethod
-                                      ? "opacity-100"
-                                      : "opacity-0"
+                                  className={`text-xs transition-opacity duration-500 ${
+                                    field.value !== recommendedMethod ? "opacity-100" : "opacity-0"
                                   }`}
                                 >
                                   {recommendedMethod === "cert"
@@ -548,11 +560,9 @@ function NewAuthorityRequest() {
                       render={({ field }: { field: any }) => (
                         <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                           <FormControl>
-                            <input
-                              type="checkbox"
+                            <Checkbox
                               checked={field.value}
-                              onChange={field.onChange}
-                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                              onCheckedChange={field.onChange}
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
@@ -636,7 +646,7 @@ function NewAuthorityRequest() {
                             <p className="font-medium text-brand-sky">
                               {s.type.replace(/([a-z])([A-Z])/g, "$1 $2")}
                             </p>
-                            <p className="break-all text-xs text-white/70">{s.serviceEndpoint}</p>
+                            <p className="break-all text-xs text-ink/70">{s.serviceEndpoint}</p>
                           </div>
                         ))}
                         {discoveredInfo.services.length === 0 && (
@@ -644,7 +654,7 @@ function NewAuthorityRequest() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-success-400 font-medium pt-2">
+                    <div className="flex items-center gap-2 text-sm text-success-700 dark:text-success-400 font-medium pt-2">
                       <CheckCircle2 className="h-4 w-4" />
                       Authority verified
                     </div>

@@ -81,7 +81,8 @@ pub enum AuthenticationConfig {
         client_id: TemplateString,
         client_secret: SecretString,
         scopes: TemplateVecString,
-        /// Action to take when the access token expires.  Defaults to [`TokenExpireAction::Refetch`].
+        /// Action to take when the access token expires.  Defaults to
+        /// [`TokenExpireAction::Refetch`].
         #[serde(default)]
         on_token_expire: TokenExpireAction,
     },

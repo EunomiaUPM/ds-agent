@@ -15,9 +15,9 @@ const PolicyComponent: FC<PolicyComponentProps> = ({ policyItem, variant }) => {
   if (isEmpty) return null;
 
   const HeadingColor = {
-    permission: "text-[#3fc28a]",
-    obligation: "text-[#ffc107]",
-    prohibition: "text-[#ff7878]",
+    permission: "text-[#15734b] dark:text-[#3fc28a]",
+    obligation: "text-[#8a6100] dark:text-[#ffc107]",
+    prohibition: "text-[#b33030] dark:text-[#ff7878]",
   }[variant || "permission"];
 
   const BadgeBg = {
@@ -35,7 +35,7 @@ const PolicyComponent: FC<PolicyComponentProps> = ({ policyItem, variant }) => {
   };
 
   return (
-    <div className="flex flex-col border-b border-white/20 last:border-0 px-3 py-1 ">
+    <div className="flex flex-col border-b border-ink/20 last:border-0 px-3 py-1 ">
       {policyItem?.map((item, i) => (
         <div key={i} className="flex flex-col mb-6 last:mb-0">
           <div className="flex items-center gap-3 mb-4">
@@ -48,24 +48,24 @@ const PolicyComponent: FC<PolicyComponentProps> = ({ policyItem, variant }) => {
           </div>
 
           <div className="flex flex-col">
-            <span className="text-[11px] font-bold text-white/50 mb-2 uppercase tracking-wide">
+            <span className="text-xs font-bold text-ink/50 mb-2 uppercase tracking-wide">
               Constraints:
             </span>
 
             {item.constraint == null || item.constraint.length === 0 ? (
-              <span className="text-sm italic text-white/50">No constraints</span>
+              <span className="text-sm italic text-ink/50">No constraints</span>
             ) : (
               <div className="flex flex-col w-full">
                 {item.constraint.map((constr: any, j: number) => (
                   <div
                     key={j}
-                    className="flex items-center w-full py-1.5 border-b gap-3 border-white/10 last:border-0 text-xs"
+                    className="flex items-center w-full py-1.5 border-b gap-3 border-ink/10 last:border-0 text-xs"
                   >
-                    <div className="w-[25%] font-semibold text-white">
+                    <div className="w-[25%] font-semibold text-ink">
                       {formatKey(constr.leftOperand)}
                     </div>
-                    <div className="w-[35%] text-white/70">{formatOperator(constr.operator)}</div>
-                    <div className="w-[30%] text-white/90">{formatValue(constr.rightOperand)}</div>
+                    <div className="w-[35%] text-ink/70">{formatOperator(constr.operator)}</div>
+                    <div className="w-[30%] text-ink/90">{formatValue(constr.rightOperand)}</div>
                   </div>
                 ))}
               </div>

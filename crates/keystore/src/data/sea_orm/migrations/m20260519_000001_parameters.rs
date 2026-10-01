@@ -34,10 +34,16 @@ impl MigrationTrait for Migration {
                     .table(KeystoreParameters::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(KeystoreParameters::Key)
+                        ColumnDef::new(KeystoreParameters::TenantId)
                             .string()
-                            .not_null()
-                            .primary_key(),
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(KeystoreParameters::Key).string().not_null())
+                    .primary_key(
+                        Index::create()
+                            .name("pk_keystore_parameters")
+                            .col(KeystoreParameters::TenantId)
+                            .col(KeystoreParameters::Key),
                     )
                     .col(
                         ColumnDef::new(KeystoreParameters::Value)
@@ -89,6 +95,7 @@ impl MigrationTrait for Migration {
 #[derive(Iden)]
 pub enum KeystoreParameters {
     Table,
+    TenantId,
     Key,
     Value,
     Version,

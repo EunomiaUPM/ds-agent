@@ -1,4 +1,7 @@
 #!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/auth.sh
+source "$SCRIPT_DIR/lib/auth.sh"
 
 # ==========================================
 # CONFIGURATION
@@ -24,9 +27,9 @@ invoke_curl() {
     echo "Request: $method $url" >&2
 
     if [[ -n "$body" ]]; then
-        response=$(curl -s -X "$method" -H "Content-Type: application/json" -d "$body" "$url")
+        response=$(eunomia_curl "$method" "$url" "$body")
     else
-        response=$(curl -s -X "$method" "$url")
+        response=$(eunomia_curl "$method" "$url")
     fi
 
     # LOG preview to stderr
@@ -48,17 +51,16 @@ get_dids() {
     echo "Retrieving DIDs..." >&2
 
     # Provider
-    PROVIDER_DID_RAW=$(curl -s "$AGENT_URL/api/v1/mates/myself")
+    PROVIDER_DID_RAW=$(eunomia_curl GET "$AGENT_URL/api/v1/mates/myself")
     PROVIDER_DID=$(echo "$PROVIDER_DID_RAW" | jq -r '
         if type=="array" then .[0].participant_id
         else if .error_code == 3120 then "null" else .participant_id end end
     ')
 
     # Consumer
-    CONSUMER_DID_RAW=$(curl -s "$AGENT_URL/api/v1/mates/all")
+    CONSUMER_DID_RAW=$(eunomia_curl GET "$AGENT_URL/api/v1/mates/all")
     CONSUMER_DID=$(echo "$CONSUMER_DID_RAW" | jq -r '
-        if type=="array" then (. | last(.[] | select(.is_me == false)).participant_id)
-        else if .error_code == 3120 then "null" else "null" end end
+        (.items // []) | map(select(.participant_type == "Agent")) | last | .participant_id // "null"
     ')
 
     if [[ "$PROVIDER_DID" == "null" || "$CONSUMER_DID" == "null" || -z "$PROVIDER_DID" ]]; then
@@ -75,7 +77,7 @@ get_dids() {
 # Returns: Catalog ID (stdout)
 create_catalog() {
     # Check existence
-    local check=$(curl -s "$AGENT_URL/api/v1/catalog-agent/catalogs/main")
+    local check=$(eunomia_curl GET "$AGENT_URL/api/v1/catalog-agent/catalogs/main")
     local existing_id=$(echo "$check" | jq -r 'if type=="object" and .error_code == 3120 then "null" else (.id // "null") end' 2>/dev/null)
 
     if [[ "$existing_id" != "null" && -n "$existing_id" ]]; then
@@ -95,7 +97,7 @@ create_catalog() {
 
 get_main_catalog() {
     # Check existence
-    local check=$(curl -s "$AGENT_URL/api/v1/catalog-agent/catalogs/main")
+    local check=$(eunomia_curl GET "$AGENT_URL/api/v1/catalog-agent/catalogs/main")
     local existing_id=$(echo "$check" | jq -r 'if type=="object" and .error_code == 3120 then "null" else (.id // "null") end' 2>/dev/null)
 
     if [[ "$existing_id" != "null" && -n "$existing_id" ]]; then

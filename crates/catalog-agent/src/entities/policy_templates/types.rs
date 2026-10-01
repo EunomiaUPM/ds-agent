@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::common::PolicyTemplateAllowedDefaultValues;
+use crate::entities::policy_templates::PolicyTemplateAllowedDefaultValues;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]

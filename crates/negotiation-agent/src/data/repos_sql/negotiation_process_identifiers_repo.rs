@@ -1,20 +1,18 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- * * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- * *
- * * This program is free software: you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License as published by
- * * the Free Software Foundation, either version 3 of the License, or
- * * (at your option) any later version.
- * *
- * * This program is distributed in the hope that it will be useful,
- * * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * * GNU General Public License for more details.
- * *
- * * You should have received a copy of the GNU General Public License
- * * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use crate::data::entities::negotiation_process_identifier;
@@ -43,6 +41,7 @@ impl NegotiationProcessIdentifierRepoForSql {
 
 #[async_trait::async_trait]
 impl NegotiationIdentifierRepoTrait for NegotiationProcessIdentifierRepoForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_identifiers(
         &self,
         limit: Option<u64>,
@@ -63,6 +62,7 @@ impl NegotiationIdentifierRepoTrait for NegotiationProcessIdentifierRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_identifiers_by_process_id(&self, process_id: &Urn) -> Outcome<Vec<Model>> {
         let pid = process_id.to_string();
         let identifiers = negotiation_process_identifier::Entity::find()
@@ -79,6 +79,27 @@ impl NegotiationIdentifierRepoTrait for NegotiationProcessIdentifierRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn get_identifiers_by_batch_process_id(
+        &self,
+        process_ids: &[Urn],
+    ) -> Outcome<Vec<Model>> {
+        let pids: Vec<String> = process_ids.iter().map(|u| u.to_string()).collect();
+        let identifiers = negotiation_process_identifier::Entity::find()
+            .filter(negotiation_process_identifier::Column::NegotiationAgentProcessId.is_in(pids))
+            .all(&self.db_connection)
+            .await;
+
+        match identifiers {
+            Ok(identifiers) => Ok(identifiers),
+            Err(e) => Err(
+                NegotiationIdentifierRepoErrors::ErrorFetchingNegotiationIdentifier(e.into())
+                    .into_errors(),
+            ),
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_identifier_by_id(&self, id: &Urn) -> Outcome<Option<Model>> {
         let iid = id.to_string();
         let identifier = negotiation_process_identifier::Entity::find_by_id(iid)
@@ -94,6 +115,7 @@ impl NegotiationIdentifierRepoTrait for NegotiationProcessIdentifierRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_identifier_by_key(&self, process_id: &Urn, key: &str) -> Outcome<Option<Model>> {
         let pid = process_id.to_string();
         let identifier = negotiation_process_identifier::Entity::find()
@@ -111,6 +133,7 @@ impl NegotiationIdentifierRepoTrait for NegotiationProcessIdentifierRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_identifier(&self, new_model: &NewNegotiationIdentifierModel) -> Outcome<Model> {
         let model: negotiation_process_identifier::ActiveModel = new_model.clone().into();
         let result = negotiation_process_identifier::Entity::insert(model)
@@ -125,6 +148,7 @@ impl NegotiationIdentifierRepoTrait for NegotiationProcessIdentifierRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_identifier(
         &self,
         id: &Urn,
@@ -167,6 +191,7 @@ impl NegotiationIdentifierRepoTrait for NegotiationProcessIdentifierRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_identifier(&self, id: &Urn) -> Outcome<()> {
         let iid = id.to_string();
         let result = negotiation_process_identifier::Entity::delete_by_id(iid)

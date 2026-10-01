@@ -15,10 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::data_services::{
-    DataServiceEntityTrait, EditDataServiceDto, NewDataServiceDto,
-};
+use crate::entities::data_services::{EditDataServiceDto, NewDataServiceDto};
+use crate::entities::filters::DataServiceFilter;
 use crate::http::common::to_camel_case::ToCamelCase;
+use crate::services::data_services::DataServiceServiceTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::http::StatusCode;
@@ -27,6 +27,7 @@ use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
 use common::config::services::CatalogConfig;
+use common::query::QuerySpec;
 use serde::Deserialize;
 use std::sync::Arc;
 use ymir::errors::Errors;
@@ -34,17 +35,14 @@ use ymir::utils::{extract_path_urn, extract_payload};
 
 #[derive(Clone)]
 pub struct DataServiceEntityRouter {
-    service: Arc<dyn DataServiceEntityTrait>,
+    service: Arc<dyn DataServiceServiceTrait>,
     config: Arc<CatalogConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
+pub use common::paginated_spec::PaginationParams;
+pub type DataServiceQuery = QuerySpec<DataServiceFilter>;
 
-impl FromRef<DataServiceEntityRouter> for Arc<dyn DataServiceEntityTrait> {
+impl FromRef<DataServiceEntityRouter> for Arc<dyn DataServiceServiceTrait> {
     fn from_ref(state: &DataServiceEntityRouter) -> Self {
         state.service.clone()
     }
@@ -57,7 +55,7 @@ impl FromRef<DataServiceEntityRouter> for Arc<CatalogConfig> {
 }
 
 impl DataServiceEntityRouter {
-    pub fn new(service: Arc<dyn DataServiceEntityTrait>, config: Arc<CatalogConfig>) -> Self {
+    pub fn new(service: Arc<dyn DataServiceServiceTrait>, config: Arc<CatalogConfig>) -> Self {
         Self { service, config }
     }
 
@@ -80,67 +78,74 @@ impl DataServiceEntityRouter {
 
     async fn handle_get_all_data_services(
         State(state): State<DataServiceEntityRouter>,
-        Query(params): Query<PaginationParams>,
+        scope: common::auth::AccessScope,
+        Query(query): Query<DataServiceQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_data_services(params.limit, params.page)
+            .get_all_data_services(&scope, &query.filter, &query.page, &query.sort)
             .await
         {
             Ok(data_services) => (StatusCode::OK, Json(ToCamelCase(data_services))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_batch_data_services(
         State(state): State<DataServiceEntityRouter>,
+        scope: common::auth::AccessScope,
         input: Result<Json<BatchRequests>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.get_batch_data_services(&input.ids).await {
+        match state
+            .service
+            .get_batch_data_services(&scope, &input.ids)
+            .await
+        {
             Ok(data_services) => (StatusCode::OK, Json(ToCamelCase(data_services))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_data_services_by_catalog_id(
         State(state): State<DataServiceEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
             Err(resp) => return resp.into_response(),
         };
-        match state.service.get_data_services_by_catalog_id(&id_urn).await {
+        match state
+            .service
+            .get_data_services_by_catalog_id(&scope, &id_urn)
+            .await
+        {
             Ok(data_services) => (StatusCode::OK, Json(ToCamelCase(data_services))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_data_service_by_id(
         State(state): State<DataServiceEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
             Err(resp) => return resp.into_response(),
         };
-        match state.service.get_data_service_by_id(&id_urn).await {
-            Ok(Some(data_service)) => {
-                (StatusCode::OK, Json(ToCamelCase(data_service))).into_response()
-            }
-            Ok(None) => {
-                let err = Errors::missing_resource(id.as_str(), "Data service not found", None);
-                err.into_response()
-            }
-            Err(e) => return e.into_response(),
+        match state.service.get_data_service_by_id(&scope, &id_urn).await {
+            Ok(data_service) => (StatusCode::OK, Json(ToCamelCase(data_service))).into_response(),
+            Err(e) => e.into_response(),
         }
     }
 
     async fn handle_get_main_data_service(
         State(state): State<DataServiceEntityRouter>,
+        scope: common::auth::AccessScope,
     ) -> impl IntoResponse {
-        match state.service.get_main_data_service().await {
+        match state.service.get_main_data_service(&scope).await {
             Ok(Some(data_service)) => {
                 (StatusCode::OK, Json(ToCamelCase(data_service))).into_response()
             }
@@ -148,12 +153,13 @@ impl DataServiceEntityRouter {
                 let err = Errors::missing_resource("", "Main Data service not found", None);
                 err.into_response()
             }
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
 
     async fn handle_put_data_service_by_id(
         State(state): State<DataServiceEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
         input: Result<Json<EditDataServiceDto>, JsonRejection>,
     ) -> impl IntoResponse {
@@ -165,50 +171,61 @@ impl DataServiceEntityRouter {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.put_data_service_by_id(&id_urn, &input).await {
+        match state
+            .service
+            .put_data_service_by_id(&scope, &id_urn, &input)
+            .await
+        {
             Ok(data_service) => (StatusCode::OK, Json(ToCamelCase(data_service))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_create_data_service(
         State(state): State<DataServiceEntityRouter>,
+        scope: common::auth::AccessScope,
         input: Result<Json<NewDataServiceDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.create_data_service(&input).await {
+        match state.service.create_data_service(&scope, &input).await {
             Ok(data_service) => (StatusCode::OK, Json(ToCamelCase(data_service))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
 
     async fn handle_create_main_data_service(
         State(state): State<DataServiceEntityRouter>,
+        scope: common::auth::AccessScope,
         input: Result<Json<NewDataServiceDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.create_main_data_service(&input).await {
+        match state.service.create_main_data_service(&scope, &input).await {
             Ok(data_service) => (StatusCode::OK, Json(ToCamelCase(data_service))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
 
     async fn handle_delete_data_service_by_id(
         State(state): State<DataServiceEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
             Err(resp) => return resp.into_response(),
         };
-        match state.service.delete_data_service_by_id(&id_urn).await {
+        match state
+            .service
+            .delete_data_service_by_id(&scope, &id_urn)
+            .await
+        {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
 }

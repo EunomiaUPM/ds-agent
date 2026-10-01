@@ -8,14 +8,15 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use super::AuthOrchestratorTrait;
+use crate::data::factory::AuthRepoTrait;
 use crate::modules::{
     GaiaSelfAttesterModule, GateKeeperModule, ParticipantModule, PeerConnectorModule,
     VcRequesterModule, VerifierModule,
@@ -24,10 +25,10 @@ use crate::services::callback::CallbackTrait;
 use crate::services::gaia_self_attester::GaiaSelfAttesterTrait;
 use crate::services::gatekeeper::GateKeeperTrait;
 use crate::services::peer_connector::PeerConnectorTrait;
-use crate::services::repo::repo_trait::AuthRepoTrait;
 use crate::services::vc_requester::VcRequesterTrait;
 use crate::services::{
-    HasCallback, HasGaiaSelfAttester, HasGateKeeper, HasPeerConnector, HasRepo, HasVcRequester,
+    HasCallback, HasConfig, HasGaiaSelfAttester, HasGateKeeper, HasPeerConnector, HasRepo,
+    HasVcRequester,
 };
 use common::config::services::SsiAuthConfig;
 use std::sync::Arc;
@@ -83,6 +84,12 @@ impl AuthCore {
 impl HasPeerConnector for AuthCore {
     fn peer_connector(&self) -> Arc<dyn PeerConnectorTrait> {
         self.peer_connector.clone()
+    }
+}
+
+impl HasConfig for AuthCore {
+    fn config(&self) -> Arc<SsiAuthConfig> {
+        self.config.clone()
     }
 }
 
@@ -149,8 +156,4 @@ impl GateKeeperModule for AuthCore {}
 impl WalletModuleTrait for AuthCore {}
 
 // ======================================== ORCHESTATOR ============================================
-impl AuthOrchestratorTrait for AuthCore {
-    fn config(&self) -> Arc<SsiAuthConfig> {
-        self.config.clone()
-    }
-}
+impl AuthOrchestratorTrait for AuthCore {}

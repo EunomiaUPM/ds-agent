@@ -1,20 +1,18 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use sea_orm_migration::prelude::*;
@@ -39,35 +37,25 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
+                    .col(ColumnDef::new(Subscriptions::TenantId).string().not_null())
                     .col(
                         ColumnDef::new(Subscriptions::CallbackAddress)
                             .string()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(Subscriptions::TransferProcess)
-                            .boolean()
-                            .default("false"),
+                        ColumnDef::new(Subscriptions::TopicPattern)
+                            .string()
+                            .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(Subscriptions::ContractNegotiationProcess)
-                            .boolean()
-                            .default("false"),
-                    )
-                    .col(
-                        ColumnDef::new(Subscriptions::Catalog)
-                            .boolean()
-                            .default("false"),
-                    )
-                    .col(
-                        ColumnDef::new(Subscriptions::DataPlane)
-                            .boolean()
-                            .default("false"),
-                    )
+                    .col(ColumnDef::new(Subscriptions::Secret).string())
+                    .col(ColumnDef::new(Subscriptions::Headers).json())
+                    .col(ColumnDef::new(Subscriptions::RetryLimit).integer())
                     .col(
                         ColumnDef::new(Subscriptions::Active)
                             .boolean()
-                            .default("true"),
+                            .not_null()
+                            .default(true),
                     )
                     .col(
                         ColumnDef::new(Subscriptions::CreatedAt)
@@ -91,11 +79,12 @@ impl MigrationTrait for Migration {
 pub enum Subscriptions {
     Table,
     Id,
+    TenantId,
     CallbackAddress,
-    TransferProcess,
-    ContractNegotiationProcess,
-    Catalog,
-    DataPlane,
+    TopicPattern,
+    Secret,
+    Headers,
+    RetryLimit,
     Active,
     CreatedAt,
     UpdatedAt,

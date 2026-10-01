@@ -39,3 +39,9 @@ tasks:
     dir: "{{.DEPLOYMENT_DIR}}/dev"
     cmds:
       - bash run-provider-dev.sh
+
+  dev:provider:ref:
+    desc: "Start Provider dev infra (db + redis) for local development with transfer ref"
+    dir: "{{.DEPLOYMENT_DIR}}/dev"
+    cmds:
+      - bash run-provider-dev-ref.sh

@@ -141,7 +141,7 @@ export const PolicyTemplateWrapperEdit = ({
       <FormProvider {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
           {/* Template Card */}
-          <div className="border border-white/30 bg-white/10 px-4 py-2 pb-4 rounded-md justify-start max-h-[80vh] overflow-y-auto">
+          <div className="border border-ink/30 bg-ink/10 px-4 py-2 pb-4 rounded-md justify-start max-h-[80vh] overflow-y-auto">
             {/* Template Header */}
             <div className="flex mb-4">
               <Heading level="h5" className="flex gap-3">

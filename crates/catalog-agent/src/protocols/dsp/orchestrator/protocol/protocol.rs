@@ -1,20 +1,18 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use crate::protocols::dsp::facades::FacadeTrait;
@@ -26,6 +24,7 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::protocols::dsp::types::dataset_definition::Dataset;
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
+use common::auth::AccessScope;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
@@ -51,19 +50,26 @@ impl ProtocolOrchestratorService {
 
 #[async_trait::async_trait]
 impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn on_catalog_request(
         &self,
+        scope: &AccessScope,
         _input: &CatalogMessageWrapper<CatalogRequestMessageDto>,
     ) -> Outcome<Catalog> {
-        let catalog = self.persistence.get_catalog().await?;
+        let catalog = self.persistence.get_catalog(scope).await?;
         Ok(catalog)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn on_dataset_request(
         &self,
+        scope: &AccessScope,
         input: &CatalogMessageWrapper<DatasetRequestMessage>,
     ) -> Outcome<Dataset> {
-        let dataset = self.persistence.get_dataset(&input.dto.dataset).await?;
+        let dataset = self
+            .persistence
+            .get_dataset(scope, &input.dto.dataset)
+            .await?;
         Ok(dataset)
     }
 }

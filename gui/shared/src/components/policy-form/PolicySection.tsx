@@ -115,7 +115,7 @@ export const PolicySection: FC<PolicySectionProps> = ({
     <AccordionItem value={accordionValue} className={accordionStyles}>
       {/* Accordion header with type label */}
       <AccordionTrigger
-        className={`${triggerStyles} text-white/70 flex uppercase overflow-hidden rounded-md data-[state=open]:rounded-b-none`}
+        className={`${triggerStyles} text-ink/70 flex uppercase overflow-hidden rounded-md data-[state=open]:rounded-b-none`}
       >
         <div className="flex items-center w-full">
           <p className="text-current">{type}</p>
@@ -125,7 +125,7 @@ export const PolicySection: FC<PolicySectionProps> = ({
       {/* Accordion content with items list */}
       <AccordionContent className="relative">
         {/* Add new item button */}
-        <Button className="border-b border-white/15" variant="outline" size="xs" onClick={onAdd}>
+        <Button className="border-b border-ink/15" variant="outline" size="xs" onClick={onAdd}>
           <Plus />
           Add {type}
         </Button>

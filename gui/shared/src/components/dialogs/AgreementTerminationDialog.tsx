@@ -30,7 +30,7 @@ export const AgreementTerminationDialog = ({
    * Sends acceptance event to the provider.
    */
   const handleSubmit = async () => {
-    console.log("Terminating agreement");
+    // Termination is not wired to the API yet.
   };
 
   return (

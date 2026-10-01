@@ -18,7 +18,7 @@ const KeystoreLayout = () => {
     <PageLayout>
       <PageHeader title="Keystore"></PageHeader>
 
-      <div className="flex gap-1 border-b border-white/10 mb-6 w-full">
+      <div className="flex gap-1 border-b border-ink/10 mb-6 w-full">
         {tabs.map((tab) => {
           const isActive = pathname === tab.to || pathname.startsWith(tab.to + "/");
           return (

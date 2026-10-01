@@ -9,6 +9,8 @@ import {
 } from "shared/src/data/orval/keystore-secrets/keystore-secrets";
 import { KeystoreSecretView } from "shared/src/data/orval/model";
 import { PageSection } from "shared/src/components/layout/PageSection";
+import { DataTable } from "shared/src/components/DataTable";
+import { FormatDate } from "shared/src/components/ui/format-date";
 import { Skeleton } from "shared/src/components/ui/skeleton";
 import { Button } from "shared/src/components/ui/button";
 import { Badge } from "shared/src/components/ui/badge";
@@ -22,7 +24,7 @@ import {
   DialogFooter,
 } from "shared/src/components/ui/dialog";
 import { useState } from "react";
-import { ShieldAlert, Trash2, Pencil, Plus } from "lucide-react";
+import { Trash2, Pencil, Plus } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // New dialog
@@ -108,7 +110,7 @@ const NewSecretDialog = ({ open, onClose }: NewSecretDialogProps) => {
               }}
             />
             {error && <p className="text-xs text-destructive">{error}</p>}
-            <p className="text-[11px] text-muted-foreground/60">
+            <p className="text-xs text-muted-foreground/60">
               Bare strings are stored as-is. JSON objects and arrays are also supported.
             </p>
           </div>
@@ -207,7 +209,7 @@ const EditSecretDialog = ({ secret, open, onClose }: EditSecretDialogProps) => {
               }}
             />
             {jsonError && <p className="text-xs text-destructive">{jsonError}</p>}
-            <p className="text-[11px] text-muted-foreground/60">
+            <p className="text-xs text-muted-foreground/60">
               Current value is never shown. Enter a new value to replace it.
             </p>
           </div>
@@ -221,7 +223,7 @@ const EditSecretDialog = ({ secret, open, onClose }: EditSecretDialogProps) => {
             />
           </div>
 
-          <p className="text-[11px] text-muted-foreground/60">
+          <p className="text-xs text-muted-foreground/60">
             Current version: {secret.version} — will be incremented on save
           </p>
         </div>
@@ -240,80 +242,22 @@ const EditSecretDialog = ({ secret, open, onClose }: EditSecretDialogProps) => {
 };
 
 // ---------------------------------------------------------------------------
-// Row
+// Page
 // ---------------------------------------------------------------------------
 
-const SecretRow = ({ secret }: { secret: KeystoreSecretView }) => {
+const KeystoreSecrets = () => {
   const queryClient = useQueryClient();
-  const [editing, setEditing] = useState(false);
+  const { data: response, isLoading, error } = useListSecrets();
+  const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<KeystoreSecretView | null>(null);
 
-  const { mutate: del, isPending: isDeleting } = useDeleteSecret({
+  const { mutate: del } = useDeleteSecret({
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListSecretsQueryKey() });
       },
     },
   });
-
-  return (
-    <>
-      <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3 min-w-0">
-          <ShieldAlert className="h-4 w-4 mt-0.5 text-amber-400/70 shrink-0" />
-          <div className="min-w-0 space-y-1">
-            <p className="font-mono text-sm text-foreground/90 truncate">{secret.key}</p>
-            {secret.description && (
-              <p className="text-xs text-muted-foreground">{secret.description}</p>
-            )}
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="info" className="text-[10px] h-4 px-1.5">
-                v{secret.version}
-              </Badge>
-              <code className="text-xs font-mono text-muted-foreground/60 bg-black/20 px-1.5 py-0.5 rounded">
-                {secret.value}
-              </code>
-              <span className="text-[10px] text-muted-foreground/60">
-                {new Date(secret.updatedAt).toLocaleString()}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1 shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-foreground"
-            onClick={() => setEditing(true)}
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-destructive/70 hover:text-destructive"
-            isLoading={isDeleting}
-            onClick={() => del({ key: secret.key.replace(/^\//, "") })}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
-
-      {editing && (
-        <EditSecretDialog secret={secret} open={editing} onClose={() => setEditing(false)} />
-      )}
-    </>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
-
-const KeystoreSecrets = () => {
-  const { data: response, isLoading, error } = useListSecrets();
-  const [creating, setCreating] = useState(false);
 
   if (isLoading) {
     return (
@@ -340,7 +284,7 @@ const KeystoreSecrets = () => {
   return (
     <>
       <PageSection
-        title={`Secrets (${secrets.length})`}
+        title="Secrets"
         action={
           <Button size="sm" onClick={() => setCreating(true)}>
             <Plus className="h-3.5 w-3.5 mr-1.5" />
@@ -348,21 +292,80 @@ const KeystoreSecrets = () => {
           </Button>
         }
       >
-        {secrets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[200px] border border-dashed border-white/10 rounded-xl bg-white/5 p-8">
-            <ShieldAlert className="h-8 w-8 text-muted-foreground/40 mb-3" />
-            <p className="text-muted-foreground text-sm">No secrets yet</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {secrets.map((s) => (
-              <SecretRow key={s.key} secret={s} />
-            ))}
-          </div>
-        )}
+        <DataTable
+          className="text-sm"
+          data={secrets}
+          keyExtractor={(s) => s.key}
+          searchPlaceholder="Filter secrets by key or description..."
+          emptyMessage="No secrets yet"
+          columns={[
+            {
+              header: "Key",
+              accessorKey: "key",
+              cell: (s) => <span className="font-mono text-xs">{s.key}</span>,
+            },
+            {
+              header: "Description",
+              accessorKey: "description",
+              cell: (s) =>
+                s.description ? (
+                  <span className="text-xs text-muted-foreground block max-w-[280px] truncate">
+                    {s.description}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground/50">—</span>
+                ),
+            },
+            {
+              header: "Version",
+              accessorKey: "version",
+              cell: (s) => <Badge variant="info">v{s.version}</Badge>,
+            },
+            {
+              header: "Value",
+              accessorKey: "value",
+              sortable: false,
+              cell: (s) => <Badge variant="code">{s.value}</Badge>,
+            },
+            {
+              header: "Updated at",
+              accessorKey: "updatedAt",
+              sortValue: (s) => new Date(s.updatedAt).getTime(),
+              cell: (s) => <FormatDate date={s.updatedAt} />,
+            },
+            {
+              header: "Actions",
+              sortable: false,
+              searchable: false,
+              cell: (s) => (
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                    onClick={() => setEditing(s)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => del({ key: s.key.replace(/^\//, "") })}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ),
+            },
+          ]}
+        />
       </PageSection>
 
       {creating && <NewSecretDialog open={creating} onClose={() => setCreating(false)} />}
+      {editing && (
+        <EditSecretDialog secret={editing} open={!!editing} onClose={() => setEditing(null)} />
+      )}
     </>
   );
 };

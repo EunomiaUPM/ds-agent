@@ -2,27 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ContractNegotiationActions } from "shared/src/components/actions/ContractNegotiationActions";
 import { InfoList } from "shared/src/components/ui/info-list";
 import { FormatDate } from "shared/src/components/ui/format-date";
-import Heading from "../../../../../shared/src/components/ui/heading.tsx";
-import {
-  Drawer,
-  DrawerBody,
-  DrawerClose,
-  DrawerContent,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@./../../shared/src/components/ui/drawer.tsx";
-import { Button } from "shared/src/components/ui/button.tsx";
-import CnProcessMessageComponent from "@./../../shared/src/components/CnProcessMessageComponent.tsx";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { InfoGrid } from "shared/src/components/layout/InfoGrid";
 import { useGetNegotiationProcessById } from "shared/data/orval/negotiations/negotiations.ts";
 import { PageHeader } from "shared/components/layout/PageHeader.tsx";
 import { Skeleton } from "shared/components/ui/skeleton.tsx";
+import { Badge } from "shared/components/ui/badge.tsx";
 import { GeneralErrorComponent } from "@/components/GeneralErrorComponent.tsx";
 import { formatIdentifier } from "shared/lib/utils.ts";
+import { ProcessMessagesTable } from "shared/src/components/ProcessMessagesTable";
 
 const RouteComponent = () => {
   const { cnProcess } = Route.useParams();
@@ -53,12 +42,21 @@ const RouteComponent = () => {
 
   return (
     <PageLayout>
-      <InfoGrid className="mb-4">
-        <PageSection title="Contract negotiation info">
+      <PageHeader
+        title="Contract Negotiation Process"
+        badge={
+          <Badge variant="status" state={process.data.state}>
+            {process.data.state}
+          </Badge>
+        }
+      />
+
+      <InfoGrid className="mb-6">
+        <PageSection title="Contract Negotiation Info">
           <InfoList
             items={[
               {
-                label: "ProviderPid",
+                label: "Provider PID",
                 value: {
                   type: "urn",
                   value: formatIdentifier(process.data.id),
@@ -66,41 +64,20 @@ const RouteComponent = () => {
               },
               { label: "State", value: { type: "status", value: process.data.state } },
               {
-                label: "Created at",
+                label: "Created At",
                 value: { type: "custom", content: <FormatDate date={process.data.createdAt} /> },
               },
             ]}
           />
         </PageSection>
       </InfoGrid>
-      <PageSection>
-        {/* DRAWER */}
-        <Drawer direction={"right"}>
-          <DrawerTrigger>
-            <Button variant={"secondary"}>See Contract Negotiation Messages</Button>
-          </DrawerTrigger>
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>
-                <Heading level="h5" className="text-current">
-                  Contract negotiation Messages
-                </Heading>
-              </DrawerTitle>
-            </DrawerHeader>
-            <DrawerBody>
-              {/* New message subcomponent */}
-              {process.data.messages?.map((message) => (
-                <CnProcessMessageComponent key={message.id} message={message} />
-              ))}
-              {/* / New message subcomponent */}
-            </DrawerBody>
-            <DrawerFooter>
-              <DrawerClose>
-                <Button variant="ghost">Hide Messages</Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
+
+      <PageSection title="Exchange Messages" className="mb-6">
+        <ProcessMessagesTable
+          messages={process.data.messages || []}
+          processId={process.data.id}
+          title="Negotiation Messages"
+        />
       </PageSection>
 
       {/* ACTIONS */}
@@ -115,3 +92,4 @@ const RouteComponent = () => {
 export const Route = createFileRoute("/contract-negotiation/$cnProcess/")({
   component: RouteComponent,
 });
+

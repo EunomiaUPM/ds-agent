@@ -96,12 +96,12 @@ export default function WizardDialog({
       }
     >
       <div
-        className={`relative mx-4 bg-background-300 border border-secondary-800 text-white p-3 pt-1.5 rounded-md shadow-lg pointer-events-auto transition-opacity transition-transform duration-200 ${measured ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"}`}
+        className={`relative mx-4 bg-background-300 border border-secondary-800 text-ink p-3 pt-1.5 rounded-md shadow-lg pointer-events-auto transition-opacity transition-transform duration-200 ${measured ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"}`}
       >
         <div className="flex items-start gap-3">
           <div className="flex-1 text-sm leading-snug">
             <div className="flex justify-between mb-0 items-center">
-              <p className="text-xs uppercase font-bold tracking-wider text-secondary-400 mb-1">
+              <p className="text-xs uppercase font-bold tracking-wider text-secondary-700 dark:text-secondary-400 mb-1">
                 Step {step}
               </p>
               <Badge variant="wizard" className="mb-2">
@@ -119,7 +119,7 @@ export default function WizardDialog({
                             type="button"
                             aria-label="Close"
                             onClick={onClose}
-                            className="inline-flex items-center justify-center p-1 rounded hover:bg-white/10 transition-colors"
+                            className="inline-flex items-center justify-center p-1 rounded hover:bg-ink/10 transition-colors"
                         >
                             <X className="h-4 w-4" />
                         </button>

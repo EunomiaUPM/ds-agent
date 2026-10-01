@@ -15,6 +15,7 @@ import {
   FormItem,
   FormMessage,
 } from "shared/src/components/ui/form";
+import { Input } from "shared/src/components/ui/input";
 import { useForm } from "react-hook-form";
 import { BaseProcessDialog } from "./base";
 import { urnInfoItem } from "./base/infoItemMappers";
@@ -103,9 +104,8 @@ export const TransferProcessBusinessRequestDialog = ({
       title="Transfer Request (Business)"
       description={
         <span className="max-w-full flex flex-wrap gap-1">
-          Start transfer for Agreement{" "}
-          <Badge variant="info">{formatUrn(process.id)}</Badge>.{" "}
-          <span className="text-white/60">
+          Start transfer for Agreement <Badge variant="info">{formatUrn(process.id)}</Badge>.{" "}
+          <span className="text-ink/60">
             The Provider will automatically start the transfer upon receiving the request.
           </span>
         </span>
@@ -158,11 +158,10 @@ export const TransferProcessBusinessRequestDialog = ({
                   Push endpoint URL
                 </label>
                 <FormControl>
-                  <input
+                  <Input
                     id="pushEndpointUrl"
                     type="url"
                     placeholder="https://your-endpoint.example.com"
-                    className="flex h-7 w-full rounded-sm border-0 bg-white/5 px-2 py-1 text-xs placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50"
                     {...field}
                   />
                 </FormControl>

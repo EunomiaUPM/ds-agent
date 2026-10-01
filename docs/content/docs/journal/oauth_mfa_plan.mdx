@@ -1,0 +1,646 @@
+---
+title: "MFA & Passkeys for the OAuth Crate — Design & Implementation Plan"
+description: "TOTP two-factor authentication and WebAuthn passkeys layered on top of the existing password-grant OAuth service"
+---
+
+**Date:** May 2026<br />
+**Status:** Planned<br />
+**Context:** `crates/oauth` — authentication subsystem<br />
+**Authors:** Architecture Team
+
+---
+
+## 1. Where we are today
+
+The `crates/oauth` crate implements a minimal but functional OAuth 2.0 password grant with OpenID Connect:
+
+```
+POST /token  {username, password}
+  → validates credentials
+  → emits {access_token, id_token, refresh_token}   ← single round-trip, no MFA
+```
+
+The `User` entity is flat: `tenant_id`, `email`, `password_hash`, `role`, `extra_fields`. There is no concept of a second factor and no "partially authenticated" session.
+
+**Why this matters for dataspaces:** The ODRL/Cedar policies that govern data transfers will need to reason about *how strongly* a participant authenticated. The `acr` (Authentication Context Class Reference) and `amr` (Authentication Methods References) claims in the access token are the standard mechanism for this. Right now, tokens carry neither.
+
+---
+
+## 2. What we are adding
+
+Two independent second-factor mechanisms, both layered on top of the existing password grant:
+
+| Mechanism | Best for | Library |
+|---|---|---|
+| **TOTP** (Time-based One-Time Password) | API clients, mobile apps, CLI tools | `totp-rs` |
+| **Passkeys / WebAuthn** | Browser GUI, native apps with platform authenticator | `webauthn-rs` |
+
+They share the same "challenge" protocol: password verification succeeds → server signals `mfa_required` → client completes the second factor → server emits tokens.
+
+Passkeys can also operate as a **passwordless first factor** (no password at all), which is the long-term direction.
+
+---
+
+## 3. Core concept: the MFA handshake
+
+Before diving into each mechanism, this is the pattern both share:
+
+```
+Client                                 Server
+  │                                      │
+  │  POST /token {email, password}       │
+  │─────────────────────────────────────▶│
+  │                                      │  1. verify password ✓
+  │                                      │  2. user has MFA? → yes
+  │                                      │  3. mint mfa_token (short JWT, 5 min)
+  │                                      │
+  │  HTTP 403                            │
+  │  {                                   │
+  │    "error": "mfa_required",          │
+  │    "mfa_token": "eyJ...",            │
+  │    "challenge_types": ["otp"]        │
+  │  }                                   │
+  │◀─────────────────────────────────────│
+  │                                      │
+  │  POST /mfa/otp                       │
+  │  {mfa_token: "eyJ...", otp: "123456"}│
+  │─────────────────────────────────────▶│
+  │                                      │  4. verify mfa_token ✓
+  │                                      │  5. verify OTP ✓
+  │                                      │  6. emit tokens with amr: ["pwd","otp"]
+  │                                      │
+  │  HTTP 200 {access_token, ...}        │
+  │◀─────────────────────────────────────│
+```
+
+The `mfa_token` is a signed JWT with a short TTL (5 minutes) and a `jti` that is invalidated on use (one-time). It proves that step 1 (password) was completed without leaking the user's identity before step 2 is done.
+
+**Clients that have no 2FA enrolled** continue to work exactly as before: `POST /token` returns tokens directly with `amr: ["pwd"]`. Zero breaking change.
+
+---
+
+## 4. TOTP flow in detail
+
+### 4.1 Enrollment (one-time setup)
+
+The user must already be logged in (Bearer token required).
+
+```
+Client (GUI or API)                     Server
+  │                                      │
+  │  POST /me/totp/enroll               │
+  │  Authorization: Bearer {token}       │
+  │─────────────────────────────────────▶│
+  │                                      │  1. generate random 160-bit secret
+  │                                      │  2. encrypt secret with app key (AES-GCM)
+  │                                      │  3. save to oauth_totp (confirmed_at = NULL)
+  │                                      │  4. build otpauth:// URI
+  │                                      │
+  │  HTTP 200                            │
+  │  {                                   │
+  │    "otpauth_uri":                    │
+  │    "otpauth://totp/Eunomia:user@x.com│
+  │     ?secret=BASE32...&issuer=Eunomia"│
+  │  }                                   │
+  │◀─────────────────────────────────────│
+  │                                      │
+  │  [user scans QR / imports URI]       │
+  │                                      │
+  │  POST /me/totp/confirm               │
+  │  {otp: "847291"}                     │
+  │─────────────────────────────────────▶│
+  │                                      │  5. verify first OTP with ±1 window
+  │                                      │  6. set confirmed_at = now()
+  │                                      │  7. generate 8 recovery codes
+  │                                      │  8. argon2-hash each, save to DB
+  │                                      │
+  │  HTTP 200                            │
+  │  {                                   │
+  │    "recovery_codes": [               │
+  │      "XXXX-XXXX", "YYYY-YYYY", ...   │
+  │    ]                                 │
+  │  }                                   │
+  │◀─────────────────────────────────────│
+```
+
+> **Important:** Recovery codes are shown **once only** at this step. The server stores only their argon2 hashes. If the user loses their authenticator and all recovery codes, there is no self-service recovery — an admin must disable TOTP via `DELETE /me/totp` on their behalf (or a separate admin endpoint).
+
+### 4.2 Login with TOTP active
+
+```
+Client                                 Server
+  │                                      │
+  │  POST /token                         │
+  │  {username: "...", password: "..."}  │
+  │─────────────────────────────────────▶│
+  │                                      │  1. password check ✓
+  │                                      │  2. oauth_totp.confirmed_at IS NOT NULL → yes
+  │                                      │  3. mint mfa_token JWT:
+  │                                      │     { sub: tenant_id, purpose: "mfa",
+  │                                      │       jti: uuid, exp: now+300 }
+  │                                      │
+  │  HTTP 403                            │
+  │  { error: "mfa_required",            │
+  │    mfa_token: "eyJ...",              │
+  │    challenge_types: ["otp"] }        │
+  │◀─────────────────────────────────────│
+  │                                      │
+  │  POST /mfa/otp                       │
+  │  { mfa_token: "eyJ...",              │
+  │    otp: "482910" }                   │
+  │─────────────────────────────────────▶│
+  │                                      │  4. decode & verify mfa_token JWT
+  │                                      │  5. load encrypted TOTP secret for sub
+  │                                      │  6. compute expected OTP (window ±1)
+  │                                      │  7. compare — match ✓
+  │                                      │  8. check last_step_used < current_step
+  │                                      │     (anti-replay)
+  │                                      │  9. update last_step_used
+  │                                      │  10. mark jti as consumed
+  │                                      │  11. emit access_token, id_token,
+  │                                      │      refresh_token
+  │                                      │      amr: ["pwd", "otp"]
+  │                                      │      acr: "urn:eunomia:acr:mfa"
+  │  HTTP 200 TokenResponse              │
+  │◀─────────────────────────────────────│
+```
+
+### 4.3 Using a recovery code
+
+Same endpoint, same flow. The `otp` field accepts an 8-digit recovery code. Server detects it's a recovery code by length/format, verifies it against stored hashes, marks it as used. `amr` in the resulting token: `["pwd", "recovery-code"]`.
+
+### 4.4 Disabling TOTP
+
+```
+DELETE /me/totp
+Authorization: Bearer {valid token}
+```
+
+Requires a currently valid access token (password was already verified at token issuance). Deletes the `oauth_totp` row and all unused recovery codes for the user.
+
+---
+
+## 5. WebAuthn / Passkeys flow in detail
+
+WebAuthn is different from TOTP in one fundamental way: **it requires two HTTP round-trips** (challenge → response). The server must generate a random challenge, the authenticator signs it, and the server verifies the signature. This means you cannot do WebAuthn in a single form post.
+
+### 5.1 Concepts
+
+| Term | Meaning |
+|---|---|
+| **Passkey** | A credential stored in the OS/browser/hardware key. Identified by a `credential_id`. The private key never leaves the device. |
+| **RP** (Relying Party) | Us — the server. Identified by `rp_id` (the domain: `"example.com"`) and `rp_origin` (full URL: `"https://example.com"`). |
+| **challenge** | 32 random bytes from the server. The authenticator signs them. Prevents replay. |
+| **auth_state** | Server-side session data (the challenge + options) that must be retrieved at `finish` time. Stored in `oauth_mfa_sessions` with a 60s TTL. |
+| **counter** | Monotonic count on the credential. Prevents cloning — server rejects if counter goes backwards. |
+
+### 5.2 Passkey registration (one-time setup)
+
+Requires an existing Bearer token (user is already logged in via password).
+
+```
+Browser / Client                       Server
+  │                                      │
+  │  POST /webauthn/register/start       │
+  │  Authorization: Bearer {token}       │
+  │─────────────────────────────────────▶│
+  │                                      │  1. load user's existing passkeys
+  │                                      │  2. call webauthn.start_passkey_registration()
+  │                                      │     → (creation_options, reg_state)
+  │                                      │  3. save reg_state to oauth_mfa_sessions
+  │                                      │     with session_id + 60s TTL
+  │                                      │
+  │  HTTP 200                            │
+  │  { session_id: "abc123",             │
+  │    options: {PublicKeyCredential     │
+  │              CreationOptions} }      │
+  │◀─────────────────────────────────────│
+  │                                      │
+  │  [browser calls                      │
+  │   navigator.credentials.create(opt)]│
+  │  [user touches fingerprint sensor /  │
+  │   confirms on phone / inserts key]   │
+  │                                      │
+  │  POST /webauthn/register/finish      │
+  │  Authorization: Bearer {token}       │
+  │  { session_id: "abc123",             │
+  │    credential: {PublicKeyCred JSON}} │
+  │─────────────────────────────────────▶│
+  │                                      │  4. load reg_state from session (delete it)
+  │                                      │  5. webauthn.finish_passkey_registration()
+  │                                      │  6. save Passkey to oauth_passkeys (JSONB)
+  │                                      │
+  │  HTTP 200 { id: uuid, label: null }  │
+  │◀─────────────────────────────────────│
+```
+
+### 5.3 Passwordless login (passkey as first factor)
+
+This is the "no password" path. The browser shows a passkey picker, user authenticates, tokens are issued.
+
+```
+Browser                                Server
+  │                                      │
+  │  POST /webauthn/auth/start           │
+  │  { email: "user@example.com" }       │
+  │─────────────────────────────────────▶│
+  │                                      │  1. look up user by email
+  │                                      │  2. load user's passkeys from DB
+  │                                      │  3. webauthn.start_passkey_authentication()
+  │                                      │     → (request_options, auth_state)
+  │                                      │  4. save auth_state in oauth_mfa_sessions
+  │                                      │
+  │  HTTP 200                            │
+  │  { session_id: "xyz789",             │
+  │    options: {PublicKeyCredential     │
+  │              RequestOptions} }       │
+  │◀─────────────────────────────────────│
+  │                                      │
+  │  [browser: navigator.credentials    │
+  │            .get(options)]            │
+  │  [user authenticates on device]      │
+  │                                      │
+  │  POST /webauthn/auth/finish          │
+  │  { session_id: "xyz789",             │
+  │    credential: {assertion JSON} }    │
+  │─────────────────────────────────────▶│
+  │                                      │  5. load auth_state (delete session)
+  │                                      │  6. webauthn.finish_passkey_authentication()
+  │                                      │  7. verify counter > stored counter
+  │                                      │  8. update counter + last_used_at in DB
+  │                                      │  9. emit tokens
+  │                                      │     amr: ["hwk"]
+  │                                      │     acr: "urn:eunomia:acr:mfa"
+  │  HTTP 200 TokenResponse              │
+  │◀─────────────────────────────────────│
+```
+
+### 5.4 Passkey as second factor (after password)
+
+When a user has both a password **and** passkeys registered, `POST /token` returns `mfa_required` with `challenge_types: ["otp", "webauthn"]` (or just `["webauthn"]` if no TOTP). The client picks a challenge type.
+
+```
+Browser                                Server
+  │                                      │
+  │  POST /token {user, pass}            │
+  │─────────────────────────────────────▶│
+  │                                      │  password ✓, has passkeys → challenge
+  │  HTTP 403                            │
+  │  { error: "mfa_required",            │
+  │    mfa_token: "eyJ...",              │
+  │    challenge_types: ["webauthn"] }   │
+  │◀─────────────────────────────────────│
+  │                                      │
+  │  POST /webauthn/mfa/start            │
+  │  { mfa_token: "eyJ..." }             │
+  │─────────────────────────────────────▶│
+  │                                      │  1. verify mfa_token (sub = tenant_id)
+  │                                      │  2. load user's passkeys
+  │                                      │  3. start_passkey_authentication()
+  │                                      │  4. save auth_state linked to mfa_token jti
+  │                                      │
+  │  HTTP 200 { session_id, options }    │
+  │◀─────────────────────────────────────│
+  │                                      │
+  │  [browser: credentials.get()]        │
+  │  [user authenticates]                │
+  │                                      │
+  │  POST /webauthn/mfa/finish           │
+  │  { mfa_token: "eyJ...",              │
+  │    session_id: "...",                │
+  │    credential: {...} }               │
+  │─────────────────────────────────────▶│
+  │                                      │  5. verify mfa_token + session
+  │                                      │  6. finish_passkey_authentication()
+  │                                      │  7. emit tokens
+  │                                      │     amr: ["pwd", "hwk"]
+  │  HTTP 200 TokenResponse              │
+  │◀─────────────────────────────────────│
+```
+
+### 5.5 Managing passkeys
+
+```
+GET    /me/webauthn/credentials            → list [{id, label, created_at, last_used_at}]
+PATCH  /me/webauthn/credentials/:id        body: {label: "MacBook Touch ID"}
+DELETE /me/webauthn/credentials/:id        → 200
+```
+
+All require Bearer token. A user must always keep at least one credential or disable WebAuthn entirely (no hard enforcement, but the UI should warn).
+
+---
+
+## 6. API clients vs GUI clients
+
+Both use the same server endpoints. The difference is **who handles the WebAuthn ceremony**.
+
+| Step | GUI (browser) | API / CLI |
+|---|---|---|
+| Password grant | `fetch('/token', ...)` | `curl` / HTTP client |
+| MFA challenge | Read `mfa_token` from 403 body | Same |
+| TOTP completion | Simple POST `/mfa/otp` | Same |
+| WebAuthn start | `fetch('/webauthn/auth/start')` | Same |
+| WebAuthn ceremony | `navigator.credentials.get()` (browser API) | **Not available in CLI.** API clients should use TOTP or a hardware key via a browser for enrollment, then TOTP for daily use. |
+| WebAuthn finish | `fetch('/webauthn/auth/finish', {credential})` | Same (if they somehow have the credential) |
+
+**Recommendation:** For purely programmatic API clients (service accounts, CI pipelines), enroll TOTP. Passkeys are a better UX for humans using a browser.
+
+For service-to-service within the dataspace (DSP agents calling each other), neither 2FA mechanism applies — those use client credentials or VC-based auth. TOTP and passkeys are for human users managing the system.
+
+---
+
+## 7. Token claims after MFA
+
+After any successful MFA completion, the emitted tokens carry:
+
+```json
+{
+  "sub": "tenant-id-of-user",
+  "role": "Admin",
+  "amr": ["pwd", "otp"],
+  "acr": "urn:eunomia:acr:mfa",
+  "iat": 1747000000,
+  "exp": 1747003600
+}
+```
+
+| `amr` value | Meaning |
+|---|---|
+| `pwd` | Password was verified |
+| `otp` | TOTP code was verified |
+| `recovery-code` | Recovery code was used (counts as MFA but flags re-enrollment) |
+| `hwk` | Hardware/platform key (passkey) was verified |
+
+| `acr` value | Meaning |
+|---|---|
+| *(absent / `"1"`)* | Password only (AAL1) |
+| `"urn:eunomia:acr:mfa"` | Password + second factor (AAL2) |
+
+These claims will be directly usable in ODRL/Cedar policies: `"consumer must present token with acr = urn:eunomia:acr:mfa to access dataset X"`.
+
+---
+
+## 8. Data model
+
+### New tables
+
+```sql
+-- TOTP secret per user (at most one active per user)
+CREATE TABLE oauth_totp (
+    tenant_id        TEXT PRIMARY KEY REFERENCES oauth_users(tenant_id) ON DELETE CASCADE,
+    encrypted_secret TEXT NOT NULL,        -- AES-GCM(app_key, random_secret)
+    confirmed_at     TIMESTAMPTZ,          -- NULL until user confirms enrollment
+    last_step_used   BIGINT                -- last TOTP time-step accepted (anti-replay)
+);
+
+-- One-time recovery codes (hashed)
+CREATE TABLE oauth_recovery_codes (
+    id          UUID PRIMARY KEY,
+    tenant_id   TEXT NOT NULL REFERENCES oauth_users(tenant_id) ON DELETE CASCADE,
+    code_hash   TEXT NOT NULL,             -- argon2(recovery_code)
+    used_at     TIMESTAMPTZ                -- NULL = unused
+);
+
+-- Short-lived sessions for WebAuthn challenge state and MFA tokens
+CREATE TABLE oauth_mfa_sessions (
+    id          TEXT PRIMARY KEY,          -- random session_id
+    tenant_id   TEXT,                      -- NULL for anonymous auth/start flows
+    state_json  JSONB NOT NULL,            -- webauthn-rs RegistrationState / AuthenticationState
+    expires_at  TIMESTAMPTZ NOT NULL
+);
+
+-- Registered passkeys per user
+CREATE TABLE oauth_passkeys (
+    id           UUID PRIMARY KEY,
+    tenant_id    TEXT NOT NULL REFERENCES oauth_users(tenant_id) ON DELETE CASCADE,
+    passkey      JSONB NOT NULL,           -- webauthn_rs::Passkey serialized
+    label        TEXT,                     -- friendly name, user-provided
+    created_at   TIMESTAMPTZ NOT NULL,
+    last_used_at TIMESTAMPTZ
+);
+```
+
+### Entities and repositories (Rust)
+
+```
+entities/
+  totp.rs          TotpSecret { tenant_id, encrypted_secret, confirmed_at, last_step_used }
+  recovery_code.rs RecoveryCode { id, tenant_id, code_hash, used_at }
+  mfa_session.rs   MfaSession  { id, tenant_id, state_json, expires_at }
+  passkey.rs       StoredPasskey { id, tenant_id, passkey: Passkey, label, ... }
+
+data/repositories/
+  totp.rs          TotpRepository (get, upsert, delete)
+  recovery_code.rs RecoveryCodeRepository (create_batch, find_unused, mark_used)
+  mfa_session.rs   MfaSessionRepository (create, get, delete)
+  passkey.rs       PasskeyRepository (create, get_all_by_tenant_id, update_counter, delete)
+```
+
+Each repository has an in-memory implementation (for tests/dev) and a SeaOrm implementation.
+
+---
+
+## 9. Service layer
+
+### `MfaServiceTrait`
+
+Encapsulates all TOTP + recovery code logic:
+
+```rust
+async fn totp_enroll(tenant_id: &str) -> Outcome<EnrollmentView>
+    // EnrollmentView { otpauth_uri: String }
+
+async fn totp_confirm(tenant_id: &str, otp: &str) -> Outcome<Vec<String>>
+    // returns plaintext recovery codes (shown once)
+
+async fn totp_verify(tenant_id: &str, otp: &str) -> Outcome<()>
+    // accepts TOTP code OR recovery code; handles anti-replay
+
+async fn totp_status(tenant_id: &str) -> Outcome<TotpStatusView>
+    // TotpStatusView { enrolled: bool, confirmed: bool, recovery_codes_remaining: u8 }
+
+async fn totp_disable(tenant_id: &str) -> Outcome<()>
+```
+
+### `PasskeyServiceTrait`
+
+Encapsulates all WebAuthn logic:
+
+```rust
+async fn register_start(tenant_id: &str, email: &str) -> Outcome<RegistrationStartView>
+    // RegistrationStartView { session_id, options: serde_json::Value }
+
+async fn register_finish(tenant_id: &str, session_id: &str, credential_json: &str) -> Outcome<PasskeyView>
+
+async fn auth_start(email: &str) -> Outcome<AuthStartView>
+    // AuthStartView { session_id, options: serde_json::Value }
+
+async fn auth_finish(session_id: &str, credential_json: &str) -> Outcome<AuthenticatedUser>
+    // AuthenticatedUser { tenant_id, role } — caller emits tokens
+
+async fn mfa_start(tenant_id: &str) -> Outcome<AuthStartView>
+    // same as auth_start but scoped to known tenant (post-password challenge)
+
+async fn list_credentials(tenant_id: &str) -> Outcome<Vec<PasskeyView>>
+
+async fn delete_credential(tenant_id: &str, id: Uuid) -> Outcome<()>
+```
+
+### Changes to `TokenServiceTrait`
+
+```rust
+// Before:
+async fn issue_token(email: &str, password: &str) -> Outcome<TokenResponse>;
+
+// After:
+async fn issue_token(email: &str, password: &str) -> Outcome<IssuedAuth>;
+async fn complete_mfa_otp(mfa_token: &str, otp: &str) -> Outcome<TokenResponse>;
+
+pub enum IssuedAuth {
+    Tokens(TokenResponse),
+    Challenge(MfaChallengeView),
+}
+
+pub struct MfaChallengeView {
+    pub mfa_token: String,
+    pub challenge_types: Vec<String>,   // e.g. ["otp"], ["webauthn"], ["otp","webauthn"]
+}
+```
+
+`TokenService` grows two new dependencies:
+```rust
+mfa_svc: Arc<dyn MfaServiceTrait>,
+passkey_svc: Arc<dyn PasskeyServiceTrait>,
+```
+
+### New JWT claim struct
+
+```rust
+struct MfaTokenClaims {
+    sub: String,       // tenant_id
+    purpose: String,   // "mfa" — prevents reuse as access token
+    jti: String,       // UUID, single-use
+    iat: i64,
+    exp: i64,          // iat + 300s
+}
+```
+
+### New `OAuthConfig` fields
+
+```rust
+pub mfa_token_ttl_secs: i64,       // default 300
+pub app_encryption_key: String,    // 32-byte hex → AES-256-GCM for TOTP secret
+pub webauthn_rp_id: String,        // "example.com"
+pub webauthn_rp_origin: String,    // "https://example.com"
+pub webauthn_rp_name: String,      // "Eunomia"
+```
+
+---
+
+## 10. HTTP endpoint map (full picture)
+
+### Token endpoints (existing, modified)
+
+| Method | Path | Auth | Change |
+|---|---|---|---|
+| `POST` | `/token` | — | Response may now be 200 `TokenResponse` **or** 403 `MfaChallengeView` |
+| `POST` | `/refresh` | — | No change |
+| `POST` | `/revoke` | — | No change |
+| `GET` | `/userinfo` | Bearer | No change |
+| `GET` | `/.well-known/openid-configuration` | — | Adds `amr_values_supported`, `acr_values_supported` |
+
+### New MFA completion endpoints
+
+| Method | Path | Auth | Body | Response |
+|---|---|---|---|---|
+| `POST` | `/mfa/otp` | — | `{mfa_token, otp}` | `TokenResponse` |
+
+### New TOTP management endpoints
+
+| Method | Path | Auth | Body | Response |
+|---|---|---|---|---|
+| `POST` | `/me/totp/enroll` | Bearer | — | `{otpauth_uri}` |
+| `POST` | `/me/totp/confirm` | Bearer | `{otp}` | `{recovery_codes: [...]}` |
+| `GET` | `/me/totp/status` | Bearer | — | `{enrolled, confirmed, codes_remaining}` |
+| `DELETE` | `/me/totp` | Bearer | — | 200 |
+
+### New WebAuthn endpoints
+
+| Method | Path | Auth | Body | Response |
+|---|---|---|---|---|
+| `POST` | `/webauthn/register/start` | Bearer | — | `{session_id, options}` |
+| `POST` | `/webauthn/register/finish` | Bearer | `{session_id, credential}` | `PasskeyView` |
+| `POST` | `/webauthn/auth/start` | — | `{email}` | `{session_id, options}` |
+| `POST` | `/webauthn/auth/finish` | — | `{session_id, credential}` | `TokenResponse` |
+| `POST` | `/webauthn/mfa/start` | — | `{mfa_token}` | `{session_id, options}` |
+| `POST` | `/webauthn/mfa/finish` | — | `{mfa_token, session_id, credential}` | `TokenResponse` |
+| `GET` | `/me/webauthn/credentials` | Bearer | — | `[PasskeyView]` |
+| `PATCH` | `/me/webauthn/credentials/:id` | Bearer | `{label}` | `PasskeyView` |
+| `DELETE` | `/me/webauthn/credentials/:id` | Bearer | — | 200 |
+
+---
+
+## 11. Implementation plan
+
+### Phase 1 — TOTP (no breaking changes for clients without 2FA)
+
+| Step | What | Files touched |
+|---|---|---|
+| 1.1 | Migrations 3 + 4 (totp + recovery codes) | `data/sea_orm/migrations/` |
+| 1.2 | Entities `TotpSecret`, `RecoveryCode` | `entities/` |
+| 1.3 | Repo traits + in-memory impls | `data/repositories/`, `data/in_memory/` |
+| 1.4 | `MfaService` + `MfaTokenClaims` + encryption utils | `services/mfa_service/` |
+| 1.5 | Refactor `issue_token` → `IssuedAuth`; add `complete_mfa_otp` to `TokenService` | `services/token_service/` |
+| 1.6 | Add `amr` + `acr` fields to `AccessClaims` / `IdTokenClaims` | `services/token_service/jwt.rs` |
+| 1.7 | HTTP: `POST /mfa/otp`; update `POST /token` handler for 403 | `http/token_router.rs` |
+| 1.8 | HTTP: TOTP management endpoints | `http/users_router.rs` |
+| 1.9 | SeaOrm impls for `TotpRepository`, `RecoveryCodeRepository` | `data/sea_orm/` |
+| 1.10 | Tests for `MfaService` and updated `TokenService` | `services/mfa_service/tests.rs` |
+
+**Risk:** Step 1.5 changes the return type of `issue_token`. The HTTP handler wraps the result: if `Tokens` → 200, if `Challenge` → 403. Existing behaviour for users without TOTP is unchanged — the `Challenge` branch is unreachable for them.
+
+### Phase 2 — WebAuthn / Passkeys
+
+| Step | What | Files touched |
+|---|---|---|
+| 2.1 | Migrations 5 + 6 (mfa_sessions + passkeys) | `data/sea_orm/migrations/` |
+| 2.2 | Entities `MfaSession`, `StoredPasskey` | `entities/` |
+| 2.3 | Repo traits + in-memory impls | `data/repositories/`, `data/in_memory/` |
+| 2.4 | `OAuthConfig` WebAuthn fields; `Webauthn` builder in factory | `config.rs`, `data/factory.rs` |
+| 2.5 | `PasskeyService` — all methods | `services/passkey_service/` |
+| 2.6 | `TokenService`: integrate passkey detection into `issue_token` | `services/token_service/service.rs` |
+| 2.7 | HTTP: WebAuthn registration + auth endpoints | `http/webauthn_router.rs` (new file) |
+| 2.8 | SeaOrm impls for `MfaSessionRepository`, `PasskeyRepository` | `data/sea_orm/` |
+| 2.9 | Tests for `PasskeyService` | `services/passkey_service/tests.rs` |
+| 2.10 | Update discovery document | `http/forms.rs` |
+
+**Risk:** `webauthn-rs` requires that `rp_origin` exactly matches the `Origin` header sent by the browser. In dev (localhost) vs. prod (HTTPS domain) this must be configured correctly. The `WebAuthn` instance is constructed once at app startup from `OAuthConfig`.
+
+### New Cargo dependencies
+
+```toml
+# Cargo.toml (crates/oauth)
+totp-rs      = { version = "5", features = ["gen_secret", "otpauth"] }
+webauthn-rs  = { version = "0.5", features = ["danger-allow-state-serialisation"] }
+aes-gcm      = "0.10"
+```
+
+The `danger-allow-state-serialisation` feature of `webauthn-rs` is needed to serialize `RegistrationState` / `AuthenticationState` to JSONB for persistence in `oauth_mfa_sessions`. Despite the ominous name, it is the intended way to persist challenge state across HTTP round-trips.
+
+---
+
+## 12. Security notes
+
+**TOTP secret encryption.** The raw TOTP secret is never stored in plaintext. AES-256-GCM with a nonce per entry. The key comes from `OAuthConfig.app_encryption_key` which must be provided via environment variable, not hard-coded. A compromised database without the app key cannot reconstruct TOTP secrets.
+
+**Anti-replay for TOTP.** `last_step_used` tracks the UNIX 30-second time-step of the last accepted code. A code from step N will not be accepted again, even if the 30-second window has not elapsed. This prevents an attacker who captured a code in flight from reusing it.
+
+**`mfa_token` single-use.** The `jti` is stored in `oauth_mfa_sessions` with `purpose=mfa`. On successful MFA completion, the session is deleted. A second attempt with the same `mfa_token` fails with "session not found".
+
+**WebAuthn counter.** The authenticator increments a counter on every use. The server rejects any assertion where `new_counter <= stored_counter`. This is the primary defence against credential cloning.
+
+**WebAuthn challenge TTL.** `oauth_mfa_sessions` rows expire after 60 seconds. A background cleanup (or per-request lazy deletion checking `expires_at`) removes stale rows. This limits the window for challenge replay.
+
+**Passkey storage.** `webauthn_rs::Passkey` is serialized as JSONB. It contains the public key (safe to store), the credential ID (safe), and the counter. The private key never touches the server.
+
+**Recovery codes.** Each code is hashed with argon2 before storage, same as passwords. A database breach reveals nothing usable. Codes are 8 hexadecimal bytes formatted as `XXXXXXXX-XXXXXXXX` (128 bits of entropy, sufficient against brute force even without rate limiting).

@@ -22,6 +22,7 @@ import {
   FormMessage,
 } from "shared/src/components/ui/form";
 import { Input } from "shared/src/components/ui/input";
+import { Checkbox } from "shared/src/components/ui/checkbox";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
 import * as z from "zod";
@@ -34,6 +35,10 @@ import WizardDialog from "shared/src/components/WizardDialog";
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),
   nick: z.string().min(1, "Name is required"),
+  tenant: z
+    .string()
+    .min(1, "Peer tenant is required")
+    .regex(/^[A-Za-z0-9_.-]+$/, "Letters, digits, '.', '_' and '-' only"),
   auto: z.boolean().default(true),
   actions: z.array(z.string()).min(1, "Select at least one action"),
 });
@@ -100,6 +105,7 @@ function NewSentConnection() {
     defaultValues: {
       url: search.url ?? "",
       nick: search.nick ?? "",
+      tenant: "",
       auto: true,
       actions: ["talk"],
     },
@@ -146,8 +152,10 @@ function NewSentConnection() {
 
     setIsSubmitting(true);
     try {
+      // The DID is shared by the peer's tenants, so its gate is completed with the tenant.
       const authService = discoveredInfo.services.find((s) => s.type === "AuthorizationServer");
-      const targetUrl = authService?.serviceEndpoint || values.url;
+      const gate = (authService?.serviceEndpoint || `${values.url}/api/v1/gate`).replace(/\/$/, "");
+      const targetUrl = `${gate}/${encodeURIComponent(values.tenant)}/access`;
 
       await customInstance(`/peer-connection/connect`, {
         method: "POST",
@@ -273,13 +281,13 @@ function NewSentConnection() {
                             Example: http://host.docker.internal:2000
                           </FormDescription>
                           {url && url.includes("host.docker.internal") && (
-                            <p className="text-[10px] text-muted-foreground mt-1 flex items-start gap-1">
+                            <p className="text-xs text-muted-foreground mt-1 flex items-start gap-1">
                               <Info className="h-3 w-3 mt-0.5 shrink-0" />
                               <span>
                                 Browser fetch will use{" "}
-                                <code className="font-mono text-[10px]">127.0.0.1</code> — the back
+                                <code className="font-mono text-xs">127.0.0.1</code> — the back
                                 receives{" "}
-                                <code className="font-mono text-[10px]">host.docker.internal</code>{" "}
+                                <code className="font-mono text-xs">host.docker.internal</code>{" "}
                                 unchanged.
                               </span>
                             </p>
@@ -304,15 +312,30 @@ function NewSentConnection() {
 
                     <FormField
                       control={form.control as any}
+                      name="tenant"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Peer Tenant</FormLabel>
+                          <FormControl>
+                            <Input placeholder="acme" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Tenant of the peer connector you are onboarding into.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control as any}
                       name="auto"
                       render={({ field }: { field: any }) => (
                         <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                           <FormControl>
-                            <input
-                              type="checkbox"
+                            <Checkbox
                               checked={field.value}
-                              onChange={field.onChange}
-                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                              onCheckedChange={field.onChange}
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
@@ -380,15 +403,15 @@ function NewSentConnection() {
                             className="p-2 border rounded bg-background-200/30 text-sm space-y-1"
                           >
                             <p className="font-medium text-brand-sky">{s.type}</p>
-                            <p className="break-all text-xs text-white/70">{s.serviceEndpoint}</p>
+                            <p className="break-all text-xs text-ink/70">{s.serviceEndpoint}</p>
                           </div>
                         ))}
                         {discoveredInfo.services.length === 0 && (
-                          <p className="text-[10px] italic opacity-50">No services found</p>
+                          <p className="text-xs italic opacity-50">No services found</p>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-success-400 font-medium pt-2">
+                    <div className="flex items-center gap-2 text-sm text-success-700 dark:text-success-400 font-medium pt-2">
                       <CheckCircle2 className="h-4 w-4" />
                       Provider verified
                     </div>

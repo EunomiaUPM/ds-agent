@@ -36,6 +36,8 @@ import type {
 import type {
   Catalog,
   CatalogDto,
+  CreateDatasetOfferingRequest,
+  DatasetOfferingResultDto,
   ErrorInfo,
   GetCatalogsParams,
   NewCatalogDto
@@ -50,6 +52,111 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 /**
+ * Creates the dataset (in the main catalog unless catalogId is given), its distribution (served by the main data service unless accessServiceId is given) and an ODRL offer. A failure after the dataset removes it again.
+ * @summary Publish a dataset with its distribution and, optionally, its policy
+ */
+export type createDatasetOfferingResponse201 = {
+  data: DatasetOfferingResultDto
+  status: 201
+}
+
+export type createDatasetOfferingResponse400 = {
+  data: ErrorInfo
+  status: 400
+}
+
+export type createDatasetOfferingResponse401 = {
+  data: ErrorInfo
+  status: 401
+}
+
+export type createDatasetOfferingResponse500 = {
+  data: ErrorInfo
+  status: 500
+}
+
+export type createDatasetOfferingResponse502 = {
+  data: ErrorInfo
+  status: 502
+}
+    
+export type createDatasetOfferingResponseSuccess = (createDatasetOfferingResponse201) & {
+  headers: Headers;
+};
+export type createDatasetOfferingResponseError = (createDatasetOfferingResponse400 | createDatasetOfferingResponse401 | createDatasetOfferingResponse500 | createDatasetOfferingResponse502) & {
+  headers: Headers;
+};
+
+export type createDatasetOfferingResponse = (createDatasetOfferingResponseSuccess | createDatasetOfferingResponseError)
+
+export const getCreateDatasetOfferingUrl = () => {
+
+
+  
+
+  return `/dataset-offerings`
+}
+
+export const createDatasetOffering = async (createDatasetOfferingRequest: CreateDatasetOfferingRequest, options?: RequestInit): Promise<createDatasetOfferingResponse> => {
+  
+  return customInstance<createDatasetOfferingResponse>(getCreateDatasetOfferingUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createDatasetOfferingRequest,)
+  }
+);}
+
+
+
+
+export const getCreateDatasetOfferingMutationOptions = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDatasetOffering>>, TError,{data: BodyType<CreateDatasetOfferingRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof createDatasetOffering>>, TError,{data: BodyType<CreateDatasetOfferingRequest>}, TContext> => {
+
+const mutationKey = ['createDatasetOffering'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDatasetOffering>>, {data: BodyType<CreateDatasetOfferingRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createDatasetOffering(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateDatasetOfferingMutationResult = NonNullable<Awaited<ReturnType<typeof createDatasetOffering>>>
+    export type CreateDatasetOfferingMutationBody = BodyType<CreateDatasetOfferingRequest>
+    export type CreateDatasetOfferingMutationError = ErrorType<ErrorInfo>
+
+    /**
+ * @summary Publish a dataset with its distribution and, optionally, its policy
+ */
+export const useCreateDatasetOffering = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDatasetOffering>>, TError,{data: BodyType<CreateDatasetOfferingRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createDatasetOffering>>,
+        TError,
+        {data: BodyType<CreateDatasetOfferingRequest>},
+        TContext
+      > => {
+      return useMutation(getCreateDatasetOfferingMutationOptions(options), queryClient);
+    }
+    /**
  * @summary List catalogs
  */
 export type getCatalogsResponse200 = {

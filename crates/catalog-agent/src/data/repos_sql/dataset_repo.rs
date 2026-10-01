@@ -21,12 +21,46 @@ use crate::data::repo_traits::catalog_db_errors::{
     CatalogAgentRepoErrors, CatalogRepoErrors, DatasetRepoErrors, DistributionRepoErrors,
 };
 use crate::data::repo_traits::dataset_repo::DatasetRepositoryTrait;
+use crate::entities::filters::DatasetFilter;
+use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use common::query::FilterApplier;
+use sea_orm::QueryTrait;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    QuerySelect,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
+    QueryFilter, QueryOrder, QuerySelect,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+
+impl FilterApplier<sea_orm::Select<dataset::Entity>> for DatasetFilter {
+    fn apply_to(
+        &self,
+        mut q: sea_orm::Select<dataset::Entity>,
+    ) -> sea_orm::Select<dataset::Entity> {
+        if let Some(tenant_id) = &self.tenant_id {
+            q = q.filter(dataset::Column::TenantId.eq(tenant_id));
+        }
+        if let Some(catalog_id) = &self.catalog_id {
+            q = q.filter(dataset::Column::CatalogId.eq(catalog_id));
+        }
+        if let Some(title) = &self.title {
+            q = q.filter(dataset::Column::DctTitle.contains(title));
+        }
+        if let Some(creator) = &self.creator {
+            q = q.filter(dataset::Column::DctCreator.eq(creator));
+        }
+        if let Some(conforms_to) = &self.conforms_to {
+            q = q.filter(dataset::Column::DctConformsTo.eq(conforms_to));
+        }
+        if let Some(after) = self.created_after {
+            q = q.filter(dataset::Column::DctIssued.gt(after));
+        }
+        if let Some(before) = self.created_before {
+            q = q.filter(dataset::Column::DctIssued.lt(before));
+        }
+        q
+    }
+}
 
 pub struct DatasetRepositoryForSql {
     db_connection: DatabaseConnection,
@@ -40,31 +74,49 @@ impl DatasetRepositoryForSql {
 
 #[async_trait::async_trait]
 impl DatasetRepositoryTrait for DatasetRepositoryForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_datasets(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<dataset::Model>> {
-        let page_limit = limit.unwrap_or(25);
-        let page_number = page.unwrap_or(1);
-        let calculated_offset = (page_number.max(1) - 1) * page_limit;
-        let datasets = dataset::Entity::find()
-            .limit(page_limit)
-            .offset(calculated_offset)
-            .all(&self.db_connection)
-            .await;
-        match datasets {
-            Ok(datasets) => Ok(datasets),
-            Err(err) => Err(CatalogAgentRepoErrors::DatasetRepoErrors(
-                DatasetRepoErrors::ErrorFetchingDataset(err.into()),
+        filters: &DatasetFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<dataset::Model>, Option<u64>)> {
+        let mut q = filters.apply_to(dataset::Entity::find());
+        let total = q.clone().count(&self.db_connection).await.map_err(|err| {
+            CatalogAgentRepoErrors::DatasetRepoErrors(DatasetRepoErrors::ErrorFetchingDataset(
+                err.into(),
+            ))
+            .into_errors()
+        })?;
+
+        let datasets = q
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                dataset::Column::DctIssued,
+                dataset::Column::Id,
             )
-            .into_errors()),
-        }
+            .all(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::DatasetRepoErrors(DatasetRepoErrors::ErrorFetchingDataset(
+                    err.into(),
+                ))
+                .into_errors()
+            })?;
+
+        Ok((datasets, Some(total)))
     }
 
-    async fn get_batch_datasets(&self, ids: &Vec<Urn>) -> Outcome<Vec<dataset::Model>> {
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn get_batch_datasets(
+        &self,
+        tenant_id: Option<String>,
+        ids: &[Urn],
+    ) -> Outcome<Vec<dataset::Model>> {
         let dataset_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let dataset_process = dataset::Entity::find()
+            .apply_if(tenant_id, |q, t| q.filter(dataset::Column::TenantId.eq(t)))
             .filter(dataset::Column::Id.is_in(dataset_ids))
             .all(&self.db_connection)
             .await;
@@ -77,26 +129,15 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         }
     }
 
-    async fn get_datasets_by_catalog_id(&self, catalog_id: &Urn) -> Outcome<Vec<dataset::Model>> {
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn get_datasets_by_catalog_id(
+        &self,
+        tenant_id: Option<String>,
+        catalog_id: &Urn,
+    ) -> Outcome<Vec<dataset::Model>> {
         let catalog_id = catalog_id.to_string();
-
-        let catalog = catalog::Entity::find_by_id(catalog_id.clone())
-            .one(&self.db_connection)
-            .await
-            .map_err(|err| {
-                CatalogAgentRepoErrors::DatasetRepoErrors(DatasetRepoErrors::ErrorFetchingDataset(
-                    err.into(),
-                ))
-                .into_errors()
-            })?;
-        if catalog.is_none() {
-            return Err(CatalogAgentRepoErrors::CatalogRepoErrors(
-                CatalogRepoErrors::CatalogNotFound,
-            )
-            .into_errors());
-        }
-
         let datasets = dataset::Entity::find()
+            .apply_if(tenant_id, |q, t| q.filter(dataset::Column::TenantId.eq(t)))
             .filter(dataset::Column::CatalogId.eq(catalog_id))
             .all(&self.db_connection)
             .await;
@@ -109,9 +150,15 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         }
     }
 
-    async fn get_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<Option<dataset::Model>> {
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn get_dataset_by_id(
+        &self,
+        tenant_id: Option<String>,
+        dataset_id: &Urn,
+    ) -> Outcome<Option<dataset::Model>> {
         let dataset_id = dataset_id.to_string();
         let dataset = dataset::Entity::find_by_id(dataset_id)
+            .apply_if(tenant_id, |q, t| q.filter(dataset::Column::TenantId.eq(t)))
             .one(&self.db_connection)
             .await;
         match dataset {
@@ -123,14 +170,17 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_dataset_by_id(
         &self,
+        tenant_id: Option<String>,
         dataset_id: &Urn,
         edit_dataset_model: &EditDatasetModel,
     ) -> Outcome<dataset::Model> {
         let dataset_id = dataset_id.to_string();
 
         let old_model = dataset::Entity::find_by_id(dataset_id)
+            .apply_if(tenant_id, |q, t| q.filter(dataset::Column::TenantId.eq(t)))
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -176,14 +226,16 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_dataset(&self, new_dataset_model: &NewDatasetModel) -> Outcome<dataset::Model> {
         let catalog = catalog::Entity::find_by_id(new_dataset_model.catalog_id.clone().to_string())
+            .filter(catalog::Column::TenantId.eq(&new_dataset_model.tenant_id))
             .one(&self.db_connection)
             .await
             .map_err(|err| {
-                CatalogAgentRepoErrors::DistributionRepoErrors(
-                    DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-                )
+                CatalogAgentRepoErrors::DatasetRepoErrors(DatasetRepoErrors::ErrorFetchingDataset(
+                    err.into(),
+                ))
                 .into_errors()
             })?;
         if catalog.is_none() {
@@ -206,23 +258,27 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         }
     }
 
-    async fn delete_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<()> {
-        let dataset_id = dataset_id.to_string();
-        let dataset = dataset::Entity::delete_by_id(dataset_id)
-            .exec(&self.db_connection)
-            .await;
-        match dataset {
-            Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(CatalogAgentRepoErrors::DatasetRepoErrors(
-                    DatasetRepoErrors::DatasetNotFound,
-                )
-                .into_errors()),
-                _ => Ok(()),
-            },
-            Err(err) => Err(CatalogAgentRepoErrors::DatasetRepoErrors(
-                DatasetRepoErrors::ErrorDeletingDataset(err.into()),
-            )
-            .into_errors()),
-        }
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn delete_dataset_by_id(
+        &self,
+        tenant_id: Option<String>,
+        dataset_id: &Urn,
+    ) -> Outcome<dataset::Model> {
+        // Single round-trip: DELETE ... RETURNING, tenant-scoped; empty result means not found.
+        let deleted = dataset::Entity::delete_many()
+            .filter(dataset::Column::Id.eq(dataset_id.to_string()))
+            .apply_if(tenant_id, |q, t| q.filter(dataset::Column::TenantId.eq(t)))
+            .exec_with_returning(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::DatasetRepoErrors(DatasetRepoErrors::ErrorDeletingDataset(
+                    err.into(),
+                ))
+                .into_errors()
+            })?;
+        deleted.into_iter().next().ok_or_else(|| {
+            CatalogAgentRepoErrors::DatasetRepoErrors(DatasetRepoErrors::DatasetNotFound)
+                .into_errors()
+        })
     }
 }

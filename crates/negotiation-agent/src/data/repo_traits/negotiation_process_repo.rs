@@ -1,53 +1,59 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- * * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- * *
- * * This program is free software: you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License as published by
- * * the Free Software Foundation, either version 3 of the License, or
- * * (at your option) any later version.
- * *
- * * This program is distributed in the hope that it will be useful,
- * * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * * GNU General Public License for more details.
- * *
- * * You should have received a copy of the GNU General Public License
- * * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use crate::data::entities::negotiation_process;
 use crate::data::entities::negotiation_process::{
     EditNegotiationProcessModel, NewNegotiationProcessModel,
 };
+use crate::entities::filters::NegotiationProcessFilter;
+use common::paginated_spec::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait NegotiationProcessRepoTrait: Send + Sync {
     async fn get_all_negotiation_processes(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<negotiation_process::Model>>;
+        filters: &NegotiationProcessFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<negotiation_process::Model>, Option<u64>)>;
     async fn get_batch_negotiation_processes(
         &self,
-        ids: &Vec<Urn>,
+        tenant_id: Option<String>,
+        ids: &[Urn],
     ) -> Outcome<Vec<negotiation_process::Model>>;
     async fn get_negotiation_process_by_id(
         &self,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<negotiation_process::Model>>;
     async fn get_negotiation_process_by_key_id(
         &self,
+        tenant_id: Option<String>,
         key_id: &str,
         id: &Urn,
     ) -> Outcome<Option<negotiation_process::Model>>;
     async fn get_negotiation_process_by_key_value(
         &self,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<negotiation_process::Model>>;
     async fn create_negotiation_process(
@@ -56,10 +62,16 @@ pub trait NegotiationProcessRepoTrait: Send + Sync {
     ) -> Outcome<negotiation_process::Model>;
     async fn put_negotiation_process(
         &self,
+        tenant_id: Option<String>,
         id: &Urn,
         edit_model: &EditNegotiationProcessModel,
     ) -> Outcome<negotiation_process::Model>;
-    async fn delete_negotiation_process(&self, id: &Urn) -> Outcome<()>;
+    /// Returns the tenant of the removed record.
+    async fn delete_negotiation_process(
+        &self,
+        tenant_id: Option<String>,
+        id: &Urn,
+    ) -> Outcome<String>;
 }
 
 #[derive(Debug, Error)]

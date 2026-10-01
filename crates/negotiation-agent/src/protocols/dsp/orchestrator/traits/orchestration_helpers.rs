@@ -15,12 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::rpc::types::RpcNegotiationProcessMessageTrait;
 use crate::protocols::dsp::protocol_types::{
     NegotiationEventType, NegotiationProcessMessageTrait, NegotiationProcessMessageType,
-    NegotiationProcessMessageWrapper, NegotiationProcessState,
+    NegotiationProcessState,
 };
+use crate::services::negotiation_process::views::NegotiationProcessView;
 use common::config::types::roles::RoleConfig;
 use common::dsp_common::odrl::{ContractRequestMessageOfferTypes, OdrlAgreement};
 use common::errors::{CommonErrors, ErrorLog};
@@ -67,7 +67,7 @@ pub trait OrchestrationHelpers: Send + Sync + 'static {
             }
         }
     }
-    fn get_pid_by_role(&self, dto: &NegotiationProcessDto, role: RoleConfig) -> Outcome<Urn> {
+    fn get_pid_by_role(&self, dto: &NegotiationProcessView, role: RoleConfig) -> Outcome<Urn> {
         let role_as_identifier = self.parse_role_into_identifier(&role)?;
         let pid = dto.identifiers.get(role_as_identifier).ok_or_else(|| {
             let err = CommonErrors::parse_new("There is no such a identifier, role is mandatory.");

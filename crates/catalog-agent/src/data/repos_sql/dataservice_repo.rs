@@ -21,12 +21,46 @@ use crate::data::repo_traits::catalog_db_errors::{
     CatalogAgentRepoErrors, CatalogRepoErrors, DataServiceRepoErrors, DistributionRepoErrors,
 };
 use crate::data::repo_traits::dataservice_repo::DataServiceRepositoryTrait;
+use crate::entities::filters::DataServiceFilter;
+use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use common::query::FilterApplier;
+use sea_orm::QueryTrait;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    QuerySelect,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
+    QueryFilter, QueryOrder, QuerySelect, Select,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+
+impl FilterApplier<Select<dataservice::Entity>> for DataServiceFilter {
+    fn apply_to(&self, mut q: Select<dataservice::Entity>) -> Select<dataservice::Entity> {
+        if let Some(ref tenant_id) = self.tenant_id {
+            q = q.filter(dataservice::Column::TenantId.eq(tenant_id));
+        }
+        if let Some(ref catalog_id) = self.catalog_id {
+            q = q.filter(dataservice::Column::CatalogId.eq(catalog_id));
+        }
+        if let Some(ref endpoint_url) = self.endpoint_url {
+            q = q.filter(dataservice::Column::DcatEndpointUrl.contains(endpoint_url));
+        }
+        if let Some(ref title) = self.title {
+            q = q.filter(dataservice::Column::DctTitle.contains(title));
+        }
+        if let Some(ref creator) = self.creator {
+            q = q.filter(dataservice::Column::DctCreator.eq(creator));
+        }
+        if let Some(main) = self.main_data_service {
+            q = q.filter(dataservice::Column::DspaceMainDataService.eq(main));
+        }
+        if let Some(after) = self.created_after {
+            q = q.filter(dataservice::Column::DctIssued.gte(after));
+        }
+        if let Some(before) = self.created_before {
+            q = q.filter(dataservice::Column::DctIssued.lte(before));
+        }
+        q
+    }
+}
 
 pub struct DataServiceRepositoryForSql {
     db_connection: DatabaseConnection,
@@ -40,31 +74,53 @@ impl DataServiceRepositoryForSql {
 
 #[async_trait::async_trait]
 impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_data_services(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<dataservice::Model>> {
-        let page_limit = limit.unwrap_or(25);
-        let page_number = page.unwrap_or(1);
-        let calculated_offset = (page_number.max(1) - 1) * page_limit;
-        let data_services = dataservice::Entity::find()
-            .limit(page_limit)
-            .offset(calculated_offset)
-            .all(&self.db_connection)
-            .await;
-        match data_services {
-            Ok(data_services) => Ok(data_services),
-            Err(err) => Err(CatalogAgentRepoErrors::DataServiceRepoErrors(
+        filters: &DataServiceFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<dataservice::Model>, Option<u64>)> {
+        let mut q = dataservice::Entity::find();
+        q = filters.apply_to(q);
+
+        let total = q.clone().count(&self.db_connection).await.map_err(|err| {
+            CatalogAgentRepoErrors::DataServiceRepoErrors(
                 DataServiceRepoErrors::ErrorFetchingDataService(err.into()),
             )
-            .into_errors()),
-        }
+            .into_errors()
+        })?;
+
+        let items = q
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                dataservice::Column::DctIssued,
+                dataservice::Column::Id,
+            )
+            .all(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::DataServiceRepoErrors(
+                    DataServiceRepoErrors::ErrorFetchingDataService(err.into()),
+                )
+                .into_errors()
+            })?;
+
+        Ok((items, Some(total)))
     }
 
-    async fn get_batch_data_services(&self, ids: &Vec<Urn>) -> Outcome<Vec<dataservice::Model>> {
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn get_batch_data_services(
+        &self,
+        tenant_id: Option<String>,
+        ids: &[Urn],
+    ) -> Outcome<Vec<dataservice::Model>> {
         let dataset_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let dataset_process = dataservice::Entity::find()
+            .apply_if(tenant_id, |q, t| {
+                q.filter(dataservice::Column::TenantId.eq(t))
+            })
             .filter(dataservice::Column::Id.is_in(dataset_ids))
             .all(&self.db_connection)
             .await;
@@ -77,29 +133,17 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_data_services_by_catalog_id(
         &self,
+        tenant_id: Option<String>,
         catalog_id: &Urn,
     ) -> Outcome<Vec<dataservice::Model>> {
         let catalog_id = catalog_id.to_string();
-
-        let catalog = catalog::Entity::find_by_id(catalog_id.clone())
-            .one(&self.db_connection)
-            .await
-            .map_err(|err| {
-                CatalogAgentRepoErrors::DataServiceRepoErrors(
-                    DataServiceRepoErrors::ErrorFetchingDataService(err.into()),
-                )
-                .into_errors()
-            })?;
-        if catalog.is_none() {
-            return Err(CatalogAgentRepoErrors::CatalogRepoErrors(
-                CatalogRepoErrors::CatalogNotFound,
-            )
-            .into_errors());
-        }
-
         let data_services = dataservice::Entity::find()
+            .apply_if(tenant_id, |q, t| {
+                q.filter(dataservice::Column::TenantId.eq(t))
+            })
             .filter(dataservice::Column::CatalogId.eq(catalog_id))
             .all(&self.db_connection)
             .await;
@@ -112,8 +156,10 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         }
     }
 
-    async fn get_main_data_service(&self) -> Outcome<Option<dataservice::Model>> {
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn get_main_data_service(&self, tenant_id: &str) -> Outcome<Option<dataservice::Model>> {
         let data_service = dataservice::Entity::find()
+            .filter(dataservice::Column::TenantId.eq(tenant_id))
             .filter(dataservice::Column::DspaceMainDataService.eq(true))
             .one(&self.db_connection)
             .await
@@ -126,12 +172,17 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         Ok(data_service)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_data_service_by_id(
         &self,
+        tenant_id: Option<String>,
         data_service_id: &Urn,
     ) -> Outcome<Option<dataservice::Model>> {
         let data_service_id = data_service_id.to_string();
         let data_service = dataservice::Entity::find_by_id(data_service_id)
+            .apply_if(tenant_id, |q, t| {
+                q.filter(dataservice::Column::TenantId.eq(t))
+            })
             .one(&self.db_connection)
             .await;
         match data_service {
@@ -143,13 +194,18 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_data_service_by_id(
         &self,
+        tenant_id: Option<String>,
         data_service_id: &Urn,
         edit_data_service_model: &EditDataServiceModel,
     ) -> Outcome<dataservice::Model> {
         let data_service_id = data_service_id.to_string();
         let old_model = dataservice::Entity::find_by_id(data_service_id)
+            .apply_if(tenant_id, |q, t| {
+                q.filter(dataservice::Column::TenantId.eq(t))
+            })
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -202,17 +258,19 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_data_service(
         &self,
         new_data_service_model: &NewDataServiceModel,
     ) -> Outcome<dataservice::Model> {
         let catalog =
             catalog::Entity::find_by_id(new_data_service_model.catalog_id.clone().to_string())
+                .filter(catalog::Column::TenantId.eq(&new_data_service_model.tenant_id))
                 .one(&self.db_connection)
                 .await
                 .map_err(|err| {
-                    CatalogAgentRepoErrors::DistributionRepoErrors(
-                        DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
+                    CatalogAgentRepoErrors::CatalogRepoErrors(
+                        CatalogRepoErrors::ErrorFetchingCatalog(err.into()),
                     )
                     .into_errors()
                 })?;
@@ -235,17 +293,19 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_main_data_service(
         &self,
         new_data_service_model: &NewDataServiceModel,
     ) -> Outcome<dataservice::Model> {
         let catalog =
             catalog::Entity::find_by_id(new_data_service_model.catalog_id.clone().to_string())
+                .filter(catalog::Column::TenantId.eq(&new_data_service_model.tenant_id))
                 .one(&self.db_connection)
                 .await
                 .map_err(|err| {
-                    CatalogAgentRepoErrors::DistributionRepoErrors(
-                        DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
+                    CatalogAgentRepoErrors::CatalogRepoErrors(
+                        CatalogRepoErrors::ErrorFetchingCatalog(err.into()),
                     )
                     .into_errors()
                 })?;
@@ -256,7 +316,9 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
             .into_errors());
         }
 
-        let main_dataservice = self.get_main_data_service().await?;
+        let main_dataservice = self
+            .get_main_data_service(&new_data_service_model.tenant_id)
+            .await?;
         if main_dataservice.is_some() {
             return Ok(main_dataservice.unwrap());
         }
@@ -275,23 +337,31 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         }
     }
 
-    async fn delete_data_service_by_id(&self, data_service_id: &Urn) -> Outcome<()> {
-        let data_service_id = data_service_id.to_string();
-        let data_service = dataservice::Entity::delete_by_id(data_service_id)
-            .exec(&self.db_connection)
-            .await;
-        match data_service {
-            Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(CatalogAgentRepoErrors::DataServiceRepoErrors(
-                    DataServiceRepoErrors::DataServiceNotFound,
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn delete_data_service_by_id(
+        &self,
+        tenant_id: Option<String>,
+        data_service_id: &Urn,
+    ) -> Outcome<dataservice::Model> {
+        // Single round-trip: DELETE ... RETURNING, tenant-scoped; empty result means not found.
+        let deleted = dataservice::Entity::delete_many()
+            .filter(dataservice::Column::Id.eq(data_service_id.to_string()))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(dataservice::Column::TenantId.eq(t))
+            })
+            .exec_with_returning(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::DataServiceRepoErrors(
+                    DataServiceRepoErrors::ErrorDeletingDataService(err.into()),
                 )
-                .into_errors()),
-                _ => Ok(()),
-            },
-            Err(err) => Err(CatalogAgentRepoErrors::DataServiceRepoErrors(
-                DataServiceRepoErrors::ErrorDeletingDataService(err.into()),
+                .into_errors()
+            })?;
+        deleted.into_iter().next().ok_or_else(|| {
+            CatalogAgentRepoErrors::DataServiceRepoErrors(
+                DataServiceRepoErrors::DataServiceNotFound,
             )
-            .into_errors()),
-        }
+            .into_errors()
+        })
     }
 }

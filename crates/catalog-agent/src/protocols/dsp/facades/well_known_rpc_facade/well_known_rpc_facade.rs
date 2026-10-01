@@ -16,38 +16,25 @@
  */
 
 use crate::protocols::dsp::facades::well_known_rpc_facade::WellKnownRPCFacadeTrait;
-use common::config::services::CatalogConfig;
-use common::config::types::traits::CommonConfigTrait;
-use common::dsp_common::well_known_types::{Version, VersionPath};
-use common::http_client::HttpClient;
-use common::well_known::rpc::WellKnownRPCRequest;
+use common::well_known::rpc::{WellKnownRPCRequest, WellKnownRPCTrait};
 use std::sync::Arc;
-use ymir::config::traits::HostsConfigTrait;
-use ymir::config::types::HostType;
 use ymir::errors::Outcome;
 
-const RPC_WELL_KNOWN_PATH: &str = "/rpc/.well-known/dspace-version/path";
-
+/// Resolves a peer's DSP path with the well-known RPC service in-process, never via our own host.
 pub struct WellKnownRPCFacadeForDSProtocol {
-    config: Arc<CatalogConfig>,
-    client: Arc<HttpClient>,
+    rpc: Arc<dyn WellKnownRPCTrait>,
 }
 
 impl WellKnownRPCFacadeForDSProtocol {
-    pub fn new(config: Arc<CatalogConfig>, client: Arc<HttpClient>) -> Self {
-        Self { config, client }
+    pub fn new(rpc: Arc<dyn WellKnownRPCTrait>) -> Self {
+        Self { rpc }
     }
 }
 
 #[async_trait::async_trait]
 impl WellKnownRPCFacadeTrait for WellKnownRPCFacadeForDSProtocol {
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn resolve_dataspace_current_path(&self, input: &WellKnownRPCRequest) -> Outcome<String> {
-        let host = self.config.common().get_host(HostType::Http);
-        let url = format!("{}{}", host, RPC_WELL_KNOWN_PATH);
-        let provider_address = self
-            .client
-            .post_json::<WellKnownRPCRequest, VersionPath>(&url, input)
-            .await?;
-        Ok(provider_address.path)
+        Ok(self.rpc.fetch_dataspace_current_path(input).await?.path)
     }
 }

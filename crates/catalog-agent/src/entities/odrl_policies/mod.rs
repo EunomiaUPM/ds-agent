@@ -15,16 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod odrl_policies;
-
 use crate::data::entities::odrl_offer;
 use crate::data::entities::odrl_offer::NewOdrlOfferModel;
-use crate::entities::policy_templates::types::ParameterDefinition;
 use common::dsp_common::odrl::OdrlPolicyInfo;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use urn::Urn;
-use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -33,7 +29,7 @@ pub struct OdrlPolicyDto {
     pub inner: odrl_offer::Model,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum CatalogEntityTypes {
     Distribution,
     DataService,
@@ -46,6 +42,8 @@ pub enum CatalogEntityTypes {
 #[serde(deny_unknown_fields)]
 pub struct NewOdrlPolicyDto {
     pub id: Option<Urn>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tenant_id: Option<String>,
     pub odrl_offer: OdrlPolicyInfo,
     pub entity_id: Urn,
     pub entity_type: CatalogEntityTypes,
@@ -59,6 +57,20 @@ pub struct NewOdrlPolicyDto {
     pub description: Option<String>,
 }
 
+impl std::str::FromStr for CatalogEntityTypes {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Distribution" => Ok(CatalogEntityTypes::Distribution),
+            "DataService" => Ok(CatalogEntityTypes::DataService),
+            "Catalog" => Ok(CatalogEntityTypes::Catalog),
+            "Dataset" => Ok(CatalogEntityTypes::Dataset),
+            other => Err(format!("unknown entity type: {other}")),
+        }
+    }
+}
+
 impl Display for CatalogEntityTypes {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
@@ -68,21 +80,22 @@ impl Display for CatalogEntityTypes {
             CatalogEntityTypes::Dataset => "Dataset",
         }
         .to_string();
-        write!(f, "{}", str)
+        write!(f, "{str}")
     }
 }
 
-impl From<NewOdrlPolicyDto> for NewOdrlOfferModel {
-    fn from(dto: NewOdrlPolicyDto) -> Self {
-        Self {
-            id: dto.id,
-            odrl_offer: dto.odrl_offer,
-            entity_id: dto.entity_id,
-            entity_type: dto.entity_type,
-            source_template_id: dto.source_template_id,
-            source_template_version: dto.source_template_version,
-            instantiation_parameters: dto.instantiation_parameters,
-            description: dto.description,
+impl NewOdrlPolicyDto {
+    pub fn into_model(self, tenant_id: String) -> NewOdrlOfferModel {
+        NewOdrlOfferModel {
+            id: self.id,
+            tenant_id,
+            odrl_offer: self.odrl_offer,
+            entity_id: self.entity_id,
+            entity_type: self.entity_type,
+            source_template_id: self.source_template_id,
+            source_template_version: self.source_template_version,
+            instantiation_parameters: self.instantiation_parameters,
+            description: self.description,
         }
     }
 }
@@ -91,23 +104,4 @@ impl From<odrl_offer::Model> for OdrlPolicyDto {
     fn from(value: odrl_offer::Model) -> Self {
         Self { inner: value }
     }
-}
-
-#[mockall::automock]
-#[async_trait::async_trait]
-pub trait OdrlPolicyEntityTrait: Sync + Send {
-    async fn get_all_odrl_offers(
-        &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<OdrlPolicyDto>>;
-    async fn get_batch_odrl_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<OdrlPolicyDto>>;
-    async fn get_all_odrl_offers_by_entity(&self, entity: &Urn) -> Outcome<Vec<OdrlPolicyDto>>;
-    async fn get_odrl_offer_by_id(&self, odrl_offer_id: &Urn) -> Outcome<Option<OdrlPolicyDto>>;
-    async fn create_odrl_offer(
-        &self,
-        new_odrl_offer_model: &NewOdrlPolicyDto,
-    ) -> Outcome<OdrlPolicyDto>;
-    async fn delete_odrl_offer_by_id(&self, odrl_offer_id: &Urn) -> Outcome<()>;
-    async fn delete_odrl_offers_by_entity(&self, entity_id: &Urn) -> Outcome<()>;
 }

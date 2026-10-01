@@ -1,20 +1,18 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use crate::protocols::dsp::facades::FacadeTrait;
@@ -37,10 +35,10 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use common::config::services::ContractsConfig;
-use ymir::data::entities::shared::participant::Model as Mates;
 use std::sync::Arc;
+use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
-// ─── Service ──────────────────────────────────────────────────────────────────
+// Service ──────────────────────────────────────────────────────────────────
 
 /// DSP protocol orchestrator for inbound negotiation operations.
 ///
@@ -77,19 +75,25 @@ impl ProtocolOrchestratorService {
     }
 }
 
-// ─── Trait implementation ──────────────────────────────────────────────────────
+// Trait implementation ──────────────────────────────────────────────────────
 
 #[async_trait::async_trait]
 impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_get_negotiation(
         &self,
         id: &String,
+        mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
-        let process = self.persistence_service.fetch_process(id.as_str()).await?;
+        let process = self
+            .persistence_service
+            .fetch_process(id.as_str(), mate)
+            .await?;
         let negotiation_process_dto = NegotiationProcessMessageWrapper::try_from(process)?;
         Ok(negotiation_process_dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_initial_contract_request(
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>,
@@ -102,6 +106,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_consumer_request(
         &self,
         id: &String,
@@ -114,6 +119,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         Ok(ack)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_agreement_verification(
         &self,
         id: &String,
@@ -126,6 +132,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         Ok(ack)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_initial_provider_offer(
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto>,
@@ -138,6 +145,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_provider_offer(
         &self,
         id: &String,
@@ -150,6 +158,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         Ok(ack)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_agreement_reception(
         &self,
         id: &String,
@@ -162,6 +171,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         Ok(ack)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_negotiation_event(
         &self,
         id: &String,
@@ -174,6 +184,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         Ok(ack)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_negotiation_termination(
         &self,
         id: &String,
@@ -187,7 +198,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
     }
 }
 
-// ─── Template engine ───────────────────────────────────────────────────────────
+// Template engine ───────────────────────────────────────────────────────────
 
 impl ProtocolOrchestratorService {
     /// Execute any inbound DSP negotiation lifecycle step using the

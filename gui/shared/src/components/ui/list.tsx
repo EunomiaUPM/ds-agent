@@ -16,7 +16,7 @@ const List = ({
   return (
     <ul
       className={cn(
-        "mt-0 px-2 min-w-fit w-full text-sm flex flex-col justify-center relative bg-brand-sky/5 overflow-auto border border-white/10 rounded-md",
+        "mt-0 px-2 min-w-fit w-full text-sm flex flex-col justify-center relative bg-brand-sky/5 overflow-auto border border-ink/10 rounded-md",
         className,
       )}
       {...props}
@@ -38,7 +38,7 @@ const ListItem = ({
   return (
     <li
       className={cn(
-        "h-fit min-h-9 w-full py-1.5 flex flex-row tracking-wide flex-wrap justify-start items-center gap-2 border-b border-white/20 last:border-0",
+        "h-fit min-h-9 w-full py-1.5 flex flex-row tracking-wide flex-wrap justify-start items-center gap-2 border-b border-ink/20 last:border-0",
         className,
       )}
       {...props}

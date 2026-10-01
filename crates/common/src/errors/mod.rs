@@ -42,7 +42,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 pub use error_log_trait::ErrorLog;
-use helpers::{BadFormat, MissingAction};
+pub use helpers::{BadFormat, MissingAction, NotFoundExt, ResourceError};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 

@@ -1,26 +1,25 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use crate::protocols::dsp::orchestrator::OrchestratorTrait;
 use crate::protocols::dsp::protocol_types::{
     CatalogMessageType, CatalogMessageWrapper, CatalogRequestMessageDto, DatasetRequestMessage,
 };
+use axum::http::StatusCode;
 use axum::{
     extract::{rejection::JsonRejection, FromRef, Path, Request, State},
     middleware::{self, Next},
@@ -29,11 +28,12 @@ use axum::{
     routing::post,
     Extension, Json, Router,
 };
+use common::auth::claims::RbacRole;
+use common::auth::AccessScope;
 use common::config::services::CatalogConfig;
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::normalizer::dsp_namespace_normalizer;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
-use reqwest::StatusCode;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
@@ -63,6 +63,11 @@ impl DspRouter {
             config,
             ssi_auth,
         }
+    }
+
+    /// Read-only scope bound to the tenant the authenticated peer is associated with.
+    fn peer_scope(mate: &Mates) -> AccessScope {
+        AccessScope::from_role(RbacRole::Reader, &mate.tenant_id)
     }
 
     async fn auth_middleware(
@@ -100,17 +105,18 @@ impl DspRouter {
 
     async fn handle_catalog_request(
         State(state): State<DspRouter>,
-        Extension(_mate): Extension<Mates>,
+        Extension(mate): Extension<Mates>,
         input: Result<Json<CatalogMessageWrapper<CatalogRequestMessageDto>>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match input {
             Ok(input) => input.0,
             Err(e) => return (StatusCode::BAD_REQUEST, e.body_text()).into_response(),
         };
+        let scope = Self::peer_scope(&mate);
         match state
             .orchestrator
             .get_protocol_service()
-            .on_catalog_request(&input)
+            .on_catalog_request(&scope, &input)
             .await
         {
             Ok(catalog) => (StatusCode::OK, Json(catalog)).into_response(),
@@ -121,8 +127,9 @@ impl DspRouter {
     async fn handle_dataset_request(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(_mate): Extension<Mates>,
+        Extension(mate): Extension<Mates>,
     ) -> impl IntoResponse {
+        let scope = Self::peer_scope(&mate);
         let dataset_id = match Urn::from_str(&id) {
             Ok(urn) => urn,
             Err(_) => {
@@ -143,7 +150,7 @@ impl DspRouter {
         match state
             .orchestrator
             .get_protocol_service()
-            .on_dataset_request(&request_msg)
+            .on_dataset_request(&scope, &request_msg)
             .await
         {
             Ok(dataset) => (StatusCode::OK, Json(dataset)).into_response(),

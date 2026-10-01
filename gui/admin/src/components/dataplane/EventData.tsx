@@ -12,11 +12,11 @@ export function EventData({ data }: { data: Record<string, unknown> }) {
         const statusNum = isStatus ? Number(value) : 0;
         const statusColor =
           statusNum >= 500
-            ? "text-danger-300"
+            ? "text-danger-700 dark:text-danger-300"
             : statusNum >= 400
-              ? "text-warn-300"
+              ? "text-warn-700 dark:text-warn-300"
               : statusNum >= 200
-                ? "text-success-300"
+                ? "text-success-700 dark:text-success-300"
                 : "";
 
         const displayValue =
@@ -26,10 +26,10 @@ export function EventData({ data }: { data: Record<string, unknown> }) {
 
         return (
           <div key={key} className="flex items-baseline gap-1 min-w-0">
-            <span className="font-mono text-[10px] text-muted-foreground shrink-0">{key}</span>
+            <span className="font-mono text-xs text-muted-foreground shrink-0">{key}</span>
             <span
               title={displayValue}
-              className={`font-mono text-[10px] truncate ${isStatus ? statusColor : ""}`}
+              className={`font-mono text-xs truncate ${isStatus ? statusColor : ""}`}
             >
               {displayValue}
             </span>

@@ -22,7 +22,7 @@ export const MessageMeta = React.forwardRef<HTMLLIElement, MessageMetaProps>(
     <li
       ref={ref}
       className={cn(
-        "min-h-8 flex flex-row flex-wrap gap-1 mb-1 text-white/70 border-none p-0 m-0",
+        "min-h-8 flex flex-row flex-wrap gap-1 mb-1 text-ink/70 border-none p-0 m-0",
         className,
       )}
       {...props}

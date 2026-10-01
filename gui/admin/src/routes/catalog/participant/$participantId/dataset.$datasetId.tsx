@@ -34,7 +34,7 @@ function RouteComponent() {
   }, [data]);
 
   const otherParticipant = Array.isArray(participants?.data)
-    ? participants.data.find((p) => !p.is_me && p.participant_type === "Agent")
+    ? participants.data.find((p) => p.participant_type === "Agent")
     : undefined;
   const otherParticipantSlug =
     otherParticipant?.participant_nick?.toString() || "Unknown Participant";
@@ -104,7 +104,7 @@ function RouteComponent() {
                 value: {
                   type: "custom",
                   content: (
-                    <div className="bg-background-200/15  border rounded-md border-white/5 flex flex-col p-3 gap-1">
+                    <div className="bg-background-200/15  border rounded-md border-ink/5 flex flex-col p-3 gap-1">
                       <Link
                         to="/catalog/participant/$participantId"
                         params={{ participantId: participantId }}

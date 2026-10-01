@@ -8,11 +8,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use std::sync::Arc;
@@ -21,9 +21,9 @@ use super::super::PeerConnectorTrait;
 use crate::services::peer_connector::gnap::config::GnapPeerConnectorConfig;
 use crate::types::entities::ReachProvider;
 use crate::types::response::TokenWhatResponse;
-use crate::utils::parse_url;
 use async_trait::async_trait;
 use common::config::types::traits::EntityClientTrait;
+use common::utils::parse_url;
 use tracing::info;
 use ymir::capabilities::HttpSig;
 use ymir::config::traits::HostsConfigTrait;
@@ -63,9 +63,10 @@ impl GnapPeerConnectorService {
 
 #[async_trait]
 impl PeerConnectorTrait for GnapPeerConnectorService {
-    fn build_grant_plan(&self, payload: ReachProvider) -> grant::Plan {
+    fn build_grant_plan(&self, tenant_id: &str, payload: ReachProvider) -> grant::Plan {
         grant::Plan {
             id: uuid::Uuid::new_v4().to_string(),
+            tenant_id: tenant_id.to_string(),
             participant_id: payload.id,
             participant_nick: payload.nick,
             vc_type_config: None,
@@ -74,7 +75,7 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
             kind: GrantKind::AccessToken,
         }
     }
-    fn build_interaction_plan(&self, id: &str) -> interaction::Plan {
+    fn build_interaction_plan(&self, tenant_id: &str, id: &str) -> interaction::Plan {
         let callback_uri = format!(
             "{}{}/peer-connection/callback/{}",
             self.config.hosts().get_host(HostType::Http),
@@ -84,6 +85,7 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
 
         interaction::Plan {
             id: id.to_string(),
+            tenant_id: tenant_id.to_string(),
             start: vec![InteractStart::Oid4VP],
             method: FinishMethod::Push,
             callback_uri,
@@ -93,6 +95,7 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
     }
     fn build_resource_req_plan(
         &self,
+        tenant_id: &str,
         id: &str,
         actions: Vec<InteractAction>,
     ) -> resource_req::Model {
@@ -107,6 +110,7 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
 
         resource_req::Model {
             id: id.to_string(),
+            tenant_id: tenant_id.to_string(),
             r#type: AccessType::ApiAccess,
             actions,
             locations: None,
@@ -118,7 +122,12 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
         }
     }
 
-    fn build_verification_plan(&self, uri: &str, id: &str) -> Outcome<verification::Plan> {
+    fn build_verification_plan(
+        &self,
+        tenant_id: &str,
+        uri: &str,
+        id: &str,
+    ) -> Outcome<verification::Plan> {
         info!("Saving verification data");
 
         // url::Url doesn't accept custom schemes; rewrite to https just for parsing.
@@ -135,6 +144,7 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
 
         Ok(verification::Plan {
             id: id.to_string(),
+            tenant_id: tenant_id.to_string(),
             uri: uri.to_string(),
             scheme: "openid4vp".to_string(),
             response_type,
@@ -151,15 +161,16 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
         let base_url = trim_4_base(&grant.grant_endpoint);
         participant::Plan {
             participant_id: grant.participant_id.clone(),
+            tenant_id: grant.tenant_id.clone(),
             participant_nick: grant.participant_nick.clone(),
             participant_type: ParticipantType::Agent,
             base_url,
             token: grant.token.clone(),
             extra_fields: None,
-            is_me: false,
         }
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn send_grant_req(
         &self,
         grant: &grant::Model,

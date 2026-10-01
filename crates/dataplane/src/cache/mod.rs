@@ -16,4 +16,5 @@
  */
 
 pub mod cache_redis;
-pub mod cache_traits;
+
+pub use common::cache::{EntityCacheTrait, NoopCache};

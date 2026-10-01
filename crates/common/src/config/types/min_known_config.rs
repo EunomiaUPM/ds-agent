@@ -20,15 +20,18 @@ use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::{CommonHostsConfig, HostType};
 
 use crate::config::services::{
-    CatalogConfig, ContractsConfig, GatewayConfig, SsiAuthConfig, TransferConfig,
+    CatalogConfig, CommonConfig, ContractsConfig, GatewayConfig, SsiAuthConfig, TransferConfig,
 };
 use crate::config::types::traits::{CommonConfigTrait, MinKnownConfigTrait};
+use crate::config::types::ServiceClientConfig;
 use crate::config::ApplicationConfig;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MinKnownConfig {
     pub hosts: CommonHostsConfig,
     pub api_version: String,
+    #[serde(default)]
+    pub service_client: ServiceClientConfig,
 }
 
 impl MinKnownConfigTrait for MinKnownConfig {
@@ -40,11 +43,22 @@ impl MinKnownConfigTrait for MinKnownConfig {
     }
 }
 
+impl From<&CommonConfig> for MinKnownConfig {
+    fn from(value: &CommonConfig) -> Self {
+        Self {
+            hosts: value.hosts.clone(),
+            api_version: value.get_api_version(),
+            service_client: value.service_client.clone(),
+        }
+    }
+}
+
 impl From<SsiAuthConfig> for MinKnownConfig {
     fn from(value: SsiAuthConfig) -> Self {
         Self {
             hosts: value.common().hosts.clone(),
             api_version: value.common().get_api_version(),
+            service_client: value.common().service_client.clone(),
         }
     }
 }
@@ -54,6 +68,7 @@ impl From<CatalogConfig> for MinKnownConfig {
         Self {
             hosts: value.common().hosts.clone(),
             api_version: value.common().get_api_version(),
+            service_client: value.common().service_client.clone(),
         }
     }
 }
@@ -69,6 +84,7 @@ impl From<ContractsConfig> for MinKnownConfig {
         Self {
             hosts: value.common().hosts.clone(),
             api_version: value.common().get_api_version(),
+            service_client: value.common().service_client.clone(),
         }
     }
 }
@@ -84,6 +100,7 @@ impl From<TransferConfig> for MinKnownConfig {
         Self {
             hosts: value.common().hosts.clone(),
             api_version: value.common().get_api_version(),
+            service_client: value.common().service_client.clone(),
         }
     }
 }
@@ -99,6 +116,7 @@ impl From<GatewayConfig> for MinKnownConfig {
         Self {
             hosts: value.common().hosts.clone(),
             api_version: value.common().get_api_version(),
+            service_client: value.common().service_client.clone(),
         }
     }
 }
@@ -114,6 +132,7 @@ impl From<ApplicationConfig> for MinKnownConfig {
         Self {
             hosts: value.monolith().common().hosts.clone(),
             api_version: value.monolith().common().get_api_version(),
+            service_client: value.monolith().common().service_client.clone(),
         }
     }
 }

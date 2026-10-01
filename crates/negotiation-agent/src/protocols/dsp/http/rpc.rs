@@ -1,20 +1,18 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use crate::protocols::dsp::errors::extract_payload_error;
@@ -27,7 +25,7 @@ use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationTerminationMessageDto, RpcNegotiationVerificationMessageDto,
 };
 use crate::protocols::dsp::protocol_types::{
-    NegotiationErrorMessageDto, NegotiationProcessMessageType, NegotiationProcessMessageWrapper,
+    NegotiationErrorMessageDto, NegotiationProcessMessageWrapper,
 };
 use axum::{
     Json, Router,
@@ -36,9 +34,9 @@ use axum::{
     response::{IntoResponse, Response},
     routing::post,
 };
+use common::auth::AccessScope;
 use common::config::services::ContractsConfig;
 use common::config::services::traits::ContractsConfigTrait;
-use common::dsp_common::context_field::ContextField;
 use common::dsp_common::odrl::{
     ContractRequestMessageOfferOfferId, ContractRequestMessageOfferTypes,
 };
@@ -164,127 +162,137 @@ impl RpcRouter {
 
     async fn negotiation_request_init_rpc(
         State(state): State<RpcRouter>,
+        scope: AccessScope,
         input: Result<Json<RpcNegotiationRequestInitMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
             state
                 .orchestrator
                 .get_rpc_service()
-                .setup_negotiation_request_init_rpc(&data)
+                .setup_negotiation_request_init_rpc(&scope, &data)
                 .await
         })
         .await
     }
     async fn negotiation_request_rpc(
         State(state): State<RpcRouter>,
+        scope: AccessScope,
         input: Result<Json<RpcNegotiationRequestMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
             state
                 .orchestrator
                 .get_rpc_service()
-                .setup_negotiation_request_rpc(&data)
+                .setup_negotiation_request_rpc(&scope, &data)
                 .await
         })
         .await
     }
     async fn negotiation_offer_init_rpc(
         State(state): State<RpcRouter>,
+        scope: AccessScope,
         input: Result<Json<RpcNegotiationOfferInitMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
             state
                 .orchestrator
                 .get_rpc_service()
-                .setup_negotiation_offer_init_rpc(&data)
+                .setup_negotiation_offer_init_rpc(&scope, &data)
                 .await
         })
         .await
     }
     async fn negotiation_offer_rpc(
         State(state): State<RpcRouter>,
+        scope: AccessScope,
         input: Result<Json<RpcNegotiationOfferMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
             state
                 .orchestrator
                 .get_rpc_service()
-                .setup_negotiation_offer_rpc(&data)
+                .setup_negotiation_offer_rpc(&scope, &data)
                 .await
         })
         .await
     }
     async fn negotiation_event_accepted_rpc(
         State(state): State<RpcRouter>,
+        scope: AccessScope,
         input: Result<Json<RpcNegotiationEventAcceptedMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
             state
                 .orchestrator
                 .get_rpc_service()
-                .setup_negotiation_event_accepted_rpc(&data)
+                .setup_negotiation_event_accepted_rpc(&scope, &data)
                 .await
         })
         .await
     }
     async fn negotiation_agreement_rpc(
         State(state): State<RpcRouter>,
+        scope: AccessScope,
         input: Result<Json<RpcNegotiationAgreementMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
             state
                 .orchestrator
                 .get_rpc_service()
-                .setup_negotiation_agreement_rpc(&data)
+                .setup_negotiation_agreement_rpc(&scope, &data)
                 .await
         })
         .await
     }
     async fn negotiation_agreement_verification_rpc(
         State(state): State<RpcRouter>,
+        scope: AccessScope,
         input: Result<Json<RpcNegotiationVerificationMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
             state
                 .orchestrator
                 .get_rpc_service()
-                .setup_negotiation_agreement_verification_rpc(&data)
+                .setup_negotiation_agreement_verification_rpc(&scope, &data)
                 .await
         })
         .await
     }
     async fn negotiation_event_finalized_rpc(
         State(state): State<RpcRouter>,
+        scope: AccessScope,
         input: Result<Json<RpcNegotiationEventFinalizedMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
             state
                 .orchestrator
                 .get_rpc_service()
-                .setup_negotiation_event_finalized_rpc(&data)
+                .setup_negotiation_event_finalized_rpc(&scope, &data)
                 .await
         })
         .await
     }
     async fn negotiation_termination_rpc(
         State(state): State<RpcRouter>,
+        scope: AccessScope,
         input: Result<Json<RpcNegotiationTerminationMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
             state
                 .orchestrator
                 .get_rpc_service()
-                .setup_negotiation_termination_rpc(&data)
+                .setup_negotiation_termination_rpc(&scope, &data)
                 .await
         })
         .await
     }
 
-    // ── TCK bridge ────────────────────────────────────────────────────────────
+    // TCK bridge ────────────────────────────────────────────────────────────
     // Accepts the format the Eclipse DSP TCK POSTs to initiate a consumer-role
     // negotiation and translates it to the internal RPC call.
     async fn tck_initiate_negotiation(
         State(state): State<RpcRouter>,
+        scope: AccessScope,
         input: Result<Json<TckNegotiationInitiateRequest>, JsonRejection>,
     ) -> Response {
         let input = match extract_payload_error(input) {
@@ -315,7 +323,7 @@ impl RpcRouter {
             state
                 .orchestrator
                 .get_rpc_service()
-                .setup_negotiation_request_init_rpc(&data)
+                .setup_negotiation_request_init_rpc(&scope, &data)
                 .await
         })
         .await

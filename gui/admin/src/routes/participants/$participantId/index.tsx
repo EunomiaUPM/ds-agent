@@ -8,6 +8,8 @@ import { PageSection } from "shared/src/components/layout/PageSection";
 import Heading from "../../../../../shared/src/components/ui/heading.tsx";
 import { Badge, BadgeRole } from "shared/src/components/ui/badge.tsx";
 import { InfoList } from "shared/src/components/ui/info-list";
+import { DataTable } from "shared/src/components/DataTable";
+import { FormatDate } from "shared/src/components/ui/format-date";
 import { useGetParticipantById } from "shared/data/orval/participants/participants.ts";
 import { GeneralErrorComponent } from "@/components/GeneralErrorComponent.tsx";
 import { useGetAgreementsByParticipantId } from "shared/data/orval/negotiations/negotiations.ts";
@@ -83,7 +85,6 @@ function RouteComponent() {
             <Badge variant="role" dsrole={p.participant_type as BadgeRole}>
               {p.participant_type}
             </Badge>
-            {p.is_me && <Badge variant="info">Local Agent</Badge>}
           </div>
         }
       />
@@ -106,7 +107,7 @@ function RouteComponent() {
                     value: {
                       type: "custom" as const,
                       content: (
-                        <div className="font-mono text-xs break-all bg-background-200 p-2 rounded border border-white/10">
+                        <div className="font-mono text-xs break-all bg-background-200 p-2 rounded border border-ink/10">
                           {p.participant_id}
                         </div>
                       ),
@@ -120,13 +121,13 @@ function RouteComponent() {
                             type: "custom" as const,
                             content: (
                               <div className="flex flex-col gap-2">
-                                <div className="font-mono text-[10px] opacity-60 truncate max-w-[300px] bg-background-200 p-2 rounded border border-white/10">
+                                <div className="font-mono text-xs opacity-60 truncate max-w-[300px] bg-background-200 p-2 rounded border border-ink/10">
                                   {showSecrets ? p.token : "••••••••••••••••••••••••••••••••"}
                                 </div>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-7 px-2 text-[10px] w-fit"
+                                  className="h-7 px-2 text-xs w-fit"
                                   onClick={() => setShowSecrets(!showSecrets)}
                                 >
                                   {showSecrets ? (
@@ -175,35 +176,51 @@ function RouteComponent() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {Array.isArray(agreementList) && agreementList.length > 0 ? (
-                <div className="space-y-4">
-                  {agreementList.map((agreement: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className="p-3 border rounded-md bg-background-200/30 flex justify-between items-center"
-                    >
-                      <div className="flex gap-3 items-center">
-                        <div className="p-2 bg-brand-sky/20 rounded-full">
-                          <Shield className="h-4 w-4 text-brand-sky" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Agreement {agreement.id || idx}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Status: {agreement.status || "Active"}
-                          </p>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm">
-                        Details
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-10 opacity-50 border-2 border-dashed rounded-lg">
-                  <p className="text-sm italic">No active agreements with this participant</p>
-                </div>
-              )}
+              <DataTable
+                className="text-sm"
+                data={Array.isArray(agreementList) ? agreementList : []}
+                keyExtractor={(a) => a.id}
+                searchPlaceholder="Filter agreements by ID or state..."
+                emptyMessage="No active agreements with this participant"
+                defaultSortKey="createdAt"
+                defaultSortDirection="desc"
+                pageSize={5}
+                filters={[
+                  {
+                    id: "state",
+                    label: "Status",
+                    options: [
+                      { label: "All Statuses", value: "all" },
+                      { label: "Finalized", value: "FINALIZED" },
+                      { label: "Active", value: "ACTIVE" },
+                      { label: "Terminated", value: "TERMINATED" },
+                    ],
+                    filterFn: (a, val) => a.state?.toUpperCase().includes(val) ?? false,
+                  },
+                ]}
+                columns={[
+                  {
+                    header: "Agreement Id",
+                    accessorKey: "id",
+                    cell: (a) => <Badge variant="info">{formatUrn(a.id)}</Badge>,
+                  },
+                  {
+                    header: "Status",
+                    accessorKey: "state",
+                    cell: (a) => (
+                      <Badge variant="status" state={a.state}>
+                        {a.state}
+                      </Badge>
+                    ),
+                  },
+                  {
+                    header: "Created at",
+                    accessorKey: "createdAt",
+                    sortValue: (a) => new Date(a.createdAt).getTime(),
+                    cell: (a) => <FormatDate date={a.createdAt} />,
+                  },
+                ]}
+              />
             </CardContent>
           </Card>
         </div>
@@ -247,7 +264,7 @@ function RouteComponent() {
             </CardHeader>
             <CardContent>
               {p.extra_fields && Object.keys(p.extra_fields).length > 0 ? (
-                <pre className="text-[10px] bg-background-300 p-3 rounded-lg overflow-x-auto max-h-[300px]">
+                <pre className="text-xs bg-background-300 p-3 rounded-lg overflow-x-auto max-h-[300px]">
                   {JSON.stringify(p.extra_fields, null, 2)}
                 </pre>
               ) : (

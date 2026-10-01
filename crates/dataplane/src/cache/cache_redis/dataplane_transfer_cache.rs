@@ -15,9 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::cache::cache_traits::redis_cache_connector_trait::RedisCacheConnectorTrait;
-use crate::cache::cache_traits::utils_trait::UtilsCacheTrait;
 use crate::entities::dataplane_transfers::DataplaneTransferDto;
+use common::cache::{RedisCacheConnectorTrait, UtilsCacheTrait};
 
 pub struct DataplaneTransferCacheForRedis {
     pub redis_connection: redis::aio::MultiplexedConnection,
@@ -31,6 +30,10 @@ impl DataplaneTransferCacheForRedis {
 
 impl UtilsCacheTrait for DataplaneTransferCacheForRedis {
     type Dto = DataplaneTransferDto;
+
+    fn key_namespace(&self) -> &str {
+        "ds_agent_dataplane"
+    }
 }
 
 impl RedisCacheConnectorTrait for DataplaneTransferCacheForRedis {

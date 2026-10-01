@@ -24,7 +24,7 @@
   }
 
   #root {
-    @apply text-slate-300;
+    @apply text-foreground-300 dark:text-slate-300;
   }
 
   html,
@@ -56,57 +56,153 @@
   }
 
   p {
-    @apply text-gray-400;
+    @apply text-foreground-500 dark:text-gray-400;
   }
 }
 
 @layer base {
+  /* Light theme is the default; `.dark` on <html> swaps every token below.
+     Dark values are the historical palette, so dark rendering is unchanged. */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    color-scheme: light;
     --sidebar-width: 14rem;
+
+    /* Brand + surface tokens consumed by tailwind.config.js as rgb channels */
+    --c-text: 27 26 39;
+    --c-ink: 13 13 28;
+    --c-paper: 255 255 255;
+    --c-sunken: 222 229 241;
+    /* Role hues darkened so they stay legible as text on a light ground */
+    --c-roles-provider: 14 106 133;
+    --c-roles-consumer: 158 74 5;
+    --c-roles-bussiness: 10 110 115;
+    --c-roles-customer: 143 90 0;
+    --c-stroke: 200 205 222;
+    --c-brand-snow: 16 16 31;
+    --c-brand-sky: 22 104 143;
+    --c-brand-black: 239 247 251;
+    --c-base-main: 245 247 252;
+    --c-base-sidebar: 255 255 255;
+    --c-base-header: 233 238 247;
+    --c-background: 245 247 252;
+    --c-background-800: 255 255 255;
+    --c-background-600: 245 247 252;
+    --c-background-400: 221 228 240;
+    --c-background-300: 221 228 240;
+    --c-background-200: 221 228 240;
+    --c-border: 221 227 236;
+
+    /* Text ramp: mirrored against the dark ramp so 50 stays the faintest ink */
+    --c-foreground: 58 55 71;
+    --c-foreground-950: 248 248 250;
+    --c-foreground-900: 241 241 246;
+    --c-foreground-800: 211 210 224;
+    --c-foreground-700: 185 183 206;
+    --c-foreground-600: 158 154 184;
+    --c-foreground-500: 134 126 163;
+    --c-foreground-400: 120 111 146;
+    --c-foreground-300: 82 77 101;
+    --c-foreground-200: 74 68 89;
+    --c-foreground-100: 53 50 67;
+    --c-foreground-50: 38 35 47;
+
+    --sb-track-color: #dfe5f0;
+    --sb-thumb-color: #b3bcd0;
+    --sb-thumb-hover-color: #8d98b1;
+    --sb-thumb-border-color: #e7ecf5;
+    --c-autofill: #ffffff;
+    --c-autofill-text: #1b1a27;
+
+    /* shadcn/ui tokens */
+    --background: 220 33% 97%;
+    --foreground: 240 20% 13%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 240 20% 13%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.611 0.117 251.283);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
+    --popover-foreground: 240 20% 13%;
+    --primary: 224.3 76.3% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 92%;
+    --secondary-foreground: 240 20% 13%;
+    --muted: 220 20% 92%;
+    --muted-foreground: 240 8% 40%;
+    --accent: 220 20% 92%;
+    --accent-foreground: 240 20% 13%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 20% 86%;
+    --input: 220 20% 86%;
+    --ring: 199 70% 45%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
     --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 20% 20%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 20% 93%;
+    --sidebar-accent-foreground: 240 20% 20%;
+    --sidebar-border: 220 20% 88%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 0 0% 3.9%;
+    color-scheme: dark;
+
+    --c-text: 241 241 246;
+    --c-ink: 255 255 255;
+    --c-paper: 0 0 0;
+    --c-sunken: 0 0 0;
+    --c-roles-provider: 82 191 224;
+    --c-roles-consumer: 255 133 47;
+    --c-roles-bussiness: 82 219 224;
+    --c-roles-customer: 255 158 47;
+    --c-stroke: 100 93 122;
+    --c-brand-snow: 239 247 251;
+    --c-brand-sky: 157 213 242;
+    --c-brand-black: 13 13 28;
+    --c-base-main: 9 9 27;
+    --c-base-sidebar: 25 25 48;
+    --c-base-header: 36 35 76;
+    --c-background: 9 9 27;
+    --c-background-800: 7 7 13;
+    --c-background-600: 9 9 27;
+    --c-background-400: 46 51 86;
+    --c-background-300: 46 51 86;
+    --c-background-200: 46 51 86;
+    --c-border: 18 18 18;
+
+    --c-foreground: 211 210 224;
+    --c-foreground-950: 53 50 67;
+    --c-foreground-900: 82 77 101;
+    --c-foreground-800: 100 93 122;
+    --c-foreground-700: 120 111 146;
+    --c-foreground-600: 134 126 163;
+    --c-foreground-500: 158 154 184;
+    --c-foreground-400: 185 183 206;
+    --c-foreground-300: 211 210 224;
+    --c-foreground-200: 211 210 224;
+    --c-foreground-100: 241 241 246;
+    --c-foreground-50: 248 248 250;
+
+    --sb-track-color: #292a3c;
+    --sb-thumb-color: #404b71;
+    --sb-thumb-hover-color: hsl(226, 17%, 50%);
+    --sb-thumb-border-color: #232e33;
+    --c-autofill: #0d0d1e;
+    --c-autofill-text: #f8fafc;
+
+    --background: 240 25% 7%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
+    --card: 240 25% 9%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
+    --popover: 240 25% 9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
+    --primary: 224.3 76.3% 48%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 14.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 14.9%;
@@ -115,15 +211,15 @@
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --border: 240 15% 15%;
+    --input: 240 15% 15%;
+    --ring: 199 80% 78%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
+    --sidebar-background: 240 25% 8%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -212,13 +308,13 @@
 /* POLICIES */
 
 .policy-item-create {
-  @apply first:mt-3 border-t pt-3  pb-5 border-white/20 last:pb-2;
+  @apply first:mt-3 border-t pt-3  pb-5 border-ink/20 last:pb-2;
 }
 .policy-item-template {
   @apply pb-5  last:pb-2;
 }
 .key-policy-template {
-  @apply flex justify-center items-center h-fit uppercase px-2 py-0.5 w-fit max-w-[165px] rounded-sm gap-1 focus-visible:ring transition-all   font-bold break-all border border-white/15 bg-gray-900/50;
+  @apply flex justify-center items-center h-fit uppercase px-2 py-0.5 w-fit max-w-[165px] rounded-sm gap-1 focus-visible:ring transition-all   font-bold break-all border border-ink/15 bg-ink/[0.06] dark:bg-gray-900/50;
 }
 .constraint-template-group {
   @apply flex flex-col gap-2 mb-3 last:mb-0;
@@ -226,8 +322,6 @@
 
 /*SCROLLBAR*/
 * {
-  --sb-track-color: #292a3c;
-  --sb-thumb-color: #404b71;
   --sb-size: 9px;
 }
 
@@ -241,8 +335,9 @@ textarea:-webkit-autofill:focus,
 select:-webkit-autofill,
 select:-webkit-autofill:hover,
 select:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px transparent inset; /* fondo transparente */
-  -webkit-text-fill-color: #f8fafc; /* texto blanco */
+  -webkit-box-shadow: 0 0 0 1000px var(--c-autofill) inset !important;
+  -webkit-text-fill-color: var(--c-autofill-text) !important;
+  caret-color: var(--c-autofill-text) !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 
@@ -260,12 +355,12 @@ select:-webkit-autofill:focus {
   transition: ease-in-out 0.2s;
   background: var(--sb-thumb-color);
   border-radius: 5px;
-  border: 1px solid #232e33;
+  border: 1px solid var(--sb-thumb-border-color);
 }
 
 *::-webkit-scrollbar-thumb:hover {
   transition: ease-in-out 0.2s;
-  background: hsl(226, 17%, 50%); /* o el color claro que prefieras */
+  background: var(--sb-thumb-hover-color);
 }
 
 @supports not selector(::-webkit-scrollbar) {

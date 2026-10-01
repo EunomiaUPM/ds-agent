@@ -7,6 +7,6 @@ interface FormatDateProps {
 }
 
 export const FormatDate = ({ date, format = "DD/MM/YYYY - HH:mm" }: FormatDateProps) => {
-  if (!date) return <span className="text-gray-400">-</span>;
+  if (!date) return <span className="text-gray-700 dark:text-gray-400">-</span>;
   return <span>{dayjs(date).format(format)}</span>;
 };

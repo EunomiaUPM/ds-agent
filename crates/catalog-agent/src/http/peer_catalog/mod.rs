@@ -15,35 +15,37 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::catalogs::{CatalogEntityTrait, EditCatalogDto, NewCatalogDto};
-use crate::entities::peer_catalogs::PeerCatalogTrait;
+use crate::entities::catalogs::{EditCatalogDto, NewCatalogDto};
 use crate::http::common::to_camel_case::ToCamelCase;
+use crate::services::catalogs::CatalogServiceTrait;
+use crate::services::peer_catalogs::PeerCatalogServiceTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
+use common::auth::AccessScope;
 use common::batch_requests::BatchRequests;
 use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
-use reqwest::StatusCode;
 use serde::Deserialize;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
 #[derive(Clone)]
 pub struct PeerCatalogEntityRouter {
-    service: Arc<dyn PeerCatalogTrait>,
+    service: Arc<dyn PeerCatalogServiceTrait>,
 }
 
-impl FromRef<PeerCatalogEntityRouter> for Arc<dyn PeerCatalogTrait> {
+impl FromRef<PeerCatalogEntityRouter> for Arc<dyn PeerCatalogServiceTrait> {
     fn from_ref(state: &PeerCatalogEntityRouter) -> Self {
         state.service.clone()
     }
 }
 
 impl PeerCatalogEntityRouter {
-    pub fn new(service: Arc<dyn PeerCatalogTrait>) -> Self {
+    pub fn new(service: Arc<dyn PeerCatalogServiceTrait>) -> Self {
         Self { service }
     }
 
@@ -56,8 +58,9 @@ impl PeerCatalogEntityRouter {
 
     async fn handle_get_all_catalog_by_peer_id(
         State(state): State<PeerCatalogEntityRouter>,
+        scope: AccessScope,
     ) -> impl IntoResponse {
-        match state.service.get_all_peer_catalogs().await {
+        match state.service.get_all_peer_catalogs(&scope).await {
             Ok(data) => (StatusCode::OK, Json(data)).into_response(),
             Err(e) => return e.into_response(),
         }
@@ -65,9 +68,10 @@ impl PeerCatalogEntityRouter {
 
     async fn handle_get_catalog_by_peer_id(
         State(state): State<PeerCatalogEntityRouter>,
+        scope: AccessScope,
         Path(peer_id): Path<String>,
     ) -> impl IntoResponse {
-        match state.service.get_peer_catalog(&peer_id).await {
+        match state.service.get_peer_catalog(&scope, &peer_id).await {
             Ok(Some(catalog)) => (StatusCode::OK, Json(catalog)).into_response(),
             Ok(None) => {
                 let err =

@@ -42,6 +42,11 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(
+                        ColumnDef::new(DataplaneTransferLogs::TenantId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
                         ColumnDef::new(DataplaneTransferLogs::DataplaneProcessId)
                             .string()
                             .not_null(),
@@ -98,6 +103,7 @@ impl MigrationTrait for Migration {
 enum DataplaneTransferLogs {
     Table,
     Id,
+    TenantId,
     DataplaneProcessId,
     PreviousState,
     NewState,

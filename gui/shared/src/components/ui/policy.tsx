@@ -65,13 +65,13 @@ export type PolicyVariants = VariantProps<typeof policyVariants>["variant"];
 const HeadingColor = ({ variant }: { variant: PolicyVariants }) => {
   switch (variant) {
     case "permission":
-      return "text-success-200";
+      return "text-success-800 dark:text-success-200";
     case "obligation":
-      return "text-warn-300";
+      return "text-warn-700 dark:text-warn-300";
     case "prohibition":
-      return "text-danger-400";
+      return "text-danger-700 dark:text-danger-400";
     default:
-      return "text-white/80";
+      return "text-ink/80";
   }
 };
 
@@ -133,7 +133,7 @@ const PolicyItemContainer: FC<PolicyChildProps> = ({ children, ...props }) => {
   return (
     <div
       className={cn(
-        "flex flex-col gap-1 py-3 border-b border-white/20 last:border-0 first:pt-1 last:pb-1",
+        "flex flex-col gap-1 py-3 border-b border-ink/20 last:border-0 first:pt-1 last:pb-1",
       )}
       {...props}
     >
@@ -169,7 +169,7 @@ const PolicyItem: FC<PolicyChildProps> = ({ children, ...props }) => {
  */
 const PolicyItemKey: FC<PolicyChildProps> = ({ children, ...props }) => {
   return (
-    <div className={cn("w-32 font-semibold text-white/60")} {...props}>
+    <div className={cn("w-32 font-semibold text-ink/60")} {...props}>
       {children}
     </div>
   );
@@ -191,7 +191,7 @@ const PolicyItemValue: FC<PolicyChildProps> = ({ children, ...props }) => {
  */
 const PolicyConstraintsContainer: FC<PolicyChildProps> = ({ children, ...props }) => {
   return (
-    <div className={cn("flex gap-1.5 bg-black/30 w-fit p-1 rounded-md")} {...props}>
+    <div className={cn("flex gap-1.5 bg-sunken/30 w-fit p-1 rounded-md")} {...props}>
       {children}
     </div>
   );
@@ -215,13 +215,13 @@ const PolicyConstraint: FC<PolicyConstraintProps> = ({ type, className, children
     <div className={cn("constraint-policy-container", className)} {...props}>
       {/* Constraint value */}
       <span
-        className={`flex justify-start items-start h-full px-2 py-0.5 w-fit max-w-[165px] rounded-sm gap-1 focus-visible:ring focus-visible:ring-ring/50 focus-visible:ring-[3px] transition-all font-medium break-all border border-white/15 bg-gray-300/5
+        className={`flex justify-start items-start h-full px-2 py-0.5 w-fit max-w-[165px] rounded-sm gap-1 focus-visible:ring focus-visible:ring-ring/50 focus-visible:ring-[3px] transition-all font-medium break-all border border-ink/15 bg-gray-300/5
         ${childText.length >= 16 ? "nowrap" : ""}`}
       >
-        <p className="break-all text-white/80">{formatString(childText)}</p>
+        <p className="break-all text-ink/80">{formatString(childText)}</p>
       </span>
       {/* Type label */}
-      <div className="constraint-item text-2xs px-1.5 rounded-sm py-0.5 cursor-pointer bg-black/90 opacity-80 mt-1">
+      <div className="constraint-item text-xs px-1.5 rounded-sm py-0.5 cursor-pointer bg-sunken/90 opacity-80 mt-1">
         {type}
       </div>
     </div>

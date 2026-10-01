@@ -15,25 +15,40 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::offer::{NegotiationAgentOffersTrait, NewOfferDto};
+//! gRPC adapter for offer management service.
+
+mod mappers;
+
+use std::sync::Arc;
+
 use crate::grpc::api::negotiation_agent::negotiation_agent_offers_service_server::NegotiationAgentOffersService;
 use crate::grpc::api::negotiation_agent::{
-    CreateOfferRequest, DeleteOfferRequest, GetAllOffersRequest, GetBatchOffersRequest,
-    GetOfferByIdRequest, GetOfferByNegotiationMessageRequest, GetOfferByOfferIdRequest,
-    GetOffersByNegotiationProcessRequest, OfferListResponse, OfferResponse,
+    CreateOfferRequest, DeleteOfferRequest, GetBatchOffersRequest, GetOfferByIdRequest,
+    GetOfferByNegotiationMessageRequest, GetOfferByOfferIdRequest,
+    GetOffersByNegotiationProcessRequest, ListOffersRequest, OfferListResponse, OfferResponse,
 };
-use std::str::FromStr;
-use std::sync::Arc;
+use crate::services::offer::OfferServiceTrait;
+use common::auth::OauthTokenValidator;
+use common::auth::grpc::GrpcAuth;
+use common::batch_requests::BatchRequests;
+use common::grpc::{IntoStatus, ListParams, ProtoField};
 use tonic::{Request, Response, Status};
-use urn::Urn;
+use ymir::errors::Errors;
 
 pub struct NegotiationAgentOfferGrpc {
-    service: Arc<dyn NegotiationAgentOffersTrait>,
+    service: Arc<dyn OfferServiceTrait>,
+    auth: GrpcAuth,
 }
 
 impl NegotiationAgentOfferGrpc {
-    pub fn new(service: Arc<dyn NegotiationAgentOffersTrait>) -> Self {
-        Self { service }
+    pub fn new(
+        service: Arc<dyn OfferServiceTrait>,
+        validator: Arc<dyn OauthTokenValidator>,
+    ) -> Self {
+        Self {
+            service,
+            auth: GrpcAuth::new(validator),
+        }
     }
 }
 
@@ -41,165 +56,112 @@ impl NegotiationAgentOfferGrpc {
 impl NegotiationAgentOffersService for NegotiationAgentOfferGrpc {
     async fn get_all_offers(
         &self,
-        request: Request<GetAllOffersRequest>,
+        request: Request<ListOffersRequest>,
     ) -> Result<Response<OfferListResponse>, Status> {
-        let req = request.into_inner();
-
-        let offers = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let params = ListParams::try_from(request.into_inner())?;
+        let result = self
             .service
-            .get_all_offers(req.limit, req.page)
+            .get_all(&scope, &params.filter, &params.page, &params.sort)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        let proto_offers = offers
-            .into_iter()
-            .map(|dto| {
-                let response: OfferResponse = dto.into();
-                response.offer.unwrap()
-            })
-            .collect();
-
-        Ok(Response::new(OfferListResponse {
-            offers: proto_offers,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(result.into()))
     }
 
     async fn get_batch_offers(
         &self,
         request: Request<GetBatchOffersRequest>,
     ) -> Result<Response<OfferListResponse>, Status> {
-        let req = request.into_inner();
-
-        let urns: Vec<Urn> = req
-            .ids
-            .iter()
-            .map(|id| Urn::from_str(id))
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| Status::invalid_argument(format!("Invalid URN in batch: {}", e)))?;
-
-        let offers = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let batch = BatchRequests::try_from(request.into_inner())?;
+        let views = self
             .service
-            .get_batch_offers(&urns)
+            .batch(&scope, &batch)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        let proto_offers = offers
-            .into_iter()
-            .map(|dto| {
-                let response: OfferResponse = dto.into();
-                response.offer.unwrap()
-            })
-            .collect();
-
-        Ok(Response::new(OfferListResponse {
-            offers: proto_offers,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(views.into()))
     }
 
     async fn get_offers_by_negotiation_process(
         &self,
         request: Request<GetOffersByNegotiationProcessRequest>,
     ) -> Result<Response<OfferListResponse>, Status> {
-        let req = request.into_inner();
-        let urn = Urn::from_str(&req.process_id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid Process ID URN: {}", e)))?;
-
-        let offers = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let process_id = request.into_inner().process_id.urn("process_id")?;
+        let views = self
             .service
-            .get_offers_by_negotiation_process(&urn)
+            .get_by_process(&scope, &process_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        let proto_offers = offers
-            .into_iter()
-            .map(|dto| {
-                let response: OfferResponse = dto.into();
-                response.offer.unwrap()
-            })
-            .collect();
-
-        Ok(Response::new(OfferListResponse {
-            offers: proto_offers,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(views.into()))
     }
 
     async fn get_offer_by_id(
         &self,
         request: Request<GetOfferByIdRequest>,
     ) -> Result<Response<OfferResponse>, Status> {
-        let req = request.into_inner();
-        let urn = Urn::from_str(&req.id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid ID URN: {}", e)))?;
-
-        match self.service.get_offer_by_id(&urn).await {
-            Ok(Some(dto)) => Ok(Response::new(dto.into())),
-            Ok(None) => Err(Status::not_found("Offer not found")),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id.urn("id")?;
+        let view = self
+            .service
+            .get_one(&scope, &id)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(view.into()))
     }
 
     async fn get_offer_by_negotiation_message(
         &self,
         request: Request<GetOfferByNegotiationMessageRequest>,
     ) -> Result<Response<OfferResponse>, Status> {
-        let req = request.into_inner();
-        let urn = Urn::from_str(&req.message_id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid Message ID URN: {}", e)))?;
-
-        match self.service.get_offer_by_negotiation_message(&urn).await {
-            Ok(Some(dto)) => Ok(Response::new(dto.into())),
-            Ok(None) => Err(Status::not_found("Offer not found for this message")),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+        let scope = self.auth.scope(request.metadata()).await?;
+        let message_id = request.into_inner().message_id.urn("message_id")?;
+        let view = self
+            .service
+            .get_by_negotiation_message(&scope, &message_id)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(view.into()))
     }
 
     async fn get_offer_by_offer_id(
         &self,
         request: Request<GetOfferByOfferIdRequest>,
     ) -> Result<Response<OfferResponse>, Status> {
-        let req = request.into_inner();
-        // Asumimos que offer_id (externo) también se maneja como URN en la capa de servicio
-        // según la firma del trait: get_offer_by_offer_id(&self, id: &Urn)
-        let urn = Urn::from_str(&req.offer_id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid Offer ID URN: {}", e)))?;
-
-        match self.service.get_offer_by_offer_id(&urn).await {
-            Ok(Some(dto)) => Ok(Response::new(dto.into())),
-            Ok(None) => Err(Status::not_found("Offer not found by external ID")),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+        let scope = self.auth.scope(request.metadata()).await?;
+        let offer_id = request.into_inner().offer_id.urn("offer_id")?;
+        let view = self
+            .service
+            .get_by_offer_id(&scope, &offer_id)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(view.into()))
     }
 
     async fn create_offer(
         &self,
         request: Request<CreateOfferRequest>,
     ) -> Result<Response<OfferResponse>, Status> {
-        let req = request.into_inner();
-
-        // Usamos el TryFrom definido en los mappers para convertir Request -> DTO
-        let new_offer_dto: NewOfferDto = req.try_into()?;
-
-        match self.service.create_offer(&new_offer_dto).await {
-            Ok(dto) => Ok(Response::new(dto.into())),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+        let scope = self.auth.scope(request.metadata()).await?;
+        let dto = request.into_inner().try_into()?;
+        let view = self
+            .service
+            .create(&scope, &dto)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(view.into()))
     }
 
     async fn delete_offer(
         &self,
         request: Request<DeleteOfferRequest>,
     ) -> Result<Response<()>, Status> {
-        let req = request.into_inner();
-        let urn = Urn::from_str(&req.id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid ID URN: {}", e)))?;
-
-        match self.service.delete_offer(&urn).await {
-            Ok(_) => Ok(Response::new(())),
-            Err(e) => {
-                // Si el error es "NotFound" (gestionado por CommonErrors usualmente),
-                // podríamos querer devolver Status::not_found, pero aquí genérico:
-                Err(Status::internal(e.to_string()))
-            }
-        }
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id.urn("id")?;
+        self.service
+            .delete(&scope, &id)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(()))
     }
 }

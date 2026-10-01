@@ -19,11 +19,11 @@
 //!
 //! An interaction describes *how* a connector exchanges data with its counterpart:
 //!
-//! - **Pull** — the connector actively fetches data on a schedule or on demand.
-//!   It exposes a single `data_access` protocol spec.
-//! - **Push** — the connector registers a callback endpoint with the remote side
-//!   so that data is delivered asynchronously.  It has a `subscribe` spec for
-//!   registration and an optional `unsubscribe` spec for deregistration.
+//! - **Pull** — the connector actively fetches data on a schedule or on demand. It exposes a single
+//!   `data_access` protocol spec.
+//! - **Push** — the connector registers a callback endpoint with the remote side so that data is
+//!   delivered asynchronously.  It has a `subscribe` spec for registration and an optional
+//!   `unsubscribe` spec for deregistration.
 
 pub mod pull;
 pub mod push;

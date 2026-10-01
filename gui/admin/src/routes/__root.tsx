@@ -15,10 +15,10 @@ import { GlobalLoadingIndicator } from "../components/GlobalLoadingIndicator";
 import { Input } from "shared/src/components/ui/input";
 import { Button } from "shared/src/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
-import { clearSession, isSessionActive, setSession } from "../lib/session";
+import { clearSession, isSessionActive, loginWithOAuth, logoutOAuth } from "../lib/session";
 import eunomiaLogo from "shared/src/img/eunomia_logo_lg_light.svg";
-import { DevMode } from "shared/src/components/DevMode";
 import { Toaster } from "shared/src/components/ui/sonner";
+import { BubbleBackground } from "shared/src/components/ui/bubble-background";
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
@@ -33,14 +33,26 @@ function RootComponent() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
+  const isLogin = pathname.includes("/login");
+
   useEffect(() => {
-    if (!authed && !pathname.startsWith("/login")) {
+    const handleUnauthorized = () => {
+      setAuthed(false);
+    };
+    window.addEventListener("eunomia:unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("eunomia:unauthorized", handleUnauthorized);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!authed && !isLogin) {
       navigate({ to: "/login/" });
     }
-    if (authed && pathname.startsWith("/login")) {
+    if (authed && isLogin) {
       navigate({ to: "/" });
     }
-  }, [authed, pathname]);
+  }, [authed, isLogin, navigate]);
 
   if (!authed) {
     return <LoginForm onSuccess={() => setAuthed(true)} />;
@@ -49,13 +61,13 @@ function RootComponent() {
   return (
     <>
       <SidebarProvider>
-        <DevMode />
         <AppSidebar />
         <SidebarInset>
           <Header
-            onSignOut={() => {
-              clearSession();
+            onSignOut={async () => {
+              await logoutOAuth();
               setAuthed(false);
+              navigate({ to: "/login/" });
             }}
           />
           <div className="flex flex-1 flex-col gap-4 p-8 items-start justify-start w-full h-full min-w-0">
@@ -70,49 +82,86 @@ function RootComponent() {
   );
 }
 
-const VALID_USER = "eunomia";
-const VALID_PASSWORD = "eunomia";
-
 function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === VALID_USER && password === VALID_PASSWORD) {
-      setSession();
-      onSuccess();
-      navigate({ to: "/" });
-    } else {
-      setError("Invalid username or password.");
+    if (!username.trim() || !password) {
+      setError("Please provide username and password.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await loginWithOAuth(username.trim(), password);
+      if (res.success) {
+        onSuccess();
+        navigate({ to: "/" });
+      } else {
+        setError(res.error || "Authentication failed. Please verify your credentials.");
+      }
+    } catch (err: any) {
+      setError(err?.message || "An unexpected error occurred during login.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex">
-      {/* Left panel — Eunomia branding */}
-      <div className="hidden lg:flex w-1/2 flex-col items-center justify-center bg-background border-r border-white/10 px-16 gap-8">
-        <img src={eunomiaLogo} alt="Eunomia" className="w-72" />
-        <p className="text-sm text-center text-muted-foreground max-w-xs">
-          Trusted data spaces for a sovereign digital economy.
-        </p>
+      {/* Left panel — Eunomia branding with interactive Bubble Background */}
+      <div className="dark hidden lg:flex w-1/2 relative border-r border-ink/10 overflow-hidden bg-background">
+        <BubbleBackground
+          className="flex flex-col items-center justify-center px-12 gap-8 text-center"
+          interactive={true}
+        >
+          {/* Glassmorphic card overlay for crisp brand presentation */}
+          <div className="relative z-10 flex flex-col items-center gap-6 p-8 rounded-2xl bg-sunken/40 backdrop-blur-xl border border-ink/15 shadow-2xl max-w-md">
+            <img src={eunomiaLogo} alt="Eunomia" className="w-64 drop-shadow-md" />
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground/90 leading-relaxed">
+                Trusted data spaces for a sovereign digital economy.
+              </p>
+              <p className="text-xs text-brand-sky/80 font-mono">
+                Dataspace Protocol • Identity & Authority • Access Control
+              </p>
+            </div>
+            <div className="flex items-center gap-2 pt-3 border-t border-ink/10 w-full justify-center">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-mono text-muted-foreground">Eunomia DS-Agent v0.4.0</span>
+            </div>
+          </div>
+        </BubbleBackground>
       </div>
 
       {/* Right panel — login form */}
       <div className="flex flex-1 flex-col items-center justify-center bg-background px-8">
         <div className="w-full max-w-sm flex flex-col gap-6">
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                OAuth 2.0 / OIDC Authentication
+              </span>
+            </div>
             <h1 className="text-2xl font-semibold tracking-tight">Eunomia DS-Agent Admin</h1>
-            <p className="text-sm text-muted-foreground">Sign in to continue</p>
+            <p className="text-sm text-muted-foreground">
+              Sign in with your operator credentials to access the console
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="username" className="text-sm font-medium">
-                Username
+                Username / Email
               </label>
               <Input
                 id="username"
@@ -123,7 +172,8 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
                   setUsername(e.target.value);
                   setError(null);
                 }}
-                placeholder="agent"
+                placeholder="admin or admin@admin.local"
+                required
               />
             </div>
 
@@ -143,6 +193,7 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
                   }}
                   placeholder="••••••••"
                   className="pr-10"
+                  required
                 />
                 <button
                   type="button"
@@ -155,12 +206,20 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
               </div>
             </div>
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && (
+              <div className="p-3 rounded-lg bg-danger-50 dark:bg-danger-950/40 border border-danger-700/50 text-xs text-danger-700 dark:text-danger-300">
+                {error}
+              </div>
+            )}
 
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" isLoading={loading}>
               Sign in
             </Button>
           </form>
+
+          <p className="text-xs text-muted-foreground/60 text-center font-mono">
+            Secured with RFC 6749 OAuth 2.0 & RFC 7519 JWT Bearer Tokens
+          </p>
         </div>
       </div>
     </div>

@@ -1,20 +1,18 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use sea_orm_migration::prelude::*;
@@ -38,6 +36,11 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null()
                             .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(CatalogODRLOffers::TenantId)
+                            .string()
+                            .not_null(),
                     )
                     .col(
                         ColumnDef::new(CatalogODRLOffers::ODRLOffer)
@@ -75,26 +78,23 @@ impl MigrationTrait for Migration {
                             .json_binary()
                             .null(),
                     )
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk_odrl_offers_template_source")
-                            .from(
-                                CatalogODRLOffers::Table,
-                                (
-                                    CatalogODRLOffers::SourceTemplateId,
-                                    CatalogODRLOffers::SourceTemplateVersion,
-                                ),
-                            )
-                            .to(
-                                PolicyTemplates::Table,
-                                (PolicyTemplates::Id, PolicyTemplates::Version),
-                            )
-                            .on_delete(ForeignKeyAction::SetNull)
-                            .on_update(ForeignKeyAction::Cascade),
-                    )
                     .to_owned(),
             )
-            .await
+            .await?;
+
+        // sea-query cannot express a column-subset SET NULL, needed because tenant_id is NOT NULL.
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "ALTER TABLE catalog_odrl_offers \
+                 ADD CONSTRAINT fk_odrl_offers_template_source \
+                 FOREIGN KEY (tenant_id, source_template_id, source_template_version) \
+                 REFERENCES policy_templates (tenant_id, id, version) \
+                 ON DELETE SET NULL (source_template_id, source_template_version) \
+                 ON UPDATE CASCADE",
+            )
+            .await?;
+        Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
@@ -108,6 +108,7 @@ impl MigrationTrait for Migration {
 pub enum CatalogODRLOffers {
     Table,
     Id,
+    TenantId,
     ODRLOffer,
     Entity,
     EntityType,
@@ -115,11 +116,4 @@ pub enum CatalogODRLOffers {
     SourceTemplateId,
     SourceTemplateVersion,
     InstantiationParameters,
-}
-
-#[derive(Iden)]
-pub enum PolicyTemplates {
-    Table,
-    Id,
-    Version,
 }

@@ -1,23 +1,20 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::protocol::persistence::OrchestrationPersistenceForProtocol;
 use crate::protocols::dsp::orchestrator::protocol::step_trait::{
     NegotiationContinuationContext, NegotiationProtocolStep, continuation_prepare_context,
@@ -26,10 +23,12 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageWrapper, NegotiationVerificationMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
-use ymir::data::entities::shared::participant::Model as Mates;
+use crate::services::negotiation_process::views::NegotiationProcessView;
+use common::dsp_common::DspActor;
 use std::sync::Arc;
+use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
-// ─── AgreementVerificationStep ────────────────────────────────────────────────
+// AgreementVerificationStep ────────────────────────────────────────────────
 
 /// Handles an inbound `ContractAgreementVerificationMessage` from the Consumer.
 ///
@@ -43,37 +42,40 @@ impl NegotiationProtocolStep for AgreementVerificationStep {
     type Dto = NegotiationVerificationMessageDto;
     type Context = NegotiationContinuationContext;
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn validate(
         validator: &Arc<dyn ValidationDspSteps>,
         id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>,
-        _mate: &Mates,
+        mate: &Mates,
     ) -> Outcome<()> {
         validator
-            .on_contract_agreement_verification(&id.to_string(), input)
+            .on_contract_agreement_verification(&DspActor::peer(mate), &id.to_string(), input)
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn prepare_context(
         id: &str,
-        _mate: &Mates,
+        mate: &Mates,
         _input: &NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>,
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
     ) -> Outcome<(
         NegotiationContinuationContext,
         Option<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>,
     )> {
-        continuation_prepare_context(id, persistence).await
+        continuation_prepare_context(id, mate, persistence).await
     }
 
     /// Advances the process state only; no offer or agreement records are added.
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn persist(
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
         _id: &str,
         ctx: &NegotiationContinuationContext,
         input: &NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>,
         mate: &Mates,
-    ) -> Outcome<NegotiationProcessDto> {
+    ) -> Outcome<NegotiationProcessView> {
         persistence.update(ctx.id.as_str(), &input.dto, mate).await
     }
 }

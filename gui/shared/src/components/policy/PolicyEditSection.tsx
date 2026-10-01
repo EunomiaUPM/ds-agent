@@ -141,7 +141,7 @@ export const PolicyEditSection: React.FC<PolicyEditSectionProps> = ({
       <AccordionItem value="item-1" className={currentStyle.accordionItem}>
         {/* Section Header */}
         <AccordionTrigger
-          className={`text-white/70 flex ${currentStyle.trigger} uppercase overflow-hidden rounded-md data-[state=open]:rounded-b-none`}
+          className={`text-ink/70 flex ${currentStyle.trigger} uppercase overflow-hidden rounded-md data-[state=open]:rounded-b-none`}
         >
           <div className="flex items-center w-full">
             <p className="text-current">{type}</p>
@@ -153,7 +153,7 @@ export const PolicyEditSection: React.FC<PolicyEditSectionProps> = ({
           {/* Add new item button */}
           <Button
             type="button"
-            className="border-b border-white/15"
+            className="border-b border-ink/15"
             variant="outline"
             size="xs"
             onClick={() => onAdd(type)}
@@ -214,7 +214,7 @@ export const PolicyEditSection: React.FC<PolicyEditSectionProps> = ({
                         value={constraint.leftOperand}
                       >
                         <div className="flex flex-col">
-                          <p className="text-xs text-gray-400 mb-1">Left Operand:</p>
+                          <p className="text-xs text-gray-700 dark:text-gray-400 mb-1">Left Operand:</p>
                           <SelectTrigger className="w-[180px]">
                             <SelectValue placeholder="Select item" />
                           </SelectTrigger>
@@ -236,7 +236,7 @@ export const PolicyEditSection: React.FC<PolicyEditSectionProps> = ({
                         value={constraint.operator}
                       >
                         <div className="flex flex-col">
-                          <p className="text-xs text-gray-400 mb-1">Operator:</p>
+                          <p className="text-xs text-gray-700 dark:text-gray-400 mb-1">Operator:</p>
                           <SelectTrigger className="w-[140px]">
                             <SelectValue placeholder="Select operator" />
                           </SelectTrigger>
@@ -252,7 +252,7 @@ export const PolicyEditSection: React.FC<PolicyEditSectionProps> = ({
 
                       {/* Right operand input */}
                       <div className="flex flex-col">
-                        <p className="text-xs text-gray-400 mb-1">Right Operand:</p>
+                        <p className="text-xs text-gray-700 dark:text-gray-400 mb-1">Right Operand:</p>
                         <Input
                           placeholder="Type value"
                           value={constraint.rightOperand}

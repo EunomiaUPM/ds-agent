@@ -15,8 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::odrl_policies::{NewOdrlPolicyDto, OdrlPolicyEntityTrait};
+use crate::entities::filters::OdrlPolicyFilter;
+use crate::entities::odrl_policies::{NewOdrlPolicyDto, OdrlPolicyDto};
 use crate::http::common::to_camel_case::ToCamelCase;
+use crate::services::odrl_policies::OdrlPolicyServiceTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::http::StatusCode;
@@ -26,23 +28,21 @@ use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
 use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
+use common::query::QuerySpec;
 use serde::Deserialize;
 use std::sync::Arc;
 use ymir::utils::{extract_path_urn, extract_payload};
 
 #[derive(Clone)]
 pub struct OdrlOfferEntityRouter {
-    service: Arc<dyn OdrlPolicyEntityTrait>,
+    service: Arc<dyn OdrlPolicyServiceTrait>,
     config: Arc<CatalogConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
+pub use common::paginated_spec::PaginationParams;
+pub type OdrlPolicyQuery = QuerySpec<OdrlPolicyFilter>;
 
-impl FromRef<OdrlOfferEntityRouter> for Arc<dyn OdrlPolicyEntityTrait> {
+impl FromRef<OdrlOfferEntityRouter> for Arc<dyn OdrlPolicyServiceTrait> {
     fn from_ref(state: &OdrlOfferEntityRouter) -> Self {
         state.service.clone()
     }
@@ -55,7 +55,7 @@ impl FromRef<OdrlOfferEntityRouter> for Arc<CatalogConfig> {
 }
 
 impl OdrlOfferEntityRouter {
-    pub fn new(service: Arc<dyn OdrlPolicyEntityTrait>, config: Arc<CatalogConfig>) -> Self {
+    pub fn new(service: Arc<dyn OdrlPolicyServiceTrait>, config: Arc<CatalogConfig>) -> Self {
         Self { service, config }
     }
 
@@ -79,32 +79,39 @@ impl OdrlOfferEntityRouter {
 
     async fn handle_get_all_odrl_offers(
         State(state): State<OdrlOfferEntityRouter>,
-        Query(params): Query<PaginationParams>,
+        scope: common::auth::AccessScope,
+        Query(query): Query<OdrlPolicyQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_odrl_offers(params.limit, params.page)
+            .get_all_odrl_offers(&scope, &query.filter, &query.page, &query.sort)
             .await
         {
             Ok(offers) => (StatusCode::OK, Json(ToCamelCase(offers))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_batch_odrl_offers(
         State(state): State<OdrlOfferEntityRouter>,
+        scope: common::auth::AccessScope,
         input: Result<Json<BatchRequests>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.get_batch_odrl_offers(&input.ids).await {
+        match state
+            .service
+            .get_batch_odrl_offers(&scope, &input.ids)
+            .await
+        {
             Ok(offers) => (StatusCode::OK, Json(ToCamelCase(offers))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_all_odrl_offers_by_entity(
         State(state): State<OdrlOfferEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(entity_id): Path<String>,
     ) -> impl IntoResponse {
         let entity_id = match extract_path_urn(&entity_id) {
@@ -113,68 +120,72 @@ impl OdrlOfferEntityRouter {
         };
         match state
             .service
-            .get_all_odrl_offers_by_entity(&entity_id)
+            .get_all_odrl_offers_by_entity(&scope, &entity_id)
             .await
         {
             Ok(offers) => (StatusCode::OK, Json(ToCamelCase(offers))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_odrl_offer_by_id(
         State(state): State<OdrlOfferEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
             Err(resp) => return resp.into_response(),
         };
-        match state.service.get_odrl_offer_by_id(&id_urn).await {
-            Ok(Some(offer)) => (StatusCode::OK, Json(ToCamelCase(offer))).into_response(),
-            Ok(None) => {
-                let err = CommonErrors::missing_resource_new(id.as_str(), "Odrl policy not found");
-                err.into_response()
-            }
-            Err(e) => return e.into_response(),
+        match state.service.get_odrl_offer_by_id(&scope, &id_urn).await {
+            Ok(offer) => (StatusCode::OK, Json(ToCamelCase(offer))).into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_create_odrl_offer(
         State(state): State<OdrlOfferEntityRouter>,
+        scope: common::auth::AccessScope,
         input: Result<Json<NewOdrlPolicyDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.create_odrl_offer(&input).await {
+        match state.service.create_odrl_offer(&scope, &input).await {
             Ok(offer) => (StatusCode::OK, Json(ToCamelCase(offer))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
 
     async fn handle_delete_odrl_offer_by_id(
         State(state): State<OdrlOfferEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
             Err(resp) => return resp.into_response(),
         };
-        match state.service.delete_odrl_offer_by_id(&id_urn).await {
+        match state.service.delete_odrl_offer_by_id(&scope, &id_urn).await {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_delete_odrl_offers_by_entity(
         State(state): State<OdrlOfferEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(entity): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&entity) {
             Ok(urn) => urn,
             Err(resp) => return resp.into_response(),
         };
-        match state.service.delete_odrl_offers_by_entity(&id_urn).await {
+        match state
+            .service
+            .delete_odrl_offers_by_entity(&scope, &id_urn)
+            .await
+        {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
 }

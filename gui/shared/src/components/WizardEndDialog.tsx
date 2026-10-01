@@ -30,7 +30,7 @@ export default function WizardEndDialog({
 
   const portalContent = (
     <div className="fixed left-1/2 top-16 z-[9999] w-full max-w-lg -translate-x-1/2 transform">
-      <div className="relative bg-background-300 border border-secondary-800 text-white p-3 rounded-md shadow-lg pointer-events-auto">
+      <div className="relative bg-background-300 border border-secondary-800 text-ink p-3 rounded-md shadow-lg pointer-events-auto">
         {/* <button
           onClick={onClose}
           className="absolute right-3 top-3 rounded-sm opacity-70 hover:opacity-100"

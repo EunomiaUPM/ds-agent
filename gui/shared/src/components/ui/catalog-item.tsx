@@ -4,7 +4,7 @@ import Avatar from "./avatar-img";
 import Heading from "shared/src/components/ui/heading";
 import { Link } from "@tanstack/react-router";
 import { FormatDate } from "shared/src/components/ui/format-date";
-import { CheckCircle2, Lock } from "lucide-react";
+import { CheckCircle2, Lock, Database, Server, Calendar, ArrowUpRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,13 @@ import { useRef } from "react";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 import { Badge } from "shared/src/components/ui/badge";
 import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "shared/src/components/ui/card";
 
 interface CatalogItemProps {
   date?: string | undefined;
@@ -79,9 +86,15 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
 
   const headingText = displayTitle ? displayTitle : `${organizationName}'s Catalog`;
   const headingNode = (
-    <Heading level="h4" className="capitalize mb-3 underline-offset-2 hover:underline">
-      {headingText}
-    </Heading>
+    <div className="group/title flex items-center justify-between gap-2">
+      <Heading
+        level="h4"
+        className="capitalize !mb-0 underline-offset-2 group-hover/title:underline text-base font-semibold"
+      >
+        {headingText}
+      </Heading>
+      <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover/title:text-brand-sky transition-colors flex-shrink-0" />
+    </div>
   );
 
   let headingLink: React.ReactNode;
@@ -92,7 +105,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
 
   let isOnboardedWithKnownProvider = localParticipants.some(
-    (lp) => lp.participant_type !== "Authority" && lp.is_me === false,
+    (lp) => lp.participant_type !== "Authority",
   );
 
   // open the wizard only after the dialog has been opened and the title anchor is mounted
@@ -193,59 +206,64 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   }
 
   return (
-    <div
-      className={`catalog-card h-full bg-background-200/15  hover:bg-background-200/30 transition-all border rounded-md flex flex-col p-4 gap-3 justify-between max-w-lg ${unavailableCatalogClasses} ${isAuthenticated ? "border-emerald-500/40" : "border-white/10"} ${ownCatalog && isAuthenticated ? "border-white/10" : ""}`}
+    <Card
+      variant="interactive"
+      className={`h-full flex flex-col justify-between max-w-lg transition-all duration-200 ${unavailableCatalogClasses} ${
+        isAuthenticated && !ownCatalog ? "border-emerald-500/30 hover:border-emerald-500/60" : ""
+      }`}
     >
-      <div className="catalog-top">
-        <div className="catalog-dates-container flex gap-3 text-sm tracking-wide items-start justify-between">
-          <div className="catalog-dates-created flex gap-1 mb-2">
-            <p className="text-sm">Created at:</p>
-            <FormatDate date={displayDate} />
+      <CardHeader className="pb-3 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Avatar src={avatarImg} />
+            <span className="font-semibold text-sm text-foreground capitalize truncate">
+              {organizationName}
+            </span>
           </div>
+
           {isAuthenticated ? (
             !ownCatalog ? (
-              <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
-                <CheckCircle2 className="h-3.5 w-3.5" />
+              <Badge variant="status" state="active" className="text-xs">
                 Authenticated
-              </span>
+              </Badge>
             ) : (
-              <Badge
-                variant="detail"
-                size="default"
-                className="uppercase text-blue-300 font-semibold mb-3"
-              >
-                My own catalog
+              <Badge variant="role" dsrole="Provider" className="text-xs">
+                My Catalog
               </Badge>
             )
           ) : id !== null ? (
-            <span className="flex items-center gap-1 text-xs text-muted-foreground font-medium text-red-400">
-              <Lock className="h-3.5 w-3.5" />
-              Auth required
-            </span>
+            <Badge variant="status" state="error" className="text-xs">
+              Auth Required
+            </Badge>
           ) : null}
         </div>
-        <div className="catalog-text-container">
+
+        <div className="pt-1">
           {headingLink}
-          <p className="mb-2 line-clamp-3 text-sm">
-            This is the catalog of <span className="capitalize">{organizationName}</span>, who is
-            also part of this dataspace. Click on the catalog name to see the datasets and
-            dataservice they offer.
+          <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+            This is the catalog of{" "}
+            <span className="capitalize text-foreground/90 font-medium">{organizationName}</span>.
+            Browse published datasets, distributions, and associated dataservices.
           </p>
         </div>
-      </div>
-      <div className="catalog-bottom">
-        <div className="catalog-participant-container flex gap-2 justify-start items-center mb-2">
-          <Avatar src={avatarImg} />
-          <Heading level="h5" className="capitalize !mb-0">
-            {organizationName}
-          </Heading>
+      </CardHeader>
+
+      <CardFooter className="pt-3 flex items-center justify-between gap-3 text-xs border-t border-ink/5 bg-background-800/20 rounded-b-xl">
+        <div className="flex items-center gap-1 text-muted-foreground text-xs">
+          <Calendar className="h-3 w-3 opacity-60" />
+          <FormatDate date={displayDate} />
         </div>
-        <div className="catalog-items-container flex justify-end gap-2 text-sm italic">
-          <p> 1 Dataservice </p>
-          <p> {displayDatasetNr} Datasets </p>
+
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-ink/5 text-xs font-mono text-muted-foreground">
+            <Server className="h-3 w-3 text-brand-sky" /> 1 Service
+          </span>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-ink/5 text-xs font-mono text-muted-foreground">
+            <Database className="h-3 w-3 text-emerald-700 dark:text-emerald-400" /> {displayDatasetNr} Datasets
+          </span>
         </div>
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   );
 };
 

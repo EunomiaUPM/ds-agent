@@ -133,14 +133,14 @@ export const PolicyWrapperShow = ({
 
   return (
     <div className="w-full h-full ">
-      <div className="flex flex-col items-start justify-between border border-white/10 bg-background-300/20 p-4 rounded-lg">
+      <div className="flex flex-col items-start justify-between border border-ink/10 bg-background-300/20 p-4 rounded-lg">
         <div className="title-description-container w-full">
           {" "}
           {/* Header: Title and actions */}
           <div className="flex justify-between items-start w-full mb-2">
             <Heading
               level="h4"
-              className="flex items-center gap-2 font-bold text-white tracking-tight mb-1"
+              className="flex items-center gap-2 font-bold text-ink tracking-tight mb-1"
             >
               <Shield className="h-[22px] w-[22px] text-primary-500" />
               {generatedTitle}
@@ -165,7 +165,7 @@ export const PolicyWrapperShow = ({
               </Dialog>
             )}
           </div>
-          <p className="text-sm text-white/70 mb-6 leading-5"> {descriptionText} </p>
+          <p className="text-sm text-ink/70 mb-6 leading-5"> {descriptionText} </p>
         </div>
         {/* ODRL Content section */}
         <div className="policies-requestButton-container w-full">
@@ -173,9 +173,9 @@ export const PolicyWrapperShow = ({
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem
                 value="odrl-content"
-                className="border border-white/20 rounded-md overflow-hidden bg-transparent"
+                className="border border-ink/20 rounded-md overflow-hidden bg-transparent"
               >
-                <AccordionTrigger className="px-3 py-3 hover:bg-background text-[12px] font-medium text-white uppercase tracking-wider transition-colors [&[data-state=open]]:border-b [&[data-state=open]]:border-white/20 hover:no-underline rounded-t-md">
+                <AccordionTrigger className="px-3 py-3 hover:bg-background text-[12px] font-medium text-ink uppercase tracking-wider transition-colors [&[data-state=open]]:border-b [&[data-state=open]]:border-ink/20 hover:no-underline rounded-t-md">
                   Permissions, Obligations, Prohibitions
                 </AccordionTrigger>
                 <AccordionContent className="p-0 m-2">
@@ -197,11 +197,11 @@ export const PolicyWrapperShow = ({
               </AccordionItem>
             </Accordion>
           ) : (
-            <div className="w-full border border-white/20 rounded-md overflow-hidden bg-transparent">
-              <div className="px-4 py-3 bg-background-800 border-b border-white/20">
+            <div className="w-full border border-ink/20 rounded-md overflow-hidden bg-transparent">
+              <div className="px-4 py-3 bg-background-800 border-b border-ink/20">
                 <Heading
                   level="h6"
-                  className="text-[13px] font-bold text-white uppercase tracking-wider mb-0"
+                  className="text-[13px] font-bold text-ink uppercase tracking-wider mb-0"
                 >
                   Permissions, Obligations and Prohibitions
                 </Heading>

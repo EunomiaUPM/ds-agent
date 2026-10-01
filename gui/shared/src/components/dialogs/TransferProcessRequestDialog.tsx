@@ -15,6 +15,8 @@ import {
   FormItem,
   FormMessage,
 } from "shared/src/components/ui/form";
+import { Input } from "shared/src/components/ui/input";
+import { Checkbox } from "shared/src/components/ui/checkbox";
 import { useForm } from "react-hook-form";
 import { BaseProcessDialog } from "./base";
 import { urnInfoItem } from "./base/infoItemMappers";
@@ -155,11 +157,10 @@ export const TransferProcessRequestDialog = ({ process }: TransferProcessRequest
                   Push endpoint URL
                 </label>
                 <FormControl>
-                  <input
+                  <Input
                     id="pushEndpointUrl"
                     type="url"
                     placeholder="https://your-endpoint.example.com"
-                    className="flex h-7 w-full rounded-sm border-0 bg-white/5 px-2 py-1 text-xs placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50"
                     {...field}
                   />
                 </FormControl>
@@ -175,12 +176,11 @@ export const TransferProcessRequestDialog = ({ process }: TransferProcessRequest
       onSubmit={handleSubmit}
       form={form}
       afterInfoContent={
-        <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer select-none pt-2">
-          <input
-            type="checkbox"
+        <label className="flex items-center gap-2 text-xs text-brand-snow/80 cursor-pointer select-none pt-2">
+          <Checkbox
+            id="autoStart"
             checked={autoStart}
-            onChange={(e) => setAutoStart(e.target.checked)}
-            className="accent-white w-3.5 h-3.5"
+            onCheckedChange={(checked) => setAutoStart(!!checked)}
           />
           Auto-start (Provider starts the transfer automatically)
         </label>

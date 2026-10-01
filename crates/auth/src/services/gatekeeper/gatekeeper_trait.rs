@@ -1,20 +1,20 @@
 /*
-* Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
 
-*/
 use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
@@ -28,26 +28,34 @@ use ymir::types::gnap::InteractionFinishResponse;
 
 #[async_trait]
 pub trait GateKeeperTrait: Send + Sync + 'static {
-    fn build_grant_plan(&self, class_id: Option<String>) -> Outcome<grant::Plan>;
+    fn build_grant_plan(&self, tenant_id: &str, class_id: Option<String>) -> Outcome<grant::Plan>;
     fn build_resource_req_plan(
         &self,
+        tenant_id: &str,
         id: &str,
         grant_request_kind: GrantRequestKind,
     ) -> Outcome<resource_req::Model>;
     fn build_interaction_plan(
         &self,
+        tenant_id: &str,
         id: &str,
         client: Client,
         interact: Option<InteractRequest>,
     ) -> Outcome<interaction::Plan>;
     fn build_mate_plan(
         &self,
+        tenant_id: &str,
         holder: &str,
         nick: &str,
         base_url: &str,
         token: &str,
     ) -> participant::Plan;
-    fn validate_grant_req(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest>;
+    fn validate_grant_req(
+        &self,
+        tenant_id: &str,
+        payload: &Bytes,
+        headers: &HeaderMap,
+    ) -> Outcome<GrantRequest>;
 
     fn validate_cont_req(
         &self,

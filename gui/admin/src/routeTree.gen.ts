@@ -13,10 +13,11 @@
 import { Route as rootRoute } from './routes/__root'
 import { Route as WalletRouteImport } from './routes/wallet/route'
 import { Route as TransferProcessRouteImport } from './routes/transfer-process/route'
-import { Route as SubscriptionsRouteImport } from './routes/subscriptions/route'
 import { Route as ParticipantsRouteImport } from './routes/participants/route'
+import { Route as OauthRouteImport } from './routes/oauth/route'
 import { Route as MyCatalogRouteImport } from './routes/my-catalog/route'
 import { Route as KeystoreRouteImport } from './routes/keystore/route'
+import { Route as EventsRouteImport } from './routes/events/route'
 import { Route as ContractNegotiationRouteImport } from './routes/contract-negotiation/route'
 import { Route as ConnectionsRouteImport } from './routes/connections/route'
 import { Route as CatalogRouteImport } from './routes/catalog/route'
@@ -25,11 +26,12 @@ import { Route as AgreementsRouteImport } from './routes/agreements/route'
 import { Route as IndexImport } from './routes/index'
 import { Route as WalletIndexImport } from './routes/wallet/index'
 import { Route as TransferProcessIndexImport } from './routes/transfer-process/index'
-import { Route as SubscriptionsIndexImport } from './routes/subscriptions/index'
 import { Route as ParticipantsIndexImport } from './routes/participants/index'
+import { Route as OauthIndexImport } from './routes/oauth/index'
 import { Route as MyCatalogIndexImport } from './routes/my-catalog/index'
 import { Route as LoginIndexImport } from './routes/login/index'
 import { Route as KeystoreIndexImport } from './routes/keystore/index'
+import { Route as EventsIndexImport } from './routes/events/index'
 import { Route as ContractNegotiationIndexImport } from './routes/contract-negotiation/index'
 import { Route as ConnectionsIndexImport } from './routes/connections/index'
 import { Route as CatalogIndexImport } from './routes/catalog/index'
@@ -41,9 +43,15 @@ import { Route as WalletKeysImport } from './routes/wallet/keys'
 import { Route as WalletInfoImport } from './routes/wallet/info'
 import { Route as WalletDidImport } from './routes/wallet/did'
 import { Route as WalletCredentialsImport } from './routes/wallet/credentials'
+import { Route as OauthPatsImport } from './routes/oauth/pats'
+import { Route as OauthClientsImport } from './routes/oauth/clients'
+import { Route as MyCatalogNewImport } from './routes/my-catalog/new'
 import { Route as KeystoreSecretsImport } from './routes/keystore/secrets'
 import { Route as KeystoreParametersImport } from './routes/keystore/parameters'
 import { Route as KeystoreConfigImport } from './routes/keystore/config'
+import { Route as EventsSubscriptionsImport } from './routes/events/subscriptions'
+import { Route as EventsFeedImport } from './routes/events/feed'
+import { Route as EventsDlqImport } from './routes/events/dlq'
 import { Route as AuthorityRequestDetailsImport } from './routes/authority/request-details'
 import { Route as AuthorityNewImport } from './routes/authority/new'
 import { Route as AgreementsAgreementIdImport } from './routes/agreements/$agreementId'
@@ -84,15 +92,15 @@ const TransferProcessRouteRoute = TransferProcessRouteImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const SubscriptionsRouteRoute = SubscriptionsRouteImport.update({
-  id: '/subscriptions',
-  path: '/subscriptions',
-  getParentRoute: () => rootRoute,
-} as any)
-
 const ParticipantsRouteRoute = ParticipantsRouteImport.update({
   id: '/participants',
   path: '/participants',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const OauthRouteRoute = OauthRouteImport.update({
+  id: '/oauth',
+  path: '/oauth',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -105,6 +113,12 @@ const MyCatalogRouteRoute = MyCatalogRouteImport.update({
 const KeystoreRouteRoute = KeystoreRouteImport.update({
   id: '/keystore',
   path: '/keystore',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const EventsRouteRoute = EventsRouteImport.update({
+  id: '/events',
+  path: '/events',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -156,16 +170,16 @@ const TransferProcessIndexRoute = TransferProcessIndexImport.update({
   getParentRoute: () => TransferProcessRouteRoute,
 } as any)
 
-const SubscriptionsIndexRoute = SubscriptionsIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => SubscriptionsRouteRoute,
-} as any)
-
 const ParticipantsIndexRoute = ParticipantsIndexImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => ParticipantsRouteRoute,
+} as any)
+
+const OauthIndexRoute = OauthIndexImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OauthRouteRoute,
 } as any)
 
 const MyCatalogIndexRoute = MyCatalogIndexImport.update({
@@ -184,6 +198,12 @@ const KeystoreIndexRoute = KeystoreIndexImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => KeystoreRouteRoute,
+} as any)
+
+const EventsIndexRoute = EventsIndexImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EventsRouteRoute,
 } as any)
 
 const ContractNegotiationIndexRoute = ContractNegotiationIndexImport.update({
@@ -252,6 +272,24 @@ const WalletCredentialsRoute = WalletCredentialsImport.update({
   getParentRoute: () => WalletRouteRoute,
 } as any)
 
+const OauthPatsRoute = OauthPatsImport.update({
+  id: '/pats',
+  path: '/pats',
+  getParentRoute: () => OauthRouteRoute,
+} as any)
+
+const OauthClientsRoute = OauthClientsImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => OauthRouteRoute,
+} as any)
+
+const MyCatalogNewRoute = MyCatalogNewImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => MyCatalogRouteRoute,
+} as any)
+
 const KeystoreSecretsRoute = KeystoreSecretsImport.update({
   id: '/secrets',
   path: '/secrets',
@@ -268,6 +306,24 @@ const KeystoreConfigRoute = KeystoreConfigImport.update({
   id: '/config',
   path: '/config',
   getParentRoute: () => KeystoreRouteRoute,
+} as any)
+
+const EventsSubscriptionsRoute = EventsSubscriptionsImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
+  getParentRoute: () => EventsRouteRoute,
+} as any)
+
+const EventsFeedRoute = EventsFeedImport.update({
+  id: '/feed',
+  path: '/feed',
+  getParentRoute: () => EventsRouteRoute,
+} as any)
+
+const EventsDlqRoute = EventsDlqImport.update({
+  id: '/dlq',
+  path: '/dlq',
+  getParentRoute: () => EventsRouteRoute,
 } as any)
 
 const AuthorityRequestDetailsRoute = AuthorityRequestDetailsImport.update({
@@ -482,6 +538,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContractNegotiationRouteImport
       parentRoute: typeof rootRoute
     }
+    '/events': {
+      id: '/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof EventsRouteImport
+      parentRoute: typeof rootRoute
+    }
     '/keystore': {
       id: '/keystore'
       path: '/keystore'
@@ -496,18 +559,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyCatalogRouteImport
       parentRoute: typeof rootRoute
     }
+    '/oauth': {
+      id: '/oauth'
+      path: '/oauth'
+      fullPath: '/oauth'
+      preLoaderRoute: typeof OauthRouteImport
+      parentRoute: typeof rootRoute
+    }
     '/participants': {
       id: '/participants'
       path: '/participants'
       fullPath: '/participants'
       preLoaderRoute: typeof ParticipantsRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/subscriptions': {
-      id: '/subscriptions'
-      path: '/subscriptions'
-      fullPath: '/subscriptions'
-      preLoaderRoute: typeof SubscriptionsRouteImport
       parentRoute: typeof rootRoute
     }
     '/transfer-process': {
@@ -594,6 +657,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorityRequestDetailsImport
       parentRoute: typeof AuthorityRouteImport
     }
+    '/events/dlq': {
+      id: '/events/dlq'
+      path: '/dlq'
+      fullPath: '/events/dlq'
+      preLoaderRoute: typeof EventsDlqImport
+      parentRoute: typeof EventsRouteImport
+    }
+    '/events/feed': {
+      id: '/events/feed'
+      path: '/feed'
+      fullPath: '/events/feed'
+      preLoaderRoute: typeof EventsFeedImport
+      parentRoute: typeof EventsRouteImport
+    }
+    '/events/subscriptions': {
+      id: '/events/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/events/subscriptions'
+      preLoaderRoute: typeof EventsSubscriptionsImport
+      parentRoute: typeof EventsRouteImport
+    }
     '/keystore/config': {
       id: '/keystore/config'
       path: '/config'
@@ -614,6 +698,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/keystore/secrets'
       preLoaderRoute: typeof KeystoreSecretsImport
       parentRoute: typeof KeystoreRouteImport
+    }
+    '/my-catalog/new': {
+      id: '/my-catalog/new'
+      path: '/new'
+      fullPath: '/my-catalog/new'
+      preLoaderRoute: typeof MyCatalogNewImport
+      parentRoute: typeof MyCatalogRouteImport
+    }
+    '/oauth/clients': {
+      id: '/oauth/clients'
+      path: '/clients'
+      fullPath: '/oauth/clients'
+      preLoaderRoute: typeof OauthClientsImport
+      parentRoute: typeof OauthRouteImport
+    }
+    '/oauth/pats': {
+      id: '/oauth/pats'
+      path: '/pats'
+      fullPath: '/oauth/pats'
+      preLoaderRoute: typeof OauthPatsImport
+      parentRoute: typeof OauthRouteImport
     }
     '/wallet/credentials': {
       id: '/wallet/credentials'
@@ -692,6 +797,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContractNegotiationIndexImport
       parentRoute: typeof ContractNegotiationRouteImport
     }
+    '/events/': {
+      id: '/events/'
+      path: '/'
+      fullPath: '/events/'
+      preLoaderRoute: typeof EventsIndexImport
+      parentRoute: typeof EventsRouteImport
+    }
     '/keystore/': {
       id: '/keystore/'
       path: '/'
@@ -713,19 +825,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyCatalogIndexImport
       parentRoute: typeof MyCatalogRouteImport
     }
+    '/oauth/': {
+      id: '/oauth/'
+      path: '/'
+      fullPath: '/oauth/'
+      preLoaderRoute: typeof OauthIndexImport
+      parentRoute: typeof OauthRouteImport
+    }
     '/participants/': {
       id: '/participants/'
       path: '/'
       fullPath: '/participants/'
       preLoaderRoute: typeof ParticipantsIndexImport
       parentRoute: typeof ParticipantsRouteImport
-    }
-    '/subscriptions/': {
-      id: '/subscriptions/'
-      path: '/'
-      fullPath: '/subscriptions/'
-      preLoaderRoute: typeof SubscriptionsIndexImport
-      parentRoute: typeof SubscriptionsRouteImport
     }
     '/transfer-process/': {
       id: '/transfer-process/'
@@ -1015,6 +1127,24 @@ const ContractNegotiationRouteRouteWithChildren =
     ContractNegotiationRouteRouteChildren,
   )
 
+interface EventsRouteRouteChildren {
+  EventsDlqRoute: typeof EventsDlqRoute
+  EventsFeedRoute: typeof EventsFeedRoute
+  EventsSubscriptionsRoute: typeof EventsSubscriptionsRoute
+  EventsIndexRoute: typeof EventsIndexRoute
+}
+
+const EventsRouteRouteChildren: EventsRouteRouteChildren = {
+  EventsDlqRoute: EventsDlqRoute,
+  EventsFeedRoute: EventsFeedRoute,
+  EventsSubscriptionsRoute: EventsSubscriptionsRoute,
+  EventsIndexRoute: EventsIndexRoute,
+}
+
+const EventsRouteRouteWithChildren = EventsRouteRoute._addFileChildren(
+  EventsRouteRouteChildren,
+)
+
 interface KeystoreRouteRouteChildren {
   KeystoreConfigRoute: typeof KeystoreConfigRoute
   KeystoreParametersRoute: typeof KeystoreParametersRoute
@@ -1034,15 +1164,33 @@ const KeystoreRouteRouteWithChildren = KeystoreRouteRoute._addFileChildren(
 )
 
 interface MyCatalogRouteRouteChildren {
+  MyCatalogNewRoute: typeof MyCatalogNewRoute
   MyCatalogIndexRoute: typeof MyCatalogIndexRoute
 }
 
 const MyCatalogRouteRouteChildren: MyCatalogRouteRouteChildren = {
+  MyCatalogNewRoute: MyCatalogNewRoute,
   MyCatalogIndexRoute: MyCatalogIndexRoute,
 }
 
 const MyCatalogRouteRouteWithChildren = MyCatalogRouteRoute._addFileChildren(
   MyCatalogRouteRouteChildren,
+)
+
+interface OauthRouteRouteChildren {
+  OauthClientsRoute: typeof OauthClientsRoute
+  OauthPatsRoute: typeof OauthPatsRoute
+  OauthIndexRoute: typeof OauthIndexRoute
+}
+
+const OauthRouteRouteChildren: OauthRouteRouteChildren = {
+  OauthClientsRoute: OauthClientsRoute,
+  OauthPatsRoute: OauthPatsRoute,
+  OauthIndexRoute: OauthIndexRoute,
+}
+
+const OauthRouteRouteWithChildren = OauthRouteRoute._addFileChildren(
+  OauthRouteRouteChildren,
 )
 
 interface ParticipantsParticipantIdRouteRouteChildren {
@@ -1072,17 +1220,6 @@ const ParticipantsRouteRouteChildren: ParticipantsRouteRouteChildren = {
 
 const ParticipantsRouteRouteWithChildren =
   ParticipantsRouteRoute._addFileChildren(ParticipantsRouteRouteChildren)
-
-interface SubscriptionsRouteRouteChildren {
-  SubscriptionsIndexRoute: typeof SubscriptionsIndexRoute
-}
-
-const SubscriptionsRouteRouteChildren: SubscriptionsRouteRouteChildren = {
-  SubscriptionsIndexRoute: SubscriptionsIndexRoute,
-}
-
-const SubscriptionsRouteRouteWithChildren =
-  SubscriptionsRouteRoute._addFileChildren(SubscriptionsRouteRouteChildren)
 
 interface TransferProcessTransferProcessIdRouteRouteChildren {
   TransferProcessTransferProcessIdIndexRoute: typeof TransferProcessTransferProcessIdIndexRoute
@@ -1147,10 +1284,11 @@ export interface FileRoutesByFullPath {
   '/catalog': typeof CatalogRouteRouteWithChildren
   '/connections': typeof ConnectionsRouteRouteWithChildren
   '/contract-negotiation': typeof ContractNegotiationRouteRouteWithChildren
+  '/events': typeof EventsRouteRouteWithChildren
   '/keystore': typeof KeystoreRouteRouteWithChildren
   '/my-catalog': typeof MyCatalogRouteRouteWithChildren
+  '/oauth': typeof OauthRouteRouteWithChildren
   '/participants': typeof ParticipantsRouteRouteWithChildren
-  '/subscriptions': typeof SubscriptionsRouteRouteWithChildren
   '/transfer-process': typeof TransferProcessRouteRouteWithChildren
   '/wallet': typeof WalletRouteRouteWithChildren
   '/catalog/$catalogId': typeof CatalogCatalogIdRouteRouteWithChildren
@@ -1163,9 +1301,15 @@ export interface FileRoutesByFullPath {
   '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
   '/authority/new': typeof AuthorityNewRoute
   '/authority/request-details': typeof AuthorityRequestDetailsRoute
+  '/events/dlq': typeof EventsDlqRoute
+  '/events/feed': typeof EventsFeedRoute
+  '/events/subscriptions': typeof EventsSubscriptionsRoute
   '/keystore/config': typeof KeystoreConfigRoute
   '/keystore/parameters': typeof KeystoreParametersRoute
   '/keystore/secrets': typeof KeystoreSecretsRoute
+  '/my-catalog/new': typeof MyCatalogNewRoute
+  '/oauth/clients': typeof OauthClientsRoute
+  '/oauth/pats': typeof OauthPatsRoute
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
   '/wallet/info': typeof WalletInfoRoute
@@ -1177,11 +1321,12 @@ export interface FileRoutesByFullPath {
   '/catalog/': typeof CatalogIndexRoute
   '/connections/': typeof ConnectionsIndexRoute
   '/contract-negotiation/': typeof ContractNegotiationIndexRoute
+  '/events/': typeof EventsIndexRoute
   '/keystore/': typeof KeystoreIndexRoute
   '/login': typeof LoginIndexRoute
   '/my-catalog/': typeof MyCatalogIndexRoute
+  '/oauth/': typeof OauthIndexRoute
   '/participants/': typeof ParticipantsIndexRoute
-  '/subscriptions/': typeof SubscriptionsIndexRoute
   '/transfer-process/': typeof TransferProcessIndexRoute
   '/wallet/': typeof WalletIndexRoute
   '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
@@ -1207,9 +1352,15 @@ export interface FileRoutesByTo {
   '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
   '/authority/new': typeof AuthorityNewRoute
   '/authority/request-details': typeof AuthorityRequestDetailsRoute
+  '/events/dlq': typeof EventsDlqRoute
+  '/events/feed': typeof EventsFeedRoute
+  '/events/subscriptions': typeof EventsSubscriptionsRoute
   '/keystore/config': typeof KeystoreConfigRoute
   '/keystore/parameters': typeof KeystoreParametersRoute
   '/keystore/secrets': typeof KeystoreSecretsRoute
+  '/my-catalog/new': typeof MyCatalogNewRoute
+  '/oauth/clients': typeof OauthClientsRoute
+  '/oauth/pats': typeof OauthPatsRoute
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
   '/wallet/info': typeof WalletInfoRoute
@@ -1221,11 +1372,12 @@ export interface FileRoutesByTo {
   '/catalog': typeof CatalogIndexRoute
   '/connections': typeof ConnectionsIndexRoute
   '/contract-negotiation': typeof ContractNegotiationIndexRoute
+  '/events': typeof EventsIndexRoute
   '/keystore': typeof KeystoreIndexRoute
   '/login': typeof LoginIndexRoute
   '/my-catalog': typeof MyCatalogIndexRoute
+  '/oauth': typeof OauthIndexRoute
   '/participants': typeof ParticipantsIndexRoute
-  '/subscriptions': typeof SubscriptionsIndexRoute
   '/transfer-process': typeof TransferProcessIndexRoute
   '/wallet': typeof WalletIndexRoute
   '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
@@ -1253,10 +1405,11 @@ export interface FileRoutesById {
   '/catalog': typeof CatalogRouteRouteWithChildren
   '/connections': typeof ConnectionsRouteRouteWithChildren
   '/contract-negotiation': typeof ContractNegotiationRouteRouteWithChildren
+  '/events': typeof EventsRouteRouteWithChildren
   '/keystore': typeof KeystoreRouteRouteWithChildren
   '/my-catalog': typeof MyCatalogRouteRouteWithChildren
+  '/oauth': typeof OauthRouteRouteWithChildren
   '/participants': typeof ParticipantsRouteRouteWithChildren
-  '/subscriptions': typeof SubscriptionsRouteRouteWithChildren
   '/transfer-process': typeof TransferProcessRouteRouteWithChildren
   '/wallet': typeof WalletRouteRouteWithChildren
   '/catalog/$catalogId': typeof CatalogCatalogIdRouteRouteWithChildren
@@ -1269,9 +1422,15 @@ export interface FileRoutesById {
   '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
   '/authority/new': typeof AuthorityNewRoute
   '/authority/request-details': typeof AuthorityRequestDetailsRoute
+  '/events/dlq': typeof EventsDlqRoute
+  '/events/feed': typeof EventsFeedRoute
+  '/events/subscriptions': typeof EventsSubscriptionsRoute
   '/keystore/config': typeof KeystoreConfigRoute
   '/keystore/parameters': typeof KeystoreParametersRoute
   '/keystore/secrets': typeof KeystoreSecretsRoute
+  '/my-catalog/new': typeof MyCatalogNewRoute
+  '/oauth/clients': typeof OauthClientsRoute
+  '/oauth/pats': typeof OauthPatsRoute
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
   '/wallet/info': typeof WalletInfoRoute
@@ -1283,11 +1442,12 @@ export interface FileRoutesById {
   '/catalog/': typeof CatalogIndexRoute
   '/connections/': typeof ConnectionsIndexRoute
   '/contract-negotiation/': typeof ContractNegotiationIndexRoute
+  '/events/': typeof EventsIndexRoute
   '/keystore/': typeof KeystoreIndexRoute
   '/login/': typeof LoginIndexRoute
   '/my-catalog/': typeof MyCatalogIndexRoute
+  '/oauth/': typeof OauthIndexRoute
   '/participants/': typeof ParticipantsIndexRoute
-  '/subscriptions/': typeof SubscriptionsIndexRoute
   '/transfer-process/': typeof TransferProcessIndexRoute
   '/wallet/': typeof WalletIndexRoute
   '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
@@ -1316,10 +1476,11 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/connections'
     | '/contract-negotiation'
+    | '/events'
     | '/keystore'
     | '/my-catalog'
+    | '/oauth'
     | '/participants'
-    | '/subscriptions'
     | '/transfer-process'
     | '/wallet'
     | '/catalog/$catalogId'
@@ -1332,9 +1493,15 @@ export interface FileRouteTypes {
     | '/agreements/$agreementId'
     | '/authority/new'
     | '/authority/request-details'
+    | '/events/dlq'
+    | '/events/feed'
+    | '/events/subscriptions'
     | '/keystore/config'
     | '/keystore/parameters'
     | '/keystore/secrets'
+    | '/my-catalog/new'
+    | '/oauth/clients'
+    | '/oauth/pats'
     | '/wallet/credentials'
     | '/wallet/did'
     | '/wallet/info'
@@ -1346,11 +1513,12 @@ export interface FileRouteTypes {
     | '/catalog/'
     | '/connections/'
     | '/contract-negotiation/'
+    | '/events/'
     | '/keystore/'
     | '/login'
     | '/my-catalog/'
+    | '/oauth/'
     | '/participants/'
-    | '/subscriptions/'
     | '/transfer-process/'
     | '/wallet/'
     | '/connections/received/request-details'
@@ -1375,9 +1543,15 @@ export interface FileRouteTypes {
     | '/agreements/$agreementId'
     | '/authority/new'
     | '/authority/request-details'
+    | '/events/dlq'
+    | '/events/feed'
+    | '/events/subscriptions'
     | '/keystore/config'
     | '/keystore/parameters'
     | '/keystore/secrets'
+    | '/my-catalog/new'
+    | '/oauth/clients'
+    | '/oauth/pats'
     | '/wallet/credentials'
     | '/wallet/did'
     | '/wallet/info'
@@ -1389,11 +1563,12 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/connections'
     | '/contract-negotiation'
+    | '/events'
     | '/keystore'
     | '/login'
     | '/my-catalog'
+    | '/oauth'
     | '/participants'
-    | '/subscriptions'
     | '/transfer-process'
     | '/wallet'
     | '/connections/received/request-details'
@@ -1419,10 +1594,11 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/connections'
     | '/contract-negotiation'
+    | '/events'
     | '/keystore'
     | '/my-catalog'
+    | '/oauth'
     | '/participants'
-    | '/subscriptions'
     | '/transfer-process'
     | '/wallet'
     | '/catalog/$catalogId'
@@ -1435,9 +1611,15 @@ export interface FileRouteTypes {
     | '/agreements/$agreementId'
     | '/authority/new'
     | '/authority/request-details'
+    | '/events/dlq'
+    | '/events/feed'
+    | '/events/subscriptions'
     | '/keystore/config'
     | '/keystore/parameters'
     | '/keystore/secrets'
+    | '/my-catalog/new'
+    | '/oauth/clients'
+    | '/oauth/pats'
     | '/wallet/credentials'
     | '/wallet/did'
     | '/wallet/info'
@@ -1449,11 +1631,12 @@ export interface FileRouteTypes {
     | '/catalog/'
     | '/connections/'
     | '/contract-negotiation/'
+    | '/events/'
     | '/keystore/'
     | '/login/'
     | '/my-catalog/'
+    | '/oauth/'
     | '/participants/'
-    | '/subscriptions/'
     | '/transfer-process/'
     | '/wallet/'
     | '/connections/received/request-details'
@@ -1481,10 +1664,11 @@ export interface RootRouteChildren {
   CatalogRouteRoute: typeof CatalogRouteRouteWithChildren
   ConnectionsRouteRoute: typeof ConnectionsRouteRouteWithChildren
   ContractNegotiationRouteRoute: typeof ContractNegotiationRouteRouteWithChildren
+  EventsRouteRoute: typeof EventsRouteRouteWithChildren
   KeystoreRouteRoute: typeof KeystoreRouteRouteWithChildren
   MyCatalogRouteRoute: typeof MyCatalogRouteRouteWithChildren
+  OauthRouteRoute: typeof OauthRouteRouteWithChildren
   ParticipantsRouteRoute: typeof ParticipantsRouteRouteWithChildren
-  SubscriptionsRouteRoute: typeof SubscriptionsRouteRouteWithChildren
   TransferProcessRouteRoute: typeof TransferProcessRouteRouteWithChildren
   WalletRouteRoute: typeof WalletRouteRouteWithChildren
   LoginIndexRoute: typeof LoginIndexRoute
@@ -1497,10 +1681,11 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogRouteRoute: CatalogRouteRouteWithChildren,
   ConnectionsRouteRoute: ConnectionsRouteRouteWithChildren,
   ContractNegotiationRouteRoute: ContractNegotiationRouteRouteWithChildren,
+  EventsRouteRoute: EventsRouteRouteWithChildren,
   KeystoreRouteRoute: KeystoreRouteRouteWithChildren,
   MyCatalogRouteRoute: MyCatalogRouteRouteWithChildren,
+  OauthRouteRoute: OauthRouteRouteWithChildren,
   ParticipantsRouteRoute: ParticipantsRouteRouteWithChildren,
-  SubscriptionsRouteRoute: SubscriptionsRouteRouteWithChildren,
   TransferProcessRouteRoute: TransferProcessRouteRouteWithChildren,
   WalletRouteRoute: WalletRouteRouteWithChildren,
   LoginIndexRoute: LoginIndexRoute,
@@ -1522,10 +1707,11 @@ export const routeTree = rootRoute
         "/catalog",
         "/connections",
         "/contract-negotiation",
+        "/events",
         "/keystore",
         "/my-catalog",
+        "/oauth",
         "/participants",
-        "/subscriptions",
         "/transfer-process",
         "/wallet",
         "/login/"
@@ -1572,6 +1758,15 @@ export const routeTree = rootRoute
         "/contract-negotiation/"
       ]
     },
+    "/events": {
+      "filePath": "events/route.tsx",
+      "children": [
+        "/events/dlq",
+        "/events/feed",
+        "/events/subscriptions",
+        "/events/"
+      ]
+    },
     "/keystore": {
       "filePath": "keystore/route.tsx",
       "children": [
@@ -1584,7 +1779,16 @@ export const routeTree = rootRoute
     "/my-catalog": {
       "filePath": "my-catalog/route.tsx",
       "children": [
+        "/my-catalog/new",
         "/my-catalog/"
+      ]
+    },
+    "/oauth": {
+      "filePath": "oauth/route.tsx",
+      "children": [
+        "/oauth/clients",
+        "/oauth/pats",
+        "/oauth/"
       ]
     },
     "/participants": {
@@ -1592,12 +1796,6 @@ export const routeTree = rootRoute
       "children": [
         "/participants/$participantId",
         "/participants/"
-      ]
-    },
-    "/subscriptions": {
-      "filePath": "subscriptions/route.tsx",
-      "children": [
-        "/subscriptions/"
       ]
     },
     "/transfer-process": {
@@ -1688,6 +1886,18 @@ export const routeTree = rootRoute
       "filePath": "authority/request-details.tsx",
       "parent": "/authority"
     },
+    "/events/dlq": {
+      "filePath": "events/dlq.tsx",
+      "parent": "/events"
+    },
+    "/events/feed": {
+      "filePath": "events/feed.tsx",
+      "parent": "/events"
+    },
+    "/events/subscriptions": {
+      "filePath": "events/subscriptions.tsx",
+      "parent": "/events"
+    },
     "/keystore/config": {
       "filePath": "keystore/config.tsx",
       "parent": "/keystore"
@@ -1699,6 +1909,18 @@ export const routeTree = rootRoute
     "/keystore/secrets": {
       "filePath": "keystore/secrets.tsx",
       "parent": "/keystore"
+    },
+    "/my-catalog/new": {
+      "filePath": "my-catalog/new.tsx",
+      "parent": "/my-catalog"
+    },
+    "/oauth/clients": {
+      "filePath": "oauth/clients.tsx",
+      "parent": "/oauth"
+    },
+    "/oauth/pats": {
+      "filePath": "oauth/pats.tsx",
+      "parent": "/oauth"
     },
     "/wallet/credentials": {
       "filePath": "wallet/credentials.tsx",
@@ -1744,6 +1966,10 @@ export const routeTree = rootRoute
       "filePath": "contract-negotiation/index.tsx",
       "parent": "/contract-negotiation"
     },
+    "/events/": {
+      "filePath": "events/index.tsx",
+      "parent": "/events"
+    },
     "/keystore/": {
       "filePath": "keystore/index.tsx",
       "parent": "/keystore"
@@ -1755,13 +1981,13 @@ export const routeTree = rootRoute
       "filePath": "my-catalog/index.tsx",
       "parent": "/my-catalog"
     },
+    "/oauth/": {
+      "filePath": "oauth/index.tsx",
+      "parent": "/oauth"
+    },
     "/participants/": {
       "filePath": "participants/index.tsx",
       "parent": "/participants"
-    },
-    "/subscriptions/": {
-      "filePath": "subscriptions/index.tsx",
-      "parent": "/subscriptions"
     },
     "/transfer-process/": {
       "filePath": "transfer-process/index.tsx",

@@ -15,9 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::cache::cache_traits::redis_cache_connector_trait::RedisCacheConnectorTrait;
-use crate::cache::cache_traits::utils_trait::UtilsCacheTrait;
+use crate::cache::cache_traits::DESIRED_CACHE_TTL;
 use crate::{CatalogDto, DatasetDto};
+use common::cache::{RedisCacheConnectorTrait, UtilsCacheTrait};
 use std::str::FromStr;
 use urn::Urn;
 
@@ -33,6 +33,10 @@ impl DatasetCacheForRedis {
 
 impl UtilsCacheTrait for DatasetCacheForRedis {
     type Dto = DatasetDto;
+
+    fn key_namespace(&self) -> &str {
+        "ds_agent_catalogs"
+    }
 }
 
 impl RedisCacheConnectorTrait for DatasetCacheForRedis {
@@ -42,5 +46,8 @@ impl RedisCacheConnectorTrait for DatasetCacheForRedis {
     }
     fn get_entity_name(&self) -> &str {
         "datasets"
+    }
+    fn cache_ttl(&self) -> i32 {
+        DESIRED_CACHE_TTL
     }
 }

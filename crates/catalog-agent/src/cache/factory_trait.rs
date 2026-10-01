@@ -15,9 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::cache::cache_traits::entity_cache_trait::EntityCacheTrait;
 use crate::cache::cache_traits::peer_catalog_cache_trait::PeerCatalogCacheTrait;
 use crate::{CatalogDto, DataServiceDto, DatasetDto, DistributionDto, OdrlPolicyDto};
+use common::cache::EntityCacheTrait;
 use std::sync::Arc;
 
 #[mockall::automock]

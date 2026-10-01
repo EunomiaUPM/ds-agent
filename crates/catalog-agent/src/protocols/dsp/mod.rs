@@ -15,12 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::catalogs::CatalogEntityTrait;
-use crate::entities::data_services::DataServiceEntityTrait;
-use crate::entities::datasets::DatasetEntityTrait;
-use crate::entities::distributions::DistributionEntityTrait;
-use crate::entities::odrl_policies::OdrlPolicyEntityTrait;
-use crate::entities::peer_catalogs::PeerCatalogTrait;
 use crate::protocols::dsp::facades::well_known_rpc_facade::well_known_rpc_facade::WellKnownRPCFacadeForDSProtocol;
 use crate::protocols::dsp::facades::FacadeService;
 use crate::protocols::dsp::http::protocol::DspRouter;
@@ -35,12 +29,19 @@ use crate::protocols::dsp::validator::validators::rpc::validation_rpc_steps::Val
 use crate::protocols::dsp::validator::validators::validate_payload::ValidatePayloadService;
 use crate::protocols::dsp::validator::validators::validation_helpers::ValidationHelperService;
 use crate::protocols::protocol::ProtocolPluginTrait;
+use crate::services::catalogs::CatalogServiceTrait;
+use crate::services::data_services::DataServiceServiceTrait;
+use crate::services::datasets::DatasetServiceTrait;
+use crate::services::distributions::DistributionServiceTrait;
+use crate::services::odrl_policies::OdrlPolicyServiceTrait;
+use crate::services::peer_catalogs::PeerCatalogServiceTrait;
 use axum::Router;
-use common::config::services::traits::CatalogConfigTrait;
+use common::auth::http::AuthHttpMiddleware;
+use common::auth::OauthTokenValidator;
 use common::config::services::CatalogConfig;
-use common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
-use common::facades::ssi_auth_facade::MatesFacadeTrait;
-use common::http_client::HttpClient;
+use common::facades::mates_facade::MatesFacadeTrait;
+use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
+use common::well_known::rpc::rpc::WellKnownRPCService;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
@@ -49,30 +50,35 @@ pub(crate) mod facades;
 pub(crate) mod http;
 pub(crate) mod orchestrator;
 pub(crate) mod protocol_types;
+pub(crate) mod setup;
 pub(crate) mod types;
 pub(crate) mod validator;
 
 pub struct CatalogDSP {
-    pub catalog_entities_service: Arc<dyn CatalogEntityTrait>,
-    pub data_service_entities_service: Arc<dyn DataServiceEntityTrait>,
-    pub dataset_entities_service: Arc<dyn DatasetEntityTrait>,
-    pub odrl_policies_service: Arc<dyn OdrlPolicyEntityTrait>,
-    pub distributions_entity_service: Arc<dyn DistributionEntityTrait>,
-    pub peer_catalog_entity_service: Arc<dyn PeerCatalogTrait>,
+    pub catalog_entities_service: Arc<dyn CatalogServiceTrait>,
+    pub data_service_entities_service: Arc<dyn DataServiceServiceTrait>,
+    pub dataset_entities_service: Arc<dyn DatasetServiceTrait>,
+    pub odrl_policies_service: Arc<dyn OdrlPolicyServiceTrait>,
+    pub distributions_entity_service: Arc<dyn DistributionServiceTrait>,
+    pub peer_catalog_entity_service: Arc<dyn PeerCatalogServiceTrait>,
     pub mates_facade: Arc<dyn MatesFacadeTrait>,
+    ssi_auth_facade: Arc<dyn SSIAuthFacadeTrait>,
     config: Arc<CatalogConfig>,
+    validator: Arc<dyn OauthTokenValidator>,
 }
 
 impl CatalogDSP {
     pub fn new(
-        catalog_entities_service: Arc<dyn CatalogEntityTrait>,
-        data_service_entities_service: Arc<dyn DataServiceEntityTrait>,
-        dataset_entities_service: Arc<dyn DatasetEntityTrait>,
-        odrl_policies_service: Arc<dyn OdrlPolicyEntityTrait>,
-        distributions_entity_service: Arc<dyn DistributionEntityTrait>,
-        peer_catalog_entity_service: Arc<dyn PeerCatalogTrait>,
+        catalog_entities_service: Arc<dyn CatalogServiceTrait>,
+        data_service_entities_service: Arc<dyn DataServiceServiceTrait>,
+        dataset_entities_service: Arc<dyn DatasetServiceTrait>,
+        odrl_policies_service: Arc<dyn OdrlPolicyServiceTrait>,
+        distributions_entity_service: Arc<dyn DistributionServiceTrait>,
+        peer_catalog_entity_service: Arc<dyn PeerCatalogServiceTrait>,
         mates_facade: Arc<dyn MatesFacadeTrait>,
+        ssi_auth_facade: Arc<dyn SSIAuthFacadeTrait>,
         config: Arc<CatalogConfig>,
+        validator: Arc<dyn OauthTokenValidator>,
     ) -> Self {
         Self {
             catalog_entities_service,
@@ -82,7 +88,9 @@ impl CatalogDSP {
             distributions_entity_service,
             peer_catalog_entity_service,
             mates_facade,
+            ssi_auth_facade,
             config,
+            validator,
         }
     }
 }
@@ -102,9 +110,6 @@ impl ProtocolPluginTrait for CatalogDSP {
     }
 
     async fn build_router(&self) -> Outcome<Router> {
-        // http
-        let http_client = Arc::new(HttpClient::new(10, 3));
-
         // Validator
         let validator_helper = Arc::new(ValidationHelperService::new());
         let validator_payload = Arc::new(ValidatePayloadService::new(validator_helper.clone()));
@@ -119,8 +124,7 @@ impl ProtocolPluginTrait for CatalogDSP {
 
         // facades
         let catalog_well_known_rpc_facade = Arc::new(WellKnownRPCFacadeForDSProtocol::new(
-            self.config.clone(),
-            http_client.clone(),
+            Arc::new(WellKnownRPCService::new(self.mates_facade.clone())),
         ));
         let facades = Arc::new(FacadeService::new(catalog_well_known_rpc_facade.clone()));
 
@@ -144,7 +148,6 @@ impl ProtocolPluginTrait for CatalogDSP {
         ));
         let rpc_orchestrator = Arc::new(RPCOrchestratorService::new(
             rpc_validation.clone(),
-            http_client.clone(),
             facades.clone(),
             rpc_persistence.clone(),
             self.mates_facade.clone(),
@@ -155,17 +158,19 @@ impl ProtocolPluginTrait for CatalogDSP {
         ));
 
         // router
-        let ssi_auth = Arc::new(SSIAuthFacadeService::new(
-            Arc::new(self.config.ssi_auth().clone()),
-            http_client.clone(),
-        ));
-        let dsp_router =
-            DspRouter::new(orchestrator_service.clone(), self.config.clone(), ssi_auth);
-        let rpc_router = RpcRouter::new(orchestrator_service.clone());
+        let dsp_router = DspRouter::new(
+            orchestrator_service.clone(),
+            self.config.clone(),
+            self.ssi_auth_facade.clone(),
+        );
+        let rpc_router = RpcRouter::new(orchestrator_service.clone())
+            .router()
+            .route_layer(axum::middleware::from_fn_with_state(
+                self.validator.clone(),
+                AuthHttpMiddleware::run,
+            ));
 
-        Ok(Router::new()
-            .merge(dsp_router.router())
-            .merge(rpc_router.router()))
+        Ok(Router::new().merge(dsp_router.router()).merge(rpc_router))
     }
 
     fn build_grpc_router(&self) -> Outcome<Option<Router>> {

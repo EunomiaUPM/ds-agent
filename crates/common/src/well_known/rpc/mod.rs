@@ -26,6 +26,8 @@ pub const DSP_CURRENT_VERSION: DSPProtocolVersions = DSPProtocolVersions::V2025_
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WellKnownRPCRequest {
+    /// Tenant whose participant registry holds `participant_id`.
+    pub tenant_id: String,
     pub participant_id: String,
 }
 #[async_trait::async_trait]

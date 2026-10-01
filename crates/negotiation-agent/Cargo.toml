@@ -1,6 +1,6 @@
 [package]
 name = "negotiation_agent"
-version = "0.3.8"
+version = "0.4.0"
 edition = "2024"
 
 [lib]
@@ -12,11 +12,13 @@ name = "negotiation_agent"
 path = "src/main.rs"
 
 [dependencies]
-common = { version = "0.3.8", path = "../common", default-features = false }
+common = { version = "0.4.0", path = "../common", default-features = false }
+events = { version = "0.4.0", path = "../events", default-features = false }
+catalog_agent = { version = "0.4.0", path = "../catalog-agent", default-features = false }
+oauth = { version = "0.4.0", path = "../oauth" }
 
 serde = { workspace = true }
 serde_json = { workspace = true }
-clap = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
@@ -37,7 +39,6 @@ prost = { workspace = true }
 tonic-prost = { workspace = true }
 prost-types = { workspace = true }
 tonic-reflection = { workspace = true }
-json_to_table = { workspace = true }
 ymir = { workspace = true }
 
 [build-dependencies]

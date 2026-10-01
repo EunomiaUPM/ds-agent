@@ -18,28 +18,35 @@
 use crate::data::entities::policy_template;
 use crate::data::entities::policy_template::NewPolicyTemplateModel;
 use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
+use crate::entities::filters::PolicyTemplateFilter;
+use common::paginated_spec::{Page, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait PolicyTemplatesRepositoryTrait: Send + Sync {
     async fn get_all_policy_templates(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<policy_template::Model>>;
+        filters: &PolicyTemplateFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<policy_template::Model>, Option<u64>)>;
     async fn get_batch_policy_templates(
         &self,
-        ids: &Vec<String>,
+        tenant_id: &str,
+        ids: &[String],
     ) -> Outcome<Vec<policy_template::Model>>;
     async fn get_policy_templates_by_id(
         &self,
-        template_id: &String,
+        tenant_id: &str,
+        template_id: &str,
     ) -> Outcome<Vec<policy_template::Model>>;
     async fn get_policy_template_by_id_and_version(
         &self,
-        template_id: &String,
-        version: &String,
+        tenant_id: &str,
+        template_id: &str,
+        version: &str,
     ) -> Outcome<Option<policy_template::Model>>;
     async fn create_policy_template(
         &self,
@@ -47,7 +54,8 @@ pub trait PolicyTemplatesRepositoryTrait: Send + Sync {
     ) -> Outcome<policy_template::Model>;
     async fn delete_policy_template_by_id_and_version(
         &self,
-        template_id: &String,
-        version: &String,
+        tenant_id: &str,
+        template_id: &str,
+        version: &str,
     ) -> Outcome<()>;
 }

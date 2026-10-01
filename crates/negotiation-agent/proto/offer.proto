@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 syntax = "proto3";
 
 package negotiation_agent.v1;
@@ -7,7 +24,7 @@ import "google/protobuf/empty.proto";
 import "models.proto";
 
 service NegotiationAgentOffersService {
-  rpc GetAllOffers (GetAllOffersRequest) returns (OfferListResponse);
+  rpc GetAllOffers (ListOffersRequest) returns (OfferListResponse);
   rpc GetBatchOffers (GetBatchOffersRequest) returns (OfferListResponse);
   rpc GetOffersByNegotiationProcess (GetOffersByNegotiationProcessRequest) returns (OfferListResponse);
   rpc GetOfferById (GetOfferByIdRequest) returns (OfferResponse);
@@ -17,9 +34,17 @@ service NegotiationAgentOffersService {
   rpc DeleteOffer (DeleteOfferRequest) returns (google.protobuf.Empty);
 }
 
-message GetAllOffersRequest {
-  optional uint64 limit = 1;
-  optional uint64 page = 2;
+// Auth: authorization Bearer <token> required; x-tenant-id metadata defaults to the token tenant.
+// Filter strings: "" = any.
+message ListOffersRequest {
+  string process_id = 1;
+  string offer_id = 2;
+  string target = 3;
+  string created_after = 4;  // RFC3339
+  string created_before = 5; // RFC3339
+  uint32 limit = 6;           // 0 = default (20)
+  string cursor = 7;          // "" = first page
+  string sort = 8;            // "" = created_at_desc | created_at_asc | updated_at_asc | updated_at_desc
 }
 
 message GetBatchOffersRequest {
@@ -55,7 +80,9 @@ message DeleteOfferRequest {
 }
 
 message OfferListResponse {
-  repeated Offer offers = 1;
+  repeated Offer items = 1;
+  string next_cursor = 2; // "" = no next page
+  uint64 total = 3;       // 0 = unknown
 }
 
 message OfferResponse {

@@ -44,7 +44,7 @@ const Oidc4vpPage = () => {
   return (
     <div className="max-w-2xl mx-auto py-8">
       <PageSection title="Verification Presentation (OID4VP)">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-10 backdrop-blur-md shadow-2xl space-y-8">
+        <div className="bg-ink/5 border border-ink/10 rounded-2xl p-10 backdrop-blur-md shadow-2xl space-y-8">
           <div className="text-center space-y-2">
             <ShieldCheck className="h-12 w-12 text-primary mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">
@@ -65,7 +65,7 @@ const Oidc4vpPage = () => {
                 placeholder="openid-vc://..."
                 value={uri}
                 onChange={(e) => setUri(e.target.value)}
-                className="bg-black/30 border-white/10 h-12 focus:ring-primary/50 text-sm font-mono"
+                className="bg-sunken/30 border-ink/10 h-12 focus:ring-primary/50 text-sm font-mono"
               />
             </div>
 
@@ -86,7 +86,7 @@ const Oidc4vpPage = () => {
           </form>
 
           {isSuccess && (
-            <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm text-center font-medium animate-in fade-in zoom-in duration-300">
+            <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400 text-sm text-center font-medium animate-in fade-in zoom-in duration-300">
               ✓ Authentication process completed successfully
             </div>
           )}

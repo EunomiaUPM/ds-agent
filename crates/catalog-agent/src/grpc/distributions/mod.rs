@@ -15,27 +15,37 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::distributions::{
-    DistributionEntityTrait, EditDistributionDto, NewDistributionDto,
-};
+mod mappers;
+
+use std::sync::Arc;
+
 use crate::grpc::api::catalog_agent::distribution_entity_service_server::DistributionEntityService;
 use crate::grpc::api::catalog_agent::{
-    CreateDistributionRequest, DeleteByIdRequest, Distribution, DistributionListResponse,
-    DistributionResponse, GetAllRequest, GetBatchRequest, GetByIdRequest, GetByParentIdRequest,
-    GetDistributionByFormatRequest, PutDistributionRequest,
+    CreateDistributionRequest, DeleteByIdRequest, DistributionListResponse, DistributionResponse,
+    GetBatchRequest, GetByIdRequest, GetByParentIdRequest, GetDistributionByFormatRequest,
+    ListDistributionsRequest, PutDistributionRequest,
 };
-use std::str::FromStr;
-use std::sync::Arc;
+use crate::services::distributions::DistributionServiceTrait;
+use common::auth::grpc::GrpcAuth;
+use common::auth::OauthTokenValidator;
+use common::grpc::{IntoStatus, ListParams, ProtoField, ProtoFieldList};
 use tonic::{Request, Response, Status};
-use urn::Urn;
+use ymir::errors::Errors;
 
 pub struct DistributionEntityGrpc {
-    service: Arc<dyn DistributionEntityTrait>,
+    service: Arc<dyn DistributionServiceTrait>,
+    auth: GrpcAuth,
 }
 
 impl DistributionEntityGrpc {
-    pub fn new(service: Arc<dyn DistributionEntityTrait>) -> Self {
-        Self { service }
+    pub fn new(
+        service: Arc<dyn DistributionServiceTrait>,
+        validator: Arc<dyn OauthTokenValidator>,
+    ) -> Self {
+        Self {
+            service,
+            auth: GrpcAuth::new(validator),
+        }
     }
 }
 
@@ -43,161 +53,114 @@ impl DistributionEntityGrpc {
 impl DistributionEntityService for DistributionEntityGrpc {
     async fn get_all_distributions(
         &self,
-        request: Request<GetAllRequest>,
+        request: Request<ListDistributionsRequest>,
     ) -> Result<Response<DistributionListResponse>, Status> {
-        let req = request.into_inner();
-        let distributions = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let params = ListParams::try_from(request.into_inner())?;
+        let result = self
             .service
-            .get_all_distributions(req.limit, req.page)
+            .get_all_distributions(&scope, &params.filter, &params.page, &params.sort)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        let proto_distributions: Vec<Distribution> =
-            distributions.into_iter().map(Into::into).collect();
-
-        Ok(Response::new(DistributionListResponse {
-            distributions: proto_distributions,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(result.into()))
     }
 
     async fn get_batch_distributions(
         &self,
         request: Request<GetBatchRequest>,
     ) -> Result<Response<DistributionListResponse>, Status> {
-        let req = request.into_inner();
-
-        let urns: Vec<Urn> = req
-            .ids
-            .iter()
-            .map(|id| Urn::from_str(id))
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|_| Status::invalid_argument("One or more IDs are invalid URNs"))?;
-
-        let distributions = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let ids = request.into_inner().ids.urns("ids")?;
+        let dtos = self
             .service
-            .get_batch_distributions(&urns)
+            .get_batch_distributions(&scope, &ids)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        let proto_distributions: Vec<Distribution> =
-            distributions.into_iter().map(Into::into).collect();
-
-        Ok(Response::new(DistributionListResponse {
-            distributions: proto_distributions,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(dtos.into()))
     }
 
     async fn get_distributions_by_dataset_id(
         &self,
         request: Request<GetByParentIdRequest>,
     ) -> Result<Response<DistributionListResponse>, Status> {
-        let req = request.into_inner();
-        let dataset_urn = Urn::from_str(&req.parent_id)
-            .map_err(|_| Status::invalid_argument("Invalid Dataset URN"))?;
-
-        let distributions = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let dataset_id = request.into_inner().parent_id.urn("parent_id")?;
+        let dtos = self
             .service
-            .get_distributions_by_dataset_id(&dataset_urn)
+            .get_distributions_by_dataset_id(&scope, &dataset_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        let proto_distributions: Vec<Distribution> =
-            distributions.into_iter().map(Into::into).collect();
-
-        Ok(Response::new(DistributionListResponse {
-            distributions: proto_distributions,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(dtos.into()))
     }
 
     async fn get_distribution_by_dataset_and_format(
         &self,
         request: Request<GetDistributionByFormatRequest>,
     ) -> Result<Response<DistributionResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
-        let dataset_urn = Urn::from_str(&req.dataset_id)
-            .map_err(|_| Status::invalid_argument("Invalid Dataset URN"))?;
-
-        let distribution_dto = self
+        let dataset_id = req.dataset_id.urn("dataset_id")?;
+        let dto = self
             .service
-            .get_distribution_by_dataset_id_and_dct_format(&dataset_urn, &req.dct_formats)
+            .get_distribution_by_dataset_id_and_dct_format(&scope, &dataset_id, &req.dct_formats)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        Ok(Response::new(DistributionResponse {
-            distribution: Some(distribution_dto.into()),
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(dto.into()))
     }
 
     async fn get_distribution_by_id(
         &self,
         request: Request<GetByIdRequest>,
     ) -> Result<Response<DistributionResponse>, Status> {
-        let req = request.into_inner();
-        let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
-
-        let distribution_opt = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id.urn("id")?;
+        let dto = self
             .service
-            .get_distribution_by_id(&urn)
+            .get_distribution_by_id(&scope, &id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        match distribution_opt {
-            Some(dto) => Ok(Response::new(DistributionResponse {
-                distribution: Some(dto.into()),
-            })),
-            None => Err(Status::not_found("Distribution not found")),
-        }
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(dto.into()))
     }
 
     async fn create_distribution(
         &self,
         request: Request<CreateDistributionRequest>,
     ) -> Result<Response<DistributionResponse>, Status> {
-        let req = request.into_inner();
-        let new_distribution_dto: NewDistributionDto = req.try_into()?;
-
-        let created_dto = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let dto = request.into_inner().try_into()?;
+        let created = self
             .service
-            .create_distribution(&new_distribution_dto)
+            .create_distribution(&scope, &dto)
             .await
-            .map_err(|e| Status::internal(format!("Failed to create distribution: {}", e)))?;
-
-        Ok(Response::new(DistributionResponse {
-            distribution: Some(created_dto.into()),
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(created.into()))
     }
 
     async fn put_distribution_by_id(
         &self,
         request: Request<PutDistributionRequest>,
     ) -> Result<Response<DistributionResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
-        let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
-        let edit_dto: EditDistributionDto = req.into();
-
-        let updated_dto = self
+        let id = req.id.urn("id")?;
+        let updated = self
             .service
-            .put_distribution_by_id(&urn, &edit_dto)
+            .put_distribution_by_id(&scope, &id, &req.into())
             .await
-            .map_err(|e| Status::internal(format!("Failed to update distribution: {}", e)))?;
-
-        Ok(Response::new(DistributionResponse {
-            distribution: Some(updated_dto.into()),
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(updated.into()))
     }
 
     async fn delete_distribution_by_id(
         &self,
         request: Request<DeleteByIdRequest>,
     ) -> Result<Response<()>, Status> {
-        let req = request.into_inner();
-        let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
-
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id.urn("id")?;
         self.service
-            .delete_distribution_by_id(&urn)
+            .delete_distribution_by_id(&scope, &id)
             .await
-            .map_err(|e| Status::internal(format!("Failed to delete distribution: {}", e)))?;
-
+            .map_err(Errors::into_status)?;
         Ok(Response::new(()))
     }
 }

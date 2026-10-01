@@ -1,6 +1,6 @@
 [package]
 name = "connector"
-version = "0.3.8"
+version = "0.4.0"
 edition = "2021"
 
 [lib]
@@ -8,7 +8,9 @@ name = "connector"
 path = "src/lib.rs"
 
 [dependencies]
-common = { version = "0.3.8", path = "../common", default-features = false }
+common = { version = "0.4.0", path = "../common", default-features = false }
+events = { version = "0.4.0", path = "../events" }
+oauth = { version = "0.4.0", path = "../oauth", default-features = false }
 
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -25,6 +27,7 @@ uuid = { workspace = true }
 async-trait = { workspace = true }
 ymir = { workspace = true }
 regex = { workspace = true }
+futures-util = { workspace = true }
 jaq-interpret = { workspace = true }
 jaq-parse = { workspace = true }
 urn = { workspace = true }

@@ -15,14 +15,18 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub mod admin_seed;
 pub mod cache;
 mod datahub;
 mod entity_client;
 mod gaia_config;
 pub mod min_known_config;
 pub mod roles;
+mod service_client;
 pub mod traits;
 
+pub use admin_seed::AdminSeedConfig;
 pub use datahub::DatahubConfig;
 pub use entity_client::*;
 pub use gaia_config::GaiaConfig;
+pub use service_client::ServiceClientConfig;

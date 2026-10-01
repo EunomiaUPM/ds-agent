@@ -8,11 +8,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use crate::services::gaia_self_attester::GaiaSelfAttesterTrait;
@@ -47,6 +47,7 @@ impl GaiaSelfAttester {
 
 #[async_trait]
 impl GaiaSelfAttesterTrait for GaiaSelfAttester {
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn generate_terms_cons_vc(&self) -> Outcome<VCJwtClaims> {
         let identity = self.identity.read().await;
         let holder_did = identity.did().id().to_string();
@@ -59,6 +60,7 @@ impl GaiaSelfAttesterTrait for GaiaSelfAttester {
         Ok(self.build(value, VcType::TermsAndConditions).await)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn generate_legal_person(&self) -> Outcome<VCJwtClaims> {
         let identity = self.identity.read().await;
         let holder_did = identity.did().id().to_string();

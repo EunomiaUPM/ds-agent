@@ -16,6 +16,6 @@
  */
 
 pub(crate) mod cache_redis;
-pub(crate) mod cache_traits;
+pub mod cache_traits;
 pub(crate) mod factory_redis;
-pub(crate) mod factory_trait;
+pub mod factory_trait;

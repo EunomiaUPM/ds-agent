@@ -1,52 +1,52 @@
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 /// Test helpers shared across authentication unit tests.
 ///
 /// Each function returns a `DataplaneContext` wired with a specific auth config
 /// so that individual authenticator tests can focus on behaviour rather than
 /// setup boilerplate.
-use crate::data::entities::dataplane_transfers;
-use crate::entities::dataplane_manager::dataplane_commands::{
+use crate::data::sea_orm::orm::dataplane_transfers;
+use crate::engine::dataplane_manager::dataplane_commands::{
     DataplaneInitCommandDirection, DataplaneInitCommandTypes,
 };
-use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
+use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::entities::dataplane_transfers::{
-    DataplaneTransferDto, InteractionMode, MockDataplaneTransfersEntitiesTrait, TransferRole,
-    TransferState,
+    DataplaneTransferDto, InteractionMode, TransferRole, TransferState,
 };
+use crate::services::dataplane_transfers::MockDataplaneTransferServiceTrait;
 use crate::DataplaneAddress;
 use common::test_utils::config_fixtures::transfer_config_fixture;
 use connector::{
-    ApiKeyLocation, AuthenticationConfig, BasicAuthConfig, ConnectorInstanceDto,
-    ConnectorInstanceTrait, ConnectorInstantiationDto, ConnectorMetadata, HttpSpec,
-    InteractionConfig, OAuthGrantType, ProtocolSpec, PullLifecycle, SecretSource, SecretString,
-    TemplateVecString,
+    ApiKeyLocation, AuthenticationConfig, BasicAuthConfig, ConnectorInstanceDto, ConnectorMetadata,
+    HttpSpec, InteractionConfig, OAuthGrantType, ProtocolSpec, PullLifecycle, SecretSource,
+    SecretString, TemplateVecString,
 };
-use mockall::mock;
 use serde_json::json;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
 
-// ── local mock for ConnectorInstanceTrait ────────────────────────────────────
+// local mock for ConnectorInstanceFacadeTrait ────────────────────────────────────
 
-mock! {
-    pub ConnectorInstance {}
-    #[async_trait::async_trait]
-    impl ConnectorInstanceTrait for ConnectorInstance {
-        async fn get_instance_by_id(&self, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
-        async fn get_instance_by_distribution(
-            &self,
-            distribution_id: &Urn,
-        ) -> Outcome<Option<ConnectorInstanceDto>>;
-        async fn upsert_instance(
-            &self,
-            dto: &mut ConnectorInstantiationDto,
-        ) -> Outcome<ConnectorInstanceDto>;
-        async fn delete_instance_by_id(&self, id: &Urn) -> Outcome<()>;
-    }
-}
+use connector::MockConnectorInstanceFacadeTrait as MockConnectorInstance;
 
-// ── internal helpers ──────────────────────────────────────────────────────────
+// internal helpers ──────────────────────────────────────────────────────────
 
 fn tp_urn() -> Urn {
     Urn::from_str("urn:transfer-process:test-1").unwrap()
@@ -88,6 +88,7 @@ fn dummy_connector(auth: AuthenticationConfig) -> ConnectorInstanceDto {
 fn provider_dto(state: TransferState) -> DataplaneTransferDto {
     DataplaneTransferDto {
         inner: dataplane_transfers::Model {
+            tenant_id: "tenant-1".to_string(),
             id: "urn:dataplane-transfer:test-1".to_string(),
             transfer_process_id: tp_urn().to_string(),
             role: TransferRole::Provider,
@@ -122,19 +123,20 @@ fn forward_address() -> DataplaneAddress {
 }
 
 async fn provider_context(auth: AuthenticationConfig) -> DataplaneContext {
-    let mut mock = MockDataplaneTransfersEntitiesTrait::new();
-    mock.expect_create_dataplane_transfer()
-        .returning(|_| Ok(provider_dto(TransferState::Init)));
+    let mut mock = MockDataplaneTransferServiceTrait::new();
+    mock.expect_create()
+        .returning(|_, _| Ok(provider_dto(TransferState::Init)));
     let connector = dummy_connector(auth);
     DataplaneContext::from_init(
         Arc::new(mock),
         Arc::new(MockConnectorInstance::new()),
         transfer_config_fixture(),
         DataplaneInitCommandTypes::AsProvider {
+            tenant_id: "tenant-1".to_string(),
             transfer_process_id: tp_urn(),
             connector_instance: connector,
             direction: DataplaneInitCommandDirection::Pull {
-                data_address: forward_address(),
+                data_address: Some(forward_address()),
             },
         },
     )
@@ -142,7 +144,7 @@ async fn provider_context(auth: AuthenticationConfig) -> DataplaneContext {
     .unwrap()
 }
 
-// ── public fixtures ───────────────────────────────────────────────────────────
+// public fixtures ───────────────────────────────────────────────────────────
 
 /// Provider context with `NoAuth` — useful to confirm wrong-type rejections.
 pub async fn no_auth_context() -> DataplaneContext {
@@ -218,17 +220,18 @@ pub async fn oauth2_password_context(
 /// Consumer pull context — no connector instance. Authenticators that require a
 /// connector instance must return an error for this context.
 pub async fn consumer_context() -> DataplaneContext {
-    let mut mock = MockDataplaneTransfersEntitiesTrait::new();
-    mock.expect_create_dataplane_transfer()
-        .returning(|_| Ok(consumer_dto(TransferState::Init)));
+    let mut mock = MockDataplaneTransferServiceTrait::new();
+    mock.expect_create()
+        .returning(|_, _| Ok(consumer_dto(TransferState::Init)));
     DataplaneContext::from_init(
         Arc::new(mock),
         Arc::new(MockConnectorInstance::new()),
         transfer_config_fixture(),
         DataplaneInitCommandTypes::AsConsumer {
+            tenant_id: "tenant-1".to_string(),
             transfer_process_id: tp_urn(),
             direction: DataplaneInitCommandDirection::Pull {
-                data_address: forward_address(),
+                data_address: Some(forward_address()),
             },
         },
     )

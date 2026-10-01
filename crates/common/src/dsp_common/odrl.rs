@@ -233,8 +233,8 @@ pub enum OdrlConstraint {
     Logical(OdrlLogicalConstraint),
 }
 
-/// LogicalConstraint permite una de las siguientes propiedades: "and", "andSequence", "or" o "xone".
-/// Se usan Option para cada una;
+/// LogicalConstraint permite una de las siguientes propiedades: "and", "andSequence", "or" o
+/// "xone". Se usan Option para cada una;
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 
 pub struct OdrlLogicalConstraint {

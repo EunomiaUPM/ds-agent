@@ -19,9 +19,6 @@ use crate::data::entities::catalog;
 use crate::data::entities::catalog::{EditCatalogModel, Model, NewCatalogModel};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
-use ymir::errors::Outcome;
-
-pub(crate) mod catalogs;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -35,6 +32,8 @@ pub struct CatalogDto {
 #[serde(deny_unknown_fields)]
 pub struct NewCatalogDto {
     pub id: Option<Urn>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tenant_id: Option<String>,
     pub foaf_home_page: Option<String>,
     pub dct_conforms_to: Option<String>,
     pub dct_creator: Option<String>,
@@ -46,6 +45,7 @@ impl Default for NewCatalogDto {
     fn default() -> Self {
         Self {
             id: None,
+            tenant_id: None,
             foaf_home_page: None,
             dct_conforms_to: None,
             dct_creator: None,
@@ -65,15 +65,16 @@ pub struct EditCatalogDto {
     pub dct_title: Option<String>,
 }
 
-impl From<NewCatalogDto> for NewCatalogModel {
-    fn from(dto: NewCatalogDto) -> Self {
-        Self {
-            id: dto.id,
-            foaf_home_page: dto.foaf_home_page,
-            dct_conforms_to: dto.dct_conforms_to,
-            dct_creator: dto.dct_creator,
-            dct_title: dto.dct_title,
-            dspace_participant_id: dto.dspace_participant_id,
+impl NewCatalogDto {
+    pub fn into_model(self, tenant_id: String) -> NewCatalogModel {
+        NewCatalogModel {
+            id: self.id,
+            tenant_id,
+            foaf_home_page: self.foaf_home_page,
+            dct_conforms_to: self.dct_conforms_to,
+            dct_creator: self.dct_creator,
+            dct_title: self.dct_title,
+            dspace_participant_id: self.dspace_participant_id,
         }
     }
 }
@@ -93,29 +94,4 @@ impl From<catalog::Model> for CatalogDto {
     fn from(value: Model) -> Self {
         Self { inner: value }
     }
-}
-
-#[mockall::automock]
-#[async_trait::async_trait]
-pub trait CatalogEntityTrait: Send + Sync {
-    async fn get_all_catalogs(
-        &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-        with_main_catalog: bool,
-    ) -> Outcome<Vec<CatalogDto>>;
-    async fn get_batch_catalogs(&self, ids: &Vec<Urn>) -> Outcome<Vec<CatalogDto>>;
-    async fn get_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<Option<CatalogDto>>;
-    async fn get_main_catalog(&self) -> Outcome<Option<CatalogDto>>;
-
-    async fn put_catalog_by_id(
-        &self,
-        catalog_id: &Urn,
-        edit_catalog_model: &EditCatalogDto,
-    ) -> Outcome<CatalogDto>;
-    async fn create_catalog(&self, new_catalog_model: &NewCatalogDto) -> Outcome<CatalogDto>;
-
-    async fn create_main_catalog(&self, new_catalog_model: &NewCatalogDto) -> Outcome<CatalogDto>;
-
-    async fn delete_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<()>;
 }

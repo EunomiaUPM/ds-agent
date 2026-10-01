@@ -1,4 +1,20 @@
-use crate::entities::negotiation_process::NegotiationProcessDto;
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 use crate::protocols::dsp::orchestrator::bff::BFFRPCOrchestratorTrait;
 use crate::protocols::dsp::orchestrator::rpc::RPCOrchestratorTrait;
 use crate::protocols::dsp::orchestrator::rpc::types::{
@@ -7,6 +23,8 @@ use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationOfferInitMessageDto, RpcNegotiationRequestInitMessageDto,
     RpcNegotiationTerminationMessageDto, RpcNegotiationVerificationMessageDto,
 };
+use crate::services::negotiation_process::views::NegotiationProcessView;
+use common::auth::AccessScope;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
@@ -21,7 +39,7 @@ impl BFFRPCOrchestratorService {
         Self { rpc_service }
     }
 
-    fn extract_pids(&self, model: &NegotiationProcessDto) -> Outcome<(Urn, Urn)> {
+    fn extract_pids(&self, model: &NegotiationProcessView) -> Outcome<(Urn, Urn)> {
         let consumer_str = model
             .identifiers
             .get("consumerPid")
@@ -42,32 +60,38 @@ impl BFFRPCOrchestratorService {
 
 #[async_trait::async_trait]
 impl BFFRPCOrchestratorTrait for BFFRPCOrchestratorService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_request_init_bff_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcNegotiationRequestInitMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationRequestInitMessageDto>> {
         self.rpc_service
-            .setup_negotiation_request_init_rpc(input)
+            .setup_negotiation_request_init_rpc(scope, input)
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_offer_init_bff_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcNegotiationOfferInitMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationOfferInitMessageDto>> {
         self.rpc_service
-            .setup_negotiation_offer_init_rpc(input)
+            .setup_negotiation_offer_init_rpc(scope, input)
             .await
     }
 
     // ACCEPTED -> AGREED -> VERIFIED -> FINALIZED (Provider triggers the tail in one call)
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_agreement_bff_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcNegotiationAgreementMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationEventFinalizedMessageDto>> {
         let agreement = self
             .rpc_service
-            .setup_negotiation_agreement_rpc(input)
+            .setup_negotiation_agreement_rpc(scope, input)
             .await?;
 
         let (consumer_pid, provider_pid) = self.extract_pids(&agreement.negotiation_agent_model)?;
@@ -75,32 +99,36 @@ impl BFFRPCOrchestratorTrait for BFFRPCOrchestratorService {
         let verification_input =
             RpcNegotiationVerificationMessageDto::new(consumer_pid.clone(), provider_pid.clone());
         self.rpc_service
-            .setup_negotiation_agreement_verification_rpc(&verification_input)
+            .setup_negotiation_agreement_verification_rpc(scope, &verification_input)
             .await?;
 
         let finalized_input =
             RpcNegotiationEventFinalizedMessageDto::new(consumer_pid, provider_pid);
         self.rpc_service
-            .setup_negotiation_event_finalized_rpc(&finalized_input)
+            .setup_negotiation_event_finalized_rpc(scope, &finalized_input)
             .await
     }
 
     // OFFERED -> ACCEPTED
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_event_accepted_bff_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcNegotiationEventAcceptedMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationEventAcceptedMessageDto>> {
         self.rpc_service
-            .setup_negotiation_event_accepted_rpc(input)
+            .setup_negotiation_event_accepted_rpc(scope, input)
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_termination_bff_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcNegotiationTerminationMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationTerminationMessageDto>> {
         self.rpc_service
-            .setup_negotiation_termination_rpc(input)
+            .setup_negotiation_termination_rpc(scope, input)
             .await
     }
 }

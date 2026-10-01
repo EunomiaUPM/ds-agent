@@ -75,7 +75,7 @@ export const ConstraintItem: FC<ConstraintItemProps> = ({ constraint, onUpdate, 
           onValueChange={(value: string) => onUpdate("leftOperand", value)}
         >
           <div className="flex flex-col">
-            <p className="text-xs text-gray-400 mb-1">Left Operand:</p>
+            <p className="text-xs text-gray-700 dark:text-gray-400 mb-1">Left Operand:</p>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select item" />
             </SelectTrigger>
@@ -95,7 +95,7 @@ export const ConstraintItem: FC<ConstraintItemProps> = ({ constraint, onUpdate, 
           onValueChange={(value: string) => onUpdate("operator", value)}
         >
           <div className="flex flex-col">
-            <p className="text-xs text-gray-400 mb-1">Operator:</p>
+            <p className="text-xs text-gray-700 dark:text-gray-400 mb-1">Operator:</p>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Select operator" />
             </SelectTrigger>
@@ -111,7 +111,7 @@ export const ConstraintItem: FC<ConstraintItemProps> = ({ constraint, onUpdate, 
 
         {/* Right Operand Input */}
         <div className="flex flex-col">
-          <p className="text-xs text-gray-400 mb-1">Right Operand:</p>
+          <p className="text-xs text-gray-700 dark:text-gray-400 mb-1">Right Operand:</p>
           <Input
             placeholder="Type value"
             value={constraint.rightOperand as string}

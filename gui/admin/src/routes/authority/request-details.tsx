@@ -101,7 +101,6 @@ interface DetailsResponse {
   };
 }
 
-
 /**
  * Route for viewing details of a specific VC request.
  * Path: /authority/request-details
@@ -222,7 +221,7 @@ function RequestDetailsPage() {
                   )}
                 </DetailItem>
                 <DetailItem label="Auto-claim">
-                  <Badge variant={grant.auto ? "default" : "info"} className="text-[10px]">
+                  <Badge variant={grant.auto ? "default" : "info"} className="text-xs">
                     {grant.auto ? "ON" : "OFF"}
                   </Badge>
                 </DetailItem>
@@ -296,7 +295,7 @@ function RequestDetailsPage() {
                       <div className="space-y-1">
                         <p className="text-sm font-medium text-muted-foreground">{event.title}</p>
                         {event.date && (
-                          <p className="text-[10px] text-muted-foreground/60 flex items-center gap-1 font-mono">
+                          <p className="text-xs text-muted-foreground/60 flex items-center gap-1 font-mono">
                             <Clock className="h-3 w-3" />
                             <FormatDate date={event.date} />
                           </p>
@@ -334,7 +333,9 @@ function RequestDetailsPage() {
                 <Key className="h-5 w-5 text-primary" />
                 Interaction
               </CardTitle>
-              <CardDescription>GNAP interaction handshake associated to this grant.</CardDescription>
+              <CardDescription>
+                GNAP interaction handshake associated to this grant.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
@@ -347,34 +348,36 @@ function RequestDetailsPage() {
                   <div className="flex flex-wrap gap-1">
                     {(interaction.start ?? []).map((s, idx) => (
                       <Badge key={idx} variant="role">
-                        {typeof s === "string" ? s : Object.keys(s ?? {})[0] ?? "?"}
+                        {typeof s === "string" ? s : (Object.keys(s ?? {})[0] ?? "?")}
                       </Badge>
                     ))}
                   </div>
                 </DetailItem>
                 <DetailItem label="Callback URI">
-                  <span className="font-mono text-[10px] break-all">{interaction.callback_uri}</span>
+                  <span className="font-mono text-xs break-all">
+                    {interaction.callback_uri}
+                  </span>
                 </DetailItem>
                 <DetailItem label="Continue Endpoint">
-                  <span className="font-mono text-[10px] break-all">
+                  <span className="font-mono text-xs break-all">
                     {interaction.continue_endpoint || "—"}
                   </span>
                 </DetailItem>
                 <DetailItem label="Hash Method">
-                  <span className="font-mono text-[10px]">
+                  <span className="font-mono text-xs">
                     {typeof interaction.hash_method === "string"
                       ? interaction.hash_method
-                      : Object.keys(interaction.hash_method ?? {})[0] ?? "—"}
+                      : (Object.keys(interaction.hash_method ?? {})[0] ?? "—")}
                   </span>
                 </DetailItem>
                 <DetailItem label="Continue Wait">
-                  <span className="font-mono text-[10px]">{interaction.continue_wait ?? "—"}</span>
+                  <span className="font-mono text-xs">{interaction.continue_wait ?? "—"}</span>
                 </DetailItem>
                 <DetailItem label="Interact Ref">
                   <SecretField value={interaction.interact_ref} />
                 </DetailItem>
                 <DetailItem label="OIDC4VP URI">
-                  <span className="font-mono text-[10px] break-all">
+                  <span className="font-mono text-xs break-all">
                     {interaction.oidc_vp_uri || "—"}
                   </span>
                 </DetailItem>
@@ -415,24 +418,24 @@ function RequestDetailsPage() {
                   </Badge>
                 </DetailItem>
                 <DetailItem label="Response Type">
-                  <span className="font-mono text-[10px]">{verification.response_type}</span>
+                  <span className="font-mono text-xs">{verification.response_type}</span>
                 </DetailItem>
                 <DetailItem label="Client ID">
-                  <span className="font-mono text-[10px] break-all">{verification.client_id}</span>
+                  <span className="font-mono text-xs break-all">{verification.client_id}</span>
                 </DetailItem>
                 <DetailItem label="Client ID Scheme">
-                  <span className="font-mono text-[10px]">{verification.client_id_scheme}</span>
+                  <span className="font-mono text-xs">{verification.client_id_scheme}</span>
                 </DetailItem>
                 <DetailItem label="Response Mode">
-                  <span className="font-mono text-[10px]">{verification.response_mode}</span>
+                  <span className="font-mono text-xs">{verification.response_mode}</span>
                 </DetailItem>
                 <DetailItem label="Response URI">
-                  <span className="font-mono text-[10px] break-all">
+                  <span className="font-mono text-xs break-all">
                     {verification.response_uri}
                   </span>
                 </DetailItem>
                 <DetailItem label="PD URI">
-                  <span className="font-mono text-[10px] break-all">{verification.pd_uri}</span>
+                  <span className="font-mono text-xs break-all">{verification.pd_uri}</span>
                 </DetailItem>
                 <DetailItem label="Nonce">
                   <SecretField value={verification.nonce} />
@@ -448,39 +451,39 @@ function RequestDetailsPage() {
               {verification.uri &&
                 verification.status?.toLowerCase() !== "verified" &&
                 verification.status?.toLowerCase() !== "failed" && (
-                <div className="pt-4 border-t">
-                  <DetailItem
-                    label="Verification URI (Authentication)"
-                    labelClassName="text-amber-500"
-                  >
-                    <div className="mt-2 flex flex-col sm:flex-row gap-6 items-start">
-                      <div className="p-3 bg-white rounded-lg shadow-sm border border-stroke flex-shrink-0">
-                        <QRCode value={verification.uri} size={120} />
+                  <div className="pt-4 border-t">
+                    <DetailItem
+                      label="Verification URI (Authentication)"
+                      labelClassName="text-amber-500"
+                    >
+                      <div className="mt-2 flex flex-col sm:flex-row gap-6 items-start">
+                        <div className="p-3 bg-white rounded-lg shadow-sm border border-stroke flex-shrink-0">
+                          <QRCode value={verification.uri} size={120} />
+                        </div>
+                        <div className="flex-1 w-full space-y-3">
+                          <p className="text-xs text-muted-foreground italic">
+                            Use this QR if you need to authenticate with the authority before
+                            receiving the VC.
+                          </p>
+                          <UriDisplay uri={verification.uri} />
+                          <Button
+                            className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white"
+                            size="sm"
+                            onClick={() => handleAction("/vc-request/oid4vp", verification.uri)}
+                            disabled={isProcessing}
+                          >
+                            {isProcessing ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Key className="mr-2 h-4 w-4" />
+                            )}
+                            Present in Agent
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex-1 w-full space-y-3">
-                        <p className="text-xs text-muted-foreground italic">
-                          Use this QR if you need to authenticate with the authority before
-                          receiving the VC.
-                        </p>
-                        <UriDisplay uri={verification.uri} />
-                        <Button
-                          className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white"
-                          size="sm"
-                          onClick={() => handleAction("/vc-request/oid4vp", verification.uri)}
-                          disabled={isProcessing}
-                        >
-                          {isProcessing ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Key className="mr-2 h-4 w-4" />
-                          )}
-                          Present in Agent
-                        </Button>
-                      </div>
-                    </div>
-                  </DetailItem>
-                </div>
-              )}
+                    </DetailItem>
+                  </div>
+                )}
             </CardContent>
           </Card>
         ) : interaction ? (
@@ -537,8 +540,7 @@ function getTimelineData(req: SentGrant) {
       instruction = "Your request has been rejected. No further action can be taken.";
       break;
     case "approved":
-      instruction =
-        "The request has been approved. You can now claim your Verifiable Credential.";
+      instruction = "The request has been approved. You can now claim your Verifiable Credential.";
       break;
     case "finalized":
       instruction =
@@ -566,7 +568,7 @@ function UriDisplay({ uri }: { uri: string }) {
 
   return (
     <div className="flex items-center gap-2 p-2 bg-muted/50 rounded border border-stroke overflow-hidden">
-      <span className="font-mono text-[10px] truncate flex-1">{truncatedUri}</span>
+      <span className="font-mono text-xs truncate flex-1">{truncatedUri}</span>
       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopy}>
         {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
       </Button>
@@ -576,16 +578,16 @@ function UriDisplay({ uri }: { uri: string }) {
 
 function SecretField({ value }: { value?: string | null }) {
   const [revealed, setRevealed] = useState(false);
-  if (!value) return <span className="font-mono text-[10px] text-muted-foreground">—</span>;
+  if (!value) return <span className="font-mono text-xs text-muted-foreground">—</span>;
   return (
     <div className="flex items-center gap-2">
-      <span className="font-mono text-[10px] break-all flex-1 select-all">
+      <span className="font-mono text-xs break-all flex-1 select-all">
         {revealed ? value : "•".repeat(Math.min(value.length, 24))}
       </span>
       <button
         type="button"
         onClick={() => setRevealed((v) => !v)}
-        className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-white/5"
+        className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-ink/5"
         aria-label={revealed ? "Hide value" : "Reveal value"}
         title={revealed ? "Hide" : "Reveal"}
       >
@@ -622,10 +624,10 @@ function RawDetails({ details }: { details: DetailsResponse["data"] | null }) {
   const [open, setOpen] = useState(false);
   if (!details) return null;
   return (
-    <div className="mt-6 border border-white/10 rounded-xl overflow-hidden bg-white/[0.02]">
+    <div className="mt-6 border border-ink/10 rounded-xl overflow-hidden bg-ink/[0.02]">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-3 text-xs font-mono uppercase tracking-widest text-muted-foreground hover:bg-white/[0.04] transition-colors"
+        className="w-full flex items-center justify-between p-3 text-xs font-mono uppercase tracking-widest text-muted-foreground hover:bg-ink/[0.04] transition-colors"
       >
         <span className="flex items-center gap-2">
           <FileJson className="h-3 w-3" />
@@ -634,7 +636,7 @@ function RawDetails({ details }: { details: DetailsResponse["data"] | null }) {
         <span>{open ? "−" : "+"}</span>
       </button>
       {open && (
-        <pre className="p-4 bg-black/40 font-mono text-[11px] text-muted-foreground/90 whitespace-pre-wrap break-all leading-relaxed overflow-x-auto">
+        <pre className="p-4 bg-sunken/40 font-mono text-xs text-muted-foreground/90 whitespace-pre-wrap break-all leading-relaxed overflow-x-auto">
           {JSON.stringify(details, null, 2)}
         </pre>
       )}

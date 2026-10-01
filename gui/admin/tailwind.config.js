@@ -3,6 +3,7 @@ import { theme as theme_, plugins as plugins_ } from "./../shared/tailwind.confi
 /** @type {import('tailwindcss').Config} */
 
 module.exports = {
+  darkMode: ["class"],
   content: [
     "index.css",
     "./src/**/*.{ts,tsx,js,jsx,css,sass,scss}",
@@ -17,8 +18,8 @@ module.exports = {
         mono: ['"Source Code Pro"', "monospace"],
       },
       fontSize: {
-        "3xs": ["0.5rem", { lineHeight: "1.4" }] /* 8px */,
-        "2xs": ["0.625rem", { lineHeight: "1.4" }] /* 10px */,
+        "3xs": ["0.75rem", { lineHeight: "1.4" }] /* normalized to 12px min */,
+        "2xs": ["0.75rem", { lineHeight: "1.4" }] /* normalized to 12px min */,
         xs: ["0.75rem", { lineHeight: "1.4" }] /* 12px */,
         sm: ["0.875rem", { lineHeight: "1.4" }] /* 14px */,
         base: ["1rem", { lineHeight: "1.5" }] /* 16px body */,
@@ -34,51 +35,55 @@ module.exports = {
         64: ["4rem", { lineHeight: "1.4" }],
       },
       colors: {
-        foreground: "#f8f8fa",
-        text: "#f1f1f6",
-        stroke: "#645d7a",
+        text: "rgb(var(--c-text) / <alpha-value>)",
+        // Overlay inks: `ink` is the contrast colour, `paper` its opposite.
+        // They flip with the theme so `bg-ink/5` stays a subtle tint in both.
+        ink: "rgb(var(--c-ink) / <alpha-value>)",
+        paper: "rgb(var(--c-paper) / <alpha-value>)",
+        // Recessed surface behind code blocks and inset panels.
+        sunken: "rgb(var(--c-sunken) / <alpha-value>)",
+        stroke: "rgb(var(--c-stroke) / <alpha-value>)",
         roles: {
-          provider: "#52BFE0",
-          consumer: "#FF852F",
-          bussiness: "#52DBE0",
-          customer: "#FF9E2F",
+          provider: "rgb(var(--c-roles-provider) / <alpha-value>)",
+          consumer: "rgb(var(--c-roles-consumer) / <alpha-value>)",
+          bussiness: "rgb(var(--c-roles-bussiness) / <alpha-value>)",
+          customer: "rgb(var(--c-roles-customer) / <alpha-value>)",
         },
         brand: {
-          snow: "#EFF7FB", // white
-          sky: "#9DD5F2", // light blue
+          snow: "rgb(var(--c-brand-snow) / <alpha-value>)",
+          sky: "rgb(var(--c-brand-sky) / <alpha-value>)",
           purple: "#62388E",
           blue: "#24234C", // dark blue
-          black: "#0D0D1C",
+          black: "rgb(var(--c-brand-black) / <alpha-value>)",
         },
         base: {
-          // TO DO?
-          main: "#09091B",
-          sidebar: "#191930",
-          header: "#24234C",
+          main: "rgb(var(--c-base-main) / <alpha-value>)",
+          sidebar: "rgb(var(--c-base-sidebar) / <alpha-value>)",
+          header: "rgb(var(--c-base-header) / <alpha-value>)",
         },
         background: {
-          DEFAULT: "#09091B",
-          800: "#07070d",
-          600: "#09091B",
-          400: "#2E3356",
-          300: "#2E3356",
-          200: "#2E3356",
+          DEFAULT: "rgb(var(--c-background) / <alpha-value>)",
+          800: "rgb(var(--c-background-800) / <alpha-value>)",
+          600: "rgb(var(--c-background-600) / <alpha-value>)",
+          400: "rgb(var(--c-background-400) / <alpha-value>)",
+          300: "rgb(var(--c-background-300) / <alpha-value>)",
+          200: "rgb(var(--c-background-200) / <alpha-value>)",
         },
 
         foreground: {
           // LIGHT BASE color palette
-          DEFAULT: "#d3d2e0",
-          950: "#353243",
-          900: "#524d65",
-          800: "#645d7a",
-          700: "#786f92",
-          600: "#867ea3",
-          500: "#9e9ab8",
-          400: "#b9b7ce",
-          300: "#d3d2e0", // default, que sino el texto es muy oscuro
-          200: "#d3d2e0",
-          100: "#f1f1f6",
-          50: "#f8f8fa",
+          DEFAULT: "rgb(var(--c-foreground) / <alpha-value>)",
+          950: "rgb(var(--c-foreground-950) / <alpha-value>)",
+          900: "rgb(var(--c-foreground-900) / <alpha-value>)",
+          800: "rgb(var(--c-foreground-800) / <alpha-value>)",
+          700: "rgb(var(--c-foreground-700) / <alpha-value>)",
+          600: "rgb(var(--c-foreground-600) / <alpha-value>)",
+          500: "rgb(var(--c-foreground-500) / <alpha-value>)",
+          400: "rgb(var(--c-foreground-400) / <alpha-value>)",
+          300: "rgb(var(--c-foreground-300) / <alpha-value>)",
+          200: "rgb(var(--c-foreground-200) / <alpha-value>)",
+          100: "rgb(var(--c-foreground-100) / <alpha-value>)",
+          50: "rgb(var(--c-foreground-50) / <alpha-value>)",
         },
         primary: {
           // blue-ish
@@ -192,7 +197,7 @@ module.exports = {
         },
         // Revisiones ----------------------------------
         border: {
-          DEFAULT: "#121212",
+          DEFAULT: "rgb(var(--c-border) / <alpha-value>)",
         },
         ring: {
           DEFAULT: "#9DD5F2",

@@ -117,8 +117,6 @@ export const ContractNegotiationNewOfferDialog = ({
       ? await resolveProviderDspPath(selectedParticipant.participant_id)
       : null;
 
-    console.log("policy", policy);
-
     const res = await setupOffer({
       data: {
         associatedAgentPeer: selectedParticipant?.participant_id || "",
@@ -176,7 +174,6 @@ export const ContractNegotiationNewOfferDialog = ({
             {Array.isArray(participants?.data) &&
               participants.data
                 .filter((participant) => participant.participant_id !== "Agent")
-                .filter((participant) => !participant.is_me)
                 .map((participant) => (
                   <SelectItem
                     key={participant.participant_id}

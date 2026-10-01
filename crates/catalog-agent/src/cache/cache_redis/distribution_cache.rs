@@ -15,10 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::cache::cache_traits::redis_cache_connector_trait::RedisCacheConnectorTrait;
-use crate::cache::cache_traits::utils_trait::UtilsCacheTrait;
+use crate::cache::cache_traits::DESIRED_CACHE_TTL;
 use crate::protocols::dsp::types::distribution_definition::Distribution;
 use crate::DistributionDto;
+use common::cache::{RedisCacheConnectorTrait, UtilsCacheTrait};
 use std::str::FromStr;
 use urn::Urn;
 
@@ -34,6 +34,10 @@ impl DistributionCacheForRedis {
 
 impl UtilsCacheTrait for DistributionCacheForRedis {
     type Dto = DistributionDto;
+
+    fn key_namespace(&self) -> &str {
+        "ds_agent_catalogs"
+    }
 }
 
 impl RedisCacheConnectorTrait for DistributionCacheForRedis {
@@ -43,5 +47,8 @@ impl RedisCacheConnectorTrait for DistributionCacheForRedis {
     }
     fn get_entity_name(&self) -> &str {
         "distributions"
+    }
+    fn cache_ttl(&self) -> i32 {
+        DESIRED_CACHE_TTL
     }
 }

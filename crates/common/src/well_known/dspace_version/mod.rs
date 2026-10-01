@@ -17,9 +17,9 @@
 
 use std::sync::Arc;
 
+use axum::http::StatusCode;
 use axum::routing::get;
 use axum::{Json, Router};
-use reqwest::StatusCode;
 use urn::UrnBuilder;
 use uuid::Uuid;
 use ymir::errors::{Errors, Outcome};

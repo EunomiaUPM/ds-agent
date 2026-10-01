@@ -237,7 +237,7 @@ export const PolicyWrapperEdit = ({ policy, onChange }: PolicyWrapperEditProps) 
 
   return (
     <div className="w-full">
-      <div className="border border-white/30 bg-white/10 p-3 pt-2 rounded-md justify-start">
+      <div className="border border-ink/30 bg-ink/10 p-3 pt-2 rounded-md justify-start">
         {/* Policy Header */}
         <div className="flex mb-4">
           <Heading level="h5" className="flex gap-3">

@@ -15,17 +15,20 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::catalogs::{CatalogEntityTrait, EditCatalogDto, NewCatalogDto};
+use crate::entities::catalogs::{EditCatalogDto, NewCatalogDto};
+use crate::entities::filters::CatalogFilter;
 use crate::http::common::to_camel_case::ToCamelCase;
+use crate::services::catalogs::CatalogServiceTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
 use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
-use reqwest::StatusCode;
+use common::query::QuerySpec;
 use serde::Deserialize;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -35,18 +38,13 @@ use ymir::utils::{extract_path_urn, extract_payload};
 
 #[derive(Clone)]
 pub struct CatalogEntityRouter {
-    service: Arc<dyn CatalogEntityTrait>,
+    service: Arc<dyn CatalogServiceTrait>,
     config: Arc<CatalogConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-    pub with_main_catalog: Option<bool>,
-}
+pub type CatalogQuery = QuerySpec<CatalogFilter>;
 
-impl FromRef<CatalogEntityRouter> for Arc<dyn CatalogEntityTrait> {
+impl FromRef<CatalogEntityRouter> for Arc<dyn CatalogServiceTrait> {
     fn from_ref(state: &CatalogEntityRouter) -> Self {
         state.service.clone()
     }
@@ -59,7 +57,7 @@ impl FromRef<CatalogEntityRouter> for Arc<CatalogConfig> {
 }
 
 impl CatalogEntityRouter {
-    pub fn new(service: Arc<dyn CatalogEntityTrait>, config: Arc<CatalogConfig>) -> Self {
+    pub fn new(service: Arc<dyn CatalogServiceTrait>, config: Arc<CatalogConfig>) -> Self {
         Self { service, config }
     }
 
@@ -78,12 +76,12 @@ impl CatalogEntityRouter {
 
     async fn handle_get_all_catalogs(
         State(state): State<CatalogEntityRouter>,
-        Query(params): Query<PaginationParams>,
+        scope: common::auth::AccessScope,
+        Query(query): Query<CatalogQuery>,
     ) -> impl IntoResponse {
-        let with_main_catalog = params.with_main_catalog.unwrap_or(true);
         match state
             .service
-            .get_all_catalogs(params.limit, params.page, with_main_catalog)
+            .get_all_catalogs(&scope, &query.filter, &query.page, &query.sort)
             .await
         {
             Ok(catalogs) => (StatusCode::OK, Json(ToCamelCase(catalogs))).into_response(),
@@ -92,38 +90,37 @@ impl CatalogEntityRouter {
     }
     async fn handle_get_batch_catalogs(
         State(state): State<CatalogEntityRouter>,
+        scope: common::auth::AccessScope,
         input: Result<Json<BatchRequests>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.get_batch_catalogs(&input.ids).await {
+        match state.service.get_batch_catalogs(&scope, &input.ids).await {
             Ok(catalogs) => (StatusCode::OK, Json(ToCamelCase(catalogs))).into_response(),
             Err(err) => err.into_response(),
         }
     }
     async fn handle_get_catalog_by_id(
         State(state): State<CatalogEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
             Err(err) => return err.into_response(),
         };
-        match state.service.get_catalog_by_id(&id_urn).await {
-            Ok(Some(catalog)) => (StatusCode::OK, Json(ToCamelCase(catalog))).into_response(),
-            Ok(None) => {
-                let err = CommonErrors::missing_resource_new(id.as_str(), "Catalog not found");
-                err.into_response()
-            }
+        match state.service.get_catalog_by_id(&scope, &id_urn).await {
+            Ok(catalog) => (StatusCode::OK, Json(ToCamelCase(catalog))).into_response(),
             Err(err) => err.into_response(),
         }
     }
     async fn handle_get_main_catalog(
         State(state): State<CatalogEntityRouter>,
+        scope: common::auth::AccessScope,
     ) -> impl IntoResponse {
-        match state.service.get_main_catalog().await {
+        match state.service.get_main_catalog(&scope).await {
             Ok(Some(catalog)) => (StatusCode::OK, Json(ToCamelCase(catalog))).into_response(),
             Ok(None) => {
                 let err = CommonErrors::missing_resource_new("main", "Main Catalog not found");
@@ -134,6 +131,7 @@ impl CatalogEntityRouter {
     }
     async fn handle_put_catalog_by_id(
         State(state): State<CatalogEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
         input: Result<Json<EditCatalogDto>, JsonRejection>,
     ) -> impl IntoResponse {
@@ -145,46 +143,53 @@ impl CatalogEntityRouter {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.put_catalog_by_id(&id_urn, &input).await {
+        match state
+            .service
+            .put_catalog_by_id(&scope, &id_urn, &input)
+            .await
+        {
             Ok(catalog) => (StatusCode::ACCEPTED, Json(ToCamelCase(catalog))).into_response(),
             Err(err) => err.into_response(),
         }
     }
     async fn handle_create_catalog(
         State(state): State<CatalogEntityRouter>,
+        scope: common::auth::AccessScope,
         input: Result<Json<NewCatalogDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.create_catalog(&input).await {
+        match state.service.create_catalog(&scope, &input).await {
             Ok(catalog) => (StatusCode::CREATED, Json(ToCamelCase(catalog))).into_response(),
             Err(err) => err.into_response(),
         }
     }
     async fn handle_create_main_catalog(
         State(state): State<CatalogEntityRouter>,
+        scope: common::auth::AccessScope,
         input: Result<Json<NewCatalogDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.create_main_catalog(&input).await {
+        match state.service.create_main_catalog(&scope, &input).await {
             Ok(catalog) => (StatusCode::CREATED, Json(ToCamelCase(catalog))).into_response(),
             Err(err) => err.into_response(),
         }
     }
     async fn handle_delete_catalog_by_id(
         State(state): State<CatalogEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
             Err(err) => return err.into_response(),
         };
-        match state.service.delete_catalog_by_id(&id_urn).await {
+        match state.service.delete_catalog_by_id(&scope, &id_urn).await {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
             Err(err) => err.into_response(),
         }

@@ -1,26 +1,24 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::protocol_types::NegotiationProcessMessageTrait;
 use crate::protocols::dsp::validator::traits::validate_payload::ValidatePayload;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
+use crate::services::negotiation_process::views::NegotiationProcessView;
 use common::config::types::roles::RoleConfig;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -91,7 +89,7 @@ impl ValidatePayload for ValidatePayloadService {
     async fn validate_correlation(
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
-        dto: &NegotiationProcessDto,
+        dto: &NegotiationProcessView,
     ) -> Outcome<()> {
         let provider_pid_in_dto = self
             .helpers
@@ -138,7 +136,7 @@ impl ValidatePayload for ValidatePayloadService {
     async fn validate_data_address_in_start(
         &self,
         _payload: &dyn NegotiationProcessMessageTrait,
-        _dto: &NegotiationProcessDto,
+        _dto: &NegotiationProcessView,
     ) -> Outcome<()> {
         Ok(())
     }

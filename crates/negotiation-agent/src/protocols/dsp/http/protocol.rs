@@ -1,30 +1,27 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- * * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- * *
- * * This program is free software: you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License as published by
- * * the Free Software Foundation, either version 3 of the License, or
- * * (at your option) any later version.
- * *
- * * This program is distributed in the hope that it will be useful,
- * * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * * GNU General Public License for more details.
- * *
- * * You should have received a copy of the GNU General Public License
- * * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use crate::protocols::dsp::errors::extract_payload_error;
 use crate::protocols::dsp::orchestrator::OrchestratorTrait;
 use crate::protocols::dsp::protocol_types::{
     NegotiationAgreementMessageDto, NegotiationErrorMessageDto, NegotiationEventMessageDto,
-    NegotiationOfferInitMessageDto, NegotiationOfferMessageDto, NegotiationProcessMessageType,
-    NegotiationProcessMessageWrapper, NegotiationRequestInitMessageDto,
-    NegotiationRequestMessageDto, NegotiationTerminationMessageDto,
-    NegotiationVerificationMessageDto,
+    NegotiationOfferInitMessageDto, NegotiationOfferMessageDto, NegotiationProcessMessageWrapper,
+    NegotiationRequestInitMessageDto, NegotiationRequestMessageDto,
+    NegotiationTerminationMessageDto, NegotiationVerificationMessageDto,
 };
 use axum::{
     Extension, Json, Router,
@@ -35,13 +32,12 @@ use axum::{
     routing::{get, post},
 };
 use common::config::services::ContractsConfig;
-use common::dsp_common::context_field::ContextField;
 use common::dsp_common::normalizer::dsp_namespace_normalizer;
-use ymir::data::entities::shared::participant::Model as Mates;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use serde::Serialize;
 use std::future::Future;
 use std::sync::Arc;
+use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Errors;
 
 #[derive(Clone)]
@@ -184,8 +180,13 @@ impl DspRouter {
     }
 
     fn map_service_error(err: Errors) -> impl IntoResponse {
+        // Missing and foreign processes answer alike, so a peer cannot probe other negotiations.
+        let status = match err {
+            Errors::MissingResourceError { .. } => StatusCode::NOT_FOUND,
+            _ => StatusCode::BAD_REQUEST,
+        };
         let error_dto: NegotiationProcessMessageWrapper<NegotiationErrorMessageDto> = err.into();
-        (StatusCode::BAD_REQUEST, Json(error_dto)).into_response()
+        (status, Json(error_dto)).into_response()
     }
 
     // --- Handlers ---
@@ -194,12 +195,13 @@ impl DspRouter {
     async fn handle_get_negotiation(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
+        Extension(mate): Extension<Mates>,
     ) -> impl IntoResponse {
         Self::map_service_result(
             state
                 .orchestrator
                 .get_protocol_service()
-                .on_get_negotiation(&id)
+                .on_get_negotiation(&id, &mate)
                 .await,
             StatusCode::OK,
         )

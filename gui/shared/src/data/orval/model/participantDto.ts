@@ -20,5 +20,4 @@ export interface ParticipantDto {
   saved_at?: string;
   last_interaction?: string;
   extra_fields?: ParticipantDtoExtraFields;
-  is_me?: boolean;
 }

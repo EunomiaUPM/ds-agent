@@ -108,13 +108,25 @@ impl InstanceParametersMapBuilder {
             ParameterType::String => Ok(json!(raw_val)),
             ParameterType::Int => {
                 let parsed = raw_val.parse::<i64>().map_err(|_| {
-                    Errors::crazy(format!("Template Definition Error: Default value '{}' for param '{}' is not a valid Integer.", raw_val, param_name), None)
+                    Errors::crazy(
+                        format!(
+                            "Template Definition Error: Default value '{}' for param '{}' is not a valid Integer.",
+                            raw_val, param_name
+                        ),
+                        None,
+                    )
                 })?;
                 Ok(json!(parsed))
             }
             ParameterType::Boolean => {
                 let parsed = raw_val.to_lowercase().parse::<bool>().map_err(|_| {
-                    Errors::crazy(format!("Template Definition Error: Default value '{}' for param '{}' is not a valid Boolean.", raw_val, param_name), None)
+                    Errors::crazy(
+                        format!(
+                            "Template Definition Error: Default value '{}' for param '{}' is not a valid Boolean.",
+                            raw_val, param_name
+                        ),
+                        None,
+                    )
                 })?;
                 Ok(json!(parsed))
             }

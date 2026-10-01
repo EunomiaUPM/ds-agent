@@ -17,7 +17,6 @@ import { ArrowRight, Plus } from "lucide-react";
 import { useGetCatalogById } from "shared/src/data/orval/catalogs/catalogs";
 import { useGetDatasetsByCatalogId } from "shared/src/data/orval/datasets/datasets";
 import { useGetDataServicesByCatalogId } from "shared/src/data/orval/data-services/data-services";
-import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 import { Button } from "shared/src/components/ui/button";
 // Icons
 import { InfoList } from "shared/src/components/ui/info-list";
@@ -34,6 +33,7 @@ import {
 import DatasetItem from "shared/components/ui/dataset-item";
 import AvatarImg from "shared/components/ui/avatar-img";
 import { useGetMainCatalogs } from "shared/data/orval/catalogs/catalogs";
+import { useMyself } from "shared/src/data/useMyself";
 
 const RouteComponent = () => {
   const { data: mainCatalogData } = useGetMainCatalogs();
@@ -49,11 +49,7 @@ const RouteComponent = () => {
   const dataservices = dataservicesData?.status === 200 ? dataservicesData.data : [];
 
   if (!catalog) return null;
-  const { data: participants } = useGetAllParticipants();
-
-  const myAgent = Array.isArray(participants?.data)
-    ? participants.data.find((p) => p.is_me && p.participant_type === "Agent")
-    : undefined;
+  const myAgent = useMyself();
 
   const myAgentSlug = myAgent?.participant_nick;
 
@@ -66,7 +62,7 @@ const RouteComponent = () => {
             {catalog.dctTitle ? catalog.dctTitle : `${myAgentSlug}'s Catalog`}
           </Heading>
 
-          <Badge variant="detail" size="lg" className="uppercase text-blue-300 font-semibold mb-3">
+          <Badge variant="detail" size="lg" className="uppercase text-blue-700 dark:text-blue-300 font-semibold mb-3">
             My own catalog
           </Badge>
           <p className="text-sm mb-2">
@@ -101,7 +97,7 @@ const RouteComponent = () => {
           />
 
           <div className="h-1"></div>
-          <div className="border-t border-white/10"></div>
+          <div className="border-t border-ink/10"></div>
           <div className="h-2"></div>
 
           <>

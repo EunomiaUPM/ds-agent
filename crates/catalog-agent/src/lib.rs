@@ -16,15 +16,20 @@
  */
 
 #![allow(unused)]
-pub(crate) mod cache;
-pub(crate) mod config;
-pub(crate) mod data;
-pub(crate) mod entities;
-pub(crate) mod errors;
-pub(crate) mod grpc;
+pub mod cache;
+pub mod data;
+pub mod entities;
+pub(crate) mod facades;
+pub mod grpc;
 pub(crate) mod http;
 pub(crate) mod protocols;
+pub mod services;
 pub mod setup;
+
+pub const SERVICE_NAME: &str = "catalog-agent";
+pub const SERVICE_BIG_NAME: &str = "Catalog Agent";
+pub const EVENT_DOMAIN: &str = "catalog";
+pub const EVENT_PREFIX: &str = "catalog:";
 
 pub use data::migrations::get_catalog_migrations;
 pub use data::repo_traits::catalog_repo::CatalogRepositoryTrait;

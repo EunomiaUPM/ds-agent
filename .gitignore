@@ -55,6 +55,12 @@ static/environment/envs/**
 *.db
 *.db-wal
 *.db-shm
-cache/
+/cache/
 *.log
 .dirty
+/crates/catalog-agent/INFORME_IMPLEMENTACION.md
+
+# local cargo config (warnings silenciados)
+/.cargo/config.toml
+/CLAUDE.md
+/AUDITORIA_ARQUITECTURA_Y_DISENO.md

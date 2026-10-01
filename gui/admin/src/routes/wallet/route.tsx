@@ -47,7 +47,7 @@ const WalletLayout = () => {
       </PageHeader>
 
       {!ownWalletOnboarded ? (
-        <div className="flex flex-col items-center justify-center min-h-[400px] border border-dashed border-white/10 rounded-xl bg-white/5 p-12">
+        <div className="flex flex-col items-center justify-center min-h-[400px] border border-dashed border-ink/10 rounded-xl bg-ink/5 p-12">
           <Wallet className="h-12 w-12 text-muted-foreground/40 mb-4" />
           <p className="text-muted-foreground font-medium text-lg">Wallet not linked</p>
           <p className="text-muted-foreground/60 text-sm mt-1 mb-6">
@@ -59,7 +59,7 @@ const WalletLayout = () => {
         </div>
       ) : (
         <>
-          <div className="flex gap-1 border-b border-white/10 mb-6 w-full">
+          <div className="flex gap-1 border-b border-ink/10 mb-6 w-full">
             {tabs.map((tab) => {
               const isActive = pathname === tab.to || pathname.startsWith(tab.to + "/");
               return (

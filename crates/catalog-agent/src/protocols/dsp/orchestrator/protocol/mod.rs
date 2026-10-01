@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod persistence;
-pub(crate) mod protocol;
+pub mod persistence;
+pub mod protocol;
 
 use crate::protocols::dsp::protocol_types::{
     CatalogMessageWrapper, CatalogRequestMessageDto, DatasetRequestMessage,

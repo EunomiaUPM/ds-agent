@@ -23,7 +23,7 @@ use tracing::error;
 use ymir::errors::{Errors, Outcome};
 
 impl NewPolicyInstantiationDto {
-    pub(crate) fn validate_instantiation_request(
+    pub fn validate_instantiation_request(
         &self,
         policy_template: &PolicyTemplateDto,
     ) -> Outcome<()> {

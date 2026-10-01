@@ -23,17 +23,17 @@
 //! [`setup::CatalogAgentBoot`] runs it as its own service. Other crates get its migrations,
 //! repository trait and main DTOs from the root; its events use the `catalog:` prefix.
 //!
-//! Modules: [`entities`], [`services`], [`data`], [`cache`] (Redis), [`grpc`], `http`,
-//! `protocols` (DSP), `facades`, [`setup`].
+//! Modules: [`entities`], [`services`], [`data`], [`cache`] (Redis), [`grpc`], [`http`],
+//! [`protocols`] (DSP), [`facades`], [`setup`].
 
 #![allow(unused)]
 pub mod cache;
 pub mod data;
 pub mod entities;
-pub(crate) mod facades;
+pub mod facades;
 pub mod grpc;
-pub(crate) mod http;
-pub(crate) mod protocols;
+pub mod http;
+pub mod protocols;
 pub mod services;
 pub mod setup;
 

@@ -28,16 +28,16 @@ use crate::http::common::to_camel_case::ToCamelCase;
 use crate::services::tenant_provisioning::TenantProvisioningServiceTrait;
 
 #[derive(Clone)]
-pub(crate) struct TenantRouter {
+pub struct TenantRouter {
     service: Arc<dyn TenantProvisioningServiceTrait>,
 }
 
 impl TenantRouter {
-    pub(crate) fn new(service: Arc<dyn TenantProvisioningServiceTrait>) -> Self {
+    pub fn new(service: Arc<dyn TenantProvisioningServiceTrait>) -> Self {
         Self { service }
     }
 
-    pub(crate) fn router(self) -> Router {
+    pub fn router(self) -> Router {
         Router::new()
             .route("/{tenant_id}/provision", post(Self::handle_provision))
             .with_state(self)

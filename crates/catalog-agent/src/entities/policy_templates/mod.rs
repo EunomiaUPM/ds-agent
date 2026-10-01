@@ -18,7 +18,7 @@
 //! Policy templates and their parameters.
 
 pub mod types;
-pub(crate) mod validator;
+pub mod validator;
 
 use crate::data::entities::policy_template;
 use crate::data::entities::policy_template::{Model, NewPolicyTemplateModel};

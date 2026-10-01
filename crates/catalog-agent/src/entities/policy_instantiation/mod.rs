@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod validator_request;
-pub(crate) mod validators;
+pub mod validator_request;
+pub mod validators;
 
 use crate::entities::odrl_policies::CatalogEntityTypes;
 use serde::{Deserialize, Serialize};

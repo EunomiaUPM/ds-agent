@@ -17,7 +17,7 @@
 
 //! Redis caches of catalog entities and peer catalogs.
 
-pub(crate) mod cache_redis;
+pub mod cache_redis;
 pub mod cache_traits;
-pub(crate) mod factory_redis;
+pub mod factory_redis;
 pub mod factory_trait;

@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod validate_payload;
-pub(crate) mod validation_dsp_steps;
-pub(crate) mod validation_helpers;
+pub mod validate_payload;
+pub mod validation_dsp_steps;
+pub mod validation_helpers;
 pub mod validation_rpc_steps;

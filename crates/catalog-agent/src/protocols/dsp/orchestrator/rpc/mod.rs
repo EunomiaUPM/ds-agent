@@ -23,9 +23,9 @@ use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::protocols::dsp::types::dataset_definition::Dataset;
 use ymir::errors::Outcome;
 
-pub(crate) mod persistence;
-pub(crate) mod rpc;
-pub(crate) mod types;
+pub mod persistence;
+pub mod rpc;
+pub mod types;
 
 use common::auth::AccessScope;
 

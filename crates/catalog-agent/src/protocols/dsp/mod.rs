@@ -46,13 +46,13 @@ use std::sync::Arc;
 use ymir::errors::Outcome;
 
 mod errors;
-pub(crate) mod facades;
-pub(crate) mod http;
-pub(crate) mod orchestrator;
-pub(crate) mod protocol_types;
-pub(crate) mod setup;
-pub(crate) mod types;
-pub(crate) mod validator;
+pub mod facades;
+pub mod http;
+pub mod orchestrator;
+pub mod protocol_types;
+pub mod setup;
+pub mod types;
+pub mod validator;
 
 pub struct CatalogDSP {
     pub catalog_entities_service: Arc<dyn CatalogServiceTrait>,

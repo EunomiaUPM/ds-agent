@@ -50,12 +50,12 @@ use crate::http::tenants::TenantRouter;
 use crate::setup::context::AppContext;
 use crate::SERVICE_NAME;
 
-pub(crate) struct CatalogAdminModule {
+pub struct CatalogAdminModule {
     ctx: Arc<AppContext>,
 }
 
 impl CatalogAdminModule {
-    pub(crate) fn new(ctx: Arc<AppContext>) -> Self {
+    pub fn new(ctx: Arc<AppContext>) -> Self {
         Self { ctx }
     }
 

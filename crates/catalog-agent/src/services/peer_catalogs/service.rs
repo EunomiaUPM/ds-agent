@@ -33,7 +33,7 @@ pub struct PeerCatalogService {
 }
 
 impl PeerCatalogService {
-    pub(crate) fn new(
+    pub fn new(
         cache: Arc<dyn CatalogAgentCacheTrait>,
         mates_facade: Arc<dyn MatesFacadeTrait>,
     ) -> Self {

@@ -18,8 +18,8 @@
 //! Tables, repositories and migrations.
 
 pub mod entities;
-pub(crate) mod factory_sql;
+pub mod factory_sql;
 pub mod factory_trait;
-pub(crate) mod migrations;
+pub mod migrations;
 pub mod repo_traits;
-pub(crate) mod repos_sql;
+pub mod repos_sql;

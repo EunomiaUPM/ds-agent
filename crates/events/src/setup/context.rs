@@ -27,7 +27,7 @@ use crate::services::event_bus::EventBus;
 
 /// The event bus and the retry worker that redelivers what it failed to dispatch.
 #[derive(Clone)]
-pub(crate) struct AppContext {
+pub struct AppContext {
     pub event_bus: Arc<EventBus>,
     pub retry_worker: RetryWorker,
 }

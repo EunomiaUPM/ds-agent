@@ -67,3 +67,4 @@ static/environment/envs/**
 /*.md
 !/README.md
 !/LICENSE.md
+!/CONTRIBUTING.md

@@ -20,5 +20,5 @@
 mod gaia_self_attester_trait;
 mod service;
 
-pub use gaia_self_attester_trait::GaiaSelfAttesterTrait;
+pub use gaia_self_attester_trait::{GaiaSelfAttesterTrait, MockGaiaSelfAttesterTrait};
 pub use service::GaiaSelfAttester;

@@ -27,6 +27,7 @@ use ymir::types::gnap::grant_request::{GrantRequest, GrantRequestKind};
 use ymir::types::gnap::InteractionFinishResponse;
 
 /// Gatekeeper side of GNAP: building and checking what peers send.
+#[mockall::automock]
 #[async_trait]
 pub trait GateKeeperTrait: Send + Sync + 'static {
     /// New received grant; `class_id` is the class the peer claims.

@@ -15,16 +15,18 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use async_trait::async_trait;
-use ymir::errors::Outcome;
-use ymir::types::jwt::VCJwtClaims;
+//! Config of the dev provider, read by the modules for the agent's own host.
 
-/// Building the Gaia-X credentials this participant attests about itself.
-#[mockall::automock]
-#[async_trait]
-pub trait GaiaSelfAttesterTrait: Send + Sync + 'static {
-    /// Terms and conditions credential.
-    async fn generate_terms_cons_vc(&self) -> Outcome<VCJwtClaims>;
-    /// Legal person credential, from the configured company data.
-    async fn generate_legal_person(&self) -> Outcome<VCJwtClaims>;
+use std::sync::Arc;
+
+use common::config::services::SsiAuthConfig;
+use common::config::types::traits::ConfigLoader;
+
+/// The `ssi_auth` section of `static/environment/config/dev/dev.provider.yaml`.
+pub fn config() -> Arc<SsiAuthConfig> {
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../static/environment/config/dev/dev.provider.yaml"
+    );
+    Arc::new(SsiAuthConfig::load(path).expect("dev provider config"))
 }

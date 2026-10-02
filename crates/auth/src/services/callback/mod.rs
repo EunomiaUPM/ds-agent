@@ -20,5 +20,5 @@
 mod callback_trait;
 mod service;
 
-pub use callback_trait::CallbackTrait;
+pub use callback_trait::{CallbackTrait, MockCallbackTrait};
 pub use service::BasicCallbackService;

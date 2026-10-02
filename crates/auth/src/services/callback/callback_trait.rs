@@ -22,6 +22,7 @@ use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::ApprovedCallbackBody;
 
 /// GNAP callbacks: what the other side sends back at the end of an interaction.
+#[mockall::automock]
 #[async_trait]
 pub trait CallbackTrait: Send + Sync + 'static {
     /// Copies the callback's interaction reference and hash into the interaction.

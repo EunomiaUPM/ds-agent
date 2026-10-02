@@ -25,4 +25,9 @@ tasks:
       REDIS_URL: '{{.REDIS_URL | default "redis://:ds_core_provider_redis@localhost:6379"}}'
     cmds:
       - docker compose -f deployment/dev/docker-compose.mini.dev.provider.yaml up -d --wait provider-db provider-redis
-      - cargo test -p monolith -- --ignored
+      - cargo test -p monolith --test dsp --test cache -- --ignored
+
+  test:onboarding:
+    desc: SSI onboarding test in monolith, against the running dev stack (authority, consumer, provider)
+    cmds:
+      - cargo test -p monolith --test auth -- --ignored

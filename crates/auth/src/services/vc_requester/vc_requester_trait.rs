@@ -25,6 +25,7 @@ use ymir::types::gnap::grant_request::interact::InteractStart;
 use ymir::types::gnap::grant_response::GrantResponse;
 
 /// Client side of GNAP towards an authority: building, sending and reading credential requests.
+#[mockall::automock]
 #[async_trait]
 pub trait VcRequesterTrait: Send + Sync + 'static {
     fn build_grant_plan(&self, tenant_id: &str, payload: ReachAuthority) -> grant::Plan;

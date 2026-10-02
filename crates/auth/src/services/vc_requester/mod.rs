@@ -19,4 +19,4 @@
 
 pub mod basic;
 mod vc_requester_trait;
-pub use vc_requester_trait::VcRequesterTrait;
+pub use vc_requester_trait::{MockVcRequesterTrait, VcRequesterTrait};

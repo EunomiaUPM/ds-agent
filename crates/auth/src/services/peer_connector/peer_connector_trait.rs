@@ -25,6 +25,7 @@ use ymir::types::gnap::grant_request::interact::InteractAction;
 use ymir::types::gnap::grant_response::GrantResponse;
 
 /// Client side of GNAP towards a peer: building, sending and reading grant requests.
+#[mockall::automock]
 #[async_trait]
 pub trait PeerConnectorTrait: Send + Sync + 'static {
     fn build_grant_plan(&self, tenant_id: &str, payload: ReachProvider) -> grant::Plan;

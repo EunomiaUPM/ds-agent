@@ -20,4 +20,4 @@
 pub mod gnap;
 mod peer_connector_trait;
 
-pub use peer_connector_trait::PeerConnectorTrait;
+pub use peer_connector_trait::{MockPeerConnectorTrait, PeerConnectorTrait};

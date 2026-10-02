@@ -15,16 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use async_trait::async_trait;
-use ymir::errors::Outcome;
-use ymir::types::jwt::VCJwtClaims;
+//! Auth capability modules over an `AuthCore` of doubles: GNAP onboarding with peers and
+//! authorities, the gatekeeper and verifier that answer them, and the participant registry.
 
-/// Building the Gaia-X credentials this participant attests about itself.
-#[mockall::automock]
-#[async_trait]
-pub trait GaiaSelfAttesterTrait: Send + Sync + 'static {
-    /// Terms and conditions credential.
-    async fn generate_terms_cons_vc(&self) -> Outcome<VCJwtClaims>;
-    /// Legal person credential, from the configured company data.
-    async fn generate_legal_person(&self) -> Outcome<VCJwtClaims>;
-}
+#[path = "../support/mod.rs"]
+mod support;
+
+mod gaia_self_attester;
+mod gatekeeper;
+mod participant;
+mod peer_connector;
+mod vc_requester;
+mod verifier;

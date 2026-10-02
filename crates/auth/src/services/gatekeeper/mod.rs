@@ -19,4 +19,4 @@
 
 mod gatekeeper_trait;
 pub mod gnap;
-pub use gatekeeper_trait::GateKeeperTrait;
+pub use gatekeeper_trait::{GateKeeperTrait, MockGateKeeperTrait};

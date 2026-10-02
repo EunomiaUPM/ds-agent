@@ -15,16 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use async_trait::async_trait;
-use ymir::errors::Outcome;
-use ymir::types::jwt::VCJwtClaims;
+//! SSI onboarding against the running dev stack (authority, consumer and provider with their
+//! wallets), following `scripts/auto-onboarding-dev.sh`; run with `task test:onboarding`.
 
-/// Building the Gaia-X credentials this participant attests about itself.
-#[mockall::automock]
-#[async_trait]
-pub trait GaiaSelfAttesterTrait: Send + Sync + 'static {
-    /// Terms and conditions credential.
-    async fn generate_terms_cons_vc(&self) -> Outcome<VCJwtClaims>;
-    /// Legal person credential, from the configured company data.
-    async fn generate_legal_person(&self) -> Outcome<VCJwtClaims>;
-}
+mod agent;
+mod onboarding;

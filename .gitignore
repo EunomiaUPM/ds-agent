@@ -68,3 +68,4 @@ static/environment/envs/**
 !/README.md
 !/LICENSE.md
 !/CONTRIBUTING.md
+/docs/internal/

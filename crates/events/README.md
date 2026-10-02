@@ -1,455 +1,163 @@
-# Event Bus & External Webhook Dispatcher (`events`)
+# events
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Rust Edition](https://img.shields.io/badge/Rust-2021-orange.svg)](https://www.rust-lang.org/)
-[![Architecture](https://img.shields.io/badge/Architecture-Hexagonal%20%7C%20Ports%20%26%20Adapters-green.svg)](#architecture-overview)
+Event bus shared by the modules of a process. Every published event is stored, broadcast to
+in-process listeners and delivered to the webhooks of its tenant that subscribed to its topic.
+Failed deliveries are retried with backoff and end in a dead letter queue, from which they can
+be replayed.
 
-The **`events`** crate provides a high-throughput, resilient **hybrid Pub/Sub event bus** designed for both internal in-process broadcast messaging and reliable external webhook delivery across the DS-Protocol ecosystem.
+The crate has no binary. The `monolith` serves it and hands its bus to the other modules;
+standalone agents run without a bus, and their modules then publish nothing.
 
-Built according to Clean / Hexagonal Architecture (Ports & Adapters) specified in [`CLAUDE.md`](../../CLAUDE.md), it features **transactional outbox persistence**, sub-millisecond local broadcasting, **HMAC-SHA256 payload signing**, **exponential backoff with full jitter**, and a **Dead Letter Queue (DLQ)** with manual and batch re-drive capabilities.
+## Structure
 
----
-
-## Table of Contents
-
-- [Architecture Overview](#architecture-overview)
-- [Component Structure](#component-structure)
-- [Cross-Crate Event Integration](#cross-crate-event-integration)
-  - [1. The `Event` Trait & `event!` Macro](#1-the-event-trait--event-macro)
-  - [2. Topic Naming & Wildcard Subscriptions (`transfers:bla`, `transfers:*`)](#2-topic-naming--wildcard-subscriptions-transfersbla-transfers)
-  - [3. Publishing Events from Other Crates](#3-publishing-events-from-other-crates)
-  - [4. In-Process Consumption (Typed Deserialization)](#4-in-process-consumption-typed-deserialization)
-  - [5. External Webhook Delivery & HMAC Verification](#5-external-webhook-delivery--hmac-verification)
-- [Reliability & Resilience Engine](#reliability--resilience-engine)
-  - [Exponential Backoff with Full Jitter](#exponential-backoff-with-full-jitter)
-  - [Failure Classification](#failure-classification)
-  - [Dead Letter Queue (DLQ) & Re-Drive](#dead-letter-queue-dlq--re-drive)
-- [Setup & Lifecycle Management](#setup--lifecycle-management)
-- [REST API Reference](#rest-api-reference)
-- [Testing Guide](#testing-guide)
-
----
-
-## Architecture Overview
-
-Following Clean / Hexagonal Architecture, the crate decouples domain logic, application use cases, persistence adapters, and transport drivers:
-
-```mermaid
-flowchart TB
-    subgraph DrivingAdapters ["Driving Adapters (HTTP / Axum)"]
-        HTTP_Events["EventsRouter<br/>/publish, /{id}"]
-        HTTP_Subs["SubscriptionsRouter<br/>/subscriptions"]
-        HTTP_DLQ["DeadLetterRouter<br/>/dlq, /replay"]
-    end
-
-    subgraph ApplicationLayer ["Application Layer (src/services/event_bus/)"]
-        EB["EventBus (Orchestrator)"]
-        PUB["EventPublisherTrait / emit()"]
-        DISP["EventDispatcher<br/>(HMAC-SHA256 Client)"]
-        WORKER["RetryWorker<br/>(Backoff Poller)"]
-        CHAN["tokio::sync::broadcast<br/>(In-Process Stream)"]
-    end
-
-    subgraph DomainLayer ["Domain Layer (src/entities/)"]
-        TOPIC["Topic & TopicPattern<br/>(: and . support)"]
-        ENV["EventEnvelope"]
-        EV_TRAIT["Event Trait & event! macro"]
-        SUB_REC["SubscriptionRecord"]
-        DELIV_REC["EventDeliveryRecord"]
-        DLQ_REC["DeadLetterRecord"]
-    end
-
-    subgraph PersistenceLayer ["Persistence Layer (src/data/)"]
-        DF["DataFactory (Port)"]
-        SEADF["SeaOrmDataFactory"]
-        MEMDF["InMemoryDataFactory"]
-        ORM["SeaORM Entities & Migrations"]
-    end
-
-    HTTP_Events --> EB
-    HTTP_Subs --> EB
-    HTTP_DLQ --> EB
-
-    EB --> TOPIC
-    EB --> ENV
-    EB --> CHAN
-    EB --> DISP
-    EB --> DF
-
-    WORKER --> DF
-    WORKER --> DISP
-
-    SEADF --> ORM
+```
+src/
+├── lib.rs           Re-exports the bus, envelope, topic types, views and the event traits
+├── entities/
+│   ├── topic.rs         Topic: a concrete name such as `transfers:started`
+│   ├── topic_pattern.rs TopicPattern: `*` and `**` wildcards, and its SQL regex
+│   ├── envelope.rs      EventEnvelope: metadata plus the JSON payload
+│   ├── event.rs         Event trait for typed payloads
+│   ├── mac.rs           event! and emit_action! macros
+│   ├── subscription.rs, delivery.rs, dead_letter.rs   Stored records
+│   └── commands.rs, queries.rs, dto.rs                API bodies and list filters
+├── services/event_bus/
+│   ├── service.rs       EventBus: publish, subscribe, dead letter replay
+│   ├── dispatcher.rs    EventDispatcher: one signed webhook POST
+│   ├── worker.rs        RetryWorker: redelivers due deliveries
+│   └── policy.rs        RetryPolicy: backoff, retryable statuses, timeouts
+├── data/            Repository traits, SeaORM repositories and migrations
+├── http/            Events feed and SSE stream, subscriptions, dead letters
+└── setup/           EventsModule and AppContext
+tests/
+├── entities/        Topics and topic patterns
+├── services/        Bus, dispatcher, retry policy and worker, against a local webhook
+└── support/         Fixtures, a local webhook server and its signals
 ```
 
----
+## Topics and envelopes
 
-## Component Structure
+A topic is a name of segments separated by `.` or `:`, without wildcards, such as
+`oauth:user:create`. A subscription or a filter uses a `TopicPattern`:
 
-```text
-crates/events/
-├── Cargo.toml
-├── README.md
-├── tests/
-│   ├── bus_tests.rs                 # Integration test suite (HTTP, DLQ, Webhooks, Retry)
-│   └── event_macro_tests.rs         # Cross-crate event trait, macro, and wildcard tests
-└── src/
-    ├── lib.rs                       # Root exports and backward-compatibility aliases
-    ├── entities/                    # Domain Layer: Pure domain entities & commands
-    │   ├── mod.rs                   # Re-exports all domain types
-    │   ├── topic.rs                 # Topic and TopicPattern (supports : and .)
-    │   ├── envelope.rs              # EventEnvelope
-    │   ├── subscription.rs          # SubscriptionRecord, DeliveryStatus, DeadLetterStatus
-    │   ├── delivery.rs              # EventDeliveryRecord
-    │   ├── dead_letter.rs           # DeadLetterRecord
-    │   ├── commands.rs              # CreateSubscriptionDto, UpdateSubscriptionDto, PublishEventRequest
-    │   ├── queries.rs               # ListEventsQuery, ListDeadLettersQuery
-    │   └── traits.rs                # Event trait, IntoEvent trait, and event! macro
-    ├── services/                    # Application Layer: Orchestration & Use Cases
-    │   ├── mod.rs
-    │   └── event_bus/
-    │       ├── mod.rs               # Ports: EventBusTrait, EventPublisherTrait
-    │       ├── service.rs           # EventBus orchestrator
-    │       ├── dispatcher.rs        # HTTP dispatcher with HMAC-SHA256 signing
-    │       ├── policy.rs            # RetryPolicy with exponential backoff & full jitter
-    │       ├── worker.rs            # Background retry worker
-    │       └── views.rs             # View DTOs with assemble() mappings
-    ├── data/                        # Persistence Layer (Hexagonal)
-    │   ├── mod.rs
-    │   ├── factory.rs               # DataFactory trait
-    │   ├── repo/                    # Repository ports and dedicated error enums
-    │   │   ├── mod.rs
-    │   │   ├── event.rs             # EventStoreRepo trait
-    │   │   ├── subscription.rs      # EventSubscriptionRepo trait
-    │   │   ├── delivery.rs          # EventDeliveryRepo trait
-    │   │   └── dead_letter.rs       # EventDeadLetterRepo trait
-    │   ├── sea_orm/                 # Concrete SeaORM adapter
-    │   │   ├── mod.rs
-    │   │   ├── factory.rs           # SeaOrmDataFactory impl of DataFactory
-    │   │   ├── migrations/          # Migration scripts & get_events_migrations()
-    │   │   ├── orm/                 # SeaORM table entities (into_domain, from_domain)
-    │   │   └── repos/               # SeaORM repository implementations & facade
-    │   └── in_memory/               # In-memory adapter for deterministic testing
-    │       ├── mod.rs
-    │       ├── factory.rs           # InMemoryDataFactory
-    │       └── repos.rs             # Thread-safe in-memory repository store
-    ├── http/                        # Driving Adapter Layer: Axum HTTP routers
-    │   ├── mod.rs                   # EventsHttpRouter builder
-    │   ├── events/                  # EventsRouter (/events, /publish, /{id})
-    │   ├── subscriptions/           # SubscriptionsRouter (/subscriptions)
-    │   └── dlq/                     # DeadLetterRouter (/dlq)
-    └── setup/                       # Ceremony Layer: DI wiring & Lifecycle
-        ├── mod.rs
-        ├── context.rs               # AppContext (build & in_memory)
-        ├── composition.rs           # EventsModule (ServiceModuleTrait)
-        └── workers.rs               # RetryWorkerHandle with cooperative shutdown
-```
+| Pattern | Matches |
+|---|---|
+| `*` | Every topic |
+| `transfers.*` | Every topic under `transfers` |
+| `transfers.*.started` | One segment in the middle |
+| `**` | Any number of segments, including none |
+| `transfers:started` | That topic only |
 
----
+Each event travels in an `EventEnvelope`: `id` (`urn:uuid`), `tenant_id`, `topic`,
+`source_crate`, `schema_version`, `timestamp`, `correlation_id?`, `trace_context?` (the
+`traceparent` of the publishing span) and `payload`. The tenant is the one that owns the record
+the event is about.
 
-## Cross-Crate Event Integration
+## Publishing
 
-Other crates (e.g. `transfer-agent-ref`, `catalog-agent`, `negotiation-agent`, `dataplane`) can publish and subscribe to domain events with minimal boilerplate.
+Modules publish in one of two ways:
 
-### 1. The `Event` Trait & `event!` Macro
-
-Add `events` to your crate's `Cargo.toml`:
-
-```toml
-[dependencies]
-events = { version = "0.4.0", path = "../events" }
-serde = { workspace = true }
-```
-
-#### Form A: Define Event Inline
 ```rust
-use events::event;
-use serde::{Deserialize, Serialize};
-
-event! {
-    #[derive(Debug, Clone, Serialize, Deserialize)]
-    pub struct TransferStartedEvent {
-        pub transfer_id: String,
-        pub consumer_pid: String,
-        pub provider_pid: String,
-        pub agreement_id: String,
-    } => "transfers:bla", "transfer-agent"
+// A typed event: the struct carries `tenant_id` and the macro fixes its topic and source.
+events::event! {
+    #[derive(Serialize)]
+    pub struct TransferStarted { pub tenant_id: String, pub process_id: String }
+        => "transfers:started", "transfer-agent"
 }
+bus.publish_event(TransferStarted { tenant_id, process_id }).await?;
+
+// A CRUD action on a record, on an optional bus: topic `<prefix><entity>:<action>`.
+events::emit_action!(self.event_bus, &view.tenant_id, crate::EVENT_PREFIX, "user", "create", &view);
 ```
 
-#### Form B: Decorate an Existing Serializable Struct
-```rust
-use events::event;
-use serde::{Deserialize, Serialize};
+`emit_action!` does nothing when the bus is `None` and only logs a failed publish, so a module
+works the same with or without a bus. In-process listeners call `EventBus::subscribe` and get a
+`broadcast::Receiver` of every envelope published after that.
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TransferCompletedEvent {
-    pub transfer_id: String,
-    pub bytes_transferred: u64,
-}
+`publish` does three things, in order: it stores the envelope, broadcasts it, and creates a
+pending delivery for each active subscription of the tenant whose pattern matches the topic. A
+failure to store fails the publish before anything else happens.
 
-// Arguments: Struct, "topic:name", "source_crate", [optional schema_version]
-event!(TransferCompletedEvent, "transfers:completed", "transfer-agent");
-```
+## Webhook delivery
 
----
+Each delivery is first attempted right after the publish, in a background task. The dispatcher
+POSTs the event's `payload` (not the whole envelope) with these headers:
 
-### 2. Topic Naming & Wildcard Subscriptions (`transfers:bla`, `transfers:*`)
+| Header | Value |
+|---|---|
+| `X-Event-Id`, `X-Event-Topic`, `X-Event-Timestamp` | From the envelope |
+| `X-Correlation-Id` | When the envelope has one |
+| `X-Hub-Signature-256` | `sha256=<hex>` HMAC-SHA256 of the body, when the subscription has a `secret` |
+| `traceparent` | The delivery span, linked to the publisher's trace |
+| The subscription's `headers` | As given |
 
-Topics identify event categories using hierarchical segments. Both colon (`:`) and dot (`.`) are supported interchangeably:
+A 2xx marks the delivery delivered. A 408, 429 or 5xx, or an unreachable webhook, schedules
+another attempt; any other status goes straight to the dead letter queue. `RetryWorker` polls
+for due deliveries, 50 at a time, and gives up after the subscription's `retry_limit`, or the
+policy's `max_attempts` when it has none.
 
-| Topic Pattern | Matches `transfers:bla` | Matches `transfers:completed` | Matches `transfers:bla:sub` | Matches `catalog:dataset` | Description |
-|---|:---:|:---:|:---:|:---:|---|
-| `transfers:bla` |  Yes |  No |  No |  No | Exact match |
-| `transfers:*` |  Yes |  Yes |  No |  No | Matches any single segment under `transfers:` |
-| `transfers:**` |  Yes |  Yes |  Yes |  No | Matches any depth under `transfers:` |
-| `*` or `**` |  Yes |  Yes |  Yes |  Yes | Matches all events system-wide |
-| `transfers.*` |  Yes |  Yes |  No |  No | Dot notation matches colon topics seamlessly |
+`RetryPolicy::default()`:
 
----
+| Field | Default |
+|---|---|
+| `max_attempts` | 5 |
+| `initial_backoff_secs`, `multiplier`, `max_backoff_secs` | 5 s, ×2, capped at 3600 s |
+| `jitter_factor` | 0.2, never under one second |
+| `timeout_secs` | 10, per webhook request |
+| `poll_interval_secs` | 5, between worker batches |
 
-### 3. Publishing Events from Other Crates
+A dead letter keeps the payload, the callback, the error and the attempt count. Replaying it
+sends the stored event again to the current subscription and marks it replayed on success.
 
-Inject `Arc<EventBus>` into your application context or domain service and publish directly:
+## Setup
 
-```rust
-use std::sync::Arc;
-use events::EventBus;
+`EventsModule` implements `ServiceModuleTrait`:
 
-pub struct TransferService {
-    event_bus: Arc<EventBus>,
-}
+- `EventsModule::compose(root)` builds the bus and the retry worker on the shared database with
+  the default policy.
+- `event_bus()` returns the bus; the composition root passes it to every other module before
+  registering them.
+- `migrations()` creates `events`, `subscriptions`, `event_deliveries` and
+  `dead_letter_queue`.
+- `workers()` returns the `RetryWorker`, which the boot runs until shutdown.
 
-impl TransferService {
-    pub async fn start_transfer(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
-        let event = TransferStartedEvent {
-            transfer_id: id,
-            consumer_pid: "urn:uuid:consumer-001".into(),
-            provider_pid: "urn:uuid:provider-002".into(),
-            agreement_id: "agreement-xyz".into(),
-        };
+The routes are mounted under `/api/v1/events`, behind the process's token validator.
 
-        // Publish typed domain event directly
-        let published = self.event_bus.publish_event(event).await?;
-        tracing::info!(event_id = %published.id, "Event published to bus");
-        Ok(())
-    }
-}
-```
+## HTTP API
 
-#### CRUD Entity Event Emission (`emit_action!`)
+Lists are paged with `limit` and `cursor`. Reads are limited to the caller's tenant; admins see
+every tenant unless they pin one with `x-tenant-id`. Writes need the `Owner` or `Admin` role,
+and what they create always belongs to the caller's tenant.
 
-For entity operations (create, edit, delete), crates define an `EVENT_PREFIX` (e.g., `transfers:`, `negotiations:`, `catalog:`, `oauth:`, `keystore:`, `connector:`) and emit structured DTOs using `emit_action!`:
-
-```rust
-use events::emit_action;
-use events::EntityDeletedDto;
-
-// Emitting an entity creation event: topic becomes "transfers:process:create"
-emit_action!(self.event_bus, crate::EVENT_PREFIX, "process", "create", &process_view);
-
-// Emitting an entity edit/update event: topic becomes "transfers:process:edit"
-emit_action!(self.event_bus, crate::EVENT_PREFIX, "process", "edit", &process_view);
-
-// Emitting an entity deletion event: topic becomes "transfers:process:delete"
-let deleted_dto = EntityDeletedDto::new(id.to_string());
-emit_action!(self.event_bus, crate::EVENT_PREFIX, "process", "delete", &deleted_dto);
-```
-
-When `self.event_bus` is `None` (e.g. in standalone unit tests), `emit_action!` is a zero-overhead no-op.
-
----
-
-### 4. In-Process Consumption (Typed Deserialization)
-
-For local in-process modules (such as WebSockets, BFF, or real-time event aggregation):
-
-```rust
-use std::sync::Arc;
-use events::EventBus;
-
-pub fn start_local_listener(event_bus: Arc<EventBus>) {
-    let mut rx = event_bus.subscribe();
-
-    tokio::spawn(async move {
-        while let Ok(envelope) = rx.recv().await {
-            // Check topic pattern
-            if envelope.topic.as_str() == "transfers:bla" {
-                if let Ok(event) = serde_json::from_value::<TransferStartedEvent>(envelope.payload) {
-                    tracing::info!(transfer_id = %event.transfer_id, "Handled transfer event in-memory");
-                }
-            }
-        }
-    });
-}
-```
-
----
-
-### 5. External Webhook Delivery & HMAC Verification
-
-Subscribers receive HTTP `POST` requests when matching events are published:
-
-```rust
-use events::entities::commands::CreateSubscriptionDto;
-
-let sub_dto = CreateSubscriptionDto {
-    callback_address: "https://partner.example.com/events/webhook".to_string(),
-    topic_pattern: "transfers:*".to_string(), // Matches transfers:bla, transfers:completed, etc.
-    secret: Some("shared-hmac-secret-key-32-chars".to_string()),
-    headers: None,
-    retry_limit: Some(5),
-    expiration_time: None,
-};
-
-ctx.subscription_repo.create_subscription(sub_dto).await?;
-```
-
-#### Headers Sent to Webhooks:
-- `Content-Type: application/json`
-- `X-Event-Id: urn:uuid:f47ac10b-58cc-4372-a567-0e02b2c3d479`
-- `X-Event-Topic: transfers:bla`
-- `X-Event-Timestamp: 2026-09-12T10:15:30Z`
-- `X-Correlation-Id: urn:uuid:...` *(if provided)*
-- `X-Hub-Signature-256: sha256=a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e`
-
----
-
-## Reliability & Resilience Engine
-
-### Exponential Backoff with Full Jitter
-
-Deliveries are retried according to an exponential curve augmented with randomized jitter:
-
-$$\text{base} = \min\left(\text{initial\_backoff} \times \text{multiplier}^{\text{attempt} - 1},\, \text{max\_backoff}\right)$$
-$$\text{delay} = \max\left(\text{base} + \text{random}(-\text{jitter\_range},\, +\text{jitter\_range}),\, 1.0\text{s}\right)$$
-
-```rust
-use events::RetryPolicy;
-
-let policy = RetryPolicy {
-    max_attempts: 5,           // Up to 5 delivery attempts
-    initial_backoff_secs: 2,   // First retry after ~2s
-    max_backoff_secs: 3600,    // Cap delay at 1 hour
-    multiplier: 2.0,           // 2s, 4s, 8s, 16s...
-    jitter_factor: 0.2,        // ±20% randomized jitter
-    timeout_secs: 10,          // Webhook request timeout
-    poll_interval_secs: 5,     // Poller scan interval
-};
-```
-
-### Failure Classification
-
-| Scenario | HTTP Status Codes | Action |
+| Method | Path | Response |
 |---|---|---|
-| **Transient Errors** | `408 Request Timeout`, `429 Too Many Requests`, `500-599 Server Errors`, Network Errors | **Retry**: calculates `next_retry_at` using backoff schedule. |
-| **Permanent Errors** | `400 Bad Request`, `401 Unauthorized`, `403 Forbidden`, `404 Not Found` | **No Retry**: immediately moved to Dead Letter Queue (`DeadLetter`). |
-| **Exhausted Retries** | Any status after `attempts >= retry_limit` | **Route to DLQ**: marks delivery `DeadLetter` and writes to `dead_letter_queue`. |
+| GET | `/` | 200, page of stored events; filter `topic` (a pattern) |
+| POST | `/` | 201, the published envelope. Body: `topic`, `payload`, `source_crate?`, `schema_version?`, `correlation_id?` |
+| GET | `/stream` | Server-sent events of the caller's tenants as they are published; `topic` narrows them, `tenant` stands in for `x-tenant-id` |
+| GET | `/{id}` | 200, the event; `id` is a UUID or `urn:uuid:…` |
+| GET | `/{id}/deliveries` | 200, its deliveries |
+| GET | `/subscriptions` | 200, page of subscriptions; filter `active` |
+| POST | `/subscriptions` | 201, the subscription. Body: `callback_address`, `topic_pattern`, `secret?`, `headers?`, `retry_limit?`, `expiration_time?` |
+| GET | `/subscriptions/{id}` | 200, the subscription; 404 if missing |
+| PUT | `/subscriptions/{id}` | 200, the subscription; absent fields stay as they are, `active` can be set |
+| DELETE | `/subscriptions/{id}` | 204 |
+| GET | `/dlq` | 200, page of dead letters; filter `status` (`Unresolved`, `Replayed`, `Purged`) |
+| GET | `/dlq/{id}` | 200, the dead letter |
+| POST | `/dlq/{id}/replay` | 200, the resulting delivery; an error if the webhook fails again |
+| POST | `/dlq/replay-all` | 200, `{ "replayed_count": n }` |
+| DELETE | `/dlq/{id}` | 204 |
 
-### Dead Letter Queue (DLQ) & Re-Drive
+The SSE stream sends unnamed events, so a browser `EventSource` receives them in `onmessage`,
+and a keep-alive every 15 seconds. Events missed while a slow client lags are skipped.
 
-When deliveries fail permanently or exhaust retry limits, they are stored in `dead_letter_queue`:
+## Tests
 
-```rust
-// Replay single dead letter
-let delivery = event_bus.replay_dead_letter("urn:uuid:dlq-id-123").await?;
-
-// Replay all unresolved dead letters in bulk
-let replayed_count = event_bus.replay_all_dead_letters().await?;
 ```
-
----
-
-## Setup & Lifecycle Management
-
-### 1. `AppContext`
-```rust
-use events::setup::AppContext;
-use events::RetryPolicy;
-
-// Production with live SeaORM database:
-let ctx = AppContext::build(db, Some(RetryPolicy::default()));
-
-// Zero-database in-memory setup for unit / integration tests:
-let test_ctx = AppContext::in_memory(None);
-```
-
-### 2. Background Retry Worker
-```rust
-let worker_handle = ctx.spawn_retry_worker();
-
-// Graceful cooperative shutdown on SIGTERM / SIGINT:
-worker_handle.stop().await;
-```
-
-### 3. Module Composition (`EventsModule`)
-[`EventsModule`](src/setup/composition.rs) implements `common::module_loader::service_module::ServiceModuleTrait`:
-- `name()`: Returns `"events"`
-- `migrations()`: Returns SeaORM migrations
-- `http()`: Mounts REST API under `/api/v1/events`
-
----
-
-## REST API Reference
-
-All routes are mounted under `/api/v1/events`:
-
-### Events (`/events`)
-
-| Method | Route | Description | Response Status |
-|---|---|---|---|
-| `POST` | `/publish` | Publish an event envelope into the bus | `201 Created` |
-| `GET` | `/` | List published events (`?topic=...&limit=50&offset=0`) | `200 OK` |
-| `GET` | `/{id}` | Get event by URN or UUID | `200 OK` / `400 Bad Request` / `404 Not Found` |
-| `GET` | `/{id}/deliveries` | List delivery records for an event | `200 OK` |
-
-### Subscriptions (`/subscriptions`)
-
-| Method | Route | Description | Response Status |
-|---|---|---|---|
-| `POST` | `/` | Create a webhook subscription | `201 Created` |
-| `GET` | `/` | List all registered subscriptions | `200 OK` |
-| `GET` | `/{id}` | Get subscription details by ID | `200 OK` / `404 Not Found` |
-| `PUT` | `/{id}` | Update subscription pattern, secret, or headers | `200 OK` |
-| `DELETE`| `/{id}` | Delete subscription | `204 No Content` |
-
-### Dead Letter Queue (`/dlq`)
-
-| Method | Route | Description | Response Status |
-|---|---|---|---|
-| `GET` | `/` | List dead letters (`?status=Unresolved&limit=50`) | `200 OK` |
-| `GET` | `/{id}` | Get dead letter details by ID | `200 OK` / `404 Not Found` |
-| `POST` | `/{id}/replay` | Re-attempt delivery of a dead letter | `200 OK` |
-| `POST` | `/replay-all` | Re-attempt all unresolved dead letters | `200 OK` (`{"replayed_count": n}`) |
-| `DELETE`| `/{id}` | Purge dead letter entry permanently | `204 No Content` |
-
----
-
-## Testing Guide
-
-The crate provides zero-database in-memory implementations (`InMemoryEventBusRepo` and `InMemoryDataFactory`) enabling fast, deterministic tests:
-
-```rust
-#[tokio::test]
-async fn test_domain_event_flow() {
-    let ctx = events::setup::AppContext::in_memory(None);
-    let mut rx = ctx.event_bus.subscribe();
-
-    let event = TransferStartedEvent {
-        transfer_id: "tx-1".into(),
-        consumer_pid: "urn:uuid:c1".into(),
-        provider_pid: "urn:uuid:p1".into(),
-        agreement_id: "a1".into(),
-    };
-
-    ctx.event_bus.publish_event(event).await.unwrap();
-
-    let received = rx.recv().await.unwrap();
-    assert_eq!(received.topic.as_str(), "transfers:bla");
-}
-```
-
-Run test suite:
-```bash
 cargo test -p events
 ```
+
+`tests/entities` covers topic validation and pattern matching. `tests/services` covers the
+retry policy, the dispatcher's headers and signature, publishing and the first delivery with
+each outcome, dead letter replay, and the retry worker, with mocked repositories and a local
+webhook server from `tests/support`. No database is needed. The SeaORM repositories, including
+the SQL form of topic patterns, and the HTTP routers have no tests yet.

@@ -43,7 +43,7 @@ use crate::services::odrl_policies::OdrlPolicyServiceTrait;
 use common::auth::AccessScope;
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::odrl::{OdrlOffer, OdrlPolicyInfo, OdrlTypes};
-use common::paginated_spec::Page;
+use common::paginated_spec::{Page, MAX_PAGE_LIMIT};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -120,21 +120,32 @@ impl OrchestrationPersistenceForProtocol {
             with_main_catalog: Some(false),
             ..Default::default()
         };
-        let catalogs_dtos = self
-            .catalog_entities_service
-            .get_all_catalogs(scope, &filter, &Page::default(), &Default::default())
-            .await?;
-        let mut dcat_catalogs = Vec::with_capacity(catalogs_dtos.len());
-        for catalog_dto in catalogs_dtos {
-            let catalog_urn = Urn::from_str(&catalog_dto.inner.id)?;
-            if &catalog_urn == exclude_id {
-                continue;
-            }
-            let sub_datasets = self.build_datasets_for_catalog(scope, &catalog_urn).await?;
-            let sub_dataservice = self
-                .build_dataservices_for_catalog(scope, &catalog_urn)
+        // The DSP answer lists every catalog, so follow the cursor until the last page.
+        let mut page = Page {
+            limit: MAX_PAGE_LIMIT,
+            ..Default::default()
+        };
+        let mut dcat_catalogs = Vec::new();
+        loop {
+            let catalogs = self
+                .catalog_entities_service
+                .get_all_catalogs(scope, &filter, &page, &Default::default())
                 .await?;
-            dcat_catalogs.push(self.map_subcatalog(catalog_dto, sub_dataservice, sub_datasets));
+            for catalog_dto in catalogs.items {
+                let catalog_urn = Urn::from_str(&catalog_dto.inner.id)?;
+                if &catalog_urn == exclude_id {
+                    continue;
+                }
+                let sub_datasets = self.build_datasets_for_catalog(scope, &catalog_urn).await?;
+                let sub_dataservice = self
+                    .build_dataservices_for_catalog(scope, &catalog_urn)
+                    .await?;
+                dcat_catalogs.push(self.map_subcatalog(catalog_dto, sub_dataservice, sub_datasets));
+            }
+            match catalogs.next_cursor {
+                Some(cursor) => page.cursor = Some(cursor),
+                None => break,
+            }
         }
         Ok(dcat_catalogs)
     }

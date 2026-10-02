@@ -40,6 +40,7 @@ pub enum SubscriptionRepoError {
 impl RepoIntoErrors for SubscriptionRepoError {}
 
 /// Persistence of webhook subscriptions and topic matching.
+#[mockall::automock]
 #[async_trait]
 pub trait EventSubscriptionRepo: Send + Sync + 'static {
     async fn create_subscription(

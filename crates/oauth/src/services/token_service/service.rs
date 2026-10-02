@@ -37,7 +37,7 @@ use crate::entities::refresh_token::RefreshToken;
 use crate::entities::role::RbacRole;
 use crate::services::password;
 use crate::services::token_service::jwt::{
-    AccessClaims, IdTokenClaims, JwtAssertionClaims, RefreshClaims, as_map,
+    AccessClaims, IdTokenClaims, JwtAssertionClaims, RefreshClaims, TokenType, TypedClaims, as_map,
 };
 use crate::services::token_service::views::{IntrospectResponse, TokenResponse};
 use crate::services::token_service::{Claims, OauthTokenValidator, TokenServiceTrait};
@@ -79,7 +79,21 @@ impl TokenService {
         .map_err(|e| Errors::crazy("JWT encoding failed", Some(Box::new(e))))
     }
 
-    fn verify<T: for<'de> Deserialize<'de>>(&self, token: &str) -> Outcome<T> {
+    /// Verifies a token this service issued, and that it is the kind `T` stands for.
+    fn verify<T: for<'de> Deserialize<'de> + TypedClaims>(&self, token: &str) -> Outcome<T> {
+        let claims: T = self.decode(token)?;
+        if claims.token_type() != T::TYPE {
+            return Err(Errors::format(
+                BadFormat::Received,
+                "invalid or expired token",
+                None,
+            ));
+        }
+        Ok(claims)
+    }
+
+    /// Checks signature and expiry only; for client assertions, which carry no `typ`.
+    fn decode<T: for<'de> Deserialize<'de>>(&self, token: &str) -> Outcome<T> {
         let mut v = Validation::new(Algorithm::HS256);
         v.validate_exp = true;
         v.validate_aud = false;
@@ -107,6 +121,7 @@ impl TokenService {
     ) -> Outcome<String> {
         let now = Utc::now().timestamp();
         self.sign(&AccessClaims {
+            typ: TokenType::Access,
             sub: tenant_id.to_string(),
             role,
             iat: now,
@@ -125,6 +140,7 @@ impl TokenService {
     ) -> Outcome<String> {
         let now = Utc::now().timestamp();
         self.sign(&IdTokenClaims {
+            typ: TokenType::Id,
             iss: self.config.issuer.clone(),
             sub: tenant_id.to_string(),
             aud: self.config.audience.clone(),
@@ -150,6 +166,7 @@ impl TokenService {
             })
             .await?;
         self.sign(&RefreshClaims {
+            typ: TokenType::Refresh,
             sub: tenant_id.to_string(),
             role,
             jti,
@@ -460,7 +477,7 @@ impl TokenServiceTrait for TokenService {
         assertion: &str,
         scope: Option<&str>,
     ) -> Outcome<TokenResponse> {
-        let claims: JwtAssertionClaims = self.verify(assertion)?;
+        let claims: JwtAssertionClaims = self.decode(assertion)?;
 
         let (tenant_id, role, client_scopes, client_id) =
             if let Ok(Some(client)) = self.client_repo.get_by_client_id(&claims.iss).await {

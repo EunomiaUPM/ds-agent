@@ -15,9 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! OAuth services with mocked repositories: clients, PATs, users and the token endpoint.
+//! Helpers shared by the events test targets. Each target uses a different subset.
+#![allow(dead_code)]
 
-mod clients;
-mod pats;
-mod tokens;
-mod users;
+pub mod fixtures;
+pub mod signals;
+pub mod webhook;

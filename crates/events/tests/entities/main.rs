@@ -15,9 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! OAuth services with mocked repositories: clients, PATs, users and the token endpoint.
+//! Event bus domain logic that lives in structs: topics and subscription patterns.
 
-mod clients;
-mod pats;
-mod tokens;
-mod users;
+mod topic;
+mod topic_pattern;

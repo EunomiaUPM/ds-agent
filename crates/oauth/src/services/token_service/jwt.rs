@@ -19,8 +19,25 @@ use serde::{Deserialize, Serialize};
 
 use crate::entities::role::RbacRole;
 
+/// Which token a JWT is. All three share the signing key, so the `typ` claim is what keeps a
+/// refresh or ID token from passing as an access token.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TokenType {
+    Access,
+    Refresh,
+    Id,
+}
+
+/// Claims of a token this service issues; verification rejects any other `typ`.
+pub trait TypedClaims {
+    const TYPE: TokenType;
+    fn token_type(&self) -> TokenType;
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessClaims {
+    pub typ: TokenType,
     pub sub: String,
     pub role: RbacRole,
     pub iat: i64,
@@ -31,8 +48,16 @@ pub struct AccessClaims {
     pub client_id: Option<String>,
 }
 
+impl TypedClaims for AccessClaims {
+    const TYPE: TokenType = TokenType::Access;
+    fn token_type(&self) -> TokenType {
+        self.typ
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RefreshClaims {
+    pub typ: TokenType,
     pub sub: String,
     pub role: RbacRole,
     pub jti: String,
@@ -40,8 +65,16 @@ pub struct RefreshClaims {
     pub exp: i64,
 }
 
+impl TypedClaims for RefreshClaims {
+    const TYPE: TokenType = TokenType::Refresh;
+    fn token_type(&self) -> TokenType {
+        self.typ
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IdTokenClaims {
+    pub typ: TokenType,
     pub iss: String,
     pub sub: String,
     pub aud: String,
@@ -51,6 +84,13 @@ pub struct IdTokenClaims {
     pub role: RbacRole,
     #[serde(flatten)]
     pub extra: serde_json::Map<String, serde_json::Value>,
+}
+
+impl TypedClaims for IdTokenClaims {
+    const TYPE: TokenType = TokenType::Id;
+    fn token_type(&self) -> TokenType {
+        self.typ
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

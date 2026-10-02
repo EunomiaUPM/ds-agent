@@ -1395,6 +1395,7 @@ dependencies = [
  "mockall",
  "opentelemetry",
  "rand 0.10.2",
+ "regex",
  "sea-orm",
  "sea-orm-migration",
  "serde",

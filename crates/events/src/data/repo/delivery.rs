@@ -37,6 +37,7 @@ pub enum DeliveryRepoError {
 impl RepoIntoErrors for DeliveryRepoError {}
 
 /// Persistence of webhook delivery attempts and their retry schedule.
+#[mockall::automock]
 #[async_trait]
 pub trait EventDeliveryRepo: Send + Sync + 'static {
     async fn create_delivery(&self, delivery: &EventDeliveryRecord)

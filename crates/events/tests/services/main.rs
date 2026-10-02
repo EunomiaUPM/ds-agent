@@ -15,9 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! OAuth services with mocked repositories: clients, PATs, users and the token endpoint.
+//! The event bus services: retry policy, webhook dispatcher, the bus and the retry worker, with
+//! mocked repositories and a local webhook.
 
-mod clients;
-mod pats;
-mod tokens;
-mod users;
+#[path = "../support/mod.rs"]
+mod support;
+
+mod dispatcher;
+mod event_bus;
+mod retry_policy;
+mod retry_worker;

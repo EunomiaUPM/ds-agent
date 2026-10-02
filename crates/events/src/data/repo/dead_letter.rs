@@ -38,6 +38,7 @@ pub enum DlqRepoError {
 impl RepoIntoErrors for DlqRepoError {}
 
 /// Persistence of deliveries that gave up, until they are replayed or purged.
+#[mockall::automock]
 #[async_trait]
 pub trait EventDeadLetterRepo: Send + Sync + 'static {
     async fn create_dead_letter(&self, record: &DeadLetterRecord) -> Outcome<DeadLetterRecord>;

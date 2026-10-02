@@ -39,6 +39,7 @@ pub enum EventRepoError {
 impl RepoIntoErrors for EventRepoError {}
 
 /// Append-only store of published events.
+#[mockall::automock]
 #[async_trait]
 pub trait EventStoreRepo: Send + Sync + 'static {
     async fn insert_event(&self, event: &EventEnvelope) -> Outcome<()>;

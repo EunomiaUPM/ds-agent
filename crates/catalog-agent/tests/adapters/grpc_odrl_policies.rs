@@ -19,8 +19,7 @@
 
 use std::sync::Arc;
 
-use catalog_agent::data::entities::odrl_offer;
-use catalog_agent::entities::odrl_policies::{CatalogEntityTypes, OdrlPolicyDto};
+use catalog_agent::entities::odrl_policies::CatalogEntityTypes;
 use catalog_agent::grpc::api::catalog_agent::odrl_policy_entity_service_server::OdrlPolicyEntityService;
 use catalog_agent::grpc::api::catalog_agent::{
     CatalogEntityType, CreateOdrlPolicyRequest, GetByEntityIdRequest, GetByIdRequest,
@@ -28,7 +27,6 @@ use catalog_agent::grpc::api::catalog_agent::{
 };
 use catalog_agent::grpc::odrl_policies::OdrlPolicyEntityGrpc;
 use catalog_agent::services::odrl_policies::MockOdrlPolicyServiceTrait;
-use chrono::Utc;
 use common::errors::ResourceError;
 use common::grpc::JsonValueExt;
 use common::paginated_spec::Paginated;
@@ -37,27 +35,11 @@ use prost_types::Struct;
 use serde_json::json;
 use tonic::Code;
 
+use crate::support::builders::odrl_policy_dto;
 use crate::support::fixtures::urn;
 
 fn grpc(service: MockOdrlPolicyServiceTrait) -> OdrlPolicyEntityGrpc {
     OdrlPolicyEntityGrpc::new(Arc::new(service), Arc::new(StubTokenValidator))
-}
-
-fn dto(n: u32, entity_type: &str) -> OdrlPolicyDto {
-    OdrlPolicyDto {
-        inner: odrl_offer::Model {
-            id: urn(n),
-            tenant_id: TENANT.to_string(),
-            odrl_offer: json!({"permission": [{"action": "use"}]}),
-            entity: urn(100),
-            entity_type: entity_type.to_string(),
-            created_at: Utc::now().into(),
-            source_template_id: None,
-            source_template_version: None,
-            instantiation_parameters: Some(json!({"n": 3})),
-            description: None,
-        },
-    }
 }
 
 fn by_id(id: &str) -> GetByIdRequest {
@@ -187,7 +169,7 @@ async fn create_passes_template_provenance_through() {
                 && dto.instantiation_parameters == Some(json!({"n": 3}))
                 && dto.odrl_offer.permission.as_ref().map(|p| p.len()) == Some(1)
         })
-        .returning(|_, _| Ok(dto(1, "Dataset")));
+        .returning(|_, _| Ok(odrl_policy_dto(1, "Dataset")));
     let g = grpc(svc);
     assert!(g
         .create_odrl_offer(GrpcRequests::owner(valid_create()))
@@ -222,7 +204,7 @@ async fn list_maps_entity_type_filter_and_propagates_paging() {
         })
         .returning(|_, _, _, _| {
             Ok(Paginated::new(
-                vec![dto(1, "Catalog"), dto(2, "garbage")],
+                vec![odrl_policy_dto(1, "Catalog"), odrl_policy_dto(2, "garbage")],
                 Some("n".into()),
                 Some(2),
             ))

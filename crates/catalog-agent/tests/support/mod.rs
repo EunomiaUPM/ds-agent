@@ -18,4 +18,5 @@
 //! Helpers shared by the catalog-agent test targets. Each target uses a different subset.
 #![allow(dead_code)]
 
+pub mod builders;
 pub mod fixtures;

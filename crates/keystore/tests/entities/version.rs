@@ -15,19 +15,20 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Catalog-agent services with mocked repositories and no-op caches.
+//! Version: entry versions for optimistic concurrency.
 
-#[path = "../support/mod.rs"]
-mod support;
+use keystore::entities::version::Version;
 
-mod catalogs;
-mod data_services;
-mod dataset_offerings;
-mod datasets;
-mod distributions;
-mod odrl_policies;
-mod peer_catalogs;
-mod policy_instantiation;
-mod policy_templates;
-mod tenant_provisioning;
-mod tenant_provisioning_listener;
+/// Versions start at 1 and each update bumps them by one.
+#[test]
+fn versions_start_at_one_and_bump_by_one() {
+    assert_eq!(Version::INITIAL.value(), 1);
+    assert_eq!(Version::INITIAL.next().value(), 2);
+    assert_eq!(Version::new(7).next(), Version::new(8));
+}
+
+/// Versions are ordered, so a stale one compares lower.
+#[test]
+fn versions_are_ordered() {
+    assert!(Version::new(2) > Version::INITIAL);
+}

@@ -19,8 +19,6 @@
 
 use std::sync::Arc;
 
-use catalog_agent::data::entities::distribution;
-use catalog_agent::entities::distributions::DistributionDto;
 use catalog_agent::grpc::api::catalog_agent::distribution_entity_service_server::DistributionEntityService;
 use catalog_agent::grpc::api::catalog_agent::{
     CreateDistributionRequest, GetByIdRequest, GetDistributionByFormatRequest,
@@ -28,32 +26,16 @@ use catalog_agent::grpc::api::catalog_agent::{
 };
 use catalog_agent::grpc::distributions::DistributionEntityGrpc;
 use catalog_agent::services::distributions::MockDistributionServiceTrait;
-use chrono::Utc;
 use common::errors::ResourceError;
 use common::paginated_spec::Paginated;
 use common::test_utils::grpc::{GrpcRequests, StubTokenValidator, OTHER_TENANT, TENANT};
 use tonic::Code;
 
+use crate::support::builders::distribution_dto;
 use crate::support::fixtures::urn;
 
 fn grpc(service: MockDistributionServiceTrait) -> DistributionEntityGrpc {
     DistributionEntityGrpc::new(Arc::new(service), Arc::new(StubTokenValidator))
-}
-
-fn dto(n: u32) -> DistributionDto {
-    DistributionDto {
-        inner: distribution::Model {
-            id: urn(n),
-            tenant_id: TENANT.to_string(),
-            dct_issued: Utc::now().into(),
-            dct_modified: None,
-            dct_title: None,
-            dct_description: None,
-            dcat_access_service: urn(200),
-            dataset_id: urn(100),
-            dct_format: Some("HTTP_PULL".into()),
-        },
-    }
 }
 
 fn by_id(id: &str) -> GetByIdRequest {
@@ -119,7 +101,7 @@ async fn create_maps_empty_format_to_none() {
     let mut svc = MockDistributionServiceTrait::new();
     svc.expect_create_distribution()
         .withf(|_, dto| dto.dct_formats.is_none() && dto.dataset_id.to_string() == urn(100))
-        .returning(|_, _| Ok(dto(1)));
+        .returning(|_, _| Ok(distribution_dto(1)));
     let g = grpc(svc);
     let req = CreateDistributionRequest {
         dataset_id: urn(100),
@@ -156,7 +138,7 @@ async fn list_propagates_cursor_total_and_parsed_filters() {
                 && filter.dataset_id.as_deref() == Some(&urn(100)[..])
                 && page.cursor.as_deref() == Some("c0")
         })
-        .returning(|_, _, _, _| Ok(Paginated::new(vec![dto(1)], None, Some(1))));
+        .returning(|_, _, _, _| Ok(Paginated::new(vec![distribution_dto(1)], None, Some(1))));
     let g = grpc(svc);
     let req = ListDistributionsRequest {
         format: "HTTP_PULL".into(),

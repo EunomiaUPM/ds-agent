@@ -15,10 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Keystore services with mocked repositories.
+//! Keystore services with mocked repositories: config, parameters and secrets.
 
 #[path = "../support/mod.rs"]
 mod support;
 
+mod config;
 mod parameters;
 mod secrets;

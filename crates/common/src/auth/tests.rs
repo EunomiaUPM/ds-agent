@@ -283,3 +283,47 @@ fn auth_rules_check_expiry_audience_issuer_and_role() {
     assert!(AuthRules::has_role(&roles, "admin", "roles").is_ok());
     assert!(AuthRules::has_role(&roles, "writer", "roles").is_err());
 }
+
+/// A foreign record looks like a missing one, so probing reveals nothing.
+#[test]
+fn ensure_visible_hides_foreign_records_as_not_found() {
+    let owner = AccessScope::from_role(RbacRole::Owner, "tenant-a");
+    assert!(owner.ensure_visible("tenant-a", "urn:x:1").is_ok());
+    match owner.ensure_visible("tenant-b", "urn:x:1").unwrap_err() {
+        ymir::errors::Errors::MissingResourceError { info, .. } => {
+            assert_eq!(info.status_code, 404)
+        }
+        other => panic!("expected not found, got {other:?}"),
+    }
+    let admin = AccessScope::from_role(RbacRole::Admin, "system");
+    assert!(admin.ensure_visible("tenant-b", "urn:x:1").is_ok());
+}
+
+/// An admin that names a tenant in the header is pinned to it and sees nothing else.
+#[test]
+fn admin_naming_a_tenant_is_pinned_to_it() {
+    let admin = claims("admin-tenant", RbacRole::Admin);
+    let pinned = AccessScope::from_tenant_header(&admin, Some("tenant-a")).unwrap();
+    assert_eq!(pinned.tenant_filter(), Some("tenant-a"));
+    assert!(!pinned.permits("tenant-b"));
+    assert!(pinned.ensure_visible("tenant-b", "urn:x:1").is_err());
+    assert!(
+        pinned.is_admin(),
+        "still an admin for admin-only operations"
+    );
+}
+
+/// Only an admin scope passes `require_admin`; the rejection is a 403.
+#[test]
+fn require_admin_rejects_non_admins_with_forbidden() {
+    assert!(AccessScope::from_role(RbacRole::Admin, "system")
+        .require_admin()
+        .is_ok());
+    let err = AccessScope::from_role(RbacRole::Owner, "tenant-a")
+        .require_admin()
+        .unwrap_err();
+    match err {
+        ymir::errors::Errors::ForbiddenError { info, .. } => assert_eq!(info.status_code, 403),
+        other => panic!("expected forbidden, got {other:?}"),
+    }
+}

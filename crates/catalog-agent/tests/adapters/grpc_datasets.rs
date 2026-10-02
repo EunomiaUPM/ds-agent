@@ -19,41 +19,22 @@
 
 use std::sync::Arc;
 
-use catalog_agent::data::entities::dataset;
-use catalog_agent::entities::datasets::DatasetDto;
 use catalog_agent::grpc::api::catalog_agent::dataset_entity_service_server::DatasetEntityService;
 use catalog_agent::grpc::api::catalog_agent::{
     CreateDatasetRequest, GetByIdRequest, ListDatasetsRequest, PutDatasetRequest,
 };
 use catalog_agent::grpc::datasets::DatasetEntityGrpc;
 use catalog_agent::services::datasets::MockDatasetServiceTrait;
-use chrono::Utc;
 use common::errors::ResourceError;
 use common::paginated_spec::Paginated;
 use common::test_utils::grpc::{GrpcRequests, StubTokenValidator, OTHER_TENANT, TENANT};
 use tonic::Code;
 
+use crate::support::builders::dataset_dto;
 use crate::support::fixtures::urn;
 
 fn grpc(service: MockDatasetServiceTrait) -> DatasetEntityGrpc {
     DatasetEntityGrpc::new(Arc::new(service), Arc::new(StubTokenValidator))
-}
-
-fn dto(n: u32) -> DatasetDto {
-    DatasetDto {
-        inner: dataset::Model {
-            id: urn(n),
-            tenant_id: TENANT.to_string(),
-            dct_conforms_to: None,
-            dct_creator: None,
-            dct_identifier: None,
-            dct_issued: Utc::now().into(),
-            dct_modified: None,
-            dct_title: Some(format!("dataset-{n}")),
-            dct_description: None,
-            catalog_id: urn(100),
-        },
-    }
 }
 
 fn by_id(id: &str) -> GetByIdRequest {
@@ -147,7 +128,7 @@ async fn list_propagates_cursor_total_and_parsed_filters() {
         })
         .returning(|_, _, _, _| {
             Ok(Paginated::new(
-                vec![dto(1), dto(2)],
+                vec![dataset_dto(1), dataset_dto(2)],
                 Some("next".into()),
                 Some(10),
             ))

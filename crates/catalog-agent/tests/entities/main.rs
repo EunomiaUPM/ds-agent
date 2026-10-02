@@ -17,4 +17,8 @@
 
 //! Catalog-agent domain logic that lives in structs.
 
+#[path = "../support/mod.rs"]
+mod support;
+
 mod filters;
+mod policy_instantiation;

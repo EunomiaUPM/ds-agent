@@ -19,6 +19,7 @@ use crate::protocols::dsp::types::catalog_definition::Catalog;
 use urn::Urn;
 use ymir::errors::Outcome;
 
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait PeerCatalogCacheTrait: Sync + Send {
     /// Catalogs are cached per tenant: a peer may expose a different catalog to each tenant.

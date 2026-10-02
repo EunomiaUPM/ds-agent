@@ -19,43 +19,23 @@
 
 use std::sync::Arc;
 
-use catalog_agent::data::entities::catalog;
-use catalog_agent::entities::catalogs::CatalogDto;
 use catalog_agent::grpc::api::catalog_agent::catalog_entity_service_server::CatalogEntityService;
 use catalog_agent::grpc::api::catalog_agent::{
     CreateCatalogRequest, GetBatchRequest, GetByIdRequest, ListCatalogsRequest, PutCatalogRequest,
 };
 use catalog_agent::grpc::catalogs::CatalogEntityGrpc;
 use catalog_agent::services::catalogs::MockCatalogServiceTrait;
-use chrono::Utc;
 use common::errors::ResourceError;
 use common::paginated_spec::Paginated;
 use common::test_utils::grpc::{GrpcRequests, StubTokenValidator, OTHER_TENANT, TENANT};
 use tonic::Code;
 use ymir::errors::Errors;
 
+use crate::support::builders::catalog_dto;
 use crate::support::fixtures::urn;
 
 fn grpc(service: MockCatalogServiceTrait) -> CatalogEntityGrpc {
     CatalogEntityGrpc::new(Arc::new(service), Arc::new(StubTokenValidator))
-}
-
-fn dto(n: u32) -> CatalogDto {
-    CatalogDto {
-        inner: catalog::Model {
-            id: urn(n),
-            tenant_id: TENANT.to_string(),
-            foaf_home_page: None,
-            dct_conforms_to: None,
-            dct_creator: Some("creator".into()),
-            dct_identifier: None,
-            dct_issued: Utc::now().into(),
-            dct_modified: None,
-            dct_title: Some(format!("catalog-{n}")),
-            dspace_participant_id: None,
-            dspace_main_catalog: n == 1,
-        },
-    }
 }
 
 fn by_id(id: &str) -> GetByIdRequest {
@@ -94,7 +74,7 @@ async fn admin_may_act_on_foreign_tenant() {
     let mut svc = MockCatalogServiceTrait::new();
     svc.expect_get_catalog_by_id()
         .withf(|scope, _| scope.acting_tenant() == OTHER_TENANT && scope.is_admin())
-        .returning(|_, _| Ok(dto(1)));
+        .returning(|_, _| Ok(catalog_dto(1)));
     let g = grpc(svc);
     assert!(g
         .get_catalog_by_id(GrpcRequests::with_auth(
@@ -112,7 +92,7 @@ async fn missing_tenant_header_falls_back_to_token_tenant() {
     let mut svc = MockCatalogServiceTrait::new();
     svc.expect_get_catalog_by_id()
         .withf(|scope, _| scope.acting_tenant() == TENANT)
-        .returning(|_, _| Ok(dto(1)));
+        .returning(|_, _| Ok(catalog_dto(1)));
     let g = grpc(svc);
     assert!(g
         .get_catalog_by_id(GrpcRequests::with_auth(by_id(&urn(1)), Some("owner"), None))
@@ -184,7 +164,7 @@ async fn create_parses_optional_id_and_passes_fields() {
                 && dto.dct_title.as_deref() == Some("t")
                 && dto.tenant_id.is_none()
         })
-        .returning(|_, _| Ok(dto(9)));
+        .returning(|_, _| Ok(catalog_dto(9)));
     let g = grpc(svc);
     let req = CreateCatalogRequest {
         id: Some(urn(9)),
@@ -210,7 +190,7 @@ async fn put_parses_id_and_maps_edit_dto() {
     let mut svc = MockCatalogServiceTrait::new();
     svc.expect_put_catalog_by_id()
         .withf(|_, id, edit| id.to_string() == urn(1) && edit.dct_title.as_deref() == Some("new"))
-        .returning(|_, _, _| Ok(dto(1)));
+        .returning(|_, _, _| Ok(catalog_dto(1)));
     let g = grpc(svc);
     let req = PutCatalogRequest {
         id: urn(1),
@@ -280,7 +260,7 @@ async fn list_propagates_cursor_total_and_parsed_filters() {
         })
         .returning(|_, _, _, _| {
             Ok(Paginated::new(
-                vec![dto(1), dto(2)],
+                vec![catalog_dto(1), catalog_dto(2)],
                 Some("next".into()),
                 Some(42),
             ))
@@ -312,7 +292,7 @@ async fn batch_returns_full_set_without_cursor() {
     let mut svc = MockCatalogServiceTrait::new();
     svc.expect_get_batch_catalogs()
         .withf(|_, ids| ids.len() == 2)
-        .returning(|_, _| Ok(vec![dto(1), dto(2)]));
+        .returning(|_, _| Ok(vec![catalog_dto(1), catalog_dto(2)]));
     let g = grpc(svc);
     let resp = g
         .get_batch_catalogs(GrpcRequests::owner(GetBatchRequest {

@@ -19,44 +19,22 @@
 
 use std::sync::Arc;
 
-use catalog_agent::data::entities::dataservice;
-use catalog_agent::entities::data_services::DataServiceDto;
 use catalog_agent::grpc::api::catalog_agent::data_service_entity_service_server::DataServiceEntityService;
 use catalog_agent::grpc::api::catalog_agent::{
     CreateDataServiceRequest, GetByIdRequest, GetByParentIdRequest, ListDataServicesRequest,
 };
 use catalog_agent::grpc::data_services::DataServiceEntityGrpc;
 use catalog_agent::services::data_services::MockDataServiceServiceTrait;
-use chrono::Utc;
 use common::errors::ResourceError;
 use common::paginated_spec::Paginated;
 use common::test_utils::grpc::{GrpcRequests, StubTokenValidator, OTHER_TENANT, TENANT};
 use tonic::Code;
 
+use crate::support::builders::data_service_dto;
 use crate::support::fixtures::urn;
 
 fn grpc(service: MockDataServiceServiceTrait) -> DataServiceEntityGrpc {
     DataServiceEntityGrpc::new(Arc::new(service), Arc::new(StubTokenValidator))
-}
-
-fn dto(n: u32) -> DataServiceDto {
-    DataServiceDto {
-        inner: dataservice::Model {
-            id: urn(n),
-            tenant_id: TENANT.to_string(),
-            dcat_endpoint_description: None,
-            dcat_endpoint_url: "https://svc.example".into(),
-            dct_conforms_to: None,
-            dct_creator: None,
-            dct_identifier: None,
-            dct_issued: Utc::now().into(),
-            dct_modified: None,
-            dct_title: None,
-            dct_description: None,
-            catalog_id: urn(100),
-            dspace_main_data_service: true,
-        },
-    }
 }
 
 fn by_id(id: &str) -> GetByIdRequest {
@@ -146,7 +124,13 @@ async fn list_propagates_cursor_total_and_parsed_filters() {
                 && filter.main_data_service == Some(false)
                 && page.limit == 20
         })
-        .returning(|_, _, _, _| Ok(Paginated::new(vec![dto(1)], Some("c".into()), Some(3))));
+        .returning(|_, _, _, _| {
+            Ok(Paginated::new(
+                vec![data_service_dto(1)],
+                Some("c".into()),
+                Some(3),
+            ))
+        });
     let g = grpc(svc);
     let req = ListDataServicesRequest {
         catalog_id: urn(100),
@@ -170,7 +154,13 @@ async fn by_parent_returns_full_set_with_total() {
     let mut svc = MockDataServiceServiceTrait::new();
     svc.expect_get_data_services_by_catalog_id()
         .withf(|_, id| id.to_string() == urn(100))
-        .returning(|_, _| Ok(vec![dto(1), dto(2), dto(3)]));
+        .returning(|_, _| {
+            Ok(vec![
+                data_service_dto(1),
+                data_service_dto(2),
+                data_service_dto(3),
+            ])
+        });
     let g = grpc(svc);
     let resp = g
         .get_data_services_by_catalog_id(GrpcRequests::owner(GetByParentIdRequest {

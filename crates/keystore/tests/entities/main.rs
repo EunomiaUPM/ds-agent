@@ -18,3 +18,5 @@
 //! Keystore domain logic that lives in structs.
 
 mod filters;
+mod key;
+mod version;

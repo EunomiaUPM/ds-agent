@@ -63,13 +63,18 @@ impl OAuthConfig {
     }
 }
 
+/// Panics unless the provider is `built_in`: this crate is the built-in provider.
 impl From<CommonConfig> for OAuthConfig {
     fn from(value: CommonConfig) -> Self {
+        let built_in = value
+            .oauth
+            .built_in()
+            .expect("the oauth crate only runs with the built_in provider");
         Self {
-            jwt_secret: value.jwt_secret,
-            access_token_ttl_secs: value.access_token_ttl,
-            refresh_token_ttl_secs: value.refresh_token_ttl,
-            issuer: value.hosts.get_host(HostType::Http),
+            jwt_secret: built_in.jwt_secret.clone(),
+            access_token_ttl_secs: built_in.access_token_ttl,
+            refresh_token_ttl_secs: built_in.refresh_token_ttl,
+            issuer: value.hosts().get_host(HostType::Http),
             audience: "client".to_string(),
         }
     }

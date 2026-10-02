@@ -26,10 +26,7 @@ use ymir::errors::{Errors, Outcome};
 #[derive(Debug, Clone)]
 pub enum DspActor {
     /// A remote connector authenticated through the SSI token.
-    Peer {
-        tenant_id: String,
-        participant_id: String,
-    },
+    Peer { participant_id: String },
     /// A local user authenticated through OAuth.
     User(AccessScope),
 }
@@ -37,7 +34,6 @@ pub enum DspActor {
 impl DspActor {
     pub fn peer(mate: &Mates) -> Self {
         Self::Peer {
-            tenant_id: mate.tenant_id.clone(),
             participant_id: mate.participant_id.clone(),
         }
     }
@@ -46,14 +42,12 @@ impl DspActor {
         Self::User(scope.clone())
     }
 
-    /// A peer may only act on processes of the tenant it onboarded into where it is the
-    /// `counterparty`; a user only within its tenants. A refusal looks like a missing process.
+    /// A peer may only act on processes where it is the `counterparty` (mates belong to the
+    /// whole connector, not to a tenant); a user only within its tenants. A refusal looks like
+    /// a missing process.
     pub fn authorize(&self, owner_tenant: &str, counterparty: &str, pid: &Urn) -> Outcome<()> {
         let allowed = match self {
-            Self::Peer {
-                tenant_id,
-                participant_id,
-            } => owner_tenant == tenant_id && counterparty == participant_id,
+            Self::Peer { participant_id } => counterparty == participant_id,
             Self::User(scope) => scope.permits(owner_tenant),
         };
         if allowed {

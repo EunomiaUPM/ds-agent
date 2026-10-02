@@ -19,5 +19,7 @@ mod config;
 mod parse_from;
 pub mod services;
 pub mod types;
+mod oauth;
 
 pub use config::ApplicationConfig;
+pub use oauth::{OauthConfig, BuiltInOauthConfig};

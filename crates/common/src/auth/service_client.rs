@@ -67,7 +67,7 @@ impl ServiceHttpClient {
 
     /// Client for an agent, with the credentials and host of its own common config.
     pub fn from_common(common: &CommonConfig) -> Self {
-        Self::new(&common.service_client, &common.get_host(HostType::Http))
+        Self::new(&common.oauth.service_client(), &common.get_host(HostType::Http))
     }
 
     /// GET acting on `tenant`; `None` leaves the tenant to the service token.

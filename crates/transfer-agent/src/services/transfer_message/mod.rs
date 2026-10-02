@@ -16,8 +16,6 @@
  */
 
 pub mod service;
-#[cfg(test)]
-mod tests;
 pub mod views;
 
 use crate::entities::commands::NewTransferMessageCommand;

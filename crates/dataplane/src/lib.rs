@@ -44,5 +44,3 @@ pub use engine::dataplane_manager::dataplane_manager::DataplaneManager;
 pub use engine::dataplane_manager::DataplaneAddress;
 pub use services::dataplane_transfers::DataplaneTransferServiceTrait;
 
-#[cfg(test)]
-pub mod test_fixtures;

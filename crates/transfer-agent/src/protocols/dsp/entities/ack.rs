@@ -48,30 +48,3 @@ impl TransferProcessAck {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// The wire shape is normative (DSP 9.3.1), so it is pinned here rather than
-    /// left to whatever the derives happen to produce.
-    #[test]
-    fn serializes_to_the_specified_shape() {
-        let ack = TransferProcessAck::new(
-            "urn:uuid:cc".to_string(),
-            "urn:uuid:pp".to_string(),
-            TransferDSPState::REQUESTED,
-        );
-        let json = serde_json::to_value(&ack).unwrap();
-        assert_eq!(
-            json,
-            serde_json::json!({
-                "@context": ["https://w3id.org/dspace/2025/1/context.jsonld"],
-                "@type": "TransferProcess",
-                "consumerPid": "urn:uuid:cc",
-                "providerPid": "urn:uuid:pp",
-                "state": "REQUESTED"
-            })
-        );
-    }
-}

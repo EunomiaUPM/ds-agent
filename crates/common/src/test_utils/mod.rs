@@ -15,6 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Fixtures for tests in other crates, such as a ready-made `TransferConfig`.
+//! Fixtures for tests in other crates, such as a ready-made `TransferConfig`, access scopes
+//! or gRPC auth doubles.
 
 pub mod config_fixtures;
+pub mod grpc;
+pub mod scopes;

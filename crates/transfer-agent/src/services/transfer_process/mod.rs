@@ -25,8 +25,6 @@ use urn::Urn;
 use ymir::errors::Outcome;
 
 pub mod service;
-#[cfg(test)]
-mod tests;
 pub mod views;
 
 #[mockall::automock]

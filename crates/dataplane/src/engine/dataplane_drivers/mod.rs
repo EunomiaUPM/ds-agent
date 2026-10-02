@@ -15,11 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(super) mod authentication;
-pub(super) mod configuration;
+pub mod authentication;
+pub mod configuration;
 pub mod keystore_lookup;
 pub mod proxy;
-pub(super) mod pubsub;
+pub mod pubsub;
 
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use serde::{Deserialize, Serialize};

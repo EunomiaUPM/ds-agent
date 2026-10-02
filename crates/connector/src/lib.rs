@@ -65,5 +65,4 @@ pub use entities::parameters::keystore_lookup::KeystoreLookup;
 pub use entities::parameters::{template_runtime_parameter_regex, template_runtime_secret_regex};
 pub use services::connector_instance::ConnectorInstanceServiceTrait;
 pub use services::connector_template::ConnectorTemplateServiceTrait;
-#[cfg(test)]
 pub use services::connector_template::MockConnectorTemplateServiceTrait;

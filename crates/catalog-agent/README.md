@@ -63,18 +63,19 @@ dataset is deleted again.
 
 Mounted at `/dsp/current/catalog`:
 
-| Method | Path | Auth | Response |
-|---|---|---|---|
-| POST | `/request` | Peer token | 200, the tenant's catalog |
-| GET | `/datasets/{id}` | Peer token | 200, the dataset with its offers and distributions |
-| POST | `/rpc/setup-catalog-request` | Bearer | Fetches a peer's catalog and caches it |
-| POST | `/rpc/setup-dataset-request` | Bearer | Fetches one dataset from a peer |
+| Method | Path | Section | Auth | Response |
+|---|---|---|---|---|
+| POST | `/request` | DSP 6.2.1, 5.2.1 | Peer token | 200, the tenant's catalog |
+| GET | `/datasets/{id}` | DSP 6.2.2, 5.2.2 | Peer token | 200, the dataset with its offers and distributions |
+| POST | `/rpc/setup-catalog-request` | | Bearer | Fetches a peer's catalog and caches it |
+| POST | `/rpc/setup-dataset-request` | | Bearer | Fetches one dataset from a peer |
 
 The protocol endpoints check the peer's token with the auth agent (`SSIAuthFacadeTrait`). The
 peer then reads, as `Reader`, the tenant it is associated with. The catalog it gets is the
 tenant's main catalog with its data service, its datasets (offers and distributions included),
 and the other catalogs as sub-catalogs. Messages pass through the DSP namespace normalizer and
-the schemas in `dsp_schema/`.
+the schemas in `dsp_schema/`. The catalog request's `filter` is ignored and the catalog is not
+paginated (DSP 6.3.1 makes pagination optional). Errors answer 400 with a plain text body.
 
 The RPC endpoints are how the tenant's own clients reach peers. The agent resolves the peer's
 DSP address through its well-known endpoint and sends the request with the tenant's token for

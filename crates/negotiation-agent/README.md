@@ -70,7 +70,7 @@ auth agent; the peer acts on the tenant it is associated with.
 A first request or offer answers 201 with the ACK, or 200 if that process already exists; the
 rest answer 200. Errors carry the DSP error message: 404 for a missing or foreign process, so a
 peer cannot probe other negotiations, and 400 otherwise. A missing or invalid peer token answers
-401.
+401, although DSP 8.1.2.3 asks for 404.
 
 ## RPC
 

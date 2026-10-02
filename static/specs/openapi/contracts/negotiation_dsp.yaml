@@ -1,1050 +1,1528 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
-  title: Eunomia DS Negotiation Agent API - DSP Protocol
-  description: OpenAPI specification for the Eunomia DS Negotiation Agent DSP Protocol and RPC endpoints.
+  title: Eunomia DS Contract Negotiation Protocol API
+  description: |
+    Contract Negotiation Protocol of the Dataspace Protocol 2025-1 as served by the negotiation
+    agent. The same endpoints serve both roles: a provider receives requests, verifications and
+    events; a consumer receives offers, agreements and events. Protocol endpoints authenticate
+    the peer with the token it obtained through GNAP onboarding; a missing process and a process
+    of another peer both answer 404.
+
+    The RPC endpoints make this agent send the next message of a negotiation; the BFF variants
+    are the shortcuts the admin GUI uses (`setup-agreement` also verifies and finalizes).
   version: 1.0.0
+  license:
+    name: GPL-3.0-or-later
+    url: https://www.gnu.org/licenses/gpl-3.0.html
 servers:
-  - url: /dsp/current
-    description: Base path for the DSP protocol
-
+- url: http://127.0.0.1:1200
+  description: Provider agent (dev)
+- url: http://127.0.0.1:1100
+  description: Consumer agent (dev)
 tags:
-  - name: DSP Protocol
-    description: Standard Dataspace Protocol negotiation endpoints
-  - name: DSP RPC
-    description: Remote Procedure Call endpoints for orchestrator interaction
-
+- name: Negotiation Protocol
+  description: DSP endpoints called by peers
+- name: Negotiation RPC
+  description: Messages this agent sends to a peer
+- name: Negotiation BFF RPC
+  description: Composite RPCs used by the admin GUI
 paths:
-  # --- DSP Protocol ---
-  /negotiations/{id}:
+  /dsp/current/negotiations/{id}:
     get:
       tags:
-        - DSP Protocol
-      summary: Get negotiation
+      - Negotiation Protocol
       operationId: getNegotiation
+      summary: Negotiation state
+      security:
+      - peerBearer: []
       parameters:
-        - $ref: "#/components/parameters/IdPath"
+      - $ref: '#/components/parameters/PidPath'
       responses:
-        "200":
-          description: Negotiation returned
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /negotiations/request:
+        '200':
+          $ref: '#/components/responses/NegotiationAck'
+        '400':
+          $ref: '#/components/responses/NegotiationError'
+        '401':
+          $ref: '#/components/responses/PeerUnauthorized'
+        '404':
+          $ref: '#/components/responses/NegotiationError'
+  /dsp/current/negotiations/request:
     post:
       tags:
-        - DSP Protocol
-      summary: Initial contract request (Consumer initiates)
+      - Negotiation Protocol
       operationId: initialContractRequest
+      summary: Initial contract request (provider)
+      description: Starts a negotiation; repeating a known request answers 200 instead of 201.
+      security:
+      - peerBearer: []
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationRequestInitMessageDto"
+              $ref: '#/components/schemas/ContractRequestInitMessage'
       responses:
-        "201":
-          description: Negotiation created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        "200":
-          description: Negotiation already exists
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /negotiations/{id}/request:
+        '200':
+          $ref: '#/components/responses/NegotiationAck'
+        '201':
+          $ref: '#/components/responses/NegotiationAck'
+        '400':
+          $ref: '#/components/responses/NegotiationError'
+        '401':
+          $ref: '#/components/responses/PeerUnauthorized'
+  /dsp/current/negotiations/{id}/request:
     post:
       tags:
-        - DSP Protocol
-      summary: Consumer request (Counter-offer)
+      - Negotiation Protocol
       operationId: consumerRequest
+      summary: Counter request (provider)
+      security:
+      - peerBearer: []
       parameters:
-        - $ref: "#/components/parameters/IdPath"
+      - $ref: '#/components/parameters/PidPath'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationRequestMessageDto"
+              $ref: '#/components/schemas/ContractRequestMessage'
       responses:
-        "200":
-          description: Request processed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /negotiations/{id}/agreement/verification:
+        '200':
+          $ref: '#/components/responses/NegotiationAck'
+        '400':
+          $ref: '#/components/responses/NegotiationError'
+        '401':
+          $ref: '#/components/responses/PeerUnauthorized'
+        '404':
+          $ref: '#/components/responses/NegotiationError'
+  /dsp/current/negotiations/offers:
     post:
       tags:
-        - DSP Protocol
-      summary: Agreement verification
-      operationId: agreementVerification
-      parameters:
-        - $ref: "#/components/parameters/IdPath"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationVerificationMessageDto"
-      responses:
-        "200":
-          description: Verification processed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /negotiations/offers:
-    post:
-      tags:
-        - DSP Protocol
-      summary: Initial offer (Provider initiates)
+      - Negotiation Protocol
       operationId: initialOffer
+      summary: Initial contract offer (consumer)
+      description: Starts a provider-initiated negotiation; a known offer answers 200 instead of 201.
+      security:
+      - peerBearer: []
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationOfferInitMessageDto"
+              $ref: '#/components/schemas/ContractOfferInitMessage'
       responses:
-        "201":
-          description: Negotiation created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        "200":
-          description: Negotiation already exists
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /negotiations/{id}/offers:
+        '200':
+          $ref: '#/components/responses/NegotiationAck'
+        '201':
+          $ref: '#/components/responses/NegotiationAck'
+        '400':
+          $ref: '#/components/responses/NegotiationError'
+        '401':
+          $ref: '#/components/responses/PeerUnauthorized'
+  /dsp/current/negotiations/{id}/offers:
     post:
       tags:
-        - DSP Protocol
-      summary: Provider offer (Counter-offer)
+      - Negotiation Protocol
       operationId: providerOffer
+      summary: Counter offer (consumer)
+      security:
+      - peerBearer: []
       parameters:
-        - $ref: "#/components/parameters/IdPath"
+      - $ref: '#/components/parameters/PidPath'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationOfferMessageDto"
+              $ref: '#/components/schemas/ContractOfferMessage'
       responses:
-        "200":
-          description: Offer processed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /negotiations/{id}/agreement:
+        '200':
+          $ref: '#/components/responses/NegotiationAck'
+        '400':
+          $ref: '#/components/responses/NegotiationError'
+        '401':
+          $ref: '#/components/responses/PeerUnauthorized'
+        '404':
+          $ref: '#/components/responses/NegotiationError'
+  /dsp/current/negotiations/{id}/agreement:
     post:
       tags:
-        - DSP Protocol
-      summary: Agreement reception
+      - Negotiation Protocol
       operationId: agreementReception
+      summary: Contract agreement (consumer)
+      security:
+      - peerBearer: []
       parameters:
-        - $ref: "#/components/parameters/IdPath"
+      - $ref: '#/components/parameters/PidPath'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAgreementMessageDto"
+              $ref: '#/components/schemas/ContractAgreementMessage'
       responses:
-        "200":
-          description: Agreement processed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /negotiations/{id}/events:
+        '200':
+          $ref: '#/components/responses/NegotiationAck'
+        '400':
+          $ref: '#/components/responses/NegotiationError'
+        '401':
+          $ref: '#/components/responses/PeerUnauthorized'
+        '404':
+          $ref: '#/components/responses/NegotiationError'
+  /dsp/current/negotiations/{id}/agreement/verification:
     post:
       tags:
-        - DSP Protocol
-      summary: Negotiation events
+      - Negotiation Protocol
+      operationId: agreementVerification
+      summary: Agreement verification (provider)
+      security:
+      - peerBearer: []
+      parameters:
+      - $ref: '#/components/parameters/PidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractAgreementVerificationMessage'
+      responses:
+        '200':
+          $ref: '#/components/responses/NegotiationAck'
+        '400':
+          $ref: '#/components/responses/NegotiationError'
+        '401':
+          $ref: '#/components/responses/PeerUnauthorized'
+        '404':
+          $ref: '#/components/responses/NegotiationError'
+  /dsp/current/negotiations/{id}/events:
+    post:
+      tags:
+      - Negotiation Protocol
       operationId: negotiationEvents
+      summary: Negotiation event (`ACCEPTED` to the provider, `FINALIZED` to the consumer)
+      security:
+      - peerBearer: []
       parameters:
-        - $ref: "#/components/parameters/IdPath"
+      - $ref: '#/components/parameters/PidPath'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationEventMessageDto"
+              $ref: '#/components/schemas/ContractNegotiationEventMessage'
       responses:
-        "200":
-          description: Event processed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /negotiations/{id}/termination:
+        '200':
+          $ref: '#/components/responses/NegotiationAck'
+        '400':
+          $ref: '#/components/responses/NegotiationError'
+        '401':
+          $ref: '#/components/responses/PeerUnauthorized'
+        '404':
+          $ref: '#/components/responses/NegotiationError'
+  /dsp/current/negotiations/{id}/termination:
     post:
       tags:
-        - DSP Protocol
-      summary: Negotiation termination
+      - Negotiation Protocol
       operationId: negotiationTermination
+      summary: Termination (either role)
+      security:
+      - peerBearer: []
       parameters:
-        - $ref: "#/components/parameters/IdPath"
+      - $ref: '#/components/parameters/PidPath'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationTerminationMessageDto"
+              $ref: '#/components/schemas/ContractNegotiationTerminationMessage'
       responses:
-        "200":
-          description: Termination processed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  # --- DSP RPC ---
-  /negotiations/rpc/setup-request-init:
+        '200':
+          $ref: '#/components/responses/NegotiationAck'
+        '400':
+          $ref: '#/components/responses/NegotiationError'
+        '401':
+          $ref: '#/components/responses/PeerUnauthorized'
+        '404':
+          $ref: '#/components/responses/NegotiationError'
+  /dsp/current/negotiations/rpc/setup-request-init:
     post:
       tags:
-        - DSP RPC
-      summary: Setup negotiation request init (RPC)
+      - Negotiation RPC
       operationId: rpcSetupRequestInit
+      summary: Send an initial contract request (consumer)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RpcNegotiationRequestInitMessageDto"
+              $ref: '#/components/schemas/RpcNegotiationRequestInitMessageDto'
       responses:
-        "201":
-          description: Created
+        '201':
+          description: Request sent
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationRequestInitMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /negotiations/rpc/setup-request:
+                $ref: '#/components/schemas/RpcNegotiationRequestInitResult'
+        '400':
+          $ref: '#/components/responses/RpcNegotiationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /dsp/current/negotiations/rpc/setup-request:
     post:
       tags:
-        - DSP RPC
-      summary: Setup negotiation request (RPC)
+      - Negotiation RPC
       operationId: rpcSetupRequest
+      summary: Send a counter request (consumer)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RpcNegotiationRequestMessageDto"
+              $ref: '#/components/schemas/RpcNegotiationRequestMessageDto'
       responses:
-        "201":
-          description: Created
+        '201':
+          description: Request sent
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationRequestMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /negotiations/rpc/setup-offer-init:
+                $ref: '#/components/schemas/RpcNegotiationRequestResult'
+        '400':
+          $ref: '#/components/responses/RpcNegotiationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /dsp/current/negotiations/rpc/setup-offer-init:
     post:
       tags:
-        - DSP RPC
-      summary: Setup negotiation offer init (RPC)
+      - Negotiation RPC
       operationId: rpcSetupOfferInit
+      summary: Send an initial offer (provider)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RpcNegotiationOfferInitMessageDto"
+              $ref: '#/components/schemas/RpcNegotiationOfferInitMessageDto'
       responses:
-        "201":
-          description: Created
+        '201':
+          description: Offer sent
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationOfferInitMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /negotiations/rpc/setup-offer:
+                $ref: '#/components/schemas/RpcNegotiationOfferInitResult'
+        '400':
+          $ref: '#/components/responses/RpcNegotiationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /dsp/current/negotiations/rpc/setup-offer:
     post:
       tags:
-        - DSP RPC
-      summary: Setup negotiation offer (RPC)
+      - Negotiation RPC
       operationId: rpcSetupOffer
+      summary: Send a counter offer (provider)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RpcNegotiationOfferMessageDto"
+              $ref: '#/components/schemas/RpcNegotiationOfferMessageDto'
       responses:
-        "201":
-          description: Created
+        '201':
+          description: Offer sent
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationOfferMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /negotiations/rpc/setup-acceptance:
+                $ref: '#/components/schemas/RpcNegotiationOfferResult'
+        '400':
+          $ref: '#/components/responses/RpcNegotiationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /dsp/current/negotiations/rpc/setup-acceptance:
     post:
       tags:
-        - DSP RPC
-      summary: Setup negotiation acceptance (RPC)
+      - Negotiation RPC
       operationId: rpcSetupAcceptance
+      summary: Accept the current offer (consumer)
+      description: Sends a `ContractNegotiationEventMessage` with event type `ACCEPTED`.
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RpcNegotiationEventAcceptedMessageDto"
+              $ref: '#/components/schemas/RpcNegotiationPidsDto'
       responses:
-        "201":
-          description: Created
+        '201':
+          description: Event sent
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationEventAcceptedMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /negotiations/rpc/setup-agreement:
+                $ref: '#/components/schemas/RpcNegotiationPidsResult'
+        '400':
+          $ref: '#/components/responses/RpcNegotiationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /dsp/current/negotiations/rpc/setup-agreement:
     post:
       tags:
-        - DSP RPC
-      summary: Setup negotiation agreement (RPC)
+      - Negotiation RPC
       operationId: rpcSetupAgreement
+      summary: Send the agreement (provider)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RpcNegotiationAgreementMessageDto"
+              $ref: '#/components/schemas/RpcNegotiationPidsDto'
       responses:
-        "201":
-          description: Created
+        '201':
+          description: Agreement sent
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationAgreementMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /negotiations/rpc/setup-verification:
+                $ref: '#/components/schemas/RpcNegotiationPidsResult'
+        '400':
+          $ref: '#/components/responses/RpcNegotiationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /dsp/current/negotiations/rpc/setup-verification:
     post:
       tags:
-        - DSP RPC
-      summary: Setup negotiation verification (RPC)
+      - Negotiation RPC
       operationId: rpcSetupVerification
+      summary: Verify the agreement (consumer)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RpcNegotiationVerificationMessageDto"
+              $ref: '#/components/schemas/RpcNegotiationPidsDto'
       responses:
-        "201":
-          description: Created
+        '201':
+          description: Verification sent
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationVerificationMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /negotiations/rpc/setup-finalization:
+                $ref: '#/components/schemas/RpcNegotiationPidsResult'
+        '400':
+          $ref: '#/components/responses/RpcNegotiationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /dsp/current/negotiations/rpc/setup-finalization:
     post:
       tags:
-        - DSP RPC
-      summary: Setup negotiation finalization (RPC)
+      - Negotiation RPC
       operationId: rpcSetupFinalization
+      summary: Finalize the negotiation (provider)
+      description: Sends a `ContractNegotiationEventMessage` with event type `FINALIZED`.
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RpcNegotiationEventFinalizedMessageDto"
+              $ref: '#/components/schemas/RpcNegotiationPidsDto'
       responses:
-        "201":
-          description: Created
+        '201':
+          description: Event sent
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationEventFinalizedMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /negotiations/rpc/setup-termination:
+                $ref: '#/components/schemas/RpcNegotiationPidsResult'
+        '400':
+          $ref: '#/components/responses/RpcNegotiationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /dsp/current/negotiations/rpc/setup-termination:
     post:
       tags:
-        - DSP RPC
-      summary: Setup negotiation termination (RPC)
+      - Negotiation RPC
       operationId: rpcSetupTermination
+      summary: Terminate the negotiation (either role)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RpcNegotiationTerminationMessageDto"
+              $ref: '#/components/schemas/RpcNegotiationTerminationMessageDto'
       responses:
-        "201":
-          description: Created
+        '201':
+          description: Termination sent
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationTerminationMessageDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
+                $ref: '#/components/schemas/RpcNegotiationTerminationResult'
+        '400':
+          $ref: '#/components/responses/RpcNegotiationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /dsp/current/negotiations/tck/negotiations/requests:
+    post:
+      tags:
+      - Negotiation RPC
+      operationId: tckInitiateNegotiation
+      summary: Start a negotiation for the DSP TCK
+      description: Builds an initial request referencing `offerId`, with this agent as callback.
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TckNegotiationInitiateRequest'
+      responses:
+        '201':
+          description: Request sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RpcNegotiationRequestInitResult'
+        '400':
+          $ref: '#/components/responses/RpcNegotiationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /dsp/current/negotiations/bff-rpc/setup-request-init:
+    post:
+      tags:
+      - Negotiation BFF RPC
+      operationId: bffRpcSetupRequestInit
+      summary: Send an initial contract request (consumer)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RpcNegotiationRequestInitMessageDto'
+      responses:
+        '201':
+          description: Request sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RpcNegotiationRequestInitResult'
+        '400':
+          $ref: '#/components/responses/RpcNegotiationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /dsp/current/negotiations/bff-rpc/setup-offer-init:
+    post:
+      tags:
+      - Negotiation BFF RPC
+      operationId: bffRpcSetupOfferInit
+      summary: Send an initial offer (provider)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RpcNegotiationOfferInitMessageDto'
+      responses:
+        '201':
+          description: Offer sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RpcNegotiationOfferInitResult'
+        '400':
+          $ref: '#/components/responses/RpcNegotiationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /dsp/current/negotiations/bff-rpc/setup-acceptance:
+    post:
+      tags:
+      - Negotiation BFF RPC
+      operationId: bffRpcSetupAcceptance
+      summary: Accept the current offer (consumer)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RpcNegotiationPidsDto'
+      responses:
+        '201':
+          description: Event sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RpcNegotiationPidsResult'
+        '400':
+          $ref: '#/components/responses/RpcNegotiationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /dsp/current/negotiations/bff-rpc/setup-agreement:
+    post:
+      tags:
+      - Negotiation BFF RPC
+      operationId: bffRpcSetupAgreement
+      summary: Agree, verify and finalize (provider)
+      description: Sends the agreement, then the verification and the `FINALIZED` event.
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RpcNegotiationPidsDto'
+      responses:
+        '201':
+          description: Result of the final `FINALIZED` event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RpcNegotiationPidsResult'
+        '400':
+          $ref: '#/components/responses/RpcNegotiationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /dsp/current/negotiations/bff-rpc/setup-termination:
+    post:
+      tags:
+      - Negotiation BFF RPC
+      operationId: bffRpcSetupTermination
+      summary: Terminate the negotiation (either role)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RpcNegotiationTerminationMessageDto'
+      responses:
+        '201':
+          description: Termination sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RpcNegotiationTerminationResult'
+        '400':
+          $ref: '#/components/responses/RpcNegotiationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: OAuth access token (JWT) or personal access token issued by `/oauth`.
+    peerBearer:
+      type: http
+      scheme: bearer
+      description: Token the peer obtained from this agent through GNAP onboarding.
   parameters:
-    IdPath:
+    PidPath:
       name: id
       in: path
       required: true
+      description: This agent's process id (`providerPid` on a provider, `consumerPid` on a consumer).
       schema:
         type: string
-        format: urn
-
+    TenantHeader:
+      name: x-tenant-id
+      in: header
+      required: false
+      description: Tenant to act on. Non-admins may only name their own tenant.
+      schema:
+        type: string
   responses:
-    BadRequest:
-      description: Bad request
+    NegotiationAck:
+      description: Negotiation state
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationErrorMessageDto"
-
-    NotFound:
-      description: Resource not found
-
-    InternalServerError:
-      description: Internal server error
+            $ref: '#/components/schemas/ContractNegotiation'
+    NegotiationError:
+      description: Protocol error
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationErrorMessageDto"
-
+            $ref: '#/components/schemas/ContractNegotiationError'
+    PeerUnauthorized:
+      description: Missing or unknown peer token (empty body)
+    RpcNegotiationError:
+      description: Invalid request, or the peer or this agent rejected the message
+      content:
+        application/json:
+          schema:
+            oneOf:
+            - $ref: '#/components/schemas/RpcNegotiationErrorDto'
+            - $ref: '#/components/schemas/ContractNegotiationError'
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorInfo'
   schemas:
-    # --- Types ---
-    ContextField:
-      oneOf:
-        - type: string
-        - type: array
-          items:
-            type: string
-
-    # --- Wrapper Schemas ---
-    NegotiationProcessMessageWrapper_NegotiationRequestInitMessageDto:
+    AgreementDto:
       type: object
       required:
-        - "@type"
-        - negotiationAgentProcessId
-        - offer
+      - id
+      - tenantId
+      - negotiationAgentProcessId
+      - negotiationAgentMessageId
+      - consumerParticipantId
+      - providerParticipantId
+      - agreementContent
+      - target
+      - state
+      - createdAt
       properties:
-        "@context":
-          $ref: "#/components/schemas/ContextField"
-        "@type":
+        id:
           type: string
-          enum: [ContractRequestMessage]
-        consumerPid:
+        tenantId:
           type: string
-          format: urn
-        offer:
-          $ref: "#/components/schemas/OdrlOffer"
-        callbackAddress:
+        negotiationAgentProcessId:
           type: string
-
-    NegotiationProcessMessageWrapper_NegotiationRequestMessageDto:
-      type: object
-      required:
-        - "@type"
-        - consumerPid
-        - providerPid
-        - offer
-      properties:
-        "@context":
-          $ref: "#/components/schemas/ContextField"
-        "@type":
+        negotiationAgentMessageId:
           type: string
-          enum: [ContractRequestMessage]
-        consumerPid:
+        consumerParticipantId:
           type: string
-          format: urn
-        providerPid:
+        providerParticipantId:
           type: string
-          format: urn
-        offer:
-          $ref: "#/components/schemas/OdrlOffer"
-
-    NegotiationProcessMessageWrapper_NegotiationOfferInitMessageDto:
-      type: object
-      required:
-        - "@type"
-        - providerPid
-        - offer
-      properties:
-        "@context":
-          $ref: "#/components/schemas/ContextField"
-        "@type":
-          type: string
-          enum: [ContractOfferMessage]
-        providerPid:
-          type: string
-          format: urn
-        offer:
-          $ref: "#/components/schemas/OdrlOffer"
-        callbackAddress:
-          type: string
-
-    NegotiationProcessMessageWrapper_NegotiationOfferMessageDto:
-      type: object
-      required:
-        - "@type"
-        - consumerPid
-        - providerPid
-        - offer
-      properties:
-        "@context":
-          $ref: "#/components/schemas/ContextField"
-        "@type":
-          type: string
-          enum: [ContractOfferMessage]
-        consumerPid:
-          type: string
-          format: urn
-        providerPid:
-          type: string
-          format: urn
-        offer:
-          $ref: "#/components/schemas/OdrlOffer"
-        callbackAddress:
-          type: string
-
-    NegotiationProcessMessageWrapper_NegotiationAgreementMessageDto:
-      type: object
-      required:
-        - "@type"
-        - consumerPid
-        - providerPid
-        - agreement
-      properties:
-        "@context":
-          $ref: "#/components/schemas/ContextField"
-        "@type":
-          type: string
-          enum: [ContractAgreementMessage]
-        consumerPid:
-          type: string
-          format: urn
-        providerPid:
-          type: string
-          format: urn
-        agreement:
-          $ref: "#/components/schemas/OdrlAgreement"
-
-    NegotiationProcessMessageWrapper_NegotiationVerificationMessageDto:
-      type: object
-      required:
-        - "@type"
-        - consumerPid
-        - providerPid
-      properties:
-        "@context":
-          $ref: "#/components/schemas/ContextField"
-        "@type":
-          type: string
-          enum: [ContractAgreementVerificationMessage]
-        consumerPid:
-          type: string
-          format: urn
-        providerPid:
-          type: string
-          format: urn
-
-    NegotiationProcessMessageWrapper_NegotiationEventMessageDto:
-      type: object
-      required:
-        - "@type"
-        - consumerPid
-        - providerPid
-        - eventType
-      properties:
-        "@context":
-          $ref: "#/components/schemas/ContextField"
-        "@type":
-          type: string
-          enum: [ContractNegotiationEventMessage]
-        consumerPid:
-          type: string
-          format: urn
-        providerPid:
-          type: string
-          format: urn
-        eventType:
-          type: string
-          enum: [ACCEPTED, FINALIZED]
-
-    NegotiationProcessMessageWrapper_NegotiationTerminationMessageDto:
-      type: object
-      required:
-        - "@type"
-        - consumerPid
-        - providerPid
-      properties:
-        "@context":
-          $ref: "#/components/schemas/ContextField"
-        "@type":
-          type: string
-          enum: [ContractNegotiationTerminationMessage]
-        consumerPid:
-          type: string
-          format: urn
-        providerPid:
-          type: string
-          format: urn
-        code:
-          type: string
-        reason:
-          type: array
-          items:
-            type: string
-
-    NegotiationProcessMessageWrapper_NegotiationAckMessageDto:
-      type: object
-      required:
-        - "@type"
-        - consumerPid
-        - providerPid
-        - state
-      properties:
-        "@context":
-          $ref: "#/components/schemas/ContextField"
-        "@type":
-          type: string
-          enum: [ContractNegotiation]
-        consumerPid:
-          type: string
-          format: urn
-        providerPid:
-          type: string
-          format: urn
-        state:
-          type: string
-          enum:
-            [
-              REQUESTED,
-              OFFERED,
-              ACCEPTED,
-              AGREED,
-              VERIFIED,
-              FINALIZED,
-              TERMINATED,
-            ]
-
-    NegotiationProcessMessageWrapper_NegotiationErrorMessageDto:
-      type: object
-      required:
-        - "@type"
-      properties:
-        "@context":
-          $ref: "#/components/schemas/ContextField"
-        "@type":
-          type: string
-          enum: [ContractNegotiationError]
-        consumerPid:
-          type: string
-          format: urn
-        providerPid:
-          type: string
-          format: urn
-        code:
-          type: string
-        reason:
-          type: array
-          items:
-            type: string
-
-    # --- RPC DTOs ---
-
-    RpcNegotiationRequestInitMessageDto:
-      type: object
-      required:
-        - associatedAgentPeer
-        - providerAddress
-        - callbackAddress
-        - offer
-      properties:
-        associatedAgentPeer:
-          type: string
-        providerAddress:
-          type: string
-        callbackAddress:
-          type: string
-        offer:
-          $ref: "#/components/schemas/OdrlOffer"
-
-    RpcNegotiationRequestMessageDto:
-      type: object
-      required:
-        - offer
-        - providerPid
-        - consumerPid
-      properties:
-        offer:
-          $ref: "#/components/schemas/OdrlOffer"
-        providerPid:
-          type: string
-          format: urn
-        consumerPid:
-          type: string
-          format: urn
-
-    RpcNegotiationOfferInitMessageDto:
-      type: object
-      required:
-        - associatedAgentPeer
-        - providerAddress
-        - callbackAddress
-        - offer
-      properties:
-        associatedAgentPeer:
-          type: string
-        providerAddress:
-          type: string
-        callbackAddress:
-          type: string
-        offer:
-          $ref: "#/components/schemas/OdrlOffer"
-
-    RpcNegotiationOfferMessageDto:
-      type: object
-      required:
-        - offer
-        - providerPid
-        - consumerPid
-      properties:
-        offer:
-          $ref: "#/components/schemas/OdrlOffer"
-        providerPid:
-          type: string
-          format: urn
-        consumerPid:
-          type: string
-          format: urn
-
-    RpcNegotiationAgreementMessageDto:
-      type: object
-      required:
-        - providerPid
-        - consumerPid
-      properties:
-        providerPid:
-          type: string
-          format: urn
-        consumerPid:
-          type: string
-          format: urn
-
-    RpcNegotiationVerificationMessageDto:
-      type: object
-      required:
-        - providerPid
-        - consumerPid
-      properties:
-        providerPid:
-          type: string
-          format: urn
-        consumerPid:
-          type: string
-          format: urn
-
-    RpcNegotiationEventAcceptedMessageDto:
-      type: object
-      required:
-        - providerPid
-        - consumerPid
-      properties:
-        providerPid:
-          type: string
-          format: urn
-        consumerPid:
-          type: string
-          format: urn
-
-    RpcNegotiationEventFinalizedMessageDto:
-      type: object
-      required:
-        - providerPid
-        - consumerPid
-      properties:
-        providerPid:
-          type: string
-          format: urn
-        consumerPid:
-          type: string
-          format: urn
-
-    RpcNegotiationTerminationMessageDto:
-      type: object
-      required:
-        - consumerPid
-        - providerPid
-      properties:
-        consumerPid:
-          type: string
-          format: urn
-        providerPid:
-          type: string
-          format: urn
-        code:
-          type: string
-        reason:
-          type: array
-          items:
-            type: string
-
-    # --- RPC Responses ---
-
-    RpcNegotiationMessageDto_RpcNegotiationRequestInitMessageDto:
-      type: object
-      properties:
-        request:
-          $ref: "#/components/schemas/RpcNegotiationRequestInitMessageDto"
-        response:
-          $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        negotiationAgentModel:
-          # This should refer to the NegotiationProcessDto defined in the other file,
-          # but here we can define a simplified version or use explicit reference if we merged files via a creating script.
-          # For now, we define a basic object structure or replicate fields.
-          type: object
-
-    RpcNegotiationMessageDto_RpcNegotiationRequestMessageDto:
-      type: object
-      properties:
-        request:
-          $ref: "#/components/schemas/RpcNegotiationRequestMessageDto"
-        response:
-          $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        negotiationAgentModel:
-          type: object
-
-    RpcNegotiationMessageDto_RpcNegotiationOfferInitMessageDto:
-      type: object
-      properties:
-        request:
-          $ref: "#/components/schemas/RpcNegotiationOfferInitMessageDto"
-        response:
-          $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        negotiationAgentModel:
-          type: object
-
-    RpcNegotiationMessageDto_RpcNegotiationOfferMessageDto:
-      type: object
-      properties:
-        request:
-          $ref: "#/components/schemas/RpcNegotiationOfferMessageDto"
-        response:
-          $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        negotiationAgentModel:
-          type: object
-
-    RpcNegotiationMessageDto_RpcNegotiationEventAcceptedMessageDto:
-      type: object
-      properties:
-        request:
-          $ref: "#/components/schemas/RpcNegotiationEventAcceptedMessageDto"
-        response:
-          $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        negotiationAgentModel:
-          type: object
-
-    RpcNegotiationMessageDto_RpcNegotiationAgreementMessageDto:
-      type: object
-      properties:
-        request:
-          $ref: "#/components/schemas/RpcNegotiationAgreementMessageDto"
-        response:
-          $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        negotiationAgentModel:
-          type: object
-
-    RpcNegotiationMessageDto_RpcNegotiationVerificationMessageDto:
-      type: object
-      properties:
-        request:
-          $ref: "#/components/schemas/RpcNegotiationVerificationMessageDto"
-        response:
-          $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        negotiationAgentModel:
-          type: object
-
-    RpcNegotiationMessageDto_RpcNegotiationEventFinalizedMessageDto:
-      type: object
-      properties:
-        request:
-          $ref: "#/components/schemas/RpcNegotiationEventFinalizedMessageDto"
-        response:
-          $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        negotiationAgentModel:
-          type: object
-
-    RpcNegotiationMessageDto_RpcNegotiationTerminationMessageDto:
-      type: object
-      properties:
-        request:
-          $ref: "#/components/schemas/RpcNegotiationTerminationMessageDto"
-        response:
-          $ref: "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
-        negotiationAgentModel:
-          type: object
-
-    # --- ODRL ---
-    OdrlOffer:
-      type: object
-      properties:
-        "@type":
-          type: string
-          enum: [Offer, Agreement]
-        "@id":
-          type: string
-          format: urn
+        agreementContent:
+          $ref: '#/components/schemas/OdrlAgreement'
         target:
           type: string
-          format: urn
+          description: URN of the dataset.
+        state:
+          type: string
+          examples:
+          - ACTIVE
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    ContextField:
+      description: JSON-LD context; must include the DSP 2024-1 or 2025-1 context.
+      oneOf:
+      - type: string
+      - type: array
+        items:
+          type: string
+      examples:
+      - https://w3id.org/dspace/2025/1/context.jsonld
+    ContractAgreementMessage:
+      type: object
+      additionalProperties: false
+      required:
+      - '@context'
+      - '@type'
+      - consumerPid
+      - providerPid
+      - agreement
+      properties:
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
+          type: string
+          const: ContractAgreementMessage
+        consumerPid:
+          type: string
+        providerPid:
+          type: string
+        agreement:
+          $ref: '#/components/schemas/OdrlAgreement'
+    ContractAgreementVerificationMessage:
+      type: object
+      additionalProperties: false
+      required:
+      - '@context'
+      - '@type'
+      - consumerPid
+      - providerPid
+      properties:
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
+          type: string
+          const: ContractAgreementVerificationMessage
+        consumerPid:
+          type: string
+        providerPid:
+          type: string
+    ContractNegotiation:
+      type: object
+      description: Negotiation acknowledgement.
+      required:
+      - '@context'
+      - '@type'
+      - consumerPid
+      - providerPid
+      - state
+      properties:
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
+          type: string
+          const: ContractNegotiation
+        consumerPid:
+          type: string
+        providerPid:
+          type: string
+        state:
+          $ref: '#/components/schemas/NegotiationProcessState'
+    ContractNegotiationError:
+      type: object
+      required:
+      - '@context'
+      - '@type'
+      properties:
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
+          type: string
+          const: ContractNegotiationError
+        consumerPid:
+          type:
+          - string
+          - 'null'
+        providerPid:
+          type:
+          - string
+          - 'null'
+        code:
+          type:
+          - string
+          - 'null'
+        reason:
+          type:
+          - array
+          - 'null'
+          items:
+            type: string
+    ContractNegotiationEventMessage:
+      type: object
+      additionalProperties: false
+      required:
+      - '@context'
+      - '@type'
+      - consumerPid
+      - providerPid
+      - eventType
+      properties:
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
+          type: string
+          const: ContractNegotiationEventMessage
+        consumerPid:
+          type: string
+        providerPid:
+          type: string
+        eventType:
+          type: string
+          enum:
+          - ACCEPTED
+          - FINALIZED
+    ContractNegotiationTerminationMessage:
+      type: object
+      additionalProperties: false
+      required:
+      - '@context'
+      - '@type'
+      - consumerPid
+      - providerPid
+      properties:
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
+          type: string
+          const: ContractNegotiationTerminationMessage
+        consumerPid:
+          type: string
+        providerPid:
+          type: string
+        code:
+          type: string
+        reason:
+          type: array
+          items:
+            type: string
+    ContractOfferInitMessage:
+      type: object
+      additionalProperties: false
+      required:
+      - '@context'
+      - '@type'
+      - providerPid
+      - offer
+      properties:
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
+          type: string
+          const: ContractOfferMessage
+        providerPid:
+          type: string
+        offer:
+          $ref: '#/components/schemas/ContractRequestOffer'
+        callbackAddress:
+          type: string
+    ContractOfferMessage:
+      type: object
+      additionalProperties: false
+      required:
+      - '@context'
+      - '@type'
+      - consumerPid
+      - providerPid
+      - offer
+      properties:
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
+          type: string
+          const: ContractOfferMessage
+        consumerPid:
+          type: string
+        providerPid:
+          type: string
+        offer:
+          $ref: '#/components/schemas/ContractRequestOffer'
+        callbackAddress:
+          type: string
+    ContractRequestInitMessage:
+      type: object
+      additionalProperties: false
+      required:
+      - '@context'
+      - '@type'
+      - consumerPid
+      - offer
+      properties:
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
+          type: string
+          const: ContractRequestMessage
+        consumerPid:
+          type: string
+        offer:
+          $ref: '#/components/schemas/ContractRequestOffer'
+        callbackAddress:
+          type: string
+    ContractRequestMessage:
+      type: object
+      additionalProperties: false
+      required:
+      - '@context'
+      - '@type'
+      - consumerPid
+      - providerPid
+      - offer
+      properties:
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
+          type: string
+          const: ContractRequestMessage
+        consumerPid:
+          type: string
+        providerPid:
+          type: string
+        offer:
+          $ref: '#/components/schemas/ContractRequestOffer'
+    ContractRequestOffer:
+      oneOf:
+      - $ref: '#/components/schemas/OdrlMessageOffer'
+      - $ref: '#/components/schemas/OdrlOfferReference'
+    ErrorInfo:
+      type: object
+      description: Error body returned by every agent.
+      required:
+      - message
+      - error_code
+      properties:
+        message:
+          type: string
+        error_code:
+          type: integer
+          description: Internal error code of the failure kind.
+        details:
+          type:
+          - string
+          - 'null'
+    NegotiationMessageRecord:
+      type: object
+      required:
+      - id
+      - tenantId
+      - negotiationAgentProcessId
+      - createdAt
+      - direction
+      - protocol
+      - messageType
+      - stateTransitionFrom
+      - stateTransitionTo
+      - payload
+      properties:
+        id:
+          type: string
+        tenantId:
+          type: string
+        negotiationAgentProcessId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        direction:
+          type: string
+          enum:
+          - INBOUND
+          - OUTBOUND
+        protocol:
+          type: string
+        messageType:
+          type: string
+          examples:
+          - ContractRequestMessage
+        stateTransitionFrom:
+          type: string
+        stateTransitionTo:
+          type: string
+        payload:
+          description: The DSP message as sent or received.
+    NegotiationProcessDto:
+      description: Negotiation with its identifiers, messages, offers and agreement.
+      allOf:
+      - $ref: '#/components/schemas/NegotiationProcessRecord'
+      - type: object
+        required:
+        - identifiers
+        - messages
+        - offers
+        properties:
+          identifiers:
+            type: object
+            description: DSP identifiers such as `consumerPid` and `providerPid`.
+            additionalProperties:
+              type: string
+          messages:
+            type: array
+            items:
+              $ref: '#/components/schemas/NegotiationMessageRecord'
+          offers:
+            type: array
+            items:
+              $ref: '#/components/schemas/OfferDto'
+          agreement:
+            oneOf:
+            - $ref: '#/components/schemas/AgreementDto'
+            - type: 'null'
+    NegotiationProcessRecord:
+      type: object
+      required:
+      - id
+      - tenantId
+      - state
+      - associatedAgentPeer
+      - protocol
+      - role
+      - properties
+      - createdAt
+      properties:
+        id:
+          type: string
+          description: URN of the negotiation.
+        tenantId:
+          type: string
+        state:
+          $ref: '#/components/schemas/NegotiationProcessState'
+        stateAttribute:
+          type:
+          - string
+          - 'null'
+        associatedAgentPeer:
+          type: string
+          description: Participant id (DID) of the counterpart.
+        protocol:
+          type: string
+          examples:
+          - DSP
+        callbackAddress:
+          type:
+          - string
+          - 'null'
+        role:
+          type: string
+          enum:
+          - Provider
+          - Consumer
+        properties:
+          description: Free-form JSON.
+        errorDetails:
+          description: Last error, any JSON value.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    NegotiationProcessState:
+      type: string
+      enum:
+      - REQUESTED
+      - OFFERED
+      - ACCEPTED
+      - AGREED
+      - VERIFIED
+      - FINALIZED
+      - TERMINATED
+    OdrlAgreement:
+      type: object
+      required:
+      - '@id'
+      - '@type'
+      - target
+      - assigner
+      - assignee
+      properties:
+        '@id':
+          type: string
+        '@type':
+          type: string
+          enum:
+          - Offer
+          - Agreement
+        profile:
+          $ref: '#/components/schemas/OdrlProfile'
         permission:
           type: array
           items:
-            $ref: "#/components/schemas/OdrlPermission"
-        prohibition:
-          type: array
-          items:
-            $ref: "#/components/schemas/OdrlProhibition"
+            $ref: '#/components/schemas/OdrlPermission'
         obligation:
           type: array
           items:
-            $ref: "#/components/schemas/OdrlObligation"
-
-    OdrlAgreement:
-      $ref: "#/components/schemas/OdrlOffer"
-
-    OdrlPermission:
+            $ref: '#/components/schemas/OdrlDuty'
+        prohibition:
+          type: array
+          items:
+            $ref: '#/components/schemas/OdrlDuty'
+        target:
+          type: string
+        assigner:
+          type: string
+        assignee:
+          type: string
+        timestamp:
+          type:
+          - string
+          - 'null'
+        description:
+          type: string
+    OdrlAtomicConstraint:
       type: object
       required:
-        - action
-      properties:
-        action:
-          type: string
-        constraint:
-          type: array
-          items:
-            $ref: "#/components/schemas/OdrlConstraint"
-        duty:
-          type: array
-          items:
-            $ref: "#/components/schemas/OdrlDuty"
-
-    OdrlProhibition:
-      type: object
-      required:
-        - action
-      properties:
-        action:
-          type: string
-        constraint:
-          type: array
-          items:
-            $ref: "#/components/schemas/OdrlConstraint"
-
-    OdrlObligation:
-      type: object
-      required:
-        - action
-      properties:
-        action:
-          type: string
-        constraint:
-          type: array
-          items:
-            $ref: "#/components/schemas/OdrlConstraint"
-
-    OdrlDuty:
-      type: object
-      required:
-        - action
-      properties:
-        action:
-          type: string
-        constraint:
-          type: array
-          items:
-            $ref: "#/components/schemas/OdrlConstraint"
-
-    OdrlConstraint:
-      type: object
-      # Simplified ODRL constraint
+      - leftOperand
+      - operator
+      - rightOperand
       properties:
         leftOperand:
           type: string
         operator:
-          type: string
+          $ref: '#/components/schemas/OdrlOperator'
         rightOperand:
           oneOf:
-            - type: string
-            - type: object
+          - type: string
+          - type: object
+          - type: array
+            items: {}
+    OdrlConstraint:
+      anyOf:
+      - $ref: '#/components/schemas/OdrlAtomicConstraint'
+      - $ref: '#/components/schemas/OdrlLogicalConstraint'
+    OdrlDuty:
+      type: object
+      required:
+      - action
+      properties:
+        action:
+          type: string
+        constraint:
+          type:
+          - array
+          - 'null'
+          items:
+            $ref: '#/components/schemas/OdrlConstraint'
+    OdrlLogicalConstraint:
+      type: object
+      properties:
+        and:
+          type: array
+          items:
+            $ref: '#/components/schemas/OdrlConstraint'
+        andSequence:
+          type: array
+          items:
+            $ref: '#/components/schemas/OdrlConstraint'
+        or:
+          type: array
+          items:
+            $ref: '#/components/schemas/OdrlConstraint'
+        xone:
+          type: array
+          items:
+            $ref: '#/components/schemas/OdrlConstraint'
+    OdrlMessageOffer:
+      description: Offer inside a negotiation message; `target` is required.
+      allOf:
+      - $ref: '#/components/schemas/OdrlOffer'
+      - type: object
+        required:
+        - target
+    OdrlOffer:
+      type: object
+      required:
+      - '@id'
+      - '@type'
+      properties:
+        '@id':
+          type: string
+        '@type':
+          type: string
+          enum:
+          - Offer
+          - Agreement
+        profile:
+          $ref: '#/components/schemas/OdrlProfile'
+        permission:
+          type: array
+          items:
+            $ref: '#/components/schemas/OdrlPermission'
+        obligation:
+          type: array
+          items:
+            $ref: '#/components/schemas/OdrlDuty'
+        prohibition:
+          type: array
+          items:
+            $ref: '#/components/schemas/OdrlDuty'
+        target:
+          type: string
+        description:
+          type: string
+    OdrlOfferReference:
+      type: object
+      description: Offer referenced only by its id.
+      required:
+      - '@id'
+      properties:
+        '@id':
+          type: string
+    OdrlOperator:
+      type: string
+      enum:
+      - eq
+      - gt
+      - gteq
+      - lteq
+      - hasPart
+      - isA
+      - isAllOf
+      - isAnyOf
+      - isNoneOf
+      - isPartOf
+      - lt
+      - termLteq
+      - neq
+    OdrlPermission:
+      type: object
+      required:
+      - action
+      properties:
+        action:
+          type: string
+          examples:
+          - use
+        constraint:
+          type: array
+          items:
+            $ref: '#/components/schemas/OdrlConstraint'
+        duty:
+          $ref: '#/components/schemas/OdrlDuty'
+    OdrlProfile:
+      oneOf:
+      - type: string
+      - type: array
+        items:
+          type: string
+    OfferDto:
+      type: object
+      required:
+      - id
+      - tenantId
+      - negotiationAgentProcessId
+      - negotiationAgentMessageId
+      - offerId
+      - offerContent
+      - createdAt
+      properties:
+        id:
+          type: string
+        tenantId:
+          type: string
+        negotiationAgentProcessId:
+          type: string
+        negotiationAgentMessageId:
+          type: string
+        offerId:
+          type: string
+          description: ODRL offer `@id`.
+        offerContent:
+          $ref: '#/components/schemas/OdrlOffer'
+        createdAt:
+          type: string
+          format: date-time
+    RpcNegotiationErrorDto:
+      type: object
+      required:
+      - request
+      - error
+      properties:
+        request:
+          description: The RPC request as received.
+        error:
+          $ref: '#/components/schemas/ContractNegotiationError'
+    RpcNegotiationOfferInitMessageDto:
+      type: object
+      additionalProperties: false
+      required:
+      - associatedAgentPeer
+      - providerAddress
+      - callbackAddress
+      - offer
+      properties:
+        associatedAgentPeer:
+          type: string
+          description: Participant id (DID) of the consumer.
+        providerAddress:
+          type: string
+          description: The consumer's DSP negotiation base URL.
+        callbackAddress:
+          type: string
+          description: This agent's DSP negotiation base URL.
+        offer:
+          $ref: '#/components/schemas/ContractRequestOffer'
+    RpcNegotiationOfferInitResult:
+      allOf:
+      - $ref: '#/components/schemas/RpcNegotiationResultBase'
+      - type: object
+        required:
+        - request
+        properties:
+          request:
+            $ref: '#/components/schemas/RpcNegotiationOfferInitMessageDto'
+    RpcNegotiationOfferMessageDto:
+      type: object
+      additionalProperties: false
+      required:
+      - offer
+      - providerPid
+      - consumerPid
+      properties:
+        offer:
+          $ref: '#/components/schemas/ContractRequestOffer'
+        providerPid:
+          type: string
+        consumerPid:
+          type: string
+    RpcNegotiationOfferResult:
+      allOf:
+      - $ref: '#/components/schemas/RpcNegotiationResultBase'
+      - type: object
+        required:
+        - request
+        properties:
+          request:
+            $ref: '#/components/schemas/RpcNegotiationOfferMessageDto'
+    RpcNegotiationPidsDto:
+      type: object
+      description: Identifies the negotiation for acceptance, agreement, verification or finalization.
+      additionalProperties: false
+      required:
+      - providerPid
+      - consumerPid
+      properties:
+        providerPid:
+          type: string
+        consumerPid:
+          type: string
+    RpcNegotiationPidsResult:
+      allOf:
+      - $ref: '#/components/schemas/RpcNegotiationResultBase'
+      - type: object
+        required:
+        - request
+        properties:
+          request:
+            $ref: '#/components/schemas/RpcNegotiationPidsDto'
+    RpcNegotiationRequestInitMessageDto:
+      type: object
+      additionalProperties: false
+      required:
+      - associatedAgentPeer
+      - providerAddress
+      - callbackAddress
+      - offer
+      properties:
+        associatedAgentPeer:
+          type: string
+          description: Participant id (DID) of the provider.
+        providerAddress:
+          type: string
+          description: The provider's DSP negotiation base URL.
+        callbackAddress:
+          type: string
+          description: This agent's DSP negotiation base URL.
+        offer:
+          $ref: '#/components/schemas/ContractRequestOffer'
+    RpcNegotiationRequestInitResult:
+      allOf:
+      - $ref: '#/components/schemas/RpcNegotiationResultBase'
+      - type: object
+        required:
+        - request
+        properties:
+          request:
+            $ref: '#/components/schemas/RpcNegotiationRequestInitMessageDto'
+    RpcNegotiationRequestMessageDto:
+      type: object
+      additionalProperties: false
+      required:
+      - offer
+      - providerPid
+      - consumerPid
+      properties:
+        offer:
+          $ref: '#/components/schemas/ContractRequestOffer'
+        providerPid:
+          type: string
+        consumerPid:
+          type: string
+    RpcNegotiationRequestResult:
+      allOf:
+      - $ref: '#/components/schemas/RpcNegotiationResultBase'
+      - type: object
+        required:
+        - request
+        properties:
+          request:
+            $ref: '#/components/schemas/RpcNegotiationRequestMessageDto'
+    RpcNegotiationResultBase:
+      type: object
+      required:
+      - response
+      - negotiationAgentModel
+      properties:
+        response:
+          $ref: '#/components/schemas/ContractNegotiation'
+        negotiationAgentModel:
+          $ref: '#/components/schemas/NegotiationProcessDto'
+    RpcNegotiationTerminationMessageDto:
+      type: object
+      additionalProperties: false
+      required:
+      - consumerPid
+      - providerPid
+      properties:
+        consumerPid:
+          type: string
+        providerPid:
+          type: string
+        code:
+          type:
+          - string
+          - 'null'
+        reason:
+          type:
+          - array
+          - 'null'
+          items:
+            type: string
+    RpcNegotiationTerminationResult:
+      allOf:
+      - $ref: '#/components/schemas/RpcNegotiationResultBase'
+      - type: object
+        required:
+        - request
+        properties:
+          request:
+            $ref: '#/components/schemas/RpcNegotiationTerminationMessageDto'
+    TckNegotiationInitiateRequest:
+      type: object
+      required:
+      - datasetId
+      - offerId
+      - providerId
+      - connectorAddress
+      properties:
+        datasetId:
+          type: string
+        offerId:
+          type: string
+          description: URN of the offer.
+        providerId:
+          type: string
+        connectorAddress:
+          type: string

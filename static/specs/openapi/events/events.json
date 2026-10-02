@@ -1,0 +1,1279 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Eunomia DS Events API",
+    "description": "Internal event bus (`crates/events`): the persisted event feed and its live SSE stream,\nwebhook subscriptions with signed deliveries and retries, and the dead letter queue.\nTopics are segments separated by `.` or `:` (`transfers:started`); patterns use `*` for one\nsegment and `**` for any number of them.\n",
+    "version": "1.0.0",
+    "license": {
+      "name": "GPL-3.0-or-later",
+      "url": "https://www.gnu.org/licenses/gpl-3.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:1200",
+      "description": "Provider agent (dev)"
+    },
+    {
+      "url": "http://127.0.0.1:1100",
+      "description": "Consumer agent (dev)"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Events",
+      "description": "Event feed, publishing and live stream"
+    },
+    {
+      "name": "Event Subscriptions",
+      "description": "Webhook subscriptions"
+    },
+    {
+      "name": "Event Dead Letters",
+      "description": "Deliveries that failed for good"
+    }
+  ],
+  "paths": {
+    "/api/v1/events": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "operationId": "listEventsFeed",
+        "summary": "List events",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/TopicPattern"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of events, newest first by default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedEventEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Events"
+        ],
+        "operationId": "publishEvent",
+        "summary": "Publish an event",
+        "description": "The event belongs to the acting tenant; `source_crate` defaults to `events`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishEventCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Published event",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/events/stream": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "operationId": "streamEventsSse",
+        "summary": "Live event stream (SSE)",
+        "description": "Unnamed server-sent events, one `EventEnvelope` JSON per `data:` line, with a keep-alive\nevery 15 s. Browsers cannot set headers on `EventSource`, so `tenant` replaces\n`x-tenant-id`.\n",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TopicPattern"
+          },
+          {
+            "name": "tenant",
+            "in": "query",
+            "required": false,
+            "description": "Tenant to follow. Non-admins may only name their own tenant.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "`data: <EventEnvelope JSON>` frames."
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/events/{eventId}": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "operationId": "getEventById",
+        "summary": "Get an event",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EventId"
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/events/{eventId}/deliveries": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "operationId": "getEventDeliveries",
+        "summary": "Webhook deliveries of an event",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EventId"
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One record per subscription the event was sent to",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventDeliveryRecord"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/events/subscriptions": {
+      "get": {
+        "tags": [
+          "Event Subscriptions"
+        ],
+        "operationId": "listEventSubscriptions",
+        "summary": "List webhook subscriptions",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "name": "active",
+            "in": "query",
+            "required": false,
+            "description": "Accepts `true`/`false` or `1`/`0`.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of subscriptions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedEventSubscription"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Event Subscriptions"
+        ],
+        "operationId": "createEventSubscription",
+        "summary": "Create a webhook subscription",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubscriptionCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created subscription",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventSubscription"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/events/subscriptions/{subscriptionId}": {
+      "parameters": [
+        {
+          "name": "subscriptionId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "$ref": "#/components/parameters/TenantHeader"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Event Subscriptions"
+        ],
+        "operationId": "getEventSubscriptionById",
+        "summary": "Get a webhook subscription",
+        "responses": {
+          "200": {
+            "description": "Subscription",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventSubscription"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Event Subscriptions"
+        ],
+        "operationId": "updateEventSubscription",
+        "summary": "Update a webhook subscription",
+        "description": "Absent fields keep their value.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSubscriptionCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated subscription",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventSubscription"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Event Subscriptions"
+        ],
+        "operationId": "deleteEventSubscription",
+        "summary": "Delete a webhook subscription",
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/events/dlq": {
+      "get": {
+        "tags": [
+          "Event Dead Letters"
+        ],
+        "operationId": "listDeadLetters",
+        "summary": "List dead letters",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/DeadLetterStatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of dead letters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDeadLetter"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/events/dlq/replay-all": {
+      "post": {
+        "tags": [
+          "Event Dead Letters"
+        ],
+        "operationId": "replayAllDeadLetters",
+        "summary": "Replay every unresolved dead letter",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Number of dead letters replayed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplayAllResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/events/dlq/{dlqId}": {
+      "parameters": [
+        {
+          "name": "dlqId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "$ref": "#/components/parameters/TenantHeader"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Event Dead Letters"
+        ],
+        "operationId": "getDeadLetterById",
+        "summary": "Get a dead letter",
+        "responses": {
+          "200": {
+            "description": "Dead letter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeadLetterRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Event Dead Letters"
+        ],
+        "operationId": "deleteDeadLetter",
+        "summary": "Purge a dead letter",
+        "responses": {
+          "204": {
+            "description": "Purged"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/events/dlq/{dlqId}/replay": {
+      "post": {
+        "tags": [
+          "Event Dead Letters"
+        ],
+        "operationId": "replayDeadLetter",
+        "summary": "Replay a dead letter",
+        "parameters": [
+          {
+            "name": "dlqId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The new delivery attempt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDeliveryRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "OAuth access token (JWT) or personal access token issued by `/oauth`."
+      }
+    },
+    "parameters": {
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Opaque `nextCursor` of the previous page.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "EventId": {
+        "name": "eventId",
+        "in": "path",
+        "required": true,
+        "description": "Event UUID, bare or as `urn:uuid:<uuid>`.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Page size, clamped to 1..=100.",
+        "schema": {
+          "type": "integer",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "PageNumber": {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "description": "1-based page index for offset paging, used when no cursor is sent.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "Sort": {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "created_at_asc",
+            "created_at_desc",
+            "updated_at_asc",
+            "updated_at_desc"
+          ],
+          "default": "created_at_desc"
+        }
+      },
+      "TenantHeader": {
+        "name": "x-tenant-id",
+        "in": "header",
+        "required": false,
+        "description": "Tenant to act on. Non-admins may only name their own tenant.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "TopicPattern": {
+        "name": "topic",
+        "in": "query",
+        "required": false,
+        "description": "Topic pattern; `*` matches one segment, `**` any number of them.",
+        "schema": {
+          "type": "string",
+          "examples": [
+            "transfers:*",
+            "negotiations:**"
+          ]
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Malformed request or failed validation",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "The caller may not act on this tenant or resource",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid bearer token",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "CreateSubscriptionCommand": {
+        "type": "object",
+        "required": [
+          "callback_address",
+          "topic_pattern"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Ignored; the subscription belongs to the acting tenant."
+          },
+          "callback_address": {
+            "type": "string",
+            "format": "uri"
+          },
+          "topic_pattern": {
+            "type": "string"
+          },
+          "secret": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "headers": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "retry_limit": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "expiration_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "DeadLetterRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "event_id",
+          "subscription_id",
+          "topic",
+          "callback_address",
+          "payload",
+          "error_message",
+          "attempts",
+          "status",
+          "failed_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "delivery_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "event_id": {
+            "type": "string"
+          },
+          "subscription_id": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "callback_address": {
+            "type": "string"
+          },
+          "payload": {
+            "description": "Payload of the failed delivery."
+          },
+          "error_message": {
+            "type": "string"
+          },
+          "attempts": {
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DeadLetterStatus"
+          },
+          "failed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "replayed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "DeadLetterStatus": {
+        "type": "string",
+        "enum": [
+          "Unresolved",
+          "Replayed",
+          "Purged"
+        ]
+      },
+      "DeliveryStatus": {
+        "type": "string",
+        "enum": [
+          "Pending",
+          "Delivered",
+          "Failed",
+          "DeadLetter"
+        ]
+      },
+      "ErrorInfo": {
+        "type": "object",
+        "description": "Error body returned by every agent.",
+        "required": [
+          "message",
+          "error_code"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "error_code": {
+            "type": "integer",
+            "description": "Internal error code of the failure kind."
+          },
+          "details": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "EventDeliveryRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "event_id",
+          "subscription_id",
+          "status",
+          "attempts",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "event_id": {
+            "type": "string"
+          },
+          "subscription_id": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DeliveryStatus"
+          },
+          "attempts": {
+            "type": "integer"
+          },
+          "last_attempt_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "next_retry_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "error_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "response_status_code": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "delivered_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "EventEnvelope": {
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "topic",
+          "source_crate",
+          "schema_version",
+          "timestamp",
+          "payload"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "examples": [
+              "urn:uuid:8a4e1f0c-7d4b-4a52-9f0e-2a6c5b1d3e47"
+            ]
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string",
+            "examples": [
+              "transfers:started"
+            ]
+          },
+          "source_crate": {
+            "type": "string"
+          },
+          "schema_version": {
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "correlation_id": {
+            "type": "string",
+            "description": "URN shared by the events of one flow."
+          },
+          "trace_context": {
+            "type": "string",
+            "description": "W3C `traceparent` of the publishing span."
+          },
+          "payload": {
+            "description": "Event payload, any JSON value."
+          }
+        }
+      },
+      "EventSubscription": {
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "callback_address",
+          "topic_pattern",
+          "active",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "callback_address": {
+            "type": "string",
+            "format": "uri"
+          },
+          "topic_pattern": {
+            "type": "string"
+          },
+          "secret": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "HMAC key used to sign deliveries."
+          },
+          "headers": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "retry_limit": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "expiration_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "PaginatedDeadLetter": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeadLetterRecord"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Absent on the last page."
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "PaginatedEventEnvelope": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventEnvelope"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Absent on the last page."
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "PaginatedEventSubscription": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventSubscription"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Absent on the last page."
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "PublishEventCommand": {
+        "type": "object",
+        "required": [
+          "topic",
+          "payload"
+        ],
+        "properties": {
+          "topic": {
+            "type": "string"
+          },
+          "source_crate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "schema_version": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "correlation_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "URN."
+          },
+          "payload": {
+            "description": "Event payload, any JSON value."
+          }
+        }
+      },
+      "ReplayAllResponse": {
+        "type": "object",
+        "required": [
+          "replayed_count"
+        ],
+        "properties": {
+          "replayed_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "UpdateSubscriptionCommand": {
+        "type": "object",
+        "properties": {
+          "callback_address": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "topic_pattern": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "secret": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "headers": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "retry_limit": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "active": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "expiration_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,836 +1,2005 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
-  title: Eunomia DS Auth Agent API
-  description: OpenAPI specification for the Eunomia DS Auth Agent, managing SSI interactions, detailed verifiable credential logic, and authorization flow.
+  title: Eunomia DS SSI Auth Agent API
+  description: |
+    Self-sovereign identity agent (`crates/auth`, wallet routes from `ymir`): the wallet and its
+    DID document, the participant registry ("mates"), credential requests to authorities,
+    onboarding with peers (GNAP as client), the GNAP authorization server peers onboard
+    against, the OID4VP verifier, and Gaia-X self-attestation.
+
+    User routes need an OAuth bearer token. Protocol routes (GNAP grant and continuation,
+    interaction callbacks, OID4VP verification) are authenticated by the protocol itself.
   version: 1.0.0
+  license:
+    name: GPL-3.0-or-later
+    url: https://www.gnu.org/licenses/gpl-3.0.html
 servers:
-  - url: /v1/auth
-    description: Base path for the Auth Agent API
-
+- url: http://127.0.0.1:1200
+  description: Provider agent (dev)
+- url: http://127.0.0.1:1100
+  description: Consumer agent (dev)
+security:
+- bearerAuth: []
 tags:
-  - name: Business
-    description: Business logic authentication endpoints
-  - name: Gaia Self-Issuer
-    description: Gaia-X Self-Description issuance and management
-  - name: GateKeeper
-    description: GNAP-based access control and grant management
-  - name: Mates
-    description: Management of trusted peers (Mates) in the dataspace
-  - name: Onboarder
-    description: Onboarding process for new consumers/providers
-  - name: VC Requester
-    description: Verifiable Credential acquisition flows
-  - name: Verifier
-    description: Verifiable Presentation verification endpoints
-
+- name: Wallet
+  description: Keys, DIDs and credentials held by this agent
+- name: Participants
+  description: Participant registry ("mates")
+- name: VC Requests
+  description: Credential requests this agent sends to authorities
+- name: Peer Connection
+  description: Onboarding requests this agent sends to peers
+- name: GateKeeper
+  description: GNAP authorization server peers onboard against
+- name: Verifier
+  description: OID4VP verifier used during onboarding
+- name: Gaia Self-Attester
+  description: Gaia-X self-attested credentials
 paths:
-  # --- Business Router ---
-  /business/login:
-    post:
-      tags:
-        - Business
-      summary: Business Login
-      operationId: businessLogin
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/BusinessLoginRequest"
-      responses:
-        "200":
-          description: Login successful
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /business/token:
-    post:
-      tags:
-        - Business
-      summary: Get Business Token
-      operationId: businessToken
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/BusinessLoginRequest"
-      responses:
-        "200":
-          description: Token retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  # --- Gaia Self-Issuer Router ---
-  /gaia/issue:
-    post:
-      tags:
-        - Gaia Self-Issuer
-      summary: Issue Gaia-X Credentials manually
-      operationId: issueGaiaCredentials
-      responses:
-        "200":
-          description: Credentials issued successfully
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /gaia/credentialOffer:
+  /.well-known/did.json:
     get:
       tags:
-        - Gaia Self-Issuer
-      summary: Get Credential Offer data
-      operationId: getCredentialOffer
-      parameters:
-        - name: id
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The hash ID for the offer
+      - Wallet
+      operationId: getWalletDidDocument
+      summary: DID document of this agent (did:web resolution)
+      security: []
       responses:
-        "200":
-          description: Credential Offer data
+        '200':
+          description: DID document
           content:
             application/json:
               schema:
-                type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /gaia/.well-known/openid-credential-issuer:
+                $ref: '#/components/schemas/DidDocument'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/wallet/is-linked:
     get:
       tags:
-        - Gaia Self-Issuer
-      summary: Get OpenID Credential Issuer configuration
-      operationId: getOpenidCredentialIssuer
+      - Wallet
+      operationId: isWalletLinked
+      summary: Whether the wallet is linked
       responses:
-        "200":
-          description: Issuer configuration
-          content:
-            application/json:
-              schema:
-                type: object
-
-  /gaia/.well-known/oauth-authorization-server:
-    get:
-      tags:
-        - Gaia Self-Issuer
-      summary: Get OAuth Authorization Server configuration
-      operationId: getOauthAuthorizationServer
-      responses:
-        "200":
-          description: Server configuration
-          content:
-            application/json:
-              schema:
-                type: object
-
-  /gaia/token:
+        '200':
+          description: Linked (empty body)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Not linked (empty body)
+  /api/v1/wallet/link:
     post:
       tags:
-        - Gaia Self-Issuer
-      summary: Get Token (OID4VCI)
-      operationId: getGaiaToken
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: "#/components/schemas/TokenRequest"
+      - Wallet
+      operationId: linkWallet
+      summary: Link the wallet
       responses:
-        "200":
-          description: Token response
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /gaia/credential/generate:
+        '200':
+          description: Linked
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/wallet/key:
     post:
       tags:
-        - Gaia Self-Issuer
-      summary: Generate a specific credential
-      operationId: generateCredential
-      security:
-        - BearerAuth: []
+      - Wallet
+      operationId: registerWalletKey
+      summary: Import a private key
+      description: '`kty` and `crv` are derived from the PEM.'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CredentialRequest"
+              $ref: '#/components/schemas/RegisterKeyRequest'
       responses:
-        "200":
-          description: Credential generated
-          content:
-            application/json:
-              schema:
-                type: object
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /gaia/credential/request:
-    post:
-      tags:
-        - Gaia Self-Issuer
-      summary: Request default Gaia-X VC
-      operationId: requestGaiaVc
-      responses:
-        "200":
-          description: VC requested
-          content:
-            application/json:
-              schema:
-                type: object
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  # --- GateKeeper Router ---
-  /gate/access:
-    post:
-      tags:
-        - GateKeeper
-      summary: GNAP Access Request
-      operationId: gnapAccessRequest
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/GrantRequest"
-      responses:
-        "200":
-          description: Access Grant response
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /gate/continue/{id}:
-    post:
-      tags:
-        - GateKeeper
-      summary: Continue GNAP Request
-      operationId: gnapContinueRequest
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      security:
-        - BearerAuth: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RefBody"
-      responses:
-        "200":
-          description: Continuation response
-          content:
-            application/json:
-              schema:
-                type: object
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  # --- Mate Router ---
-  /mates/all:
+        '201':
+          description: Imported
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/wallet/keys:
     get:
       tags:
-        - Mates
-      summary: Get all mates
-      operationId: getAllMates
-      parameters:
-        - name: type
-          in: query
-          required: false
-          description: Filter mates by participant type. Defaults to `all`.
-          schema:
-            type: string
-            enum:
-              - agents
-              - authorities
-              - all
-            default: all
-        - name: exclude
-          in: query
-          required: false
-          description: When `true`, excludes the own identity (is_me) from the results.
-          schema:
-            type: boolean
-            default: false
+      - Wallet
+      operationId: getWalletKeys
+      summary: Keys of the wallet
       responses:
-        "200":
-          description: List of mates
+        '200':
+          description: Keys, without private material
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  type: object
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /mates/myself:
+                  $ref: '#/components/schemas/WalletKey'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/wallet/key/{id}:
+    delete:
+      tags:
+      - Wallet
+      operationId: deleteWalletKey
+      summary: Delete a key
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      responses:
+        '200':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/wallet/did:
     get:
       tags:
-        - Mates
-      summary: Get own identity (Myself)
+      - Wallet
+      operationId: getWalletDid
+      summary: The wallet's default DID
+      responses:
+        '200':
+          description: DID string
+          content:
+            text/plain:
+              schema:
+                type: string
+                examples:
+                - did:web:provider.example.org
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+      - Wallet
+      operationId: registerWalletDid
+      summary: Create a DID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDidRequest'
+      responses:
+        '201':
+          description: Created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/wallet/did/{id}:
+    delete:
+      tags:
+      - Wallet
+      operationId: deleteWalletDid
+      summary: Delete a DID
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      responses:
+        '200':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/wallet/did/{id}/default:
+    post:
+      tags:
+      - Wallet
+      operationId: setDefaultWalletDid
+      summary: Make a DID the default one
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      responses:
+        '200':
+          description: Updated DID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletDid'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/wallet/did/{id}/key/{keyId}:
+    parameters:
+    - $ref: '#/components/parameters/StringPathId'
+    - name: keyId
+      in: path
+      required: true
+      schema:
+        type: string
+    post:
+      tags:
+      - Wallet
+      operationId: addKeyToWalletDid
+      summary: Bind a key to a DID
+      responses:
+        '200':
+          description: Updated DID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletDid'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Wallet
+      operationId: removeKeyFromWalletDid
+      summary: Unbind a key from a DID
+      responses:
+        '200':
+          description: Updated DID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletDid'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/wallet/did/{id}/key/default/{keyId}:
+    post:
+      tags:
+      - Wallet
+      operationId: setDefaultKeyOfWalletDid
+      summary: Make a key the DID's default
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      - name: keyId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Updated DID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletDid'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/wallet/credential/{id}:
+    delete:
+      tags:
+      - Wallet
+      operationId: deleteWalletCredential
+      summary: Delete a credential
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      responses:
+        '200':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/wallet/info:
+    get:
+      tags:
+      - Wallet
+      operationId: getWalletInfo
+      summary: Wallet information
+      responses:
+        '200':
+          description: Wallet with its DIDs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/wallet/vcs:
+    get:
+      tags:
+      - Wallet
+      operationId: getWalletCredentials
+      summary: Credentials held
+      responses:
+        '200':
+          description: Credentials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WalletCredential'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/wallet/oid4vci:
+    post:
+      tags:
+      - Wallet
+      operationId: processWalletOid4vci
+      summary: Redeem an OpenID4VCI credential offer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OidcUri'
+      responses:
+        '200':
+          description: Credential stored
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/wallet/oid4vp:
+    post:
+      tags:
+      - Wallet
+      operationId: processWalletOid4vp
+      summary: Answer an OpenID4VP presentation request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OidcUri'
+      responses:
+        '200':
+          description: Presentation sent
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/mates:
+    post:
+      tags:
+      - Participants
+      operationId: createParticipant
+      summary: Register a participant
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParticipantPlan'
+      responses:
+        '200':
+          description: Registered participant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipantDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v1/mates/all:
+    get:
+      tags:
+      - Participants
+      operationId: getAllParticipants
+      summary: List participants
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/Sort'
+      - name: type
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/ParticipantType'
+      - name: participantNick
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: participantId
+        in: query
+        required: false
+        schema:
+          type: string
+      - $ref: '#/components/parameters/CreatedAfterCamel'
+      - $ref: '#/components/parameters/CreatedBeforeCamel'
+      responses:
+        '200':
+          description: Page of participants
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedParticipantDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/mates/myself:
+    get:
+      tags:
+      - Participants
       operationId: getMyself
+      summary: This agent's own participant entry
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
       responses:
-        "200":
-          description: Own identity details
+        '200':
+          description: Own participant
           content:
             application/json:
               schema:
-                type: object
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /mates/batch:
+                $ref: '#/components/schemas/ParticipantDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/mates/batch:
     post:
       tags:
-        - Mates
-      summary: Get batch of mates
-      operationId: getBatchMates
+      - Participants
+      operationId: getBatchParticipants
+      summary: Get several participants by id
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/BatchRequests"
+              $ref: '#/components/schemas/BatchRequestsAsString'
       responses:
-        "200":
-          description: Batch of mates
+        '200':
+          description: Participants found
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /mates/token:
+                  $ref: '#/components/schemas/ParticipantDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/mates/token:
     post:
       tags:
-        - Mates
-      summary: Verify/Get Mate by Token
-      operationId: getMateByToken
+      - Participants
+      operationId: getParticipantByToken
+      summary: Participant owning a peer token
+      description: Used by the protocol agents to authenticate DSP calls.
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/VerifyTokenRequest"
+              $ref: '#/components/schemas/VerifyTokenRequest'
       responses:
-        "200":
-          description: Mate details
+        '200':
+          description: Participant
           content:
             application/json:
               schema:
-                type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /mates/{id}:
+                $ref: '#/components/schemas/ParticipantDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/mates/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: Participant id (DID).
+      schema:
+        type: string
+    - $ref: '#/components/parameters/TenantHeader'
     get:
       tags:
-        - Mates
-      summary: Get mate by ID
-      operationId: getMateById
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+      - Participants
+      operationId: getParticipantById
+      summary: Get a participant
       responses:
-        "200":
-          description: Mate details
+        '200':
+          description: Participant
           content:
             application/json:
               schema:
-                type: object
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+                $ref: '#/components/schemas/ParticipantDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
     put:
       tags:
-        - Mates
-      summary: Update extra_fields by ID
+      - Participants
       operationId: putMateById
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+      summary: Replace a participant's extra fields
       requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              description: New extra fields, any JSON value.
+      responses:
+        '200':
+          description: Updated participant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipantDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/vc-request/beg:
+    post:
+      tags:
+      - VC Requests
+      operationId: begVc
+      summary: Request a credential from an authority
+      description: Starts a GNAP credential request; with `auto` the OID4VP and OID4VCI steps run unattended.
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReachAuthority'
+      responses:
+        '200':
+          description: Request sent
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/vc-request/all:
+    get:
+      tags:
+      - VC Requests
+      operationId: getAllVcRequests
+      summary: List credential requests
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/Sort'
+      - $ref: '#/components/parameters/SentGrantParticipantId'
+      - $ref: '#/components/parameters/GrantParticipantNick'
+      - $ref: '#/components/parameters/GrantStatusQuery'
+      - $ref: '#/components/parameters/GrantKindQuery'
+      - $ref: '#/components/parameters/CreatedAfterCamel'
+      - $ref: '#/components/parameters/CreatedBeforeCamel'
+      responses:
+        '200':
+          description: Page of requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSentGrant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/vc-request/{id}:
+    get:
+      tags:
+      - VC Requests
+      operationId: getVcRequestById
+      summary: Get a credential request
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SentGrant'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/vc-request/{id}/details:
+    get:
+      tags:
+      - VC Requests
+      operationId: getVcRequestDetails
+      summary: Credential request with its interaction and verification
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Request and related records, as free-form JSON
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/vc-request/oid4vci/{id}:
+    post:
+      tags:
+      - VC Requests
+      operationId: processVcRequestOid4vci
+      summary: Redeem the credential offer of a request
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OidcUri'
+      responses:
+        '200':
+          description: Credential stored
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/vc-request/oid4vp/{id}:
+    post:
+      tags:
+      - VC Requests
+      operationId: processVcRequestOid4vp
+      summary: Answer the presentation request of a request
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OidcUri'
+      responses:
+        '200':
+          description: Presentation sent
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/vc-request/callback/{id}:
+    parameters:
+    - $ref: '#/components/parameters/StringPathId'
+    get:
+      tags:
+      - VC Requests
+      operationId: vcRequestCallbackGet
+      summary: GNAP interaction finish from the authority (query)
+      security: []
+      parameters:
+      - name: interact_ref
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: hash
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: rejected
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Interaction finished
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+      - VC Requests
+      operationId: vcRequestCallbackPost
+      summary: GNAP interaction finish from the authority (body)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GnapCallbackBody'
+      responses:
+        '200':
+          description: Interaction finished
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/peer-connection/connect:
+    post:
+      tags:
+      - Peer Connection
+      operationId: connectToPeer
+      summary: Start onboarding with a peer
+      description: Sends a GNAP access request; with `auto` the OID4VP step runs unattended.
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReachProvider'
+      responses:
+        '200':
+          description: Request sent
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/peer-connection/request/all:
+    get:
+      tags:
+      - Peer Connection
+      operationId: getAllPeerConnectionRequests
+      summary: List onboarding requests sent
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/Sort'
+      - $ref: '#/components/parameters/SentGrantParticipantId'
+      - $ref: '#/components/parameters/GrantParticipantNick'
+      - $ref: '#/components/parameters/GrantStatusQuery'
+      - $ref: '#/components/parameters/GrantKindQuery'
+      - $ref: '#/components/parameters/CreatedAfterCamel'
+      - $ref: '#/components/parameters/CreatedBeforeCamel'
+      responses:
+        '200':
+          description: Page of requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSentGrant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/peer-connection/request/{id}:
+    get:
+      tags:
+      - Peer Connection
+      operationId: getPeerConnectionRequestById
+      summary: Get an onboarding request
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SentGrant'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/peer-connection/request/{id}/details:
+    get:
+      tags:
+      - Peer Connection
+      operationId: getPeerConnectionRequestDetails
+      summary: Onboarding request with its interaction and verification
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Request and related records, as free-form JSON
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/peer-connection/oid4vp/{id}:
+    post:
+      tags:
+      - Peer Connection
+      operationId: processPeerConnectionOid4vp
+      summary: Answer the presentation request of an onboarding
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      - $ref: '#/components/parameters/TenantHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OidcUri'
+      responses:
+        '200':
+          description: Presentation sent
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/peer-connection/callback/{id}:
+    parameters:
+    - $ref: '#/components/parameters/StringPathId'
+    get:
+      tags:
+      - Peer Connection
+      operationId: peerConnectionCallbackGet
+      summary: GNAP interaction finish from the peer (query)
+      security: []
+      parameters:
+      - name: interact_ref
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: hash
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: rejected
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Interaction finished
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+      - Peer Connection
+      operationId: peerConnectionCallbackPost
+      summary: GNAP interaction finish from the peer (body)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GnapCallbackBody'
+      responses:
+        '200':
+          description: Interaction finished
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/gate/{tenant}/access:
+    post:
+      tags:
+      - GateKeeper
+      operationId: gnapAccessRequest
+      summary: GNAP grant request
+      description: |
+        A peer asks for access to `tenant`. Only the `httpsig` key proof is supported: the
+        request must carry HTTP Message Signatures over this endpoint and body, verified with
+        the client key it declares.
+      security: []
+      parameters:
+      - name: tenant
+        in: path
+        required: true
+        description: Tenant the peer onboards into.
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GnapGrantRequest'
+      responses:
+        '200':
+          description: GNAP grant response (pending interaction, approved or error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GnapGrantResponse'
+  /api/v1/gate/{tenant}/continue/{id}:
+    post:
+      tags:
+      - GateKeeper
+      operationId: gnapContinueRequest
+      summary: GNAP continuation request
+      description: Signed like the grant request; `interact_ref` must match the interaction.
+      security: []
+      parameters:
+      - name: tenant
+        in: path
+        required: true
+        schema:
+          type: string
+      - $ref: '#/components/parameters/StringPathId'
+      requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+              - interact_ref
+              properties:
+                interact_ref:
+                  type: string
       responses:
-        "200":
-          description: Mate details
+        '200':
+          description: GNAP grant response, with the access token once approved
           content:
             application/json:
               schema:
-                type: object
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-
-  # --- Onboarder Router ---
-  /onboard/provider:
-    post:
-      tags:
-        - Onboarder
-      summary: Onboard a new provider
-      operationId: onboardProvider
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ReachProvider"
-      responses:
-        "200":
-          description: Onboarding initiation response (e.g. URI)
-          content:
-            text/plain:
-              schema:
-                type: string
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /onboard/callback/{id}:
+                $ref: '#/components/schemas/GnapGrantResponse'
+  /api/v1/gate/request/all:
     get:
       tags:
-        - Onboarder
-      summary: Onboarding callback (GET)
-      operationId: onboardCallbackGet
+      - GateKeeper
+      operationId: getAllReceivedGrants
+      summary: List grant requests received
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: hash
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: interact_ref
-          in: query
-          required: true
-          schema:
-            type: string
+      - $ref: '#/components/parameters/TenantHeader'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/Sort'
+      - $ref: '#/components/parameters/GrantParticipantNick'
+      - $ref: '#/components/parameters/GrantStatusQuery'
+      - $ref: '#/components/parameters/GrantKindQuery'
+      - $ref: '#/components/parameters/CreatedAfterCamel'
+      - $ref: '#/components/parameters/CreatedBeforeCamel'
       responses:
-        "200":
-          description: Callback processed
+        '200':
+          description: Page of received grants
           content:
             application/json:
               schema:
-                type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-    post:
-      tags:
-        - Onboarder
-      summary: Onboarding callback (POST)
-      operationId: onboardCallbackPost
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ApprovedCallbackBody"
-      responses:
-        "200":
-          description: Callback processed
-          content:
-            application/json:
-              schema:
-                type: object
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  # --- VC Requester Router ---
-  /vc-request/beg/cross-user:
-    post:
-      tags:
-        - VC Requester
-      summary: Beg for VC (Cross-User flow)
-      operationId: begVcCrossUser
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ReachAuthority"
-      responses:
-        "200":
-          description: Request initiated successfully
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /vc-request/beg/oidc:
-    post:
-      tags:
-        - VC Requester
-      summary: Beg for VC (OIDC flow)
-      operationId: begVcOidc
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ReachAuthority"
-      responses:
-        "200":
-          description: Request initiated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /vc-request/all:
+                $ref: '#/components/schemas/PaginatedReceivedGrant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/gate/request/{id}:
     get:
       tags:
-        - VC Requester
-      summary: Get all VC requests
-      operationId: getAllVcRequests
+      - GateKeeper
+      operationId: getReceivedGrantById
+      summary: Get a received grant request
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      - $ref: '#/components/parameters/TenantHeader'
       responses:
-        "200":
-          description: List of requests
+        '200':
+          description: Received grant
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /vc-request/{id}:
+                $ref: '#/components/schemas/ReceivedGrant'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/gate/request/{id}/details:
     get:
       tags:
-        - VC Requester
-      summary: Get VC request by ID
-      operationId: getVcRequestById
+      - GateKeeper
+      operationId: getReceivedGrantDetails
+      summary: Received grant with its interaction and verification
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+      - $ref: '#/components/parameters/StringPathId'
+      - $ref: '#/components/parameters/TenantHeader'
       responses:
-        "200":
-          description: VC request details
+        '200':
+          description: Grant and related records, as free-form JSON
           content:
             application/json:
               schema:
                 type: object
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /vc-request/callback/{id}:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/verifier/pd/{state}:
     get:
       tags:
-        - VC Requester
-      summary: VC Request Callback (GET)
-      operationId: vcRequestCallbackGet
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: hash
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: interact_ref
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Callback processed
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-    post:
-      tags:
-        - VC Requester
-      summary: VC Request Callback (POST)
-      operationId: vcRequestCallbackPost
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CallbackBody"
-      responses:
-        "200":
-          description: Callback processed
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  # --- Verifier Router ---
-  /verifier/pd/{state}:
-    get:
-      tags:
-        - Verifier
-      summary: Get Presentation Definition
+      - Verifier
       operationId: getPresentationDefinition
+      summary: Presentation definition of an OID4VP interaction
+      security: []
       parameters:
-        - name: state
-          in: path
-          required: true
-          schema:
-            type: string
+      - $ref: '#/components/parameters/VerifierState'
       responses:
-        "200":
-          description: Presentation Definition
+        '200':
+          description: Presentation definition
           content:
             application/json:
               schema:
-                type: object
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /verifier/verify/{state}:
+                $ref: '#/components/schemas/PresentationDefinition'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/verifier/verify/{state}:
     post:
       tags:
-        - Verifier
-      summary: Verify Presentation
+      - Verifier
       operationId: verifyPresentation
+      summary: Submit an OID4VP presentation
+      security: []
       parameters:
-        - name: state
-          in: path
-          required: true
-          schema:
-            type: string
+      - $ref: '#/components/parameters/VerifierState'
       requestBody:
+        required: true
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: "#/components/schemas/VerifyPayload"
+              type: object
+              required:
+              - vp_token
+              - presentation_submission
+              properties:
+                vp_token:
+                  type: string
+                presentation_submission:
+                  type: string
+                  description: Presentation submission, JSON-encoded.
       responses:
-        "200":
-          description: Verification result or redirect URI
+        '200':
+          description: Verified; the body is the redirect URI when there is one
           content:
             text/plain:
               schema:
                 type: string
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          description: Verification failed; the body is the redirect URI when there is one
+          content:
+            text/plain:
+              schema:
+                type: string
+  /api/v1/gaia/generate:
+    post:
+      tags:
+      - Gaia Self-Attester
+      operationId: generateGaiaCredentials
+      summary: Generate the Gaia-X self-attested credentials
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
+      responses:
+        '200':
+          description: Generated
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
-    BearerAuth:
+    bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: JWT
-
+      description: OAuth access token (JWT) or personal access token issued by `/oauth`.
+  parameters:
+    CreatedAfterCamel:
+      name: createdAfter
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+    CreatedBeforeCamel:
+      name: createdBefore
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque `nextCursor` of the previous page.
+      schema:
+        type: string
+    GrantKindQuery:
+      name: kind
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/GrantKind'
+    GrantParticipantNick:
+      name: participantNick
+      in: query
+      required: false
+      schema:
+        type: string
+    GrantStatusQuery:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/GrantStatus'
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Page size, clamped to 1..=100.
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+    PageNumber:
+      name: page
+      in: query
+      required: false
+      description: 1-based page index for offset paging, used when no cursor is sent.
+      schema:
+        type: integer
+        minimum: 1
+    SentGrantParticipantId:
+      name: participantId
+      in: query
+      required: false
+      schema:
+        type: string
+    Sort:
+      name: sort
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+        - created_at_asc
+        - created_at_desc
+        - updated_at_asc
+        - updated_at_desc
+        default: created_at_desc
+    StringPathId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    TenantHeader:
+      name: x-tenant-id
+      in: header
+      required: false
+      description: Tenant to act on. Non-admins may only name their own tenant.
+      schema:
+        type: string
+    VerifierState:
+      name: state
+      in: path
+      required: true
+      description: State of the OID4VP interaction.
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: Malformed request or failed validation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorInfo'
+    Forbidden:
+      description: The caller may not act on this tenant or resource
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorInfo'
+    InternalServerError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorInfo'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorInfo'
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorInfo'
   schemas:
-    BusinessLoginRequest:
+    BatchRequestsAsString:
       type: object
-      properties:
-        username:
-          type: string
-        password:
-          type: string
       required:
-        - username
-        - password
-
-    TokenRequest:
-      type: object
-      additionalProperties: true
-      description: "Standard OAuth/OIDC Token Request parameters"
-
-    CredentialRequest:
-      type: object
-      additionalProperties: true
-      description: "Parameters for requesting a credential"
-
-    GrantRequest:
-      type: object
-      properties:
-        access_token:
-           type: string
-        interact:
-           type: object
-      additionalProperties: true
-      description: "GNAP Grant Request"
-
-    RefBody:
-      type: object
-      properties:
-        interact_ref:
-          type: string
-      description: "Reference body for continuing a request"
-
-    BatchRequests:
-      type: object
+      - ids
       properties:
         ids:
           type: array
           items:
             type: string
-      description: "Request for batch retrieval"
-
+    DidDocument:
+      type: object
+      required:
+      - '@context'
+      - id
+      - verificationMethod
+      properties:
+        '@context':
+          oneOf:
+          - type: string
+          - type: array
+            items:
+              type: string
+        id:
+          type: string
+        controller: {}
+        alsoKnownAs: {}
+        service:
+          type: array
+          items:
+            $ref: '#/components/schemas/DidService'
+        verificationMethod:
+          type: array
+          items:
+            type: object
+        authentication: {}
+        assertionMethod: {}
+        keyAgreement: {}
+        capabilityInvocation: {}
+        capabilityDelegation: {}
+    DidService:
+      type: object
+      required:
+      - type
+      - serviceEndpoint
+      properties:
+        id:
+          type: string
+          examples:
+          - AuthorizationServer
+          - CredentialIssuer
+          - FederatedCatalog
+        type:
+          type: string
+        serviceEndpoint:
+          type: string
+    ErrorInfo:
+      type: object
+      description: Error body returned by every agent.
+      required:
+      - message
+      - error_code
+      properties:
+        message:
+          type: string
+        error_code:
+          type: integer
+          description: Internal error code of the failure kind.
+        details:
+          type:
+          - string
+          - 'null'
+    GnapCallbackBody:
+      description: Approved (`interact_ref` and `hash`) or rejected interaction.
+      oneOf:
+      - type: object
+        required:
+        - interact_ref
+        - hash
+        properties:
+          interact_ref:
+            type: string
+          hash:
+            type: string
+      - type: object
+        required:
+        - rejected
+        properties:
+          rejected:
+            type: string
+    GnapContinuation:
+      type: object
+      required:
+      - uri
+      - access_token
+      properties:
+        uri:
+          type: string
+        wait:
+          type: integer
+        access_token:
+          type: object
+          required:
+          - value
+          properties:
+            value:
+              type: string
+            label:
+              type: string
+            expires_in:
+              type: integer
+    GnapGrantRequest:
+      type: object
+      description: GNAP grant request asking for an access token or a credential.
+      required:
+      - client
+      properties:
+        access_token:
+          type: object
+          description: Access requested (`access` rights).
+        credential_request:
+          type: object
+          properties:
+            credential_configurations:
+              type: array
+              items:
+                $ref: '#/components/schemas/VcTypeConfig'
+            label:
+              type: string
+        subject:
+          type: object
+        client:
+          type: object
+          required:
+          - key
+          properties:
+            key:
+              type: object
+              required:
+              - proof
+              properties:
+                proof:
+                  type: string
+                  const: httpsig
+                jwk:
+                  type: object
+                cert:
+                  type: string
+                  description: PEM certificate.
+          additionalProperties: true
+        user:
+          type: string
+        interact:
+          type: object
+          description: Interaction start methods and finish callback.
+    GnapGrantResponse:
+      description: Pending (interaction needed), processing, approved or error response.
+      anyOf:
+      - type: object
+        title: Pending
+        required:
+        - continue
+        - interact
+        properties:
+          continue:
+            $ref: '#/components/schemas/GnapContinuation'
+          interact:
+            type: object
+            properties:
+              oid4vp:
+                type: string
+              redirect:
+                type: string
+              finish:
+                type: string
+              expires_in:
+                type: integer
+          instance_id:
+            type: string
+      - type: object
+        title: Approved
+        properties:
+          continue:
+            $ref: '#/components/schemas/GnapContinuation'
+          access_token:
+            type: object
+            required:
+            - value
+            - access
+            properties:
+              value:
+                type: string
+              label:
+                type: string
+              access: {}
+              expires_in:
+                type: integer
+          credential_response:
+            type: object
+            required:
+            - credential_uri
+            - credential_type_config
+            properties:
+              credential_uri:
+                type: string
+              credential_type_config:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VcTypeConfig'
+          subject:
+            type: object
+          instance_id:
+            type: string
+      - type: object
+        title: Error
+        required:
+        - error
+        properties:
+          error:
+            type: string
+            examples:
+            - request_denied
+            - invalid_interaction
+    GrantKind:
+      type: string
+      enum:
+      - AccessToken
+      - CredentialRequest
+    GrantStatus:
+      type: string
+      enum:
+      - Processing
+      - Pending
+      - Approved
+      - Rejected
+      - Finalized
+    OidcUri:
+      type: object
+      required:
+      - uri
+      properties:
+        uri:
+          type: string
+          examples:
+          - openid4vp://?request_uri=...
+    PaginatedParticipantDto:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParticipantDto'
+        nextCursor:
+          type: string
+          description: Absent on the last page.
+        total:
+          type: integer
+    PaginatedReceivedGrant:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReceivedGrant'
+        nextCursor:
+          type: string
+          description: Absent on the last page.
+        total:
+          type: integer
+    PaginatedSentGrant:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SentGrant'
+        nextCursor:
+          type: string
+          description: Absent on the last page.
+        total:
+          type: integer
+    ParticipantDto:
+      type: object
+      description: Participant registry entry ("mate").
+      required:
+      - tenant_id
+      - participant_id
+      - participant_nick
+      - participant_type
+      - base_url
+      - saved_at
+      - last_interaction
+      - extra_fields
+      properties:
+        tenant_id:
+          type: string
+        participant_id:
+          type: string
+          description: DID of the participant.
+        participant_nick:
+          type: string
+        participant_type:
+          $ref: '#/components/schemas/ParticipantType'
+        base_url:
+          type: string
+        token:
+          type:
+          - string
+          - 'null'
+          description: Token this agent holds for calling the participant.
+        saved_at:
+          type: string
+          format: date-time
+        last_interaction:
+          type: string
+          format: date-time
+        extra_fields: {}
+    ParticipantPlan:
+      type: object
+      required:
+      - participant_id
+      - tenant_id
+      - participant_nick
+      - participant_type
+      - base_url
+      properties:
+        participant_id:
+          type: string
+        tenant_id:
+          type: string
+        participant_nick:
+          type: string
+        participant_type:
+          $ref: '#/components/schemas/ParticipantType'
+        base_url:
+          type: string
+        token:
+          type:
+          - string
+          - 'null'
+        extra_fields: {}
+    ParticipantType:
+      type: string
+      enum:
+      - Agent
+      - Authority
+      - All
+    PresentationDefinition:
+      type: object
+      required:
+      - id
+      - input_descriptors
+      properties:
+        id:
+          type: string
+        input_descriptors:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - format
+            - constraints
+            properties:
+              id:
+                type: string
+              format:
+                type: object
+                properties:
+                  jwt_vc_json:
+                    type: object
+                    properties:
+                      alg:
+                        type: array
+                        items:
+                          type: string
+              constraints:
+                type: object
+                properties:
+                  fields:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: array
+                          items:
+                            type: string
+                        filter:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                            pattern:
+                              type: string
+    ReachAuthority:
+      type: object
+      required:
+      - id
+      - nick
+      - url
+      - vc_type
+      - method
+      properties:
+        id:
+          type: string
+          description: Participant id (DID) of the authority.
+        nick:
+          type: string
+        url:
+          type: string
+          description: Base URL of the authority.
+        vc_type:
+          $ref: '#/components/schemas/VcTypeConfig'
+        method:
+          type: string
+          description: Interaction start method.
+          examples:
+          - oid4vp
+        auto:
+          type:
+          - boolean
+          - 'null'
+          description: Run the manual steps automatically.
+    ReachProvider:
+      type: object
+      required:
+      - id
+      - nick
+      - url
+      - actions
+      properties:
+        id:
+          type: string
+          description: Participant id (DID) of the peer.
+        nick:
+          type: string
+        url:
+          type: string
+          description: Base URL of the peer.
+        actions:
+          type: array
+          items:
+            type: string
+            examples:
+            - talk
+            - request-vc
+        auto:
+          type:
+          - boolean
+          - 'null'
+          description: Run the manual steps automatically.
+    ReceivedGrant:
+      type: object
+      required:
+      - id
+      - tenant_id
+      - participant_nick
+      - kind
+      - status
+      - created_at
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        participant_nick:
+          type: string
+        kind:
+          $ref: '#/components/schemas/GrantKind'
+        token:
+          type:
+          - string
+          - 'null'
+        vc_type_config:
+          type:
+          - array
+          - 'null'
+          items:
+            $ref: '#/components/schemas/VcTypeConfig'
+        status:
+          $ref: '#/components/schemas/GrantStatus'
+        created_at:
+          type: string
+          format: date-time
+        ended_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    RegisterDidRequest:
+      type: object
+      required:
+      - builder
+      - keys_id
+      properties:
+        builder:
+          description: DID method and its settings.
+          oneOf:
+          - type: object
+            required:
+            - Jwk
+            properties:
+              Jwk:
+                type: object
+                required:
+                - pem
+                properties:
+                  pem:
+                    type: string
+          - type: object
+            required:
+            - Web
+            properties:
+              Web:
+                type: object
+                required:
+                - domain
+                properties:
+                  domain:
+                    type: string
+                  path:
+                    type:
+                    - string
+                    - 'null'
+                  port:
+                    type:
+                    - string
+                    - 'null'
+        keys_id:
+          type: array
+          description: Ids of wallet keys bound as verification methods.
+          items:
+            type: string
+        alias:
+          type:
+          - string
+          - 'null'
+        service:
+          type:
+          - array
+          - 'null'
+          items:
+            $ref: '#/components/schemas/DidService'
+    RegisterKeyRequest:
+      type: object
+      required:
+      - pem
+      properties:
+        pem:
+          type: string
+          description: Private key in PEM format.
+        alias:
+          type:
+          - string
+          - 'null'
+    SentGrant:
+      type: object
+      required:
+      - id
+      - tenant_id
+      - participant_id
+      - participant_nick
+      - grant_endpoint
+      - kind
+      - status
+      - auto
+      - created_at
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        participant_id:
+          type: string
+        participant_nick:
+          type: string
+        grant_endpoint:
+          type: string
+        kind:
+          $ref: '#/components/schemas/GrantKind'
+        status:
+          $ref: '#/components/schemas/GrantStatus'
+        token:
+          type:
+          - string
+          - 'null'
+        vc_type_config:
+          type:
+          - array
+          - 'null'
+          items:
+            $ref: '#/components/schemas/VcTypeConfig'
+        vc_uri:
+          type:
+          - string
+          - 'null'
+        as_assigned_id:
+          type:
+          - string
+          - 'null'
+        auto:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        ended_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    VcTypeConfig:
+      type: string
+      description: Credential type and format joined by `_`, with `:` in the type written as `_`.
+      examples:
+      - gx_LegalPerson_jwt_vc_json
+      - DataSpaceParticipant_jwt_vc_json
     VerifyTokenRequest:
       type: object
+      required:
+      - token
       properties:
         token:
           type: string
-      description: "Request to verify a token"
-
-    ReachProvider:
+    WalletCredential:
       type: object
-      additionalProperties: true
-      description: "Payload to reach/onboard a provider"
-
-    ApprovedCallbackBody:
-      type: object
+      required:
+      - id
+      - vc_body
+      - vc_type
+      - vc_format
+      - holder_did
+      - issuer_did
+      - parsed_document
+      - added_on
       properties:
-        hash:
+        id:
           type: string
-        interact_ref:
+        vc_body:
+          description: The credential as issued (JWT or JSON-LD).
+        vc_type:
           type: string
-      description: "Callback body for approved interactions"
-
-    ReachAuthority:
+          examples:
+          - gx:LegalPerson
+        vc_format:
+          type: string
+          examples:
+          - jwt_vc_json
+        holder_did:
+          type: string
+        issuer_did:
+          type: string
+        parsed_document:
+          description: Decoded credential.
+        valid_until:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        added_on:
+          type: string
+          format: date-time
+    WalletDid:
       type: object
-      additionalProperties: true
-      description: "Payload to reach an authority for VCS"
-
-    CallbackBody:
-      type: object
-      description: "Generic callback body (Approved usually)"
-      additionalProperties: true
-
-    VerifyPayload:
-      type: object
+      required:
+      - id
+      - did
+      - alias
+      - default
+      - type
+      - keys
+      - default_key
+      - did_document
       properties:
-         vp_token:
-           type: string
-         presentation_submission:
-           type: string
-      additionalProperties: true
-
-  responses:
-    BadRequest:
-      description: Bad Request
-      content:
-        application/json:
-          schema:
+        id:
+          type: string
+        did:
+          type: string
+        alias:
+          type: string
+        default:
+          type: boolean
+        type:
+          type: string
+          examples:
+          - Jwk
+          - Web
+        keys:
+          type: array
+          items:
             type: object
             properties:
-              code:
-                type: integer
-                example: 400
-              message:
+              internal:
                 type: string
-              details:
+              fragment:
                 type: string
-
-    Unauthorized:
-      description: Unauthorized
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              code:
-                type: integer
-                example: 401
-              message:
-                type: string
-    
-    NotFound:
-      description: Resource Not Found
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              code:
-                type: integer
-                example: 404
-              message:
-                type: string
-
-    InternalServerError:
-      description: Internal Server Error
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              code:
-                type: integer
-                example: 500
-              message:
-                type: string
+        default_key:
+          type: object
+          properties:
+            internal:
+              type: string
+            fragment:
+              type: string
+        did_document:
+          $ref: '#/components/schemas/DidDocument'
+        service:
+          type:
+          - array
+          - 'null'
+          items:
+            $ref: '#/components/schemas/DidService'
+    WalletInfo:
+      type: object
+      required:
+      - id
+      - name
+      - createdOn
+      - addedOn
+      - permission
+      - dids
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        createdOn:
+          type: string
+        addedOn:
+          type: string
+        permission:
+          type: string
+        dids:
+          type: array
+          items:
+            $ref: '#/components/schemas/WalletDid'
+    WalletKey:
+      type: object
+      required:
+      - id
+      - alias
+      - kty
+      - created_at
+      properties:
+        id:
+          type: string
+        alias:
+          type: string
+        kty:
+          type: string
+          enum:
+          - EC
+          - RSA
+          - oct
+          - OKP
+          - AKP
+        crv:
+          type:
+          - string
+          - 'null'
+          examples:
+          - P-256
+          - Ed25519
+          - X25519
+        created_at:
+          type: string
+          format: date-time

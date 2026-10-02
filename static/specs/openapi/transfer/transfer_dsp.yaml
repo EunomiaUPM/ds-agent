@@ -1,587 +1,314 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
-  title: Eunomia DS Transfer Agent API - DSP Protocol
-  description: OpenAPI specification for the Eunomia DS Transfer Agent DSP Protocol and RPC endpoints.
+  title: Eunomia DS Transfer Process Protocol API
+  description: |
+    Transfer Process Protocol of the Dataspace Protocol 2025-1 as served by the transfer agent.
+    Bodies are JSON-LD: they are expanded against the DSP 2025-1 context, the message node is
+    found by its `dspace:` type, and its fields go through the edge and domain validators.
+
+    The handlers are being rebuilt on this pipeline: today an accepted message answers 202 and a
+    rejected one 400, both without body, and `GET /{id}` is a placeholder. A missing or unknown
+    peer token answers 404, the same as a missing process, so probing cannot reveal processes.
   version: 1.0.0
+  license:
+    name: GPL-3.0-or-later
+    url: https://www.gnu.org/licenses/gpl-3.0.html
 servers:
-  - url: /dsp/current/transfers
-    description: Base path for the Transfer Agent DSP Protocol
-
+- url: http://127.0.0.1:1200
+  description: Provider agent (dev)
+- url: http://127.0.0.1:1100
+  description: Consumer agent (dev)
+security:
+- peerBearer: []
 tags:
-  - name: DSP Protocol
-    description: Standard Dataspace Protocol transfer endpoints
-  - name: DSP RPC
-    description: Remote Procedure Call endpoints for orchestrator interaction
-
+- name: Transfer Protocol
+  description: DSP endpoints called by peers
 paths:
-  # --- DSP Protocol ---
-  /request:
+  /dsp/current/transfers/request:
     post:
       tags:
-        - DSP Protocol
-      summary: Initiate transfer process
+      - Transfer Protocol
       operationId: transferRequest
+      summary: Transfer request (provider)
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TransferRequestMessageDto"
+              $ref: '#/components/schemas/TransferRequestMessage'
       responses:
-        "200":
-          description: Process already exists
-          content:
-            application/json:
-              schema:
-                type: object # Returns TransferProcessDto or similar, inferred from code
-        "201":
-          description: Process created
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /{id}:
+        '202':
+          description: Accepted
+        '400':
+          description: Rejected by the pipeline (empty body)
+        '404':
+          description: Missing or unknown peer token (empty body)
+  /dsp/current/transfers/{id}:
     get:
       tags:
-        - DSP Protocol
-      summary: Get transfer process state
+      - Transfer Protocol
       operationId: getTransferProcess
+      summary: Transfer process state (placeholder)
       parameters:
-        - $ref: "#/components/parameters/IdPath"
+      - $ref: '#/components/parameters/PidPath'
       responses:
-        "200":
-          description: Transfer process returned
+        '200':
+          description: Placeholder answer `ok`
           content:
-            application/json:
+            text/plain:
               schema:
-                type: object # Returns TransferProcessDto
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /{id}/start:
+                type: string
+                const: ok
+        '404':
+          description: Missing or unknown peer token (empty body)
+  /dsp/current/transfers/{id}/start:
     post:
       tags:
-        - DSP Protocol
-      summary: Start transfer process
+      - Transfer Protocol
       operationId: transferStart
+      summary: Transfer start (consumer, or provider when resuming)
       parameters:
-        - $ref: "#/components/parameters/IdPath"
+      - $ref: '#/components/parameters/PidPath'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TransferStartMessageDto"
+              $ref: '#/components/schemas/TransferStartMessage'
       responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TransferProcessAckDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /{id}/completion:
+        '202':
+          description: Accepted
+        '400':
+          description: Rejected by the pipeline (empty body)
+        '404':
+          description: Missing or unknown peer token (empty body)
+  /dsp/current/transfers/{id}/completion:
     post:
       tags:
-        - DSP Protocol
-      summary: Complete transfer process
+      - Transfer Protocol
       operationId: transferCompletion
+      summary: Transfer completion (either role)
       parameters:
-        - $ref: "#/components/parameters/IdPath"
+      - $ref: '#/components/parameters/PidPath'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TransferCompletionMessageDto"
+              $ref: '#/components/schemas/TransferCompletionMessage'
       responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TransferProcessAckDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /{id}/termination:
+        '202':
+          description: Accepted
+        '400':
+          description: Rejected by the pipeline (empty body)
+        '404':
+          description: Missing or unknown peer token (empty body)
+  /dsp/current/transfers/{id}/suspension:
     post:
       tags:
-        - DSP Protocol
-      summary: Terminate transfer process
-      operationId: transferTermination
-      parameters:
-        - $ref: "#/components/parameters/IdPath"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TransferTerminationMessageDto"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TransferProcessAckDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /{id}/suspension:
-    post:
-      tags:
-        - DSP Protocol
-      summary: Suspend transfer process
+      - Transfer Protocol
       operationId: transferSuspension
+      summary: Transfer suspension (either role)
       parameters:
-        - $ref: "#/components/parameters/IdPath"
+      - $ref: '#/components/parameters/PidPath'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TransferSuspensionMessageDto"
+              $ref: '#/components/schemas/TransferSuspensionMessage'
       responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TransferProcessAckDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  # --- RPC Endpoints ---
-  /rpc/setup-request:
-    post:
-      tags:
-        - DSP RPC
-      summary: Setup transfer request (RPC)
-      operationId: setupTransferRequest
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RpcTransferRequestMessageDto"
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /rpc/setup-start:
-    post:
-      tags:
-        - DSP RPC
-      summary: Setup transfer start (RPC)
-      operationId: setupTransferStart
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RpcTransferStartMessageDto"
-      responses:
-        "202":
+        '202':
           description: Accepted
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /rpc/setup-completion:
+        '400':
+          description: Rejected by the pipeline (empty body)
+        '404':
+          description: Missing or unknown peer token (empty body)
+  /dsp/current/transfers/{id}/termination:
     post:
       tags:
-        - DSP RPC
-      summary: Setup transfer completion (RPC)
-      operationId: setupTransferCompletion
+      - Transfer Protocol
+      operationId: transferTermination
+      summary: Transfer termination (either role)
+      parameters:
+      - $ref: '#/components/parameters/PidPath'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RpcTransferCompletionMessageDto"
+              $ref: '#/components/schemas/TransferTerminationMessage'
       responses:
-        "202":
+        '202':
           description: Accepted
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /rpc/setup-termination:
-    post:
-      tags:
-        - DSP RPC
-      summary: Setup transfer termination (RPC)
-      operationId: setupTransferTermination
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RpcTransferTerminationMessageDto"
-      responses:
-        "202":
-          description: Accepted
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /rpc/setup-suspension:
-    post:
-      tags:
-        - DSP RPC
-      summary: Setup transfer suspension (RPC)
-      operationId: setupTransferSuspension
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RpcTransferSuspensionMessageDto"
-      responses:
-        "202":
-          description: Accepted
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
+        '400':
+          description: Rejected by the pipeline (empty body)
+        '404':
+          description: Missing or unknown peer token (empty body)
 components:
+  securitySchemes:
+    peerBearer:
+      type: http
+      scheme: bearer
+      description: Token the peer obtained from this agent through GNAP onboarding.
   parameters:
-    IdPath:
+    PidPath:
       name: id
       in: path
       required: true
+      description: This agent's process id (`providerPid` on a provider, `consumerPid` on a consumer).
       schema:
         type: string
-
-  responses:
-    BadRequest:
-      description: Bad request
-    NotFound:
-      description: Resource not found
-    InternalServerError:
-      description: Internal server error
-
   schemas:
-    # --- Common DTOs ---
-    DataAddressDto:
+    ContextField:
+      description: JSON-LD context; must include the DSP 2024-1 or 2025-1 context.
+      oneOf:
+      - type: string
+      - type: array
+        items:
+          type: string
+      examples:
+      - https://w3id.org/dspace/2025/1/context.jsonld
+    DataAddress:
       type: object
+      required:
+      - '@type'
+      - endpointType
+      - endpointProperties
       properties:
+        '@type':
+          type: string
+          const: DataAddress
         endpointType:
           type: string
+          examples:
+          - https://w3id.org/idsa/v4.1/HTTP
         endpoint:
           type: string
-          nullable: true
+          description: Optional; a pull request may get it in the start message.
         endpointProperties:
           type: array
           items:
-            $ref: "#/components/schemas/EndpointPropertyDto"
-          nullable: true
-
-    EndpointPropertyDto:
+            type: object
+            required:
+            - '@type'
+            - name
+            - value
+            properties:
+              '@type':
+                type: string
+                const: EndpointProperty
+              name:
+                type: string
+              value:
+                type: string
+    TransferCompletionMessage:
       type: object
       required:
-        - name
-        - value
+      - '@context'
+      - '@type'
+      - providerPid
+      - consumerPid
       properties:
-        name:
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
           type: string
-        value:
-          type: string
-
-    # --- Transfer Process Messages (Flattened wrappers) ---
-
-    TransferRequestMessageDto:
-      type: object
-      required:
-        - "@context"
-        - "@type"
-        - agreementId
-        - format
-        - callbackAddress
-        - consumerPid
-      properties:
-        "@context":
-          type: string
-          default: "http://w3id.org/dspace/2024/1/context.json"
-        "@type":
-          type: string
-          default: "dspace:TransferRequestMessage"
-        agreementId:
-          type: string
-          format: urn
-        format:
-          type: string
-        dataAddress:
-          $ref: "#/components/schemas/DataAddressDto"
-        callbackAddress:
-          type: string
-        consumerPid:
-          type: string
-          format: urn
-        autoStart:
-          type: boolean
-          description: >
-            BFF simplified flow. When true the Provider automatically responds
-            with a TransferStartMessage. Omitted by standard-compliant peers.
-
-    TransferStartMessageDto:
-      type: object
-      required:
-        - "@context"
-        - "@type"
-        - providerPid
-        - consumerPid
-      properties:
-        "@context":
-          type: string
-          default: "http://w3id.org/dspace/2024/1/context.json"
-        "@type":
-          type: string
-          default: "dspace:TransferStartMessage"
+          const: TransferCompletionMessage
         providerPid:
           type: string
-          format: urn
         consumerPid:
           type: string
-          format: urn
-        dataAddress:
-          $ref: "#/components/schemas/DataAddressDto"
-
-    TransferCompletionMessageDto:
+    TransferRequestMessage:
       type: object
       required:
-        - "@context"
-        - "@type"
-        - providerPid
-        - consumerPid
+      - '@context'
+      - '@type'
+      - consumerPid
+      - agreementId
+      - format
+      - callbackAddress
       properties:
-        "@context":
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
           type: string
-          default: "http://w3id.org/dspace/2024/1/context.json"
-        "@type":
-          type: string
-          default: "dspace:TransferCompletionMessage"
-        providerPid:
-          type: string
-          format: urn
+          const: TransferRequestMessage
         consumerPid:
-          type: string
-          format: urn
-
-    TransferTerminationMessageDto:
-      type: object
-      required:
-        - "@context"
-        - "@type"
-        - providerPid
-        - consumerPid
-      properties:
-        "@context":
-          type: string
-          default: "http://w3id.org/dspace/2024/1/context.json"
-        "@type":
-          type: string
-          default: "dspace:TransferTerminationMessage"
-        providerPid:
-          type: string
-          format: urn
-        consumerPid:
-          type: string
-          format: urn
-        code:
-          type: string
-          nullable: true
-        reason:
-          type: array
-          items:
-            type: string
-          nullable: true
-
-    TransferSuspensionMessageDto:
-      type: object
-      required:
-        - "@context"
-        - "@type"
-        - providerPid
-        - consumerPid
-      properties:
-        "@context":
-          type: string
-          default: "http://w3id.org/dspace/2024/1/context.json"
-        "@type":
-          type: string
-          default: "dspace:TransferSuspensionMessage"
-        providerPid:
-          type: string
-          format: urn
-        consumerPid:
-          type: string
-          format: urn
-        code:
-          type: string
-          nullable: true
-        reason:
-          type: array
-          items:
-            type: string
-          nullable: true
-
-    TransferProcessAckDto:
-      type: object
-      required:
-        - "@context"
-        - "@type"
-        - consumerPid
-        - providerPid
-        - state
-      properties:
-        "@context":
-          type: string
-          default: "http://w3id.org/dspace/2024/1/context.json"
-        "@type":
-          type: string
-          default: "dspace:TransferProcess"
-        consumerPid:
-          type: string
-          format: urn
-        providerPid:
-          type: string
-          format: urn
-        state:
-          type: string
-
-    # --- RPC Messages ---
-
-    RpcTransferRequestMessageDto:
-      type: object
-      required:
-        - associatedAgentPeer
-        - agreementId
-        - format
-        - providerAddress
-        - callbackAddress
-      properties:
-        associatedAgentPeer:
           type: string
         agreementId:
           type: string
-          format: urn
         format:
           type: string
+          description: '`dct:format` of a distribution of the agreement''s target.'
+          examples:
+          - HttpData-PULL
         dataAddress:
-          $ref: "#/components/schemas/DataAddressDto"
-        providerAddress:
-          type: string
+          $ref: '#/components/schemas/DataAddress'
         callbackAddress:
           type: string
-        autoStart:
-          type: boolean
-          description: >
-            BFF simplified flow. When true the BFF endpoint injects autoStart=true
-            into the wire message so the Provider auto-starts the transfer.
-
-    RpcTransferStartMessageDto:
+    TransferStartMessage:
       type: object
       required:
-        - consumerPid
-        - providerPid
+      - '@context'
+      - '@type'
+      - providerPid
+      - consumerPid
       properties:
-        consumerPid:
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
           type: string
-          format: urn
+          const: TransferStartMessage
         providerPid:
           type: string
-          format: urn
+        consumerPid:
+          type: string
         dataAddress:
-          $ref: "#/components/schemas/DataAddressDto"
-
-    RpcTransferCompletionMessageDto:
+          $ref: '#/components/schemas/DataAddress'
+    TransferSuspensionMessage:
       type: object
       required:
-        - consumerPid
-        - providerPid
+      - '@context'
+      - '@type'
+      - providerPid
+      - consumerPid
       properties:
-        consumerPid:
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
           type: string
-          format: urn
+          const: TransferSuspensionMessage
         providerPid:
           type: string
-          format: urn
-
-    RpcTransferTerminationMessageDto:
-      type: object
-      required:
-        - consumerPid
-        - providerPid
-      properties:
         consumerPid:
           type: string
-          format: urn
-        providerPid:
-          type: string
-          format: urn
         code:
           type: string
-          nullable: true
         reason:
           type: array
           items:
             type: string
-          nullable: true
-
-    RpcTransferSuspensionMessageDto:
+    TransferTerminationMessage:
       type: object
       required:
-        - consumerPid
-        - providerPid
+      - '@context'
+      - '@type'
+      - providerPid
+      - consumerPid
       properties:
-        consumerPid:
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
           type: string
-          format: urn
+          const: TransferTerminationMessage
         providerPid:
           type: string
-          format: urn
+        consumerPid:
+          type: string
         code:
           type: string
-          nullable: true
         reason:
           type: array
           items:
             type: string
-          nullable: true

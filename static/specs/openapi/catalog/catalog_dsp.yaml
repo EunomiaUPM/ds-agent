@@ -1,297 +1,251 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
-  title: Eunomia DS Catalog Agent API - DSP Protocol
-  description: OpenAPI specification for the Eunomia DS Catalog Agent DSP Protocol and RPC endpoints.
+  title: Eunomia DS Catalog Protocol API
+  description: |
+    Catalog Protocol of the Dataspace Protocol 2025-1 as served by the catalog agent, plus the
+    RPC endpoints that make this agent act as a consumer against a peer's catalog.
+    Protocol endpoints authenticate the peer with the token it obtained through GNAP onboarding
+    and answer as a read-only scope on the tenant that peer belongs to. Prefixed keys
+    (`dspace:`, `dcat:`, ...) are normalised before parsing.
   version: 1.0.0
+  license:
+    name: GPL-3.0-or-later
+    url: https://www.gnu.org/licenses/gpl-3.0.html
 servers:
-  - url: /dsp/current
-    description: Base path for the DSP protocol
-
+- url: http://127.0.0.1:1200
+  description: Provider agent (dev)
+- url: http://127.0.0.1:1100
+  description: Consumer agent (dev)
 tags:
-  - name: DSP Protocol
-    description: Standard Dataspace Protocol endpoints
-  - name: DSP RPC
-    description: Remote Procedure Call endpoints for orchestrator interaction
-
-security:
-  - BearerAuth: []
-
+- name: Catalog Protocol
+  description: DSP endpoints called by peers
+- name: Catalog RPC
+  description: Requests this agent sends to a peer's catalog
 paths:
-  # --- DSP Protocol ---
-  /catalog/request:
+  /dsp/current/catalog/request:
     post:
       tags:
-        - DSP Protocol
-      summary: Request catalog (DSP)
+      - Catalog Protocol
       operationId: protocolRequestCatalog
+      summary: Catalog request
+      description: Answers the tenant's catalog with the datasets and offers visible to the peer.
+      security:
+      - peerBearer: []
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CatalogMessageWrapper_CatalogRequestMessageDto"
+              $ref: '#/components/schemas/CatalogRequestMessage'
       responses:
-        "200":
-          description: Catalog returned
+        '200':
+          description: Catalog
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Catalog"
-        "400":
-          description: Bad Request
-          content:
-            text/plain:
-              schema:
-                type: string
-        "500":
-          description: Internal Server Error
-          content:
-            text/plain:
-              schema:
-                type: string
-
-  /catalog/datasets/{id}:
+                $ref: '#/components/schemas/DspCatalog'
+        '400':
+          $ref: '#/components/responses/ProtocolBadRequest'
+        '401':
+          $ref: '#/components/responses/PeerUnauthorized'
+  /dsp/current/catalog/datasets/{id}:
     get:
       tags:
-        - DSP Protocol
-      summary: Request dataset (DSP) - GET with Body (Non-standard)
-      description: |
-        Currently implemented as a GET request that accepts a body in the Rust code.
-        Note: GET requests with bodies are not standard in OpenAPI/HTTP, but this reflects the implementation.
+      - Catalog Protocol
       operationId: protocolRequestDataset
+      summary: Dataset request
+      security:
+      - peerBearer: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CatalogMessageWrapper_DatasetRequestMessage"
+      - $ref: '#/components/parameters/UrnPathId'
       responses:
-        "200":
-          description: Dataset returned
+        '200':
+          description: Dataset with its distributions and offers
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Dataset"
-        "400":
-          description: Bad Request
-          content:
-            text/plain:
-              schema:
-                type: string
-        "404":
-          description: Not Found
-          content:
-            text/plain:
-              schema:
-                type: string
-        "500":
-          description: Internal Server Error
-          content:
-            text/plain:
-              schema:
-                type: string
-
-  # --- DSP RPC ---
-  /catalog/rpc/setup-catalog-request:
+                $ref: '#/components/schemas/DspDataset'
+        '400':
+          $ref: '#/components/responses/ProtocolBadRequest'
+        '401':
+          $ref: '#/components/responses/PeerUnauthorized'
+  /dsp/current/catalog/rpc/setup-catalog-request:
     post:
       tags:
-        - DSP RPC
-      summary: Setup catalog request (RPC)
+      - Catalog RPC
       operationId: rpcSetupCatalogRequest
+      summary: Request a peer's catalog
+      description: Sends a catalog request to the peer and caches the answer unless `noCache` is set.
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RpcCatalogRequestMessageDto"
+              $ref: '#/components/schemas/RpcCatalogRequestMessageDto'
       responses:
-        "200":
-          description: Catalog returned from peer
+        '200':
+          description: The request sent and the peer's catalog
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Catalog"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /catalog/rpc/setup-dataset-request:
+                $ref: '#/components/schemas/RpcCatalogResponseMessageDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /dsp/current/catalog/rpc/setup-dataset-request:
     post:
       tags:
-        - DSP RPC
-      summary: Setup dataset request (RPC)
+      - Catalog RPC
       operationId: rpcSetupDatasetRequest
+      summary: Request one dataset from a peer
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TenantHeader'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RpcDatasetRequestMessageDto"
+              $ref: '#/components/schemas/RpcDatasetRequestMessageDto'
       responses:
-        "200":
-          description: Dataset returned from peer
+        '200':
+          description: The request sent and the peer's dataset
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Dataset"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
+                $ref: '#/components/schemas/RpcDatasetResponseMessageDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
-    BearerAuth:
+    bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: JWT
-
+      description: OAuth access token (JWT) or personal access token issued by `/oauth`.
+    peerBearer:
+      type: http
+      scheme: bearer
+      description: Token the peer obtained from this agent through GNAP onboarding.
+  parameters:
+    TenantHeader:
+      name: x-tenant-id
+      in: header
+      required: false
+      description: Tenant to act on. Non-admins may only name their own tenant.
+      schema:
+        type: string
+    UrnPathId:
+      name: id
+      in: path
+      required: true
+      description: URN of the resource.
+      schema:
+        type: string
+        examples:
+        - urn:uuid:5b0f6a1e-2c3d-4e5f-8a9b-0c1d2e3f4a5b
   responses:
     BadRequest:
-      description: Bad Request
+      description: Malformed request or failed validation
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorInfo"
-    NotFound:
-      description: Not Found
+            $ref: '#/components/schemas/ErrorInfo'
+    Forbidden:
+      description: The caller may not act on this tenant or resource
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorInfo"
+            $ref: '#/components/schemas/ErrorInfo'
     InternalServerError:
-      description: Internal Server Error
+      description: Unexpected server error
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorInfo"
-
+            $ref: '#/components/schemas/ErrorInfo'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorInfo'
+    PeerUnauthorized:
+      description: Missing or unknown peer token (empty body)
+    ProtocolBadRequest:
+      description: Invalid message or failed request, as plain text
+      content:
+        text/plain:
+          schema:
+            type: string
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorInfo'
   schemas:
-    # --- Error Info ---
-    ErrorInfo:
+    CatalogRequestMessage:
       type: object
       required:
-        - message
-        - error_code
-        - cause
+      - '@context'
+      - '@type'
       properties:
-        message:
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
           type: string
-        error_code:
-          type: integer
-        details:
-          type: string
-        cause:
-          type: string
-      example:
-        {
-          "message": "Resource not found",
-          "error_code": 3200,
-          "status_code": 404,
-          "cause": "Catalog with ID urn:uuid:123 not found",
-        }
-
-    # --- DSP Messages ---
-    CatalogMessageWrapper_CatalogRequestMessageDto:
-      type: object
-      properties:
-        "@context":
-          oneOf:
-            - type: string
-            - type: array
-              items:
-                type: string
-        "@type":
-          type: string
+          const: CatalogRequestMessage
         filter:
-          type: object
-          description: Filter criteria for catalog request
+          description: Implementation-specific filter, any JSON value.
+    ContextField:
+      description: JSON-LD context; must include the DSP 2024-1 or 2025-1 context.
+      oneOf:
+      - type: string
+      - type: array
+        items:
+          type: string
+      examples:
+      - https://w3id.org/dspace/2025/1/context.jsonld
+    DspCatalog:
+      type: object
+      description: DCAT catalog as sent over DSP.
       required:
-        - "@type"
-      example:
-        {
-          "@context": [
-            "https://w3id.org/dspace/2025/1/context.jsonld"
-          ],
-          "@type": "CatalogRequestMessage",
-          "filter": []
-        }
-
-    CatalogMessageWrapper_DatasetRequestMessage:
-      type: object
+      - '@context'
+      - '@type'
+      - '@id'
+      - identifier
+      - issued
+      - catalog
+      - dataset
+      - service
       properties:
-        "@context":
-          oneOf:
-            - type: string
-            - type: array
-              items:
-                type: string
-        "@type":
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
           type: string
-        dataset:
+          examples:
+          - Catalog
+        '@id':
           type: string
-          format: urn
-          description: ID of the dataset requested
-      required:
-        - "@type"
-      example:
-        {
-          "@context": [
-            "https://w3id.org/dspace/2025/1/context.jsonld"
-          ],
-          "@type": "DatasetRequestMessage",
-          "dataset": "urn:dataset:d58e3c46-5c22-44e1-8614-5b4fc30bb572"
-        }
-
-    RpcCatalogRequestMessageDto:
-      type: object
-      properties:
-        associatedAgentPeer:
-          type: string
-        filter:
-          type: object
-      example:
-        {
-          "associatedAgentPeer": "did:jwk:eyJrdHkiOiJSU0Ei...",
-          "filter": []
-        }
-
-    RpcDatasetRequestMessageDto:
-      type: object
-      properties:
-        associatedAgentPeer:
-          type: string
-        dataset:
-          type: string
-          format: urn
-      example:
-        {
-          "associatedAgentPeer": "did:jwk:eyJrdHkiOiJSU0Ei...",
-          "dataset": "urn:dataset:828b4b4d-931e-45dd-b40b-b15251fa6487"
-        }
-
-    # --- DSP Types ---
-    Catalog:
-      type: object
-      properties:
-        "@context":
-          oneOf:
-            - type: string
-            - type: array
-              items:
-                type: string
-        "@type":
-          type: string
-        "@id":
-          type: string
-          format: urn
         homepage:
           type: string
         theme:
@@ -306,10 +260,9 @@ components:
           type: string
         issued:
           type: string
-          format: date-time
+          description: Naive timestamp, no zone.
         modified:
           type: string
-          format: date-time
         title:
           type: string
         description:
@@ -321,337 +274,347 @@ components:
         hasPolicy:
           type: array
           items:
-            $ref: "#/components/schemas/OdrlOffer"
-        extraFields:
-          type: object
+            $ref: '#/components/schemas/OdrlOffer'
+        extraFields: {}
         catalog:
-          oneOf:
-            - type: array
-              items:
-                $ref: "#/components/schemas/Catalog"
-            - type: array
-              items:
-                $ref: "#/components/schemas/CatalogMinimized"
+          type: array
+          description: Nested catalogs, full or minimized.
+          items:
+            type: object
         dataset:
-          oneOf:
-            - type: array
-              items:
-                $ref: "#/components/schemas/Dataset"
-            - type: array
-              items:
-                $ref: "#/components/schemas/DatasetMinimized"
-        service:
-          oneOf:
-            - $ref: "#/components/schemas/DataService"
-            - $ref: "#/components/schemas/DataServiceMinimized"
-            - type: array
-              items:
-                $ref: "#/components/schemas/DataService"
-      example:
-        {
-          "@context": [
-            "https://w3id.org/dspace/2025/1/context.jsonld"
-          ],
-          "@type": "Catalog",
-          "@id": "urn:catalog:35d10981-1d0b-4204-b32e-847b827ce635",
-          "identifier": "urn:catalog:35d10981-1d0b-4204-b32e-847b827ce635",
-          "issued": "2026-01-09T10:49:53.822684",
-          "catalog": [
-            {
-              "@type": "Catalog",
-              "@id": "urn:catalog:4958f37d-17cf-44e7-ae18-1f26b6fe15ff",
-              "homepage": "superfoaf",
-              "identifier": "urn:catalog:4958f37d-17cf-44e7-ae18-1f26b6fe15ff",
-              "issued": "2026-01-10T14:23:16.619801",
-              "dataset": [
-                {
-                  "@type": "Dataset",
-                  "@id": "urn:dataset:10825ca3-a75e-43bd-9a82-603759cb8dec",
-                  "identifier": "urn:dataset:10825ca3-a75e-43bd-9a82-603759cb8dec",
-                  "issued": "2026-01-10T14:23:29.091150",
-                  "title": "superfoaf",
-                  "hasPolicy": [
-                    {
-                      "@id": "urn:odrl-policy:3953b047-0aa5-4649-a0bd-0522f77d018b",
-                      "permission": [
-                        {
-                          "action": "use"
-                        }
-                      ],
-                      "@type": "Offer"
-                    }
-                  ],
-                  "distribution": [
-                    {
-                      "@type": "Distribution",
-                      "@id": "urn:distribution:77116828-c4dd-4632-8946-969bb7903819",
-                      "accessService": {
-                        "@type": "DataService",
-                        "@id": "urn:data-service:37840ca3-79f6-4542-8394-0c57dd93650f",
-                        "endpointURL": "http://127.0.0.1:1200/dsp/current"
-                      },
-                      "issued": "2026-01-10T14:24:29.424022",
-                      "title": "superfoaf",
-                      "formats": "http+push"
-                    }
-                  ]
-                }
-              ],
-              "service": []
-            }
-          ],
-          "dataset": [],
-          "service": {
-            "@type": "DataService",
-            "@id": "urn:data-service:37840ca3-79f6-4542-8394-0c57dd93650f",
-            "endpointURL": "http://127.0.0.1:1200/dsp/current"
-          }
-        }
-
-    CatalogMinimized:
-      type: object
-      properties:
-        "@type":
-          type: string
-        "@id":
-          type: string
-          format: urn
-        homepage:
-          type: string
-
-    Dataset:
-      type: object
-      properties:
-        "@context":
-          oneOf:
-            - type: string
-            - type: array
-              items:
-                type: string
-        "@type":
-          type: string
-        "@id":
-          type: string
-        hasPolicy:
           type: array
           items:
-            $ref: "#/components/schemas/OdrlOffer"
-        distribution:
+            $ref: '#/components/schemas/DspDataset'
+        service:
+          description: One data service, a minimized one, or a list.
           oneOf:
-            - type: array
-              items:
-                $ref: "#/components/schemas/Distribution"
-            - type: array
-              items:
-                $ref: "#/components/schemas/DistributionMinimized"
-        conformsTo:
-          type: string
-      example:
-        {
-          "@context": [
-            "https://w3id.org/dspace/2025/1/context.jsonld"
-          ],
-          "@type": "Dataset",
-          "@id": "urn:dataset:10825ca3-a75e-43bd-9a82-603759cb8dec",
-          "identifier": "urn:dataset:10825ca3-a75e-43bd-9a82-603759cb8dec",
-          "issued": "2026-01-10T14:23:29.091150",
-          "title": "superfoaf",
-          "hasPolicy": [
-            {
-              "@id": "urn:odrl-policy:3953b047-0aa5-4649-a0bd-0522f77d018b",
-              "permission": [
-                {
-                  "action": "use"
-                }
-              ],
-              "@type": "Offer"
-            }
-          ],
-          "distribution": [
-            {
-              "@type": "Distribution",
-              "@id": "urn:distribution:77116828-c4dd-4632-8946-969bb7903819",
-              "accessService": {
-                "@type": "DataService",
-                "@id": "urn:data-service:37840ca3-79f6-4542-8394-0c57dd93650f",
-                "endpointURL": "http://127.0.0.1:1200/dsp/current"
-              },
-              "issued": "2026-01-10T14:24:29.424022",
-              "title": "superfoaf",
-              "formats": "http+push"
-            }
-          ]
-        }
-
-    DatasetMinimized:
+          - $ref: '#/components/schemas/DspDataService'
+          - type: array
+            items:
+              $ref: '#/components/schemas/DspDataService'
+    DspDataService:
       type: object
+      description: Full data service, or a minimized one with only `@type`, `@id` and DCAT fields.
+      required:
+      - '@type'
+      - '@id'
+      - endpointURL
       properties:
-        "@type":
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
           type: string
-        "@id":
+          examples:
+          - DataService
+        '@id':
           type: string
-
-    DataService:
-      type: object
-      properties:
-        "@context":
-          oneOf:
-            - type: string
-            - type: array
-              items:
-                type: string
-        "@type":
+        theme:
           type: string
-        "@id":
-          type: string
-        endpointURL:
+        keyword:
           type: string
         endpointDescription:
           type: string
-
-    DataServiceMinimized:
+        endpointURL:
+          type: string
+        conformsTo:
+          type: string
+        creator:
+          type: string
+        identifier:
+          type: string
+        issued:
+          type: string
+        modified:
+          type: string
+        title:
+          type: string
+        description:
+          type: array
+          items:
+            type: string
+        hasPolicy:
+          type: array
+          items:
+            $ref: '#/components/schemas/OdrlOffer'
+        extraFields: {}
+    DspDataset:
       type: object
+      required:
+      - '@type'
+      - '@id'
+      - identifier
+      - issued
+      - hasPolicy
+      - distribution
       properties:
-        "@type":
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
           type: string
-        "@id":
+          examples:
+          - Dataset
+        '@id':
           type: string
-
-    Distribution:
+        theme:
+          type: string
+        keyword:
+          type: string
+        conformsTo:
+          type: string
+        creator:
+          type: string
+        identifier:
+          type: string
+        issued:
+          type: string
+          description: Naive timestamp, no zone.
+        modified:
+          type: string
+        title:
+          type: string
+        description:
+          type: array
+          items:
+            type: string
+        hasPolicy:
+          type: array
+          items:
+            $ref: '#/components/schemas/OdrlOffer'
+        extraFields: {}
+        distribution:
+          type: array
+          items:
+            $ref: '#/components/schemas/DspDistribution'
+    DspDistribution:
       type: object
+      required:
+      - '@type'
+      - '@id'
+      - issued
+      - formats
       properties:
-        "@type":
+        '@context':
+          $ref: '#/components/schemas/ContextField'
+        '@type':
           type: string
-        "@id":
+          examples:
+          - Distribution
+        '@id':
           type: string
         accessService:
-          type: array
-          items:
-            $ref: "#/components/schemas/DataService"
-
-    DistributionMinimized:
-      type: object
-      properties:
-        "@type":
-          type: string
-        "@id":
-          type: string
-
-    OdrlOffer:
-      type: object
-      properties:
-        "@type":
-          type: string
-          enum: [Offer, Agreement]
-        "@id":
-          type: string
-          format: urn
-        target:
-          type: string
-          format: urn
-        profile:
           oneOf:
-            - type: string
-            - type: array
-              items:
-                type: string
-        permission:
-          type: array
-          items:
-            $ref: "#/components/schemas/OdrlPermission"
-        obligation:
-          type: array
-          items:
-            $ref: "#/components/schemas/OdrlObligation"
-        prohibition:
-          type: array
-          items:
-            $ref: "#/components/schemas/OdrlObligation"
-
-    OdrlPermission:
-      type: object
-      required:
-        - action
-      properties:
-        action:
+          - $ref: '#/components/schemas/DspDataService'
+          - type: array
+            items:
+              $ref: '#/components/schemas/DspDataService'
+          - type: 'null'
+        issued:
           type: string
-        constraint:
-          type: array
-          items:
-            $ref: "#/components/schemas/OdrlConstraint"
-        duty:
-          $ref: "#/components/schemas/OdrlDuty"
-
-    OdrlDuty:
-      type: object
-      required:
-        - action
-      properties:
-        action:
+          description: Naive timestamp, no zone.
+        modified:
           type: string
-        constraint:
+        title:
+          type: string
+        description:
           type: array
           items:
-            $ref: "#/components/schemas/OdrlConstraint"
-
-    OdrlObligation:
-      $ref: "#/components/schemas/OdrlDuty"
-
-    OdrlConstraint:
-      oneOf:
-        - $ref: "#/components/schemas/OdrlAtomicConstraint"
-        - $ref: "#/components/schemas/OdrlLogicalConstraint"
-
+            type: string
+        formats:
+          type: string
+          examples:
+          - HttpData-PULL
+        hasPolicy:
+          type: array
+          items:
+            $ref: '#/components/schemas/OdrlOffer'
+        extraFields: {}
+    ErrorInfo:
+      type: object
+      description: Error body returned by every agent.
+      required:
+      - message
+      - error_code
+      properties:
+        message:
+          type: string
+        error_code:
+          type: integer
+          description: Internal error code of the failure kind.
+        details:
+          type:
+          - string
+          - 'null'
     OdrlAtomicConstraint:
       type: object
       required:
-        - rightOperand
-        - leftOperand
-        - operator
+      - leftOperand
+      - operator
+      - rightOperand
       properties:
         leftOperand:
           type: string
         operator:
-          type: string
-          enum:
-            [
-              eq,
-              gt,
-              gteq,
-              lteq,
-              hasPart,
-              isA,
-              isAllOf,
-              isAnyOf,
-              isNoneOf,
-              isPartOf,
-              lt,
-              termLteq,
-              neq,
-            ]
+          $ref: '#/components/schemas/OdrlOperator'
         rightOperand:
           oneOf:
-            - type: string
-            - type: object
-            - type: array
-              items: {}
-
+          - type: string
+          - type: object
+          - type: array
+            items: {}
+    OdrlConstraint:
+      anyOf:
+      - $ref: '#/components/schemas/OdrlAtomicConstraint'
+      - $ref: '#/components/schemas/OdrlLogicalConstraint'
+    OdrlDuty:
+      type: object
+      required:
+      - action
+      properties:
+        action:
+          type: string
+        constraint:
+          type:
+          - array
+          - 'null'
+          items:
+            $ref: '#/components/schemas/OdrlConstraint'
     OdrlLogicalConstraint:
       type: object
       properties:
         and:
           type: array
           items:
-            $ref: "#/components/schemas/OdrlConstraint"
+            $ref: '#/components/schemas/OdrlConstraint'
         andSequence:
           type: array
           items:
-            $ref: "#/components/schemas/OdrlConstraint"
+            $ref: '#/components/schemas/OdrlConstraint'
         or:
           type: array
           items:
-            $ref: "#/components/schemas/OdrlConstraint"
+            $ref: '#/components/schemas/OdrlConstraint'
         xone:
           type: array
           items:
-            $ref: "#/components/schemas/OdrlConstraint"
+            $ref: '#/components/schemas/OdrlConstraint'
+    OdrlOffer:
+      type: object
+      required:
+      - '@id'
+      - '@type'
+      properties:
+        '@id':
+          type: string
+        '@type':
+          type: string
+          enum:
+          - Offer
+          - Agreement
+        profile:
+          $ref: '#/components/schemas/OdrlProfile'
+        permission:
+          type: array
+          items:
+            $ref: '#/components/schemas/OdrlPermission'
+        obligation:
+          type: array
+          items:
+            $ref: '#/components/schemas/OdrlDuty'
+        prohibition:
+          type: array
+          items:
+            $ref: '#/components/schemas/OdrlDuty'
+        target:
+          type: string
+        description:
+          type: string
+    OdrlOperator:
+      type: string
+      enum:
+      - eq
+      - gt
+      - gteq
+      - lteq
+      - hasPart
+      - isA
+      - isAllOf
+      - isAnyOf
+      - isNoneOf
+      - isPartOf
+      - lt
+      - termLteq
+      - neq
+    OdrlPermission:
+      type: object
+      required:
+      - action
+      properties:
+        action:
+          type: string
+          examples:
+          - use
+        constraint:
+          type: array
+          items:
+            $ref: '#/components/schemas/OdrlConstraint'
+        duty:
+          $ref: '#/components/schemas/OdrlDuty'
+    OdrlProfile:
+      oneOf:
+      - type: string
+      - type: array
+        items:
+          type: string
+    RpcCatalogRequestMessageDto:
+      type: object
+      additionalProperties: false
+      required:
+      - associatedAgentPeer
+      - filter
+      properties:
+        associatedAgentPeer:
+          type: string
+          description: Participant id (DID) of the peer.
+        filter:
+          description: Filter forwarded in the catalog request, any JSON value.
+        noCache:
+          type: boolean
+          default: false
+          description: Skip storing the answer in the peer catalog cache.
+    RpcCatalogResponseMessageDto:
+      type: object
+      required:
+      - request
+      - response
+      properties:
+        request:
+          $ref: '#/components/schemas/RpcCatalogRequestMessageDto'
+        response:
+          $ref: '#/components/schemas/DspCatalog'
+    RpcDatasetRequestMessageDto:
+      type: object
+      additionalProperties: false
+      required:
+      - associatedAgentPeer
+      - dataset
+      properties:
+        associatedAgentPeer:
+          type: string
+          description: Participant id (DID) of the peer.
+        dataset:
+          type: string
+          description: URN of the dataset.
+        noCache:
+          type:
+          - boolean
+          - 'null'
+    RpcDatasetResponseMessageDto:
+      type: object
+      required:
+      - request
+      - response
+      properties:
+        request:
+          $ref: '#/components/schemas/RpcDatasetRequestMessageDto'
+        response:
+          $ref: '#/components/schemas/DspDataset'

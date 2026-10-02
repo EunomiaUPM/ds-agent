@@ -1,0 +1,1202 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Eunomia DS Connector API",
+    "description": "Connector templates and instances (`crates/connector`). A template is a parameterised\nblueprint whose string fields may hold `{{__NAME__}}` placeholders; an instance binds a\ntemplate to a distribution with concrete parameter values, giving the resolved\nconfiguration the dataplane uses at transfer time.\n",
+    "version": "1.0.0",
+    "license": {
+      "name": "GPL-3.0-or-later",
+      "url": "https://www.gnu.org/licenses/gpl-3.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:1200",
+      "description": "Provider agent (dev)"
+    },
+    {
+      "url": "http://127.0.0.1:1100",
+      "description": "Consumer agent (dev)"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Connector Templates",
+      "description": "Parameterised connector blueprints"
+    },
+    {
+      "name": "Connector Instances",
+      "description": "Templates bound to a distribution"
+    }
+  ],
+  "paths": {
+    "/api/v1/connector/templates": {
+      "get": {
+        "tags": [
+          "Connector Templates"
+        ],
+        "operationId": "getAllConnectorTemplates",
+        "summary": "List connector templates",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CreatedAfter"
+          },
+          {
+            "$ref": "#/components/parameters/CreatedBefore"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of templates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedConnectorTemplate"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Connector Templates"
+        ],
+        "operationId": "createConnectorTemplate",
+        "summary": "Create a connector template",
+        "description": "Every placeholder used in `authentication` or `interaction` must be declared in\n`parameters`, and every declared parameter must be used.\n",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stored template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorTemplateDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/connector/templates/{name}": {
+      "get": {
+        "tags": [
+          "Connector Templates"
+        ],
+        "operationId": "getConnectorTemplatesByName",
+        "summary": "Every version of a template",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Versions of the template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorTemplateDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/connector/templates/{name}/{version}": {
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "version",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "$ref": "#/components/parameters/TenantHeader"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Connector Templates"
+        ],
+        "operationId": "getConnectorTemplateByNameAndVersion",
+        "summary": "Get one template version",
+        "responses": {
+          "200": {
+            "description": "Template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorTemplateDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Connector Templates"
+        ],
+        "operationId": "deleteConnectorTemplateByNameAndVersion",
+        "summary": "Delete one template version",
+        "responses": {
+          "202": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/connector/instances": {
+      "post": {
+        "tags": [
+          "Connector Instances"
+        ],
+        "operationId": "upsertConnectorInstance",
+        "summary": "Create or replace the instance of a distribution",
+        "description": "Validates the parameters against the template, adds system parameters, resolves every\nplaceholder and stores the result. With `dryRun` the instance is resolved but not stored.\n",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorInstantiationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resolved instance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorInstanceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/connector/instances/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        },
+        {
+          "$ref": "#/components/parameters/TenantHeader"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Connector Instances"
+        ],
+        "operationId": "getConnectorInstanceById",
+        "summary": "Get a connector instance",
+        "responses": {
+          "200": {
+            "description": "Instance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorInstanceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Connector Instances"
+        ],
+        "operationId": "deleteConnectorInstanceById",
+        "summary": "Delete a connector instance",
+        "responses": {
+          "202": {
+            "description": "Deleted"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/connector/instances/distribution/{distributionId}": {
+      "get": {
+        "tags": [
+          "Connector Instances"
+        ],
+        "operationId": "getConnectorInstanceByDistributionId",
+        "summary": "Get the instance of a distribution",
+        "parameters": [
+          {
+            "name": "distributionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "examples": [
+                "urn:uuid:5b0f6a1e-2c3d-4e5f-8a9b-0c1d2e3f4a5b"
+              ]
+            }
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Instance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorInstanceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "OAuth access token (JWT) or personal access token issued by `/oauth`."
+      }
+    },
+    "parameters": {
+      "CreatedAfter": {
+        "name": "created_after",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "CreatedBefore": {
+        "name": "created_before",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Opaque `nextCursor` of the previous page.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Page size, clamped to 1..=100.",
+        "schema": {
+          "type": "integer",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "PageNumber": {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "description": "1-based page index for offset paging, used when no cursor is sent.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "Sort": {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "created_at_asc",
+            "created_at_desc",
+            "updated_at_asc",
+            "updated_at_desc"
+          ],
+          "default": "created_at_desc"
+        }
+      },
+      "TenantHeader": {
+        "name": "x-tenant-id",
+        "in": "header",
+        "required": false,
+        "description": "Tenant to act on. Non-admins may only name their own tenant.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "UrnPathId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "URN of the resource.",
+        "schema": {
+          "type": "string",
+          "examples": [
+            "urn:uuid:5b0f6a1e-2c3d-4e5f-8a9b-0c1d2e3f4a5b"
+          ]
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Malformed request or failed validation",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "The caller may not act on this tenant or resource",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid bearer token",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ApiKey": {
+        "type": "object",
+        "required": [
+          "type",
+          "key",
+          "value",
+          "location"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "API_KEY"
+          },
+          "key": {
+            "type": "string",
+            "description": "Header or query parameter name."
+          },
+          "value": {
+            "$ref": "#/components/schemas/SecretString"
+          },
+          "location": {
+            "type": "string",
+            "enum": [
+              "HEADER",
+              "QUERY"
+            ]
+          }
+        }
+      },
+      "AuthenticationConfig": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/NoAuth"
+          },
+          {
+            "$ref": "#/components/schemas/BasicAuthConfig"
+          },
+          {
+            "$ref": "#/components/schemas/BearerToken"
+          },
+          {
+            "$ref": "#/components/schemas/ApiKey"
+          },
+          {
+            "$ref": "#/components/schemas/OAuth2"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "NO_AUTH": "#/components/schemas/NoAuth",
+            "BASIC_AUTH": "#/components/schemas/BasicAuthConfig",
+            "BEARER_TOKEN": "#/components/schemas/BearerToken",
+            "API_KEY": "#/components/schemas/ApiKey",
+            "OAUTH2": "#/components/schemas/OAuth2"
+          }
+        }
+      },
+      "BasicAuthConfig": {
+        "type": "object",
+        "required": [
+          "type",
+          "username",
+          "password"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "BASIC_AUTH"
+          },
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "$ref": "#/components/schemas/SecretString"
+          }
+        }
+      },
+      "BearerToken": {
+        "type": "object",
+        "required": [
+          "type",
+          "token"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "BEARER_TOKEN"
+          },
+          "token": {
+            "$ref": "#/components/schemas/SecretString"
+          }
+        }
+      },
+      "ConnectorInstanceDto": {
+        "description": "Instance metadata, flattened, plus its resolved configuration.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConnectorMetadata"
+          },
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "authenticationConfig",
+              "interaction",
+              "distributionId"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "URN of the instance."
+              },
+              "authenticationConfig": {
+                "$ref": "#/components/schemas/AuthenticationConfig"
+              },
+              "interaction": {
+                "$ref": "#/components/schemas/InteractionConfig"
+              },
+              "distributionId": {
+                "type": "string",
+                "description": "URN of the distribution."
+              }
+            }
+          }
+        ]
+      },
+      "ConnectorInstantiationDto": {
+        "type": "object",
+        "required": [
+          "templateName",
+          "templateVersion",
+          "distributionId",
+          "parameters"
+        ],
+        "properties": {
+          "templateName": {
+            "type": "string"
+          },
+          "templateVersion": {
+            "type": "string"
+          },
+          "distributionId": {
+            "type": "string",
+            "description": "URN of the distribution."
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Values by parameter name; undeclared names are ignored.",
+            "additionalProperties": true
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/InstanceMetadataDto"
+          },
+          "dryRun": {
+            "type": "boolean",
+            "default": false,
+            "description": "Resolve and validate without storing."
+          },
+          "tenantId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Target tenant, honoured for admins."
+          }
+        }
+      },
+      "ConnectorMetadata": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "author": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ConnectorParameterDefinition": {
+        "type": "object",
+        "required": [
+          "name",
+          "title",
+          "paramType",
+          "required"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Placeholder name, used as `{{__NAME__}}`."
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "paramType": {
+            "type": "string",
+            "enum": [
+              "STRING",
+              "INT",
+              "BOOLEAN",
+              "VEC<STRING>",
+              "MAP<STRING,STRING>"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "defaultValue": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ConnectorTemplateDto": {
+        "description": "Template metadata, flattened, plus its parameterised sections.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConnectorMetadata"
+          },
+          {
+            "type": "object",
+            "required": [
+              "authentication",
+              "interaction",
+              "parameters"
+            ],
+            "properties": {
+              "authentication": {
+                "$ref": "#/components/schemas/AuthenticationConfig"
+              },
+              "interaction": {
+                "$ref": "#/components/schemas/InteractionConfig"
+              },
+              "parameters": {
+                "type": "array",
+                "description": "One declaration per placeholder used in the template.",
+                "items": {
+                  "$ref": "#/components/schemas/ConnectorParameterDefinition"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ErrorInfo": {
+        "type": "object",
+        "description": "Error body returned by every agent.",
+        "required": [
+          "message",
+          "error_code"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "error_code": {
+            "type": "integer",
+            "description": "Internal error code of the failure kind."
+          },
+          "details": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "HttpSpec": {
+        "type": "object",
+        "required": [
+          "protocol",
+          "urlTemplate",
+          "method"
+        ],
+        "properties": {
+          "protocol": {
+            "type": "string",
+            "const": "HTTP"
+          },
+          "urlTemplate": {
+            "type": "string",
+            "examples": [
+              "https://api.example.com/items/{{__ITEM_ID__}}"
+            ]
+          },
+          "method": {
+            "$ref": "#/components/schemas/TemplateVecString"
+          },
+          "headers": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TemplateMapString"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bodyTemplate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "InstanceMetadataDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ownerId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "InteractionConfig": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PullLifecycle"
+          },
+          {
+            "$ref": "#/components/schemas/PushLifecycle"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "mode",
+          "mapping": {
+            "PULL": "#/components/schemas/PullLifecycle",
+            "PUSH": "#/components/schemas/PushLifecycle"
+          }
+        }
+      },
+      "KafkaSpec": {
+        "type": "object",
+        "required": [
+          "protocol",
+          "brokers",
+          "topic"
+        ],
+        "properties": {
+          "protocol": {
+            "type": "string",
+            "const": "KAFKA"
+          },
+          "brokers": {
+            "$ref": "#/components/schemas/TemplateVecString"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "groupId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "NoAuth": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "NO_AUTH"
+          }
+        }
+      },
+      "OAuth2": {
+        "type": "object",
+        "required": [
+          "type",
+          "grantType",
+          "tokenUrl",
+          "clientId",
+          "clientSecret",
+          "scopes"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "OAUTH2"
+          },
+          "grantType": {
+            "$ref": "#/components/schemas/OAuthGrantType"
+          },
+          "tokenUrl": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "$ref": "#/components/schemas/SecretString"
+          },
+          "scopes": {
+            "$ref": "#/components/schemas/TemplateVecString"
+          },
+          "onTokenExpire": {
+            "type": "string",
+            "enum": [
+              "REFETCH",
+              "REFRESH_OR_REFETCH"
+            ],
+            "default": "REFETCH"
+          }
+        }
+      },
+      "OAuthGrantType": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "CLIENT_CREDENTIALS",
+              "AUTHORIZATION_CODE",
+              "PASSWORD"
+            ]
+          },
+          "username": {
+            "type": "string",
+            "description": "`PASSWORD` grant only."
+          },
+          "password": {
+            "$ref": "#/components/schemas/SecretString"
+          }
+        }
+      },
+      "PaginatedConnectorTemplate": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorTemplateDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Absent on the last page."
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "ProtocolSpec": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/HttpSpec"
+          },
+          {
+            "$ref": "#/components/schemas/KafkaSpec"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "protocol",
+          "mapping": {
+            "HTTP": "#/components/schemas/HttpSpec",
+            "KAFKA": "#/components/schemas/KafkaSpec"
+          }
+        }
+      },
+      "PullLifecycle": {
+        "type": "object",
+        "required": [
+          "mode",
+          "dataAccess"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "const": "PULL"
+          },
+          "dataAccess": {
+            "$ref": "#/components/schemas/ProtocolSpec"
+          }
+        }
+      },
+      "PushLifecycle": {
+        "type": "object",
+        "required": [
+          "mode",
+          "subscribe"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "const": "PUSH"
+          },
+          "subscribe": {
+            "$ref": "#/components/schemas/ProtocolSpec"
+          },
+          "unsubscribe": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProtocolSpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "SecretString": {
+        "type": "object",
+        "description": "Where a credential is stored; `content` may hold placeholders.",
+        "required": [
+          "type",
+          "content"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "PLAIN",
+              "BASE64",
+              "VAULT_REF",
+              "ENV_VAR"
+            ]
+          },
+          "content": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "description": "`VAULT_REF` location.",
+                "required": [
+                  "path",
+                  "key"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "key": {
+                    "type": "string"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "TemplateMapString": {
+        "description": "A string map, or one placeholder resolving to a map.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "TemplateVecString": {
+        "description": "A list of strings, or one placeholder resolving to a list.",
+        "oneOf": [
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "type": "string"
+          }
+        ]
+      }
+    }
+  }
+}

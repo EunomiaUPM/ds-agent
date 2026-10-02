@@ -1,161 +1,135 @@
 {
-  "openapi": "3.0.3",
+  "openapi": "3.1.0",
   "info": {
-    "title": "Eunomia DS-Agent Catalog Agent API - DSP Protocol",
-    "description": "OpenAPI specification for the Eunomia DS-Agent Catalog Agent DSP Protocol and RPC endpoints.",
-    "version": "1.0.0"
+    "title": "Eunomia DS Catalog Protocol API",
+    "description": "Catalog Protocol of the Dataspace Protocol 2025-1 as served by the catalog agent, plus the\nRPC endpoints that make this agent act as a consumer against a peer's catalog.\nProtocol endpoints authenticate the peer with the token it obtained through GNAP onboarding\nand answer as a read-only scope on the tenant that peer belongs to. Prefixed keys\n(`dspace:`, `dcat:`, ...) are normalised before parsing.\n",
+    "version": "1.0.0",
+    "license": {
+      "name": "GPL-3.0-or-later",
+      "url": "https://www.gnu.org/licenses/gpl-3.0.html"
+    }
   },
   "servers": [
     {
-      "url": "/dsp/current",
-      "description": "Base path for the DSP protocol"
+      "url": "http://127.0.0.1:1200",
+      "description": "Provider agent (dev)"
+    },
+    {
+      "url": "http://127.0.0.1:1100",
+      "description": "Consumer agent (dev)"
     }
   ],
   "tags": [
     {
-      "name": "DSP Protocol",
-      "description": "Standard Dataspace Protocol endpoints"
+      "name": "Catalog Protocol",
+      "description": "DSP endpoints called by peers"
     },
     {
-      "name": "DSP RPC",
-      "description": "Remote Procedure Call endpoints for orchestrator interaction"
-    }
-  ],
-  "security": [
-    {
-      "BearerAuth": []
+      "name": "Catalog RPC",
+      "description": "Requests this agent sends to a peer's catalog"
     }
   ],
   "paths": {
-    "/catalog/request": {
+    "/dsp/current/catalog/request": {
       "post": {
         "tags": [
-          "DSP Protocol"
+          "Catalog Protocol"
         ],
-        "summary": "Request catalog (DSP)",
         "operationId": "protocolRequestCatalog",
+        "summary": "Catalog request",
+        "description": "Answers the tenant's catalog with the datasets and offers visible to the peer.",
+        "security": [
+          {
+            "peerBearer": []
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CatalogMessageWrapper_CatalogRequestMessageDto"
+                "$ref": "#/components/schemas/CatalogRequestMessage"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Catalog returned",
+            "description": "Catalog",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Catalog"
+                  "$ref": "#/components/schemas/DspCatalog"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad Request",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
+            "$ref": "#/components/responses/ProtocolBadRequest"
           },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
+          "401": {
+            "$ref": "#/components/responses/PeerUnauthorized"
           }
         }
       }
     },
-    "/catalog/datasets/{id}": {
+    "/dsp/current/catalog/datasets/{id}": {
       "get": {
         "tags": [
-          "DSP Protocol"
+          "Catalog Protocol"
         ],
-        "summary": "Request dataset (DSP) - GET with Body (Non-standard)",
-        "description": "Currently implemented as a GET request that accepts a body in the Rust code.\nNote: GET requests with bodies are not standard in OpenAPI/HTTP, but this reflects the implementation.\n",
         "operationId": "protocolRequestDataset",
+        "summary": "Dataset request",
+        "security": [
+          {
+            "peerBearer": []
+          }
+        ],
         "parameters": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/UrnPathId"
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CatalogMessageWrapper_DatasetRequestMessage"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Dataset returned",
+            "description": "Dataset with its distributions and offers",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Dataset"
+                  "$ref": "#/components/schemas/DspDataset"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad Request",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
+            "$ref": "#/components/responses/ProtocolBadRequest"
           },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
+          "401": {
+            "$ref": "#/components/responses/PeerUnauthorized"
           }
         }
       }
     },
-    "/catalog/rpc/setup-catalog-request": {
+    "/dsp/current/catalog/rpc/setup-catalog-request": {
       "post": {
         "tags": [
-          "DSP RPC"
+          "Catalog RPC"
         ],
-        "summary": "Setup catalog request (RPC)",
         "operationId": "rpcSetupCatalogRequest",
+        "summary": "Request a peer's catalog",
+        "description": "Sends a catalog request to the peer and caches the answer unless `noCache` is set.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -166,17 +140,23 @@
         },
         "responses": {
           "200": {
-            "description": "Catalog returned from peer",
+            "description": "The request sent and the peer's catalog",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Catalog"
+                  "$ref": "#/components/schemas/RpcCatalogResponseMessageDto"
                 }
               }
             }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -187,14 +167,25 @@
         }
       }
     },
-    "/catalog/rpc/setup-dataset-request": {
+    "/dsp/current/catalog/rpc/setup-dataset-request": {
       "post": {
         "tags": [
-          "DSP RPC"
+          "Catalog RPC"
         ],
-        "summary": "Setup dataset request (RPC)",
         "operationId": "rpcSetupDatasetRequest",
+        "summary": "Request one dataset from a peer",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -205,17 +196,23 @@
         },
         "responses": {
           "200": {
-            "description": "Dataset returned from peer",
+            "description": "The request sent and the peer's dataset",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Dataset"
+                  "$ref": "#/components/schemas/RpcDatasetResponseMessageDto"
                 }
               }
             }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -229,15 +226,43 @@
   },
   "components": {
     "securitySchemes": {
-      "BearerAuth": {
+      "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "JWT"
+        "description": "OAuth access token (JWT) or personal access token issued by `/oauth`."
+      },
+      "peerBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Token the peer obtained from this agent through GNAP onboarding."
+      }
+    },
+    "parameters": {
+      "TenantHeader": {
+        "name": "x-tenant-id",
+        "in": "header",
+        "required": false,
+        "description": "Tenant to act on. Non-admins may only name their own tenant.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "UrnPathId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "URN of the resource.",
+        "schema": {
+          "type": "string",
+          "examples": [
+            "urn:uuid:5b0f6a1e-2c3d-4e5f-8a9b-0c1d2e3f4a5b"
+          ]
+        }
       }
     },
     "responses": {
       "BadRequest": {
-        "description": "Bad Request",
+        "description": "Malformed request or failed validation",
         "content": {
           "application/json": {
             "schema": {
@@ -246,8 +271,8 @@
           }
         }
       },
-      "NotFound": {
-        "description": "Not Found",
+      "Forbidden": {
+        "description": "The caller may not act on this tenant or resource",
         "content": {
           "application/json": {
             "schema": {
@@ -257,7 +282,40 @@
         }
       },
       "InternalServerError": {
-        "description": "Internal Server Error",
+        "description": "Unexpected server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "PeerUnauthorized": {
+        "description": "Missing or unknown peer token (empty body)"
+      },
+      "ProtocolBadRequest": {
+        "description": "Invalid message or failed request, as plain text",
+        "content": {
+          "text/plain": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid bearer token",
         "content": {
           "application/json": {
             "schema": {
@@ -268,158 +326,67 @@
       }
     },
     "schemas": {
-      "ErrorInfo": {
+      "CatalogRequestMessage": {
         "type": "object",
         "required": [
-          "message",
-          "error_code",
-          "cause"
-        ],
-        "properties": {
-          "message": {
-            "type": "string"
-          },
-          "error_code": {
-            "type": "integer"
-          },
-          "details": {
-            "type": "string"
-          },
-          "cause": {
-            "type": "string"
-          }
-        },
-        "example": {
-          "message": "Resource not found",
-          "error_code": 3200,
-          "status_code": 404,
-          "cause": "Catalog with ID urn:uuid:123 not found"
-        }
-      },
-      "CatalogMessageWrapper_CatalogRequestMessageDto": {
-        "type": "object",
-        "properties": {
-          "@context": {
-            "oneOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            ]
-          },
-          "@type": {
-            "type": "string"
-          },
-          "filter": {
-            "type": "object",
-            "description": "Filter criteria for catalog request"
-          }
-        },
-        "required": [
+          "@context",
           "@type"
         ],
-        "example": {
-          "@context": [
-            "https://w3id.org/dspace/2025/1/context.jsonld"
-          ],
-          "@type": "CatalogRequestMessage",
-          "filter": []
-        }
-      },
-      "CatalogMessageWrapper_DatasetRequestMessage": {
-        "type": "object",
         "properties": {
           "@context": {
-            "oneOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            ]
+            "$ref": "#/components/schemas/ContextField"
           },
           "@type": {
-            "type": "string"
-          },
-          "dataset": {
             "type": "string",
-            "format": "urn",
-            "description": "ID of the dataset requested"
-          }
-        },
-        "required": [
-          "@type"
-        ],
-        "example": {
-          "@context": [
-            "https://w3id.org/dspace/2025/1/context.jsonld"
-          ],
-          "@type": "DatasetRequestMessage",
-          "dataset": "urn:dataset:d58e3c46-5c22-44e1-8614-5b4fc30bb572"
-        }
-      },
-      "RpcCatalogRequestMessageDto": {
-        "type": "object",
-        "properties": {
-          "associatedAgentPeer": {
-            "type": "string"
+            "const": "CatalogRequestMessage"
           },
           "filter": {
-            "type": "object"
+            "description": "Implementation-specific filter, any JSON value."
           }
-        },
-        "example": {
-          "associatedAgentPeer": "did:jwk:eyJrdHkiOiJSU0Ei...",
-          "filter": []
         }
       },
-      "RpcDatasetRequestMessageDto": {
-        "type": "object",
-        "properties": {
-          "associatedAgentPeer": {
+      "ContextField": {
+        "description": "JSON-LD context; must include the DSP 2024-1 or 2025-1 context.",
+        "oneOf": [
+          {
             "type": "string"
           },
-          "dataset": {
-            "type": "string",
-            "format": "urn"
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
-        },
-        "example": {
-          "associatedAgentPeer": "did:jwk:eyJrdHkiOiJSU0Ei...",
-          "dataset": "urn:dataset:828b4b4d-931e-45dd-b40b-b15251fa6487"
-        }
+        ],
+        "examples": [
+          "https://w3id.org/dspace/2025/1/context.jsonld"
+        ]
       },
-      "Catalog": {
+      "DspCatalog": {
         "type": "object",
+        "description": "DCAT catalog as sent over DSP.",
+        "required": [
+          "@context",
+          "@type",
+          "@id",
+          "identifier",
+          "issued",
+          "catalog",
+          "dataset",
+          "service"
+        ],
         "properties": {
           "@context": {
-            "oneOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            ]
+            "$ref": "#/components/schemas/ContextField"
           },
           "@type": {
-            "type": "string"
+            "type": "string",
+            "examples": [
+              "Catalog"
+            ]
           },
           "@id": {
-            "type": "string",
-            "format": "urn"
+            "type": "string"
           },
           "homepage": {
             "type": "string"
@@ -441,11 +408,10 @@
           },
           "issued": {
             "type": "string",
-            "format": "date-time"
+            "description": "Naive timestamp, no zone."
           },
           "modified": {
-            "type": "string",
-            "format": "date-time"
+            "type": "string"
           },
           "title": {
             "type": "string"
@@ -465,154 +431,92 @@
               "$ref": "#/components/schemas/OdrlOffer"
             }
           },
-          "extraFields": {
-            "type": "object"
-          },
+          "extraFields": {},
           "catalog": {
-            "oneOf": [
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Catalog"
-                }
-              },
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/CatalogMinimized"
-                }
-              }
-            ]
+            "type": "array",
+            "description": "Nested catalogs, full or minimized.",
+            "items": {
+              "type": "object"
+            }
           },
           "dataset": {
-            "oneOf": [
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Dataset"
-                }
-              },
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/DatasetMinimized"
-                }
-              }
-            ]
-          },
-          "service": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/DataService"
-              },
-              {
-                "$ref": "#/components/schemas/DataServiceMinimized"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/DataService"
-                }
-              }
-            ]
-          }
-        },
-        "example": {
-          "@context": [
-            "https://w3id.org/dspace/2025/1/context.jsonld"
-          ],
-          "@type": "Catalog",
-          "@id": "urn:catalog:35d10981-1d0b-4204-b32e-847b827ce635",
-          "identifier": "urn:catalog:35d10981-1d0b-4204-b32e-847b827ce635",
-          "issued": "2026-01-09T10:49:53.822684",
-          "catalog": [
-            {
-              "@type": "Catalog",
-              "@id": "urn:catalog:4958f37d-17cf-44e7-ae18-1f26b6fe15ff",
-              "homepage": "superfoaf",
-              "identifier": "urn:catalog:4958f37d-17cf-44e7-ae18-1f26b6fe15ff",
-              "issued": "2026-01-10T14:23:16.619801",
-              "dataset": [
-                {
-                  "@type": "Dataset",
-                  "@id": "urn:dataset:10825ca3-a75e-43bd-9a82-603759cb8dec",
-                  "identifier": "urn:dataset:10825ca3-a75e-43bd-9a82-603759cb8dec",
-                  "issued": "2026-01-10T14:23:29.091150",
-                  "title": "superfoaf",
-                  "hasPolicy": [
-                    {
-                      "@id": "urn:odrl-policy:3953b047-0aa5-4649-a0bd-0522f77d018b",
-                      "permission": [
-                        {
-                          "action": "use"
-                        }
-                      ],
-                      "@type": "Offer"
-                    }
-                  ],
-                  "distribution": [
-                    {
-                      "@type": "Distribution",
-                      "@id": "urn:distribution:77116828-c4dd-4632-8946-969bb7903819",
-                      "accessService": {
-                        "@type": "DataService",
-                        "@id": "urn:data-service:37840ca3-79f6-4542-8394-0c57dd93650f",
-                        "endpointURL": "http://127.0.0.1:1200/dsp/current"
-                      },
-                      "issued": "2026-01-10T14:24:29.424022",
-                      "title": "superfoaf",
-                      "formats": "http+push"
-                    }
-                  ]
-                }
-              ],
-              "service": []
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DspDataset"
             }
-          ],
-          "dataset": [],
+          },
           "service": {
-            "@type": "DataService",
-            "@id": "urn:data-service:37840ca3-79f6-4542-8394-0c57dd93650f",
-            "endpointURL": "http://127.0.0.1:1200/dsp/current"
+            "description": "One data service, a minimized one, or a list.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DspDataService"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DspDataService"
+                }
+              }
+            ]
           }
         }
       },
-      "CatalogMinimized": {
+      "DspDataService": {
         "type": "object",
-        "properties": {
-          "@type": {
-            "type": "string"
-          },
-          "@id": {
-            "type": "string",
-            "format": "urn"
-          },
-          "homepage": {
-            "type": "string"
-          }
-        }
-      },
-      "Dataset": {
-        "type": "object",
+        "description": "Full data service, or a minimized one with only `@type`, `@id` and DCAT fields.",
+        "required": [
+          "@type",
+          "@id",
+          "endpointURL"
+        ],
         "properties": {
           "@context": {
-            "oneOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            ]
+            "$ref": "#/components/schemas/ContextField"
           },
           "@type": {
-            "type": "string"
+            "type": "string",
+            "examples": [
+              "DataService"
+            ]
           },
           "@id": {
             "type": "string"
+          },
+          "theme": {
+            "type": "string"
+          },
+          "keyword": {
+            "type": "string"
+          },
+          "endpointDescription": {
+            "type": "string"
+          },
+          "endpointURL": {
+            "type": "string"
+          },
+          "conformsTo": {
+            "type": "string"
+          },
+          "creator": {
+            "type": "string"
+          },
+          "identifier": {
+            "type": "string"
+          },
+          "issued": {
+            "type": "string"
+          },
+          "modified": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "hasPolicy": {
             "type": "array",
@@ -620,271 +524,182 @@
               "$ref": "#/components/schemas/OdrlOffer"
             }
           },
-          "distribution": {
-            "oneOf": [
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Distribution"
-                }
-              },
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/DistributionMinimized"
-                }
-              }
+          "extraFields": {}
+        }
+      },
+      "DspDataset": {
+        "type": "object",
+        "required": [
+          "@type",
+          "@id",
+          "identifier",
+          "issued",
+          "hasPolicy",
+          "distribution"
+        ],
+        "properties": {
+          "@context": {
+            "$ref": "#/components/schemas/ContextField"
+          },
+          "@type": {
+            "type": "string",
+            "examples": [
+              "Dataset"
             ]
+          },
+          "@id": {
+            "type": "string"
+          },
+          "theme": {
+            "type": "string"
+          },
+          "keyword": {
+            "type": "string"
           },
           "conformsTo": {
             "type": "string"
-          }
-        },
-        "example": {
-          "@context": [
-            "https://w3id.org/dspace/2025/1/context.jsonld"
-          ],
-          "@type": "Dataset",
-          "@id": "urn:dataset:10825ca3-a75e-43bd-9a82-603759cb8dec",
-          "identifier": "urn:dataset:10825ca3-a75e-43bd-9a82-603759cb8dec",
-          "issued": "2026-01-10T14:23:29.091150",
-          "title": "superfoaf",
-          "hasPolicy": [
-            {
-              "@id": "urn:odrl-policy:3953b047-0aa5-4649-a0bd-0522f77d018b",
-              "permission": [
-                {
-                  "action": "use"
-                }
-              ],
-              "@type": "Offer"
-            }
-          ],
-          "distribution": [
-            {
-              "@type": "Distribution",
-              "@id": "urn:distribution:77116828-c4dd-4632-8946-969bb7903819",
-              "accessService": {
-                "@type": "DataService",
-                "@id": "urn:data-service:37840ca3-79f6-4542-8394-0c57dd93650f",
-                "endpointURL": "http://127.0.0.1:1200/dsp/current"
-              },
-              "issued": "2026-01-10T14:24:29.424022",
-              "title": "superfoaf",
-              "formats": "http+push"
-            }
-          ]
-        }
-      },
-      "DatasetMinimized": {
-        "type": "object",
-        "properties": {
-          "@type": {
+          },
+          "creator": {
             "type": "string"
           },
-          "@id": {
+          "identifier": {
             "type": "string"
+          },
+          "issued": {
+            "type": "string",
+            "description": "Naive timestamp, no zone."
+          },
+          "modified": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hasPolicy": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlOffer"
+            }
+          },
+          "extraFields": {},
+          "distribution": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DspDistribution"
+            }
           }
         }
       },
-      "DataService": {
+      "DspDistribution": {
         "type": "object",
+        "required": [
+          "@type",
+          "@id",
+          "issued",
+          "formats"
+        ],
         "properties": {
           "@context": {
-            "oneOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
+            "$ref": "#/components/schemas/ContextField"
+          },
+          "@type": {
+            "type": "string",
+            "examples": [
+              "Distribution"
             ]
-          },
-          "@type": {
-            "type": "string"
-          },
-          "@id": {
-            "type": "string"
-          },
-          "endpointURL": {
-            "type": "string"
-          },
-          "endpointDescription": {
-            "type": "string"
-          }
-        }
-      },
-      "DataServiceMinimized": {
-        "type": "object",
-        "properties": {
-          "@type": {
-            "type": "string"
-          },
-          "@id": {
-            "type": "string"
-          }
-        }
-      },
-      "Distribution": {
-        "type": "object",
-        "properties": {
-          "@type": {
-            "type": "string"
           },
           "@id": {
             "type": "string"
           },
           "accessService": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DataService"
-            }
-          }
-        }
-      },
-      "DistributionMinimized": {
-        "type": "object",
-        "properties": {
-          "@type": {
-            "type": "string"
-          },
-          "@id": {
-            "type": "string"
-          }
-        }
-      },
-      "OdrlOffer": {
-        "type": "object",
-        "properties": {
-          "@type": {
-            "type": "string",
-            "enum": [
-              "Offer",
-              "Agreement"
-            ]
-          },
-          "@id": {
-            "type": "string",
-            "format": "urn"
-          },
-          "target": {
-            "type": "string",
-            "format": "urn"
-          },
-          "profile": {
             "oneOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/DspDataService"
               },
               {
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/DspDataService"
                 }
+              },
+              {
+                "type": "null"
               }
             ]
           },
-          "permission": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/OdrlPermission"
-            }
+          "issued": {
+            "type": "string",
+            "description": "Naive timestamp, no zone."
           },
-          "obligation": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/OdrlObligation"
-            }
-          },
-          "prohibition": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/OdrlObligation"
-            }
-          }
-        }
-      },
-      "OdrlPermission": {
-        "type": "object",
-        "required": [
-          "action"
-        ],
-        "properties": {
-          "action": {
+          "modified": {
             "type": "string"
           },
-          "constraint": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/OdrlConstraint"
-            }
-          },
-          "duty": {
-            "$ref": "#/components/schemas/OdrlDuty"
-          }
-        }
-      },
-      "OdrlDuty": {
-        "type": "object",
-        "required": [
-          "action"
-        ],
-        "properties": {
-          "action": {
+          "title": {
             "type": "string"
           },
-          "constraint": {
+          "description": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/OdrlConstraint"
+              "type": "string"
             }
-          }
+          },
+          "formats": {
+            "type": "string",
+            "examples": [
+              "HttpData-PULL"
+            ]
+          },
+          "hasPolicy": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlOffer"
+            }
+          },
+          "extraFields": {}
         }
       },
-      "OdrlObligation": {
-        "$ref": "#/components/schemas/OdrlDuty"
-      },
-      "OdrlConstraint": {
-        "oneOf": [
-          {
-            "$ref": "#/components/schemas/OdrlAtomicConstraint"
+      "ErrorInfo": {
+        "type": "object",
+        "description": "Error body returned by every agent.",
+        "required": [
+          "message",
+          "error_code"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
           },
-          {
-            "$ref": "#/components/schemas/OdrlLogicalConstraint"
+          "error_code": {
+            "type": "integer",
+            "description": "Internal error code of the failure kind."
+          },
+          "details": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
-        ]
+        }
       },
       "OdrlAtomicConstraint": {
         "type": "object",
         "required": [
-          "rightOperand",
           "leftOperand",
-          "operator"
+          "operator",
+          "rightOperand"
         ],
         "properties": {
           "leftOperand": {
             "type": "string"
           },
           "operator": {
-            "type": "string",
-            "enum": [
-              "eq",
-              "gt",
-              "gteq",
-              "lteq",
-              "hasPart",
-              "isA",
-              "isAllOf",
-              "isAnyOf",
-              "isNoneOf",
-              "isPartOf",
-              "lt",
-              "termLteq",
-              "neq"
-            ]
+            "$ref": "#/components/schemas/OdrlOperator"
           },
           "rightOperand": {
             "oneOf": [
@@ -899,6 +714,36 @@
                 "items": {}
               }
             ]
+          }
+        }
+      },
+      "OdrlConstraint": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/OdrlAtomicConstraint"
+          },
+          {
+            "$ref": "#/components/schemas/OdrlLogicalConstraint"
+          }
+        ]
+      },
+      "OdrlDuty": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "constraint": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/OdrlConstraint"
+            }
           }
         }
       },
@@ -928,6 +773,182 @@
             "items": {
               "$ref": "#/components/schemas/OdrlConstraint"
             }
+          }
+        }
+      },
+      "OdrlOffer": {
+        "type": "object",
+        "required": [
+          "@id",
+          "@type"
+        ],
+        "properties": {
+          "@id": {
+            "type": "string"
+          },
+          "@type": {
+            "type": "string",
+            "enum": [
+              "Offer",
+              "Agreement"
+            ]
+          },
+          "profile": {
+            "$ref": "#/components/schemas/OdrlProfile"
+          },
+          "permission": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlPermission"
+            }
+          },
+          "obligation": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlDuty"
+            }
+          },
+          "prohibition": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlDuty"
+            }
+          },
+          "target": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "OdrlOperator": {
+        "type": "string",
+        "enum": [
+          "eq",
+          "gt",
+          "gteq",
+          "lteq",
+          "hasPart",
+          "isA",
+          "isAllOf",
+          "isAnyOf",
+          "isNoneOf",
+          "isPartOf",
+          "lt",
+          "termLteq",
+          "neq"
+        ]
+      },
+      "OdrlPermission": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "examples": [
+              "use"
+            ]
+          },
+          "constraint": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlConstraint"
+            }
+          },
+          "duty": {
+            "$ref": "#/components/schemas/OdrlDuty"
+          }
+        }
+      },
+      "OdrlProfile": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "RpcCatalogRequestMessageDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "associatedAgentPeer",
+          "filter"
+        ],
+        "properties": {
+          "associatedAgentPeer": {
+            "type": "string",
+            "description": "Participant id (DID) of the peer."
+          },
+          "filter": {
+            "description": "Filter forwarded in the catalog request, any JSON value."
+          },
+          "noCache": {
+            "type": "boolean",
+            "default": false,
+            "description": "Skip storing the answer in the peer catalog cache."
+          }
+        }
+      },
+      "RpcCatalogResponseMessageDto": {
+        "type": "object",
+        "required": [
+          "request",
+          "response"
+        ],
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/RpcCatalogRequestMessageDto"
+          },
+          "response": {
+            "$ref": "#/components/schemas/DspCatalog"
+          }
+        }
+      },
+      "RpcDatasetRequestMessageDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "associatedAgentPeer",
+          "dataset"
+        ],
+        "properties": {
+          "associatedAgentPeer": {
+            "type": "string",
+            "description": "Participant id (DID) of the peer."
+          },
+          "dataset": {
+            "type": "string",
+            "description": "URN of the dataset."
+          },
+          "noCache": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        }
+      },
+      "RpcDatasetResponseMessageDto": {
+        "type": "object",
+        "required": [
+          "request",
+          "response"
+        ],
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/RpcDatasetRequestMessageDto"
+          },
+          "response": {
+            "$ref": "#/components/schemas/DspDataset"
           }
         }
       }

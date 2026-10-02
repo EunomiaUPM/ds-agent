@@ -18,6 +18,11 @@ tasks:
     cmds:
       - bash ./scripts/add_license.sh .
 
+  openapi:
+    desc: Build the JSON specs and merged_openapi from static/specs/openapi/*/*.yaml
+    cmds:
+      - python3 scripts/build-openapi.py
+
   test:integration:
     desc: Integration tests in monolith, against the provider dev Postgres and Redis
     env:

@@ -1,0 +1,1625 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Eunomia DS Dataplane API",
+    "description": "Dataplane hosted by the transfer agent (`crates/dataplane`): the dataplane process of each\ntransfer with its state transitions and diagnostic events, and the HTTP proxy that serves\npull transfers. Log and event records use snake_case keys.\n",
+    "version": "1.0.0",
+    "license": {
+      "name": "GPL-3.0-or-later",
+      "url": "https://www.gnu.org/licenses/gpl-3.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:1200",
+      "description": "Provider agent (dev)"
+    },
+    {
+      "url": "http://127.0.0.1:1100",
+      "description": "Consumer agent (dev)"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Dataplane Processes",
+      "description": "Dataplane side of each transfer"
+    },
+    {
+      "name": "Dataplane Events",
+      "description": "Diagnostic events of dataplane processes"
+    },
+    {
+      "name": "Dataplane Proxy",
+      "description": "HTTP data proxy for pull transfers"
+    }
+  ],
+  "paths": {
+    "/api/v1/transfer-agent/dataplane/dataplane-processes": {
+      "get": {
+        "tags": [
+          "Dataplane Processes"
+        ],
+        "operationId": "getDataplaneTransfers",
+        "summary": "List dataplane processes",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/TenantIdQuery"
+          },
+          {
+            "name": "transfer_process_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/DataplaneRole"
+            }
+          },
+          {
+            "name": "interaction_mode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/InteractionMode"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/DataplaneState"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CreatedAfter"
+          },
+          {
+            "$ref": "#/components/parameters/CreatedBefore"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of dataplane processes",
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/XTotalCount"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDataplaneTransferDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Dataplane Processes"
+        ],
+        "operationId": "createDataplaneTransfer",
+        "summary": "Create a dataplane process record",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewDataplaneTransferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created dataplane process",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataplaneTransferDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/transfer-agent/dataplane/dataplane-processes/batch": {
+      "post": {
+        "tags": [
+          "Dataplane Processes"
+        ],
+        "operationId": "getBatchDataplaneTransfers",
+        "summary": "Get several dataplane processes by id",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequests"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dataplane processes found",
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/XTotalCount"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DataplaneTransferDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/transfer-agent/dataplane/dataplane-processes/transfer-process/{transferProcessId}": {
+      "get": {
+        "tags": [
+          "Dataplane Processes"
+        ],
+        "operationId": "getDataplaneTransferByProcessId",
+        "summary": "Dataplane process of a transfer process",
+        "parameters": [
+          {
+            "name": "transferProcessId",
+            "in": "path",
+            "required": true,
+            "description": "URN of the transfer process.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dataplane process",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataplaneTransferDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/transfer-agent/dataplane/dataplane-processes/{dataplaneProcessId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/DataplaneProcessId"
+        },
+        {
+          "$ref": "#/components/parameters/TenantHeader"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Dataplane Processes"
+        ],
+        "operationId": "getDataplaneTransferById",
+        "summary": "Get a dataplane process",
+        "responses": {
+          "200": {
+            "description": "Dataplane process with its fields and transitions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataplaneTransferDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Dataplane Processes"
+        ],
+        "operationId": "updateDataplaneTransfer",
+        "summary": "Update a dataplane process record",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditDataplaneTransferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated dataplane process",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataplaneTransferDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Dataplane Processes"
+        ],
+        "operationId": "deleteDataplaneTransfer",
+        "summary": "Delete a dataplane process record",
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/transfer-agent/dataplane/dataplane-processes/{dataplaneProcessId}/info": {
+      "get": {
+        "tags": [
+          "Dataplane Processes"
+        ],
+        "operationId": "getDataplaneTransferInfo",
+        "summary": "Interaction mode and ingress URL",
+        "description": "For pull transfers `ingress_url` is `<Host header>/dataplane/proxy/<id>`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DataplaneProcessId"
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dataplane info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataplaneInfoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/transfer-agent/dataplane/dataplane-processes/{dataplaneProcessId}/logs": {
+      "get": {
+        "tags": [
+          "Dataplane Processes"
+        ],
+        "operationId": "getDataplaneTransferLogs",
+        "summary": "State transitions of a dataplane process",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DataplaneProcessId"
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transitions, oldest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DataplaneTransferLogDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/transfer-agent/dataplane/dataplane-processes/{dataplaneProcessId}/events": {
+      "get": {
+        "tags": [
+          "Dataplane Events"
+        ],
+        "operationId": "getTransferEventsByDataplaneProcessId",
+        "summary": "Diagnostic events of a dataplane process",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DataplaneProcessId"
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Events of the process",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TransferEventDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/transfer-agent/dataplane/transfer-events/{eventId}": {
+      "get": {
+        "tags": [
+          "Dataplane Events"
+        ],
+        "operationId": "getTransferEventById",
+        "summary": "Get a diagnostic event",
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "description": "URN of the event.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferEventDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/dataplane/proxy/{dataPlaneId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProxyDataPlaneId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Dataplane Proxy"
+        ],
+        "operationId": "proxyDataplaneGet",
+        "summary": "Forward a request to the transfer's back end",
+        "description": "Any method is forwarded to the upstream of the process egress config, with the\nconnector credentials resolved from the keystore. Bodies over 2 MiB are rejected, and\nthe upstream must answer within 30 s. Not behind OAuth: only STARTED processes answer.\n",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Upstream response, relayed as is (any status)"
+          },
+          "400": {
+            "description": "Id is not a URN, or body too large (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Transfer is not STARTED (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown dataplane process (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Lookup failed or egress not proxyable (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Dataplane Proxy"
+        ],
+        "operationId": "proxyDataplanePost",
+        "summary": "Forward a request to the transfer's back end",
+        "description": "Any method is forwarded to the upstream of the process egress config, with the\nconnector credentials resolved from the keystore. Bodies over 2 MiB are rejected, and\nthe upstream must answer within 30 s. Not behind OAuth: only STARTED processes answer.\n",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Upstream response, relayed as is (any status)"
+          },
+          "400": {
+            "description": "Id is not a URN, or body too large (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Transfer is not STARTED (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown dataplane process (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Lookup failed or egress not proxyable (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Dataplane Proxy"
+        ],
+        "operationId": "proxyDataplanePut",
+        "summary": "Forward a request to the transfer's back end",
+        "description": "Any method is forwarded to the upstream of the process egress config, with the\nconnector credentials resolved from the keystore. Bodies over 2 MiB are rejected, and\nthe upstream must answer within 30 s. Not behind OAuth: only STARTED processes answer.\n",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Upstream response, relayed as is (any status)"
+          },
+          "400": {
+            "description": "Id is not a URN, or body too large (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Transfer is not STARTED (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown dataplane process (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Lookup failed or egress not proxyable (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Dataplane Proxy"
+        ],
+        "operationId": "proxyDataplanePatch",
+        "summary": "Forward a request to the transfer's back end",
+        "description": "Any method is forwarded to the upstream of the process egress config, with the\nconnector credentials resolved from the keystore. Bodies over 2 MiB are rejected, and\nthe upstream must answer within 30 s. Not behind OAuth: only STARTED processes answer.\n",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Upstream response, relayed as is (any status)"
+          },
+          "400": {
+            "description": "Id is not a URN, or body too large (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Transfer is not STARTED (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown dataplane process (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Lookup failed or egress not proxyable (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Dataplane Proxy"
+        ],
+        "operationId": "proxyDataplaneDelete",
+        "summary": "Forward a request to the transfer's back end",
+        "description": "Any method is forwarded to the upstream of the process egress config, with the\nconnector credentials resolved from the keystore. Bodies over 2 MiB are rejected, and\nthe upstream must answer within 30 s. Not behind OAuth: only STARTED processes answer.\n",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Upstream response, relayed as is (any status)"
+          },
+          "400": {
+            "description": "Id is not a URN, or body too large (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Transfer is not STARTED (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown dataplane process (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Lookup failed or egress not proxyable (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dataplane/proxy/{dataPlaneId}/{path}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProxyDataPlaneId"
+        },
+        {
+          "name": "path",
+          "in": "path",
+          "required": true,
+          "description": "Rest of the path, appended to the upstream URL; may contain `/`.",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Dataplane Proxy"
+        ],
+        "operationId": "proxyDataplanePathGet",
+        "summary": "Forward a request to the transfer's back end",
+        "description": "Any method is forwarded to the upstream of the process egress config, with the\nconnector credentials resolved from the keystore. Bodies over 2 MiB are rejected, and\nthe upstream must answer within 30 s. Not behind OAuth: only STARTED processes answer.\n",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Upstream response, relayed as is (any status)"
+          },
+          "400": {
+            "description": "Id is not a URN, or body too large (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Transfer is not STARTED (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown dataplane process (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Lookup failed or egress not proxyable (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Dataplane Proxy"
+        ],
+        "operationId": "proxyDataplanePathPost",
+        "summary": "Forward a request to the transfer's back end",
+        "description": "Any method is forwarded to the upstream of the process egress config, with the\nconnector credentials resolved from the keystore. Bodies over 2 MiB are rejected, and\nthe upstream must answer within 30 s. Not behind OAuth: only STARTED processes answer.\n",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Upstream response, relayed as is (any status)"
+          },
+          "400": {
+            "description": "Id is not a URN, or body too large (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Transfer is not STARTED (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown dataplane process (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Lookup failed or egress not proxyable (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Dataplane Proxy"
+        ],
+        "operationId": "proxyDataplanePathPut",
+        "summary": "Forward a request to the transfer's back end",
+        "description": "Any method is forwarded to the upstream of the process egress config, with the\nconnector credentials resolved from the keystore. Bodies over 2 MiB are rejected, and\nthe upstream must answer within 30 s. Not behind OAuth: only STARTED processes answer.\n",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Upstream response, relayed as is (any status)"
+          },
+          "400": {
+            "description": "Id is not a URN, or body too large (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Transfer is not STARTED (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown dataplane process (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Lookup failed or egress not proxyable (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Dataplane Proxy"
+        ],
+        "operationId": "proxyDataplanePathPatch",
+        "summary": "Forward a request to the transfer's back end",
+        "description": "Any method is forwarded to the upstream of the process egress config, with the\nconnector credentials resolved from the keystore. Bodies over 2 MiB are rejected, and\nthe upstream must answer within 30 s. Not behind OAuth: only STARTED processes answer.\n",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Upstream response, relayed as is (any status)"
+          },
+          "400": {
+            "description": "Id is not a URN, or body too large (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Transfer is not STARTED (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown dataplane process (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Lookup failed or egress not proxyable (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Dataplane Proxy"
+        ],
+        "operationId": "proxyDataplanePathDelete",
+        "summary": "Forward a request to the transfer's back end",
+        "description": "Any method is forwarded to the upstream of the process egress config, with the\nconnector credentials resolved from the keystore. Bodies over 2 MiB are rejected, and\nthe upstream must answer within 30 s. Not behind OAuth: only STARTED processes answer.\n",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Upstream response, relayed as is (any status)"
+          },
+          "400": {
+            "description": "Id is not a URN, or body too large (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Transfer is not STARTED (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown dataplane process (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Lookup failed or egress not proxyable (plain text)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "OAuth access token (JWT) or personal access token issued by `/oauth`."
+      }
+    },
+    "headers": {
+      "XTotalCount": {
+        "description": "Total number of matching items.",
+        "schema": {
+          "type": "integer"
+        }
+      }
+    },
+    "parameters": {
+      "CreatedAfter": {
+        "name": "created_after",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "CreatedBefore": {
+        "name": "created_before",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Opaque `nextCursor` of the previous page.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "DataplaneProcessId": {
+        "name": "dataplaneProcessId",
+        "in": "path",
+        "required": true,
+        "description": "URN of the dataplane process.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Page size, clamped to 1..=100.",
+        "schema": {
+          "type": "integer",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "PageNumber": {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "description": "1-based page index for offset paging, used when no cursor is sent.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "ProxyDataPlaneId": {
+        "name": "dataPlaneId",
+        "in": "path",
+        "required": true,
+        "description": "URN of a STARTED dataplane process.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Sort": {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "created_at_asc",
+            "created_at_desc",
+            "updated_at_asc",
+            "updated_at_desc"
+          ],
+          "default": "created_at_desc"
+        }
+      },
+      "TenantHeader": {
+        "name": "x-tenant-id",
+        "in": "header",
+        "required": false,
+        "description": "Tenant to act on. Non-admins may only name their own tenant.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "TenantIdQuery": {
+        "name": "tenant_id",
+        "in": "query",
+        "required": false,
+        "description": "Tenant filter, honoured for admins.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Malformed request or failed validation",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "The caller may not act on this tenant or resource",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid bearer token",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "BatchRequests": {
+        "type": "object",
+        "required": [
+          "ids"
+        ],
+        "properties": {
+          "ids": {
+            "type": "array",
+            "description": "URNs to look up.",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "DataplaneInfoResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "interaction_mode"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "interaction_mode": {
+            "type": "string",
+            "examples": [
+              "Pull"
+            ]
+          },
+          "ingress_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "DataplaneRole": {
+        "type": "string",
+        "enum": [
+          "Provider",
+          "Consumer"
+        ]
+      },
+      "DataplaneState": {
+        "type": "string",
+        "enum": [
+          "Init",
+          "Configuring",
+          "Auth",
+          "Ready",
+          "Subscribing",
+          "Started",
+          "Unsubscribing",
+          "Stopped",
+          "Terminated",
+          "Error"
+        ]
+      },
+      "DataplaneTransferDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "tenantId",
+          "transferProcessId",
+          "role",
+          "interactionMode",
+          "state",
+          "ingressConfig",
+          "egressConfig",
+          "createdAt",
+          "fields",
+          "logs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "URN of the dataplane process."
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "transferProcessId": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/DataplaneRole"
+          },
+          "interactionMode": {
+            "$ref": "#/components/schemas/InteractionMode"
+          },
+          "state": {
+            "$ref": "#/components/schemas/DataplaneState"
+          },
+          "connectorInstanceId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ingressConfig": {
+            "description": "Where data enters the dataplane, any JSON value."
+          },
+          "egressConfig": {
+            "description": "Where data leaves the dataplane, any JSON value."
+          },
+          "flowControl": {
+            "description": "Flow control settings, any JSON value."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "fields": {
+            "type": "object",
+            "description": "Extra key/value fields of the process.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataplaneTransferLogDto"
+            }
+          }
+        }
+      },
+      "DataplaneTransferLogDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "dataplane_process_id",
+          "new_state",
+          "trigger",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "dataplane_process_id": {
+            "type": "string"
+          },
+          "previous_state": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DataplaneState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "new_state": {
+            "$ref": "#/components/schemas/DataplaneState"
+          },
+          "trigger": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "EditDataplaneTransferDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "state": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DataplaneState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "connectorInstanceId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ingressConfig": {},
+          "egressConfig": {},
+          "flowControl": {},
+          "fields": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ErrorInfo": {
+        "type": "object",
+        "description": "Error body returned by every agent.",
+        "required": [
+          "message",
+          "error_code"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "error_code": {
+            "type": "integer",
+            "description": "Internal error code of the failure kind."
+          },
+          "details": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "InteractionMode": {
+        "type": "string",
+        "enum": [
+          "Pull",
+          "Push"
+        ]
+      },
+      "LogLevel": {
+        "type": "string",
+        "enum": [
+          "Debug",
+          "Info",
+          "Warn",
+          "Error"
+        ]
+      },
+      "NewDataplaneTransferDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenantId",
+          "transferProcessId",
+          "role",
+          "interactionMode",
+          "state",
+          "ingressConfig",
+          "egressConfig"
+        ],
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "URN; generated when absent."
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "transferProcessId": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/DataplaneRole"
+          },
+          "interactionMode": {
+            "$ref": "#/components/schemas/InteractionMode"
+          },
+          "state": {
+            "$ref": "#/components/schemas/DataplaneState"
+          },
+          "connectorInstanceId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ingressConfig": {},
+          "egressConfig": {}
+        }
+      },
+      "PaginatedDataplaneTransferDto": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataplaneTransferDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Absent on the last page."
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "TransferEventDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "transfer_id",
+          "level",
+          "component",
+          "message",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "transfer_id": {
+            "type": "string",
+            "description": "URN of the dataplane process."
+          },
+          "level": {
+            "$ref": "#/components/schemas/LogLevel"
+          },
+          "component": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "description": "Extra data, any JSON value."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

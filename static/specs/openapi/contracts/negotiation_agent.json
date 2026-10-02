@@ -1,1415 +1,2612 @@
 {
-    "openapi": "3.0.3",
-    "info": {
-        "title": "Eunomia DS-Agent Negotiation Agent API",
-        "description": "OpenAPI specification for the Eunomia DS-Agent Negotiation Agent endpoints.",
-        "version": "1.0.0"
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Eunomia DS Negotiation Agent API",
+    "description": "Management API of the negotiation agent (`crates/negotiation-agent`): the persisted record\nof contract negotiations, their messages, offers and agreements. Listings are paginated and\nalso send the total in `X-Total-Count`; query filters are camelCase (snake_case is accepted).\n",
+    "version": "1.0.0",
+    "license": {
+      "name": "GPL-3.0-or-later",
+      "url": "https://www.gnu.org/licenses/gpl-3.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:1200",
+      "description": "Provider agent (dev)"
     },
-    "servers": [
-        {
-            "url": "/v1/negotiation-agent",
-            "description": "Base path for the negotiation agent API"
-        }
-    ],
-    "tags": [
-        {
-            "name": "Agreements",
-            "description": "Manage negotiation agreements"
-        },
-        {
-            "name": "Negotiation Messages",
-            "description": "Manage negotiation messages"
-        },
-        {
-            "name": "Negotiation Processes",
-            "description": "Manage negotiation processes"
-        },
-        {
-            "name": "Offers",
-            "description": "Manage negotiation offers"
-        }
-    ],
-    "paths": {
-        "/agreements": {
-            "get": {
-                "tags": [
-                    "Agreements"
-                ],
-                "summary": "Get all agreements",
-                "operationId": "getAllAgreements",
-                "parameters": [
-                    {
-                        "$ref": "#/components/parameters/LimitParam"
-                    },
-                    {
-                        "$ref": "#/components/parameters/PageParam"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of agreements",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/AgreementDto"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Agreements"
-                ],
-                "summary": "Create agreement",
-                "operationId": "createAgreement",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/NewAgreementDto"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Agreement created",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AgreementDto"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "$ref": "#/components/responses/BadRequest"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/agreements/batch": {
-            "post": {
-                "tags": [
-                    "Agreements"
-                ],
-                "summary": "Get batch agreements",
-                "operationId": "getBatchAgreements",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/BatchRequests"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "List of agreements",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/AgreementDto"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "$ref": "#/components/responses/BadRequest"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/agreements/{id}": {
-            "parameters": [
-                {
-                    "$ref": "#/components/parameters/IdPath"
-                }
-            ],
-            "get": {
-                "tags": [
-                    "Agreements"
-                ],
-                "summary": "Get agreement by ID",
-                "operationId": "getAgreementById",
-                "responses": {
-                    "200": {
-                        "description": "Agreement found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AgreementDto"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "Agreements"
-                ],
-                "summary": "Update agreement by ID",
-                "operationId": "updateAgreementById",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/EditAgreementDto"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Agreement updated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AgreementDto"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Agreements"
-                ],
-                "summary": "Delete agreement by ID",
-                "operationId": "deleteAgreementById",
-                "responses": {
-                    "204": {
-                        "description": "Agreement deleted"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/agreements/process/{process_id}": {
-            "parameters": [
-                {
-                    "name": "process_id",
-                    "in": "path",
-                    "required": true,
-                    "schema": {
-                        "type": "string",
-                        "format": "urn"
-                    }
-                }
-            ],
-            "get": {
-                "tags": [
-                    "Agreements"
-                ],
-                "summary": "Get agreement by negotiation process ID",
-                "operationId": "getAgreementByNegotiationProcess",
-                "responses": {
-                    "200": {
-                        "description": "Agreement found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AgreementDto"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/agreements/message/{message_id}": {
-            "parameters": [
-                {
-                    "name": "message_id",
-                    "in": "path",
-                    "required": true,
-                    "schema": {
-                        "type": "string",
-                        "format": "urn"
-                    }
-                }
-            ],
-            "get": {
-                "tags": [
-                    "Agreements"
-                ],
-                "summary": "Get agreement by negotiation message ID",
-                "operationId": "getAgreementByNegotiationMessage",
-                "responses": {
-                    "200": {
-                        "description": "Agreement found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AgreementDto"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/negotiation-messages": {
-            "get": {
-                "tags": [
-                    "Negotiation Messages"
-                ],
-                "summary": "Get all negotiation messages",
-                "operationId": "getAllNegotiationMessages",
-                "parameters": [
-                    {
-                        "$ref": "#/components/parameters/LimitParam"
-                    },
-                    {
-                        "$ref": "#/components/parameters/PageParam"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of negotiation messages",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/NegotiationMessageDto"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Negotiation Messages"
-                ],
-                "summary": "Create negotiation message",
-                "operationId": "createNegotiationMessage",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/NewNegotiationMessageDto"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Negotiation message created",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/NegotiationMessageDto"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "$ref": "#/components/responses/BadRequest"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/negotiation-messages/{id}": {
-            "parameters": [
-                {
-                    "$ref": "#/components/parameters/IdPath"
-                }
-            ],
-            "get": {
-                "tags": [
-                    "Negotiation Messages"
-                ],
-                "summary": "Get negotiation message by ID",
-                "operationId": "getNegotiationMessageById",
-                "responses": {
-                    "200": {
-                        "description": "Negotiation message found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/NegotiationMessageDto"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Negotiation Messages"
-                ],
-                "summary": "Delete negotiation message by ID",
-                "operationId": "deleteNegotiationMessageById",
-                "responses": {
-                    "204": {
-                        "description": "Negotiation message deleted"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/negotiation-messages/process/{process_id}": {
-            "parameters": [
-                {
-                    "name": "process_id",
-                    "in": "path",
-                    "required": true,
-                    "schema": {
-                        "type": "string",
-                        "format": "urn"
-                    }
-                }
-            ],
-            "get": {
-                "tags": [
-                    "Negotiation Messages"
-                ],
-                "summary": "Get negotiation messages by process ID",
-                "operationId": "getMessagesByProcessId",
-                "responses": {
-                    "200": {
-                        "description": "List of negotiation messages",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/NegotiationMessageDto"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/negotiation-processes": {
-            "get": {
-                "tags": [
-                    "Negotiation Processes"
-                ],
-                "summary": "Get all negotiation processes",
-                "operationId": "getAllNegotiationProcesses",
-                "parameters": [
-                    {
-                        "$ref": "#/components/parameters/LimitParam"
-                    },
-                    {
-                        "$ref": "#/components/parameters/PageParam"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of negotiation processes",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/NegotiationProcessDto"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Negotiation Processes"
-                ],
-                "summary": "Create negotiation process",
-                "operationId": "createNegotiationProcess",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/NewNegotiationProcessDto"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Negotiation process created",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/NegotiationProcessDto"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "$ref": "#/components/responses/BadRequest"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/negotiation-processes/batch": {
-            "post": {
-                "tags": [
-                    "Negotiation Processes"
-                ],
-                "summary": "Get batch negotiation processes",
-                "operationId": "getBatchNegotiationProcesses",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/BatchRequests"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "List of negotiation processes",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/NegotiationProcessDto"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "$ref": "#/components/responses/BadRequest"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/negotiation-processes/{id}": {
-            "parameters": [
-                {
-                    "$ref": "#/components/parameters/IdPath"
-                }
-            ],
-            "get": {
-                "tags": [
-                    "Negotiation Processes"
-                ],
-                "summary": "Get negotiation process by ID",
-                "operationId": "getNegotiationProcessById",
-                "responses": {
-                    "200": {
-                        "description": "Negotiation process found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/NegotiationProcessDto"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "Negotiation Processes"
-                ],
-                "summary": "Update negotiation process by ID",
-                "operationId": "updateNegotiationProcessById",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/EditNegotiationProcessDto"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Negotiation process updated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/NegotiationProcessDto"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Negotiation Processes"
-                ],
-                "summary": "Delete negotiation process by ID",
-                "operationId": "deleteNegotiationProcessById",
-                "responses": {
-                    "204": {
-                        "description": "Negotiation process deleted"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/negotiation-processes/{id}/key/{key_id}": {
-            "parameters": [
-                {
-                    "$ref": "#/components/parameters/IdPath"
-                },
-                {
-                    "name": "key_id",
-                    "in": "path",
-                    "required": true,
-                    "schema": {
-                        "type": "string"
-                    }
-                }
-            ],
-            "get": {
-                "tags": [
-                    "Negotiation Processes"
-                ],
-                "summary": "Get negotiation process by Key ID",
-                "operationId": "getNegotiationProcessByKeyId",
-                "responses": {
-                    "200": {
-                        "description": "Negotiation process found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/NegotiationProcessDto"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/offers": {
-            "get": {
-                "tags": [
-                    "Offers"
-                ],
-                "summary": "Get all offers",
-                "operationId": "getAllOffers",
-                "parameters": [
-                    {
-                        "$ref": "#/components/parameters/LimitParam"
-                    },
-                    {
-                        "$ref": "#/components/parameters/PageParam"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of offers",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/OfferDto"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Offers"
-                ],
-                "summary": "Create offer",
-                "operationId": "createOffer",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/NewOfferDto"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Offer created",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/OfferDto"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "$ref": "#/components/responses/BadRequest"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/offers/batch": {
-            "post": {
-                "tags": [
-                    "Offers"
-                ],
-                "summary": "Get batch offers",
-                "operationId": "getBatchOffers",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/BatchRequests"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "List of offers",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/OfferDto"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "$ref": "#/components/responses/BadRequest"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/offers/{id}": {
-            "parameters": [
-                {
-                    "$ref": "#/components/parameters/IdPath"
-                }
-            ],
-            "get": {
-                "tags": [
-                    "Offers"
-                ],
-                "summary": "Get offer by ID",
-                "operationId": "getOfferById",
-                "responses": {
-                    "200": {
-                        "description": "Offer found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/OfferDto"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Offers"
-                ],
-                "summary": "Delete offer by ID",
-                "operationId": "deleteOfferById",
-                "responses": {
-                    "204": {
-                        "description": "Offer deleted"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/offers/process/{process_id}": {
-            "parameters": [
-                {
-                    "name": "process_id",
-                    "in": "path",
-                    "required": true,
-                    "schema": {
-                        "type": "string",
-                        "format": "urn"
-                    }
-                }
-            ],
-            "get": {
-                "tags": [
-                    "Offers"
-                ],
-                "summary": "Get offers by negotiation process ID",
-                "operationId": "getOffersByNegotiationProcess",
-                "responses": {
-                    "200": {
-                        "description": "List of offers",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/OfferDto"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/offers/message/{message_id}": {
-            "parameters": [
-                {
-                    "name": "message_id",
-                    "in": "path",
-                    "required": true,
-                    "schema": {
-                        "type": "string",
-                        "format": "urn"
-                    }
-                }
-            ],
-            "get": {
-                "tags": [
-                    "Offers"
-                ],
-                "summary": "Get offer by negotiation message ID",
-                "operationId": "getOfferByNegotiationMessage",
-                "responses": {
-                    "200": {
-                        "description": "Offer found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/OfferDto"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        },
-        "/offers/offer-id/{offer_id}": {
-            "parameters": [
-                {
-                    "name": "offer_id",
-                    "in": "path",
-                    "required": true,
-                    "schema": {
-                        "type": "string"
-                    }
-                }
-            ],
-            "get": {
-                "tags": [
-                    "Offers"
-                ],
-                "summary": "Get offer by internal offer ID",
-                "operationId": "getOfferByOfferId",
-                "responses": {
-                    "200": {
-                        "description": "Offer found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/OfferDto"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError"
-                    }
-                }
-            }
-        }
+    {
+      "url": "http://127.0.0.1:1100",
+      "description": "Consumer agent (dev)"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Negotiation Processes",
+      "description": "Contract negotiations with their messages, offers and agreement"
     },
-    "components": {
-        "parameters": {
-            "LimitParam": {
-                "name": "limit",
-                "in": "query",
-                "description": "Maximum number of items to return",
-                "required": false,
-                "schema": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "default": 10
-                }
-            },
-            "PageParam": {
-                "name": "page",
-                "in": "query",
-                "description": "Page number to return",
-                "required": false,
-                "schema": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "default": 1
-                }
-            },
-            "IdPath": {
-                "name": "id",
-                "in": "path",
-                "required": true,
-                "schema": {
-                    "type": "string",
-                    "format": "urn"
-                }
+    {
+      "name": "Negotiation Messages",
+      "description": "DSP messages exchanged in a negotiation"
+    },
+    {
+      "name": "Offers",
+      "description": "Offers exchanged in a negotiation"
+    },
+    {
+      "name": "Agreements",
+      "description": "Agreements reached"
+    }
+  ],
+  "paths": {
+    "/api/v1/negotiation-agent/negotiation-processes": {
+      "get": {
+        "tags": [
+          "Negotiation Processes"
+        ],
+        "operationId": "getAllNegotiationProcesses",
+        "summary": "List negotiations",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/TenantIdCamel"
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/NegotiationProcessState"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Provider",
+                "Consumer"
+              ]
+            }
+          },
+          {
+            "name": "protocol",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "associatedAgentPeer",
+            "in": "query",
+            "required": false,
+            "description": "Participant id (DID) of the counterpart.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CreatedAfterCamel"
+          },
+          {
+            "$ref": "#/components/parameters/CreatedBeforeCamel"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of negotiations",
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/XTotalCount"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedNegotiationProcessDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Negotiation Processes"
+        ],
+        "operationId": "createNegotiationProcess",
+        "summary": "Create a negotiation record",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewNegotiationProcessDto"
+              }
+            }
+          }
         },
         "responses": {
-            "BadRequest": {
-                "description": "Bad request"
-            },
-            "NotFound": {
-                "description": "Resource not found"
-            },
-            "InternalServerError": {
-                "description": "Internal server error"
+          "201": {
+            "description": "Created negotiation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NegotiationProcessDto"
+                }
+              }
             }
-        },
-        "schemas": {
-            "BatchRequests": {
-                "type": "object",
-                "required": [
-                    "ids"
-                ],
-                "properties": {
-                    "ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "format": "urn"
-                        }
-                    }
-                }
-            },
-            "AgreementDto": {
-                "type": "object",
-                "required": [
-                    "id",
-                    "negotiationAgentProcessId",
-                    "negotiationAgentMessageId",
-                    "consumerParticipantId",
-                    "providerParticipantId",
-                    "agreementContent",
-                    "target",
-                    "state",
-                    "createdAt"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "negotiationAgentProcessId": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "negotiationAgentMessageId": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "consumerParticipantId": {
-                        "type": "string"
-                    },
-                    "providerParticipantId": {
-                        "type": "string"
-                    },
-                    "agreementContent": {
-                        "type": "object"
-                    },
-                    "target": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "state": {
-                        "type": "string"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updatedAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    }
-                }
-            },
-            "NewAgreementDto": {
-                "type": "object",
-                "required": [
-                    "negotiationAgentProcessId",
-                    "negotiationAgentMessageId",
-                    "consumerParticipantId",
-                    "providerParticipantId",
-                    "agreementContent",
-                    "target"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "negotiationAgentProcessId": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "negotiationAgentMessageId": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "consumerParticipantId": {
-                        "type": "string"
-                    },
-                    "providerParticipantId": {
-                        "type": "string"
-                    },
-                    "agreementContent": {
-                        "type": "object"
-                    },
-                    "target": {
-                        "type": "string",
-                        "format": "urn"
-                    }
-                }
-            },
-            "EditAgreementDto": {
-                "type": "object",
-                "properties": {
-                    "state": {
-                        "type": "string"
-                    }
-                }
-            },
-            "NegotiationMessageDto": {
-                "type": "object",
-                "required": [
-                    "id",
-                    "negotiationAgentProcessId",
-                    "createdAt",
-                    "direction",
-                    "protocol",
-                    "messageType",
-                    "stateTransitionFrom",
-                    "stateTransitionTo",
-                    "payload"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "negotiationAgentProcessId": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "direction": {
-                        "type": "string"
-                    },
-                    "protocol": {
-                        "type": "string"
-                    },
-                    "messageType": {
-                        "type": "string"
-                    },
-                    "stateTransitionFrom": {
-                        "type": "string"
-                    },
-                    "stateTransitionTo": {
-                        "type": "string"
-                    },
-                    "payload": {
-                        "type": "object"
-                    },
-                    "offer": {
-                        "$ref": "#/components/schemas/OfferDto"
-                    },
-                    "agreement": {
-                        "$ref": "#/components/schemas/AgreementDto"
-                    }
-                }
-            },
-            "NewNegotiationMessageDto": {
-                "type": "object",
-                "required": [
-                    "negotiationAgentProcessId",
-                    "direction",
-                    "protocol",
-                    "messageType",
-                    "stateTransitionFrom",
-                    "stateTransitionTo",
-                    "payload"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "negotiationAgentProcessId": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "direction": {
-                        "type": "string"
-                    },
-                    "protocol": {
-                        "type": "string"
-                    },
-                    "messageType": {
-                        "type": "string"
-                    },
-                    "stateTransitionFrom": {
-                        "type": "string"
-                    },
-                    "stateTransitionTo": {
-                        "type": "string"
-                    },
-                    "payload": {
-                        "type": "object"
-                    }
-                }
-            },
-            "NegotiationProcessDto": {
-                "type": "object",
-                "required": [
-                    "id",
-                    "state",
-                    "associatedAgentPeer",
-                    "protocol",
-                    "role",
-                    "properties",
-                    "createdAt"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "state": {
-                        "type": "string"
-                    },
-                    "stateAttribute": {
-                        "type": "string"
-                    },
-                    "associatedAgentPeer": {
-                        "type": "string"
-                    },
-                    "protocol": {
-                        "type": "string"
-                    },
-                    "callbackAddress": {
-                        "type": "string"
-                    },
-                    "role": {
-                        "type": "string"
-                    },
-                    "properties": {
-                        "type": "object"
-                    },
-                    "errorDetails": {
-                        "type": "object"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updatedAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "identifiers": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        }
-                    },
-                    "messages": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/NegotiationMessageDto"
-                        }
-                    },
-                    "offers": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/OfferDto"
-                        }
-                    },
-                    "agreement": {
-                        "$ref": "#/components/schemas/AgreementDto"
-                    }
-                }
-            },
-            "NewNegotiationProcessDto": {
-                "type": "object",
-                "required": [
-                    "state",
-                    "associatedAgentPeer",
-                    "protocol",
-                    "role"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "state": {
-                        "type": "string"
-                    },
-                    "stateAttribute": {
-                        "type": "string"
-                    },
-                    "associatedAgentPeer": {
-                        "type": "string"
-                    },
-                    "protocol": {
-                        "type": "string"
-                    },
-                    "callbackAddress": {
-                        "type": "string"
-                    },
-                    "role": {
-                        "type": "string"
-                    },
-                    "properties": {
-                        "type": "object"
-                    },
-                    "identifiers": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "EditNegotiationProcessDto": {
-                "type": "object",
-                "properties": {
-                    "state": {
-                        "type": "string"
-                    },
-                    "stateAttribute": {
-                        "type": "string"
-                    },
-                    "properties": {
-                        "type": "object"
-                    },
-                    "errorDetails": {
-                        "type": "object"
-                    },
-                    "identifiers": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "OfferDto": {
-                "type": "object",
-                "required": [
-                    "id",
-                    "negotiationAgentProcessId",
-                    "negotiationAgentMessageId",
-                    "offerId",
-                    "offerContent",
-                    "createdAt"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "negotiationAgentProcessId": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "negotiationAgentMessageId": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "offerId": {
-                        "type": "string"
-                    },
-                    "offerContent": {
-                        "type": "object"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    }
-                }
-            },
-            "NewOfferDto": {
-                "type": "object",
-                "required": [
-                    "negotiationAgentProcessId",
-                    "negotiationAgentMessageId",
-                    "offerId",
-                    "offerContent"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "negotiationAgentProcessId": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "negotiationAgentMessageId": {
-                        "type": "string",
-                        "format": "urn"
-                    },
-                    "offerId": {
-                        "type": "string"
-                    },
-                    "offerContent": {
-                        "type": "object"
-                    }
-                }
-            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
+      }
+    },
+    "/api/v1/negotiation-agent/negotiation-processes/batch": {
+      "post": {
+        "tags": [
+          "Negotiation Processes"
+        ],
+        "operationId": "getBatchNegotiationProcesses",
+        "summary": "Get several negotiations by id",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequests"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Negotiations found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NegotiationProcessDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/negotiation-processes/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        },
+        {
+          "$ref": "#/components/parameters/TenantHeader"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Negotiation Processes"
+        ],
+        "operationId": "getNegotiationProcessById",
+        "summary": "Get a negotiation",
+        "responses": {
+          "200": {
+            "description": "Negotiation with its messages, offers and agreement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NegotiationProcessDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Negotiation Processes"
+        ],
+        "operationId": "updateNegotiationProcessById",
+        "summary": "Update a negotiation record",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditNegotiationProcessDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated negotiation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NegotiationProcessDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Negotiation Processes"
+        ],
+        "operationId": "deleteNegotiationProcessById",
+        "summary": "Delete a negotiation record",
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/negotiation-processes/{id}/key/{keyId}": {
+      "get": {
+        "tags": [
+          "Negotiation Processes"
+        ],
+        "operationId": "getNegotiationProcessByKeyId",
+        "summary": "Get a negotiation that carries an identifier key",
+        "description": "404 unless the negotiation has an identifier named `keyId` (e.g. `consumerPid`).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UrnPathId"
+          },
+          {
+            "name": "keyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "examples": [
+                "consumerPid"
+              ]
+            }
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Negotiation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NegotiationProcessDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/negotiation-messages": {
+      "get": {
+        "tags": [
+          "Negotiation Messages"
+        ],
+        "operationId": "getAllNegotiationMessages",
+        "summary": "List negotiation messages",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/TenantIdCamel"
+          },
+          {
+            "name": "processId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "protocol",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "examples": [
+                "ContractRequestMessage"
+              ]
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "INBOUND",
+                "OUTBOUND"
+              ]
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CreatedAfterCamel"
+          },
+          {
+            "$ref": "#/components/parameters/CreatedBeforeCamel"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of messages",
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/XTotalCount"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedNegotiationMessageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Negotiation Messages"
+        ],
+        "operationId": "createNegotiationMessage",
+        "summary": "Create a message record",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewNegotiationMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NegotiationMessageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/negotiation-messages/batch": {
+      "post": {
+        "tags": [
+          "Negotiation Messages"
+        ],
+        "operationId": "getBatchNegotiationMessages",
+        "summary": "Get several messages by id",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequests"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Messages found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NegotiationMessageDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/negotiation-messages/process/{process_id}": {
+      "get": {
+        "tags": [
+          "Negotiation Messages"
+        ],
+        "operationId": "getMessagesByProcessId",
+        "summary": "Messages of a negotiation",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProcessIdPath"
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of messages",
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/XTotalCount"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedNegotiationMessageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/negotiation-messages/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        },
+        {
+          "$ref": "#/components/parameters/TenantHeader"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Negotiation Messages"
+        ],
+        "operationId": "getNegotiationMessageById",
+        "summary": "Get a message",
+        "responses": {
+          "200": {
+            "description": "Message with the offer or agreement it carried",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NegotiationMessageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Negotiation Messages"
+        ],
+        "operationId": "deleteNegotiationMessageById",
+        "summary": "Delete a message record",
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/offers": {
+      "get": {
+        "tags": [
+          "Offers"
+        ],
+        "operationId": "getAllOffers",
+        "summary": "List offers",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/TenantIdCamel"
+          },
+          {
+            "name": "processId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offerId",
+            "in": "query",
+            "required": false,
+            "description": "ODRL offer `@id`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "target",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CreatedAfterCamel"
+          },
+          {
+            "$ref": "#/components/parameters/CreatedBeforeCamel"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of offers",
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/XTotalCount"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedOfferDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Offers"
+        ],
+        "operationId": "createOffer",
+        "summary": "Create an offer record",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewOfferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created offer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/offers/batch": {
+      "post": {
+        "tags": [
+          "Offers"
+        ],
+        "operationId": "getBatchOffers",
+        "summary": "Get several offers by id",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequests"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Offers found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OfferDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/offers/process/{process_id}": {
+      "get": {
+        "tags": [
+          "Offers"
+        ],
+        "operationId": "getOffersByNegotiationProcess",
+        "summary": "Offers of a negotiation",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProcessIdPath"
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of offers",
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/XTotalCount"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedOfferDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/offers/offer-id/{offer_id}": {
+      "get": {
+        "tags": [
+          "Offers"
+        ],
+        "operationId": "getOffersByOfferId",
+        "summary": "Offers carrying an ODRL offer id",
+        "parameters": [
+          {
+            "name": "offer_id",
+            "in": "path",
+            "required": true,
+            "description": "ODRL offer `@id`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of offers",
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/XTotalCount"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedOfferDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/offers/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        },
+        {
+          "$ref": "#/components/parameters/TenantHeader"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Offers"
+        ],
+        "operationId": "getOfferById",
+        "summary": "Get an offer",
+        "responses": {
+          "200": {
+            "description": "Offer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Offers"
+        ],
+        "operationId": "deleteOfferById",
+        "summary": "Delete an offer record",
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/agreements": {
+      "get": {
+        "tags": [
+          "Agreements"
+        ],
+        "operationId": "getAllAgreements",
+        "summary": "List agreements",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/TenantIdCamel"
+          },
+          {
+            "name": "processId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "consumerId",
+            "in": "query",
+            "required": false,
+            "description": "Consumer participant id; `consumerParticipantId` is accepted as an alias.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "providerId",
+            "in": "query",
+            "required": false,
+            "description": "Provider participant id; `providerParticipantId` is accepted as an alias.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "target",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CreatedAfterCamel"
+          },
+          {
+            "$ref": "#/components/parameters/CreatedBeforeCamel"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of agreements",
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/XTotalCount"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAgreementDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Agreements"
+        ],
+        "operationId": "createAgreement",
+        "summary": "Create an agreement record",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewAgreementDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created agreement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgreementDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/agreements/batch": {
+      "post": {
+        "tags": [
+          "Agreements"
+        ],
+        "operationId": "getBatchAgreements",
+        "summary": "Get several agreements by id",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequests"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Agreements found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AgreementDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/agreements/process/{process_id}": {
+      "get": {
+        "tags": [
+          "Agreements"
+        ],
+        "operationId": "getAgreementsByNegotiationProcess",
+        "summary": "Agreements of a negotiation",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProcessIdPath"
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of agreements",
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/XTotalCount"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAgreementDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/agreements/assignee/{assignee}": {
+      "get": {
+        "tags": [
+          "Agreements"
+        ],
+        "operationId": "getAgreementsByAssignee",
+        "summary": "Agreements where a participant is the consumer",
+        "parameters": [
+          {
+            "name": "assignee",
+            "in": "path",
+            "required": true,
+            "description": "Consumer participant id.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of agreements",
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/XTotalCount"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAgreementDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/agreements/assigner/{assigner}": {
+      "get": {
+        "tags": [
+          "Agreements"
+        ],
+        "operationId": "getAgreementsByAssigner",
+        "summary": "Agreements where a participant is the provider",
+        "parameters": [
+          {
+            "name": "assigner",
+            "in": "path",
+            "required": true,
+            "description": "Provider participant id.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of agreements",
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/XTotalCount"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAgreementDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/negotiation-agent/agreements/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        },
+        {
+          "$ref": "#/components/parameters/TenantHeader"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Agreements"
+        ],
+        "operationId": "getAgreementById",
+        "summary": "Get an agreement",
+        "responses": {
+          "200": {
+            "description": "Agreement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgreementDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Agreements"
+        ],
+        "operationId": "updateAgreementById",
+        "summary": "Update an agreement's state",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditAgreementDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated agreement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgreementDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Agreements"
+        ],
+        "operationId": "deleteAgreementById",
+        "summary": "Delete an agreement record",
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
     }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "OAuth access token (JWT) or personal access token issued by `/oauth`."
+      }
+    },
+    "headers": {
+      "XTotalCount": {
+        "description": "Total number of matching items.",
+        "schema": {
+          "type": "integer"
+        }
+      }
+    },
+    "parameters": {
+      "CreatedAfterCamel": {
+        "name": "createdAfter",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "CreatedBeforeCamel": {
+        "name": "createdBefore",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Opaque `nextCursor` of the previous page.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Page size, clamped to 1..=100.",
+        "schema": {
+          "type": "integer",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "PageNumber": {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "description": "1-based page index for offset paging, used when no cursor is sent.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "ProcessIdPath": {
+        "name": "process_id",
+        "in": "path",
+        "required": true,
+        "description": "URN of the process.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Sort": {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "created_at_asc",
+            "created_at_desc",
+            "updated_at_asc",
+            "updated_at_desc"
+          ],
+          "default": "created_at_desc"
+        }
+      },
+      "TenantHeader": {
+        "name": "x-tenant-id",
+        "in": "header",
+        "required": false,
+        "description": "Tenant to act on. Non-admins may only name their own tenant.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "TenantIdCamel": {
+        "name": "tenantId",
+        "in": "query",
+        "required": false,
+        "description": "Tenant filter, honoured for admins.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "UrnPathId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "URN of the resource.",
+        "schema": {
+          "type": "string",
+          "examples": [
+            "urn:uuid:5b0f6a1e-2c3d-4e5f-8a9b-0c1d2e3f4a5b"
+          ]
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Malformed request or failed validation",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "The caller may not act on this tenant or resource",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid bearer token",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "AgreementDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "tenantId",
+          "negotiationAgentProcessId",
+          "negotiationAgentMessageId",
+          "consumerParticipantId",
+          "providerParticipantId",
+          "agreementContent",
+          "target",
+          "state",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "negotiationAgentProcessId": {
+            "type": "string"
+          },
+          "negotiationAgentMessageId": {
+            "type": "string"
+          },
+          "consumerParticipantId": {
+            "type": "string"
+          },
+          "providerParticipantId": {
+            "type": "string"
+          },
+          "agreementContent": {
+            "$ref": "#/components/schemas/OdrlAgreement"
+          },
+          "target": {
+            "type": "string",
+            "description": "URN of the dataset."
+          },
+          "state": {
+            "type": "string",
+            "examples": [
+              "ACTIVE"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "BatchRequests": {
+        "type": "object",
+        "required": [
+          "ids"
+        ],
+        "properties": {
+          "ids": {
+            "type": "array",
+            "description": "URNs to look up.",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "EditAgreementDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "EditNegotiationProcessDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "state": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NegotiationProcessState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stateAttribute": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "properties": {},
+          "errorDetails": {},
+          "identifiers": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ErrorInfo": {
+        "type": "object",
+        "description": "Error body returned by every agent.",
+        "required": [
+          "message",
+          "error_code"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "error_code": {
+            "type": "integer",
+            "description": "Internal error code of the failure kind."
+          },
+          "details": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "NegotiationMessageDto": {
+        "description": "Message with the offer or agreement it carried.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/NegotiationMessageRecord"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "offer": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/OfferDto"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "agreement": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/AgreementDto"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "NegotiationMessageRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "tenantId",
+          "negotiationAgentProcessId",
+          "createdAt",
+          "direction",
+          "protocol",
+          "messageType",
+          "stateTransitionFrom",
+          "stateTransitionTo",
+          "payload"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "negotiationAgentProcessId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "INBOUND",
+              "OUTBOUND"
+            ]
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "messageType": {
+            "type": "string",
+            "examples": [
+              "ContractRequestMessage"
+            ]
+          },
+          "stateTransitionFrom": {
+            "type": "string"
+          },
+          "stateTransitionTo": {
+            "type": "string"
+          },
+          "payload": {
+            "description": "The DSP message as sent or received."
+          }
+        }
+      },
+      "NegotiationProcessDto": {
+        "description": "Negotiation with its identifiers, messages, offers and agreement.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/NegotiationProcessRecord"
+          },
+          {
+            "type": "object",
+            "required": [
+              "identifiers",
+              "messages",
+              "offers"
+            ],
+            "properties": {
+              "identifiers": {
+                "type": "object",
+                "description": "DSP identifiers such as `consumerPid` and `providerPid`.",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "messages": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/NegotiationMessageRecord"
+                }
+              },
+              "offers": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/OfferDto"
+                }
+              },
+              "agreement": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/AgreementDto"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "NegotiationProcessRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "tenantId",
+          "state",
+          "associatedAgentPeer",
+          "protocol",
+          "role",
+          "properties",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "URN of the negotiation."
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/NegotiationProcessState"
+          },
+          "stateAttribute": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "associatedAgentPeer": {
+            "type": "string",
+            "description": "Participant id (DID) of the counterpart."
+          },
+          "protocol": {
+            "type": "string",
+            "examples": [
+              "DSP"
+            ]
+          },
+          "callbackAddress": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "Provider",
+              "Consumer"
+            ]
+          },
+          "properties": {
+            "description": "Free-form JSON."
+          },
+          "errorDetails": {
+            "description": "Last error, any JSON value."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "NegotiationProcessState": {
+        "type": "string",
+        "enum": [
+          "REQUESTED",
+          "OFFERED",
+          "ACCEPTED",
+          "AGREED",
+          "VERIFIED",
+          "FINALIZED",
+          "TERMINATED"
+        ]
+      },
+      "NewAgreementDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "negotiationAgentProcessId",
+          "negotiationAgentMessageId",
+          "consumerParticipantId",
+          "providerParticipantId",
+          "agreementContent",
+          "target"
+        ],
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "URN; generated when absent."
+          },
+          "tenantId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Target tenant, honoured for admins."
+          },
+          "negotiationAgentProcessId": {
+            "type": "string"
+          },
+          "negotiationAgentMessageId": {
+            "type": "string"
+          },
+          "consumerParticipantId": {
+            "type": "string"
+          },
+          "providerParticipantId": {
+            "type": "string"
+          },
+          "agreementContent": {},
+          "target": {
+            "type": "string"
+          }
+        }
+      },
+      "NewNegotiationMessageDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "negotiationAgentProcessId",
+          "direction",
+          "protocol",
+          "messageType",
+          "stateTransitionFrom",
+          "stateTransitionTo",
+          "payload"
+        ],
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "URN; generated when absent."
+          },
+          "tenantId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Target tenant, honoured for admins."
+          },
+          "negotiationAgentProcessId": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "INBOUND",
+              "OUTBOUND"
+            ]
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "messageType": {
+            "type": "string"
+          },
+          "stateTransitionFrom": {
+            "type": "string"
+          },
+          "stateTransitionTo": {
+            "type": "string"
+          },
+          "payload": {}
+        }
+      },
+      "NewNegotiationProcessDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "state",
+          "associatedAgentPeer",
+          "protocol",
+          "role"
+        ],
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "URN; generated when absent."
+          },
+          "tenantId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Target tenant, honoured for admins."
+          },
+          "state": {
+            "$ref": "#/components/schemas/NegotiationProcessState"
+          },
+          "stateAttribute": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "associatedAgentPeer": {
+            "type": "string"
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "callbackAddress": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "Provider",
+              "Consumer"
+            ]
+          },
+          "properties": {},
+          "identifiers": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "NewOfferDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "negotiationAgentProcessId",
+          "negotiationAgentMessageId",
+          "offerId",
+          "offerContent"
+        ],
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "URN; generated when absent."
+          },
+          "tenantId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Target tenant, honoured for admins."
+          },
+          "negotiationAgentProcessId": {
+            "type": "string"
+          },
+          "negotiationAgentMessageId": {
+            "type": "string"
+          },
+          "offerId": {
+            "type": "string"
+          },
+          "offerContent": {}
+        }
+      },
+      "OdrlAgreement": {
+        "type": "object",
+        "required": [
+          "@id",
+          "@type",
+          "target",
+          "assigner",
+          "assignee"
+        ],
+        "properties": {
+          "@id": {
+            "type": "string"
+          },
+          "@type": {
+            "type": "string",
+            "enum": [
+              "Offer",
+              "Agreement"
+            ]
+          },
+          "profile": {
+            "$ref": "#/components/schemas/OdrlProfile"
+          },
+          "permission": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlPermission"
+            }
+          },
+          "obligation": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlDuty"
+            }
+          },
+          "prohibition": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlDuty"
+            }
+          },
+          "target": {
+            "type": "string"
+          },
+          "assigner": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "OdrlAtomicConstraint": {
+        "type": "object",
+        "required": [
+          "leftOperand",
+          "operator",
+          "rightOperand"
+        ],
+        "properties": {
+          "leftOperand": {
+            "type": "string"
+          },
+          "operator": {
+            "$ref": "#/components/schemas/OdrlOperator"
+          },
+          "rightOperand": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              },
+              {
+                "type": "array",
+                "items": {}
+              }
+            ]
+          }
+        }
+      },
+      "OdrlConstraint": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/OdrlAtomicConstraint"
+          },
+          {
+            "$ref": "#/components/schemas/OdrlLogicalConstraint"
+          }
+        ]
+      },
+      "OdrlDuty": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "constraint": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/OdrlConstraint"
+            }
+          }
+        }
+      },
+      "OdrlLogicalConstraint": {
+        "type": "object",
+        "properties": {
+          "and": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlConstraint"
+            }
+          },
+          "andSequence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlConstraint"
+            }
+          },
+          "or": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlConstraint"
+            }
+          },
+          "xone": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlConstraint"
+            }
+          }
+        }
+      },
+      "OdrlOffer": {
+        "type": "object",
+        "required": [
+          "@id",
+          "@type"
+        ],
+        "properties": {
+          "@id": {
+            "type": "string"
+          },
+          "@type": {
+            "type": "string",
+            "enum": [
+              "Offer",
+              "Agreement"
+            ]
+          },
+          "profile": {
+            "$ref": "#/components/schemas/OdrlProfile"
+          },
+          "permission": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlPermission"
+            }
+          },
+          "obligation": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlDuty"
+            }
+          },
+          "prohibition": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlDuty"
+            }
+          },
+          "target": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "OdrlOperator": {
+        "type": "string",
+        "enum": [
+          "eq",
+          "gt",
+          "gteq",
+          "lteq",
+          "hasPart",
+          "isA",
+          "isAllOf",
+          "isAnyOf",
+          "isNoneOf",
+          "isPartOf",
+          "lt",
+          "termLteq",
+          "neq"
+        ]
+      },
+      "OdrlPermission": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "examples": [
+              "use"
+            ]
+          },
+          "constraint": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OdrlConstraint"
+            }
+          },
+          "duty": {
+            "$ref": "#/components/schemas/OdrlDuty"
+          }
+        }
+      },
+      "OdrlProfile": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "OfferDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "tenantId",
+          "negotiationAgentProcessId",
+          "negotiationAgentMessageId",
+          "offerId",
+          "offerContent",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "negotiationAgentProcessId": {
+            "type": "string"
+          },
+          "negotiationAgentMessageId": {
+            "type": "string"
+          },
+          "offerId": {
+            "type": "string",
+            "description": "ODRL offer `@id`."
+          },
+          "offerContent": {
+            "$ref": "#/components/schemas/OdrlOffer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PaginatedAgreementDto": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgreementDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Absent on the last page."
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "PaginatedNegotiationMessageDto": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NegotiationMessageDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Absent on the last page."
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "PaginatedNegotiationProcessDto": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NegotiationProcessDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Absent on the last page."
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "PaginatedOfferDto": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OfferDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Absent on the last page."
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
 }

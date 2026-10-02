@@ -1,161 +1,373 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
-  title: Eunomia DS-Agent Well-Known API
-  description: OpenAPI specification for the Well-Known and RPC endpoints defined in `common`.
+  title: Eunomia DS Platform API
+  description: |
+    Process-wide surface mounted by every agent: the `.well-known/dspace-version` document (Dataspace Protocol 2025-1) with lookups of a peer's version through the participant registry, health probes, and the merged OpenAPI document served by the auth module.
   version: 1.0.0
+  license:
+    name: GPL-3.0-or-later
+    url: https://www.gnu.org/licenses/gpl-3.0.html
 servers:
-  - url: /
-    description: Base URL
-
+- url: http://127.0.0.1:1200
+  description: Provider agent (dev)
+- url: http://127.0.0.1:1100
+  description: Consumer agent (dev)
 tags:
-  - name: Well-Known
-    description: Standard .well-known endpoints
-  - name: RPC
-    description: RPC endpoints for fetching well-known data from participants
-
+- name: Well-Known
+  description: Version metadata of this agent
+- name: Well-Known RPC
+  description: Lookups of a peer's version metadata
+- name: Health
+  description: Liveness and readiness probes
+- name: Docs
+  description: This API description
 paths:
   /.well-known/dspace-version:
     get:
       tags:
-        - Well-Known
-      summary: Get Dataspace Version
-      description: Returns the supported dataspace protocol versions and configurations.
+      - Well-Known
       operationId: getWellKnownDSpaceVersion
+      summary: Supported DSP versions
+      description: Every DSP version this agent supports; today only `2025-1`.
       responses:
-        "200":
-          description: Version response
+        '200':
+          description: Version document
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/VersionResponse"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
+                $ref: '#/components/schemas/VersionResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security: []
+  /.well-known/dspace-version/{version}:
+    get:
+      tags:
+      - Well-Known
+      operationId: getWellKnownDSpaceVersionByTag
+      summary: One supported DSP version
+      parameters:
+      - name: version
+        in: path
+        required: true
+        description: Version tag; anything but `2025-1` is rejected.
+        schema:
+          type: string
+          examples:
+          - 2025-1
+      responses:
+        '200':
+          description: Version entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Version'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security: []
   /rpc/.well-known/dspace-version:
     post:
       tags:
-        - RPC
-      summary: Fetch Dataspace Version from Participant
-      description: RPC call to fetch the well-known dataspace version from a specific participant.
+      - Well-Known RPC
       operationId: fetchDataspaceVersionFromParticipant
+      summary: Fetch a peer's version document
+      description: Resolves the participant in the tenant's registry and reads its `.well-known/dspace-version`.
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/WellKnownRPCRequest"
-        required: true
+              $ref: '#/components/schemas/WellKnownRPCRequest'
       responses:
-        "200":
-          description: Version response from the participant
+        '200':
+          description: The peer's version document
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/VersionResponse"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
+                $ref: '#/components/schemas/VersionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security: []
   /rpc/.well-known/dspace-version/path:
     post:
       tags:
-        - RPC
-      summary: Fetch Dataspace Current Path
-      description: RPC call to fetch the current dataspace protocol path for a specific participant.
+      - Well-Known RPC
       operationId: fetchDataspaceCurrentPath
+      summary: Fetch a peer's current DSP base URL
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/WellKnownRPCRequest"
-        required: true
+              $ref: '#/components/schemas/WellKnownRPCRequest'
       responses:
-        "200":
-          description: Path response
+        '200':
+          description: Absolute base URL of the peer's DSP 2025-1 endpoint
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/VersionPath"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
+                $ref: '#/components/schemas/VersionPath'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security: []
+  /health:
+    get:
+      tags:
+      - Health
+      operationId: getHealth
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: Always `OK`
+          content:
+            text/plain:
+              schema:
+                type: string
+                const: OK
+  /healthz:
+    get:
+      tags:
+      - Health
+      operationId: getHealthz
+      summary: Health check (alias)
+      security: []
+      responses:
+        '200':
+          description: Always `OK`
+          content:
+            text/plain:
+              schema:
+                type: string
+                const: OK
+  /liveness:
+    get:
+      tags:
+      - Health
+      operationId: getLiveness
+      summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          description: Always `OK`
+          content:
+            text/plain:
+              schema:
+                type: string
+                const: OK
+  /readiness:
+    get:
+      tags:
+      - Health
+      operationId: getReadiness
+      summary: Readiness probe
+      security: []
+      responses:
+        '200':
+          description: Always `OK`
+          content:
+            text/plain:
+              schema:
+                type: string
+                const: OK
+  /health/circuits:
+    get:
+      tags:
+      - Health
+      operationId: getHealthCircuits
+      summary: Outbound circuit breakers
+      description: 'Always 200: a failing peer must not take this instance out of rotation.'
+      security: []
+      responses:
+        '200':
+          description: Hosts whose breaker is open or probing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CircuitsStatus'
+  /api/v1/docs/openapi.json:
+    get:
+      tags:
+      - Docs
+      operationId: getOpenApiDocument
+      summary: Merged OpenAPI document
+      description: The file named by `api.openapi_path` (`merged_openapi.json`).
+      security: []
+      responses:
+        '200':
+          description: OpenAPI document
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/v1/docs/openapi:
+    get:
+      tags:
+      - Docs
+      operationId: getSwaggerUi
+      summary: Swagger UI over the merged document
+      security: []
+      responses:
+        '200':
+          description: HTML page
+          content:
+            text/html:
+              schema:
+                type: string
 components:
+  responses:
+    BadRequest:
+      description: Malformed request or failed validation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorInfo'
+    InternalServerError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorInfo'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorInfo'
   schemas:
-    WellKnownRPCRequest:
-      type: object
-      properties:
-        participant_id:
-          type: string
-          description: The ID of the participant to fetch data from.
-      required:
-        - participant_id
-
-    VersionPath:
-      type: object
-      properties:
-        path:
-          type: string
-          description: The computed base URL path for the current protocol version.
-      required:
-        - path
-
-    VersionResponse:
-      type: object
-      properties:
-        protocolVersions:
-          type: array
-          items:
-            $ref: "#/components/schemas/Version"
-      required:
-        - protocolVersions
-
-    Version:
-      type: object
-      properties:
-        binding:
-          type: string
-          enum: [HTTPS, HTTP]
-        path:
-          type: string
-        version:
-          type: string
-          enum: ["2024-1", "2025-1"]
-        auth:
-          $ref: "#/components/schemas/Auth"
-        identifierType: # Renamed from identifier_type due to camelCase in parent? No, field name in struct is identifier_type but annotated with rename_all=camelCase on struct Version
-          type: string
-          enum: ["did:web", "did:jwk", "url", "D-U-N-S"]
-        serviceId: # camelCase
-          type: string
-      required:
-        - binding
-        - path
-        - version
-
     Auth:
       type: object
+      required:
+      - protocol
+      - version
       properties:
         protocol:
           type: string
-          enum: [OAuth, Token, GNAP]
+          enum:
+          - OAuth
+          - Token
+          - GNAP
         version:
           type: string
         profile:
           type: array
           items:
             type: string
+    CircuitsStatus:
+      type: object
       required:
-        - protocol
-        - version
-
-  responses:
-    InternalServerError:
-      description: Internal Server Error
-      content:
-        application/json:
-          schema:
+      - status
+      - circuits
+      properties:
+        status:
+          type: string
+          enum:
+          - ok
+          - degraded
+        circuits:
+          type: array
+          items:
             type: object
+            required:
+            - host
+            - state
             properties:
-              code:
-                type: integer
-                example: 500
-              message:
+              host:
                 type: string
+              state:
+                type: string
+                examples:
+                - open
+                - half_open
+    ErrorInfo:
+      type: object
+      description: Error body returned by every agent.
+      required:
+      - message
+      - error_code
+      properties:
+        message:
+          type: string
+        error_code:
+          type: integer
+          description: Internal error code of the failure kind.
+        details:
+          type:
+          - string
+          - 'null'
+    Version:
+      type: object
+      required:
+      - binding
+      - path
+      - version
+      properties:
+        binding:
+          type: string
+          enum:
+          - HTTPS
+          - HTTP
+        path:
+          type: string
+          description: Path where the DSP version is mounted.
+          examples:
+          - /dsp/current
+        version:
+          type: string
+          enum:
+          - 2024-1
+          - 2025-1
+        auth:
+          oneOf:
+          - $ref: '#/components/schemas/Auth'
+          - type: 'null'
+        identifierType:
+          type:
+          - string
+          - 'null'
+          enum:
+          - did:web
+          - did:jwk
+          - url
+          - D-U-N-S
+          - null
+        serviceId:
+          type:
+          - string
+          - 'null'
+          description: URN derived from the DSP path, stable across restarts.
+    VersionPath:
+      type: object
+      required:
+      - path
+      properties:
+        path:
+          type: string
+          format: uri
+    VersionResponse:
+      type: object
+      required:
+      - protocolVersions
+      properties:
+        protocolVersions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Version'
+    WellKnownRPCRequest:
+      type: object
+      required:
+      - tenant_id
+      - participant_id
+      properties:
+        tenant_id:
+          type: string
+          description: Tenant whose participant registry holds `participant_id`.
+        participant_id:
+          type: string

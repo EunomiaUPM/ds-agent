@@ -1,0 +1,1942 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Eunomia DS OAuth API",
+    "description": "Embedded OAuth 2.0 / OIDC authorization server (`crates/oauth`). Issues the bearer tokens\nevery admin route checks, and manages users, OAuth clients and personal access tokens.\nToken endpoints accept `application/x-www-form-urlencoded` or `application/json` bodies and\nanswer errors as RFC 6749 §5.2 objects; the management routes answer `ErrorInfo`.\n",
+    "version": "1.0.0",
+    "license": {
+      "name": "GPL-3.0-or-later",
+      "url": "https://www.gnu.org/licenses/gpl-3.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:1200",
+      "description": "Provider agent (dev)"
+    },
+    {
+      "url": "http://127.0.0.1:1100",
+      "description": "Consumer agent (dev)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "OAuth",
+      "description": "Token issuance, introspection and OIDC discovery"
+    },
+    {
+      "name": "OAuth Users",
+      "description": "Users of the agent; a user's identifier is its tenant"
+    },
+    {
+      "name": "OAuth Clients",
+      "description": "Confidential clients for the client_credentials grant"
+    },
+    {
+      "name": "Personal Access Tokens",
+      "description": "Long-lived tokens owned by the calling user"
+    }
+  ],
+  "paths": {
+    "/oauth/authorize": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "authorizeOAuthGet",
+        "summary": "Issue a PKCE authorization code",
+        "description": "Only `response_type=code` with a `code_challenge` is supported. Without `user_id`, the\nuser is taken from the bearer token when one is sent.\n",
+        "parameters": [
+          {
+            "name": "response_type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "const": "code"
+            }
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "redirect_uri",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code_challenge",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code_challenge_method",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "S256",
+                "plain"
+              ]
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorization code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/OAuthErrorResponse"
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "authorizeOAuthPost",
+        "summary": "Issue a PKCE authorization code (body)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthAuthorizeRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthAuthorizeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authorization code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/OAuthErrorResponse"
+          }
+        },
+        "security": []
+      }
+    },
+    "/oauth/token": {
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "createOAuthToken",
+        "summary": "Issue a token",
+        "description": "Grants: `password`, `client_credentials` (secret via HTTP Basic or body, or a\n`private_key_jwt` client assertion), `authorization_code` (PKCE), `refresh_token` and\n`urn:ietf:params:oauth:grant-type:jwt-bearer`. Without `grant_type` it is inferred from the\nfields present.\n",
+        "security": [
+          {},
+          {
+            "clientBasic": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthTokenRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Issued token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/OAuthErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/OAuthErrorResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/OAuthErrorResponse"
+          }
+        }
+      }
+    },
+    "/oauth/refresh": {
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "refreshOAuthToken",
+        "summary": "Exchange a refresh token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthRefreshRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthRefreshRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New token pair",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/OAuthErrorResponse"
+          }
+        },
+        "security": []
+      }
+    },
+    "/oauth/revoke": {
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "revokeOAuthToken",
+        "summary": "Revoke a token (RFC 7009)",
+        "description": "Always answers 200, whether or not the token was known.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthRevokeRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthRevokeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Revoked or unknown"
+          },
+          "400": {
+            "$ref": "#/components/responses/OAuthErrorResponse"
+          }
+        },
+        "security": []
+      }
+    },
+    "/oauth/introspect": {
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "introspectOAuthToken",
+        "summary": "Introspect a token (RFC 7662)",
+        "description": "An invalid or unknown token answers `{\"active\": false}`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthRevokeRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthRevokeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenIntrospectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/OAuthErrorResponse"
+          }
+        },
+        "security": []
+      }
+    },
+    "/oauth/userinfo": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "getOAuthUserInfo",
+        "summary": "OIDC user info of the bearer",
+        "description": "Also served at `/oauth/user-info` and `/oauth/user_info`.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Claims of the calling user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthUserInfo"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/oauth/.well-known/openid-configuration": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "getOpenIdConfiguration",
+        "summary": "OIDC discovery document",
+        "responses": {
+          "200": {
+            "description": "Discovery document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenIdConfiguration"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/oauth/users": {
+      "get": {
+        "tags": [
+          "OAuth Users"
+        ],
+        "operationId": "listOAuthUsers",
+        "summary": "List users",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/RbacRole"
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CreatedAfterCamel"
+          },
+          {
+            "$ref": "#/components/parameters/CreatedBeforeCamel"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of users",
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/XTotalCount"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedOAuthUser"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "OAuth Users"
+        ],
+        "operationId": "createOAuthUser",
+        "summary": "Create a user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthUser"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/oauth/users/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "User identifier, which is its tenant id.",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "$ref": "#/components/parameters/TenantHeader"
+        }
+      ],
+      "get": {
+        "tags": [
+          "OAuth Users"
+        ],
+        "operationId": "getOAuthUserById",
+        "summary": "Get a user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthUser"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "OAuth Users"
+        ],
+        "operationId": "patchOAuthUser",
+        "summary": "Update a user",
+        "description": "Absent fields keep their value.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchUserCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthUser"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "OAuth Users"
+        ],
+        "operationId": "deleteOAuthUser",
+        "summary": "Delete a user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/oauth/clients": {
+      "get": {
+        "tags": [
+          "OAuth Clients"
+        ],
+        "operationId": "listOAuthClients",
+        "summary": "List OAuth clients",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/RbacRole"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "description": "Matches the client id or name.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CreatedAfterCamel"
+          },
+          {
+            "$ref": "#/components/parameters/CreatedBeforeCamel"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of clients",
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/XTotalCount"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedOAuthClient"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "OAuth Clients"
+        ],
+        "operationId": "registerOAuthClient",
+        "summary": "Register an OAuth client",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClientCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registered client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthClient"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/oauth/clients/{clientId}": {
+      "parameters": [
+        {
+          "name": "clientId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "$ref": "#/components/parameters/TenantHeader"
+        }
+      ],
+      "get": {
+        "tags": [
+          "OAuth Clients"
+        ],
+        "operationId": "getOAuthClientById",
+        "summary": "Get an OAuth client",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthClient"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "OAuth Clients"
+        ],
+        "operationId": "deleteOAuthClient",
+        "summary": "Delete an OAuth client",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/oauth/pats": {
+      "get": {
+        "tags": [
+          "Personal Access Tokens"
+        ],
+        "operationId": "listPersonalAccessTokens",
+        "summary": "List personal access tokens",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "description": "Owner of the tokens; `userId` is accepted as an alias.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "revoked"
+              ]
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/RbacRole"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "description": "Matches the token name or prefix.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CreatedAfterCamel"
+          },
+          {
+            "$ref": "#/components/parameters/CreatedBeforeCamel"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of tokens, raw values omitted",
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/XTotalCount"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPatRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Personal Access Tokens"
+        ],
+        "operationId": "createPersonalAccessToken",
+        "summary": "Create a personal access token",
+        "description": "The token carries the caller's role. The raw token is only returned here.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePatCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created token, raw value included",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePatResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/oauth/pats/{patId}": {
+      "delete": {
+        "tags": [
+          "Personal Access Tokens"
+        ],
+        "operationId": "revokePersonalAccessToken",
+        "summary": "Revoke a personal access token",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/TenantHeader"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "OAuth access token (JWT) or personal access token issued by `/oauth`."
+      },
+      "clientBasic": {
+        "type": "http",
+        "scheme": "basic",
+        "description": "OAuth client id and secret (`client_secret_basic`)."
+      }
+    },
+    "headers": {
+      "XTotalCount": {
+        "description": "Total number of matching items.",
+        "schema": {
+          "type": "integer"
+        }
+      }
+    },
+    "parameters": {
+      "CreatedAfterCamel": {
+        "name": "createdAfter",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "CreatedBeforeCamel": {
+        "name": "createdBefore",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Opaque `nextCursor` of the previous page.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Page size, clamped to 1..=100.",
+        "schema": {
+          "type": "integer",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "PageNumber": {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "description": "1-based page index for offset paging, used when no cursor is sent.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "Sort": {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "created_at_asc",
+            "created_at_desc",
+            "updated_at_asc",
+            "updated_at_desc"
+          ],
+          "default": "created_at_desc"
+        }
+      },
+      "TenantHeader": {
+        "name": "x-tenant-id",
+        "in": "header",
+        "required": false,
+        "description": "Tenant to act on. Non-admins may only name their own tenant.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Malformed request or failed validation",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "The resource already exists or changed",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "The caller may not act on this tenant or resource",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "OAuthErrorResponse": {
+        "description": "RFC 6749 §5.2 error (`invalid_client` is a 401, `server_error` a 500)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/OAuthError"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid bearer token",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "CreateClientCommand": {
+        "type": "object",
+        "required": [
+          "clientId",
+          "clientSecret",
+          "clientName",
+          "role"
+        ],
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Owner tenant, honoured for admins."
+          },
+          "clientSecret": {
+            "type": "string",
+            "format": "password"
+          },
+          "clientName": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/RbacRole"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CreatePatCommand": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Without it the token never expires."
+          }
+        }
+      },
+      "CreatePatResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "token",
+          "tokenPrefix",
+          "role",
+          "scopes",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string",
+            "description": "Raw token; shown only once."
+          },
+          "tokenPrefix": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/RbacRole"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateUserCommand": {
+        "type": "object",
+        "required": [
+          "tenantId",
+          "email",
+          "password",
+          "role"
+        ],
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "description": "Tenant of the user, which is also its identifier."
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "format": "password"
+          },
+          "role": {
+            "$ref": "#/components/schemas/RbacRole"
+          },
+          "extraFields": {
+            "description": "Free-form JSON stored with the user."
+          }
+        }
+      },
+      "ErrorInfo": {
+        "type": "object",
+        "description": "Error body returned by every agent.",
+        "required": [
+          "message",
+          "error_code"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "error_code": {
+            "type": "integer",
+            "description": "Internal error code of the failure kind."
+          },
+          "details": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "OAuthAuthorizeRequest": {
+        "type": "object",
+        "required": [
+          "response_type",
+          "client_id",
+          "code_challenge"
+        ],
+        "properties": {
+          "response_type": {
+            "type": "string",
+            "const": "code"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "redirect_uri": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "code_challenge": {
+            "type": "string"
+          },
+          "code_challenge_method": {
+            "type": "string",
+            "enum": [
+              "S256",
+              "plain"
+            ]
+          },
+          "user_id": {
+            "type": "string",
+            "description": "User the code is issued for; defaults to the bearer's subject."
+          }
+        }
+      },
+      "OAuthAuthorizeResponse": {
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "redirect_uri": {
+            "type": "string"
+          }
+        }
+      },
+      "OAuthClient": {
+        "type": "object",
+        "required": [
+          "clientId",
+          "tenantId",
+          "clientName",
+          "role",
+          "scopes",
+          "createdAt"
+        ],
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "clientName": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/RbacRole"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "OAuthError": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid_request",
+              "invalid_client",
+              "invalid_grant",
+              "unauthorized_client",
+              "unsupported_grant_type",
+              "invalid_scope",
+              "server_error"
+            ]
+          },
+          "error_description": {
+            "type": "string"
+          }
+        }
+      },
+      "OAuthRefreshRequest": {
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "properties": {
+          "refresh_token": {
+            "type": "string"
+          }
+        }
+      },
+      "OAuthRevokeRequest": {
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "token_type_hint": {
+            "type": "string",
+            "enum": [
+              "access_token",
+              "refresh_token"
+            ]
+          }
+        }
+      },
+      "OAuthTokenRequest": {
+        "type": "object",
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "enum": [
+              "password",
+              "client_credentials",
+              "authorization_code",
+              "refresh_token",
+              "urn:ietf:params:oauth:grant-type:jwt-bearer"
+            ]
+          },
+          "username": {
+            "type": "string",
+            "description": "`password` grant: the user's tenant id or email."
+          },
+          "password": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "redirect_uri": {
+            "type": "string"
+          },
+          "code_verifier": {
+            "type": "string"
+          },
+          "assertion": {
+            "type": "string",
+            "description": "Signed JWT for the jwt-bearer grant (RFC 7523)."
+          },
+          "client_assertion_type": {
+            "type": "string",
+            "const": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+          },
+          "client_assertion": {
+            "type": "string"
+          }
+        }
+      },
+      "OAuthTokenResponse": {
+        "type": "object",
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in"
+        ],
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string",
+            "examples": [
+              "Bearer"
+            ]
+          },
+          "expires_in": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "id_token": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          }
+        }
+      },
+      "OAuthUser": {
+        "type": "object",
+        "required": [
+          "tenantId",
+          "email",
+          "role",
+          "createdAt",
+          "extraFields"
+        ],
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/RbacRole"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "extraFields": {
+            "description": "Free-form JSON stored with the user."
+          }
+        }
+      },
+      "OAuthUserInfo": {
+        "type": "object",
+        "description": "`sub`, email and role, plus the user's extra fields at the top level.",
+        "required": [
+          "sub",
+          "email",
+          "role"
+        ],
+        "properties": {
+          "sub": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/RbacRole"
+          }
+        },
+        "additionalProperties": true
+      },
+      "OpenIdConfiguration": {
+        "type": "object",
+        "required": [
+          "issuer",
+          "authorization_endpoint",
+          "token_endpoint",
+          "userinfo_endpoint",
+          "revocation_endpoint",
+          "introspection_endpoint"
+        ],
+        "properties": {
+          "issuer": {
+            "type": "string"
+          },
+          "authorization_endpoint": {
+            "type": "string"
+          },
+          "token_endpoint": {
+            "type": "string"
+          },
+          "userinfo_endpoint": {
+            "type": "string"
+          },
+          "revocation_endpoint": {
+            "type": "string"
+          },
+          "introspection_endpoint": {
+            "type": "string"
+          },
+          "response_types_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subject_types_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "id_token_signing_alg_values_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "grant_types_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "code_challenge_methods_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "token_endpoint_auth_methods_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "revocation_endpoint_auth_methods_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "introspection_endpoint_auth_methods_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "claims_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "PaginatedOAuthClient": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OAuthClient"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Absent on the last page."
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "PaginatedOAuthUser": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OAuthUser"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Absent on the last page."
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "PaginatedPatRecord": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PatRecord"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Absent on the last page."
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "PatRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "tokenPrefix",
+          "role",
+          "scopes",
+          "createdAt",
+          "revoked"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "tokenPrefix": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/RbacRole"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "revoked": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PatchUserCommand": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RbacRole"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "extraFields": {
+            "description": "Replaces the user's extra fields."
+          }
+        }
+      },
+      "RbacRole": {
+        "type": "string",
+        "enum": [
+          "admin",
+          "owner",
+          "reader"
+        ]
+      },
+      "TokenIntrospectionResponse": {
+        "type": "object",
+        "required": [
+          "active"
+        ],
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "sub": {
+            "type": "string"
+          },
+          "exp": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "iat": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

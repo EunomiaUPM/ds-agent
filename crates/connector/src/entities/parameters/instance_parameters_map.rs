@@ -77,13 +77,12 @@ impl InstanceParametersMapBuilder {
         extractor.walk(connector_template)?;
         let parameters_found = extractor.found_parameters();
         for found in parameters_found {
-            let value = self.resolve_sys_value(&found)?;
+            let value = self.resolve_sys_value(found)?;
             self.params.entry(found.name.clone()).or_insert(value);
         }
         Ok(self)
     }
 
-    #[allow(dead_code)]
     pub fn with_runtime_parameters(
         self,
         _connector_instance: &ConnectorInstanceDto,
@@ -106,8 +105,7 @@ impl InstanceParametersMapBuilder {
                 let parsed = raw_val.parse::<i64>().map_err(|_| {
                     Errors::crazy(
                         format!(
-                            "Template Definition Error: Default value '{}' for param '{}' is not a valid Integer.",
-                            raw_val, param_name
+                            "Template Definition Error: Default value '{raw_val}' for param '{param_name}' is not a valid Integer."
                         ),
                         None,
                     )
@@ -118,8 +116,7 @@ impl InstanceParametersMapBuilder {
                 let parsed = raw_val.to_lowercase().parse::<bool>().map_err(|_| {
                     Errors::crazy(
                         format!(
-                            "Template Definition Error: Default value '{}' for param '{}' is not a valid Boolean.",
-                            raw_val, param_name
+                            "Template Definition Error: Default value '{raw_val}' for param '{param_name}' is not a valid Boolean."
                         ),
                         None,
                     )
@@ -128,18 +125,18 @@ impl InstanceParametersMapBuilder {
             }
             ParameterType::VecString | ParameterType::MapStringString => {
                 let parsed: serde_json::Value = serde_json::from_str(raw_val).map_err(|e| {
-                    Errors::crazy(format!("Template Definition Error: Default value '{}' for complex param '{}' is not valid JSON: {}", raw_val, param_name, e), None)
+                    Errors::crazy(format!("Template Definition Error: Default value '{raw_val}' for complex param '{param_name}' is not valid JSON: {e}"), None)
                 })?;
 
                 if matches!(param_type, ParameterType::VecString) && !parsed.is_array() {
                     return Err(Errors::crazy(
-                        format!("Default value for '{}' must be a JSON Array", param_name),
+                        format!("Default value for '{param_name}' must be a JSON Array"),
                         None,
                     ));
                 }
                 if matches!(param_type, ParameterType::MapStringString) && !parsed.is_object() {
                     return Err(Errors::crazy(
-                        format!("Default value for '{}' must be a JSON Object", param_name),
+                        format!("Default value for '{param_name}' must be a JSON Object"),
                         None,
                     ));
                 }

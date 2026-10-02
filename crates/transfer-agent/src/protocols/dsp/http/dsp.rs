@@ -16,7 +16,6 @@
  */
 
 use crate::entities::protocol::ProtocolId;
-use crate::entities::transfer_message::TransferMessage;
 use crate::protocols::dsp::entities::idempotency::{
     IdempotencyStoreTrait, InMemoryIdempotencyStore,
 };

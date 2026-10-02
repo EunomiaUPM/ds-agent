@@ -22,7 +22,7 @@ use sea_orm::entity::prelude::*;
 use ymir::errors::Outcome;
 
 use crate::data::sea_orm::orm::helpers::{deser_enum, deser_json, ser_enum, ser_json};
-use crate::entities::ids::{MessageId, TenantId};
+use crate::entities::ids::MessageId;
 use crate::entities::message_envelope::MessageEnvelope;
 use crate::entities::protocol::{ProtocolId, ProtocolMessageType};
 use crate::entities::transfer_message::{Direction, TransferMessage};
@@ -44,7 +44,6 @@ pub struct Model {
     pub occurred_at: DateTimeWithTimeZone,
 }
 
-#[allow(clippy::result_large_err)]
 impl Model {
     pub fn into_domain(self) -> Outcome<TransferMessage> {
         use crate::entities::ids::TransferProcessId;

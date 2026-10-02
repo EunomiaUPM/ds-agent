@@ -221,7 +221,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
         base_url: &str,
         token: &str,
     ) -> participant::Plan {
-        let base_url = trim_4_base(&base_url);
+        let base_url = trim_4_base(base_url);
         participant::Plan {
             participant_id: holder.to_string(),
             tenant_id: tenant_id.to_string(),
@@ -246,7 +246,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
             KeyProof::HttpSig => {}
             other => {
                 return Err(Errors::not_impl(
-                    format!("Proof method {} not implemented", other),
+                    format!("Proof method {other} not implemented"),
                     None,
                 ))
             }
@@ -306,7 +306,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
 
         if continue_req.interact_ref != interaction.interact_ref {
             return Err(Errors::security(
-                &format!(
+                format!(
                     "Interact reference '{}' does not match '{}'",
                     continue_req.interact_ref, interaction.interact_ref,
                 ),
@@ -317,7 +317,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
         let token = extract_gnap_token(headers)?;
         if token != interaction.continue_token {
             return Err(Errors::security(
-                &format!(
+                format!(
                     "Token '{}' does not match '{}'",
                     token, interaction.continue_token
                 ),

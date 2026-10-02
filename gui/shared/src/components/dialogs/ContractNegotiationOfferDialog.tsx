@@ -79,14 +79,17 @@ export const ContractNegotiationOfferDialog = ({
   // ---------------------------------------------------------------------------
 
   const handleSubmit = async () => {
-    if (!process.id || !lastOffer || !currentPolicy) {
+    const providerPid = process.identifiers.providerPid;
+    const consumerPid = process.identifiers.consumerPid;
+    if (!providerPid || !consumerPid || !lastOffer || !currentPolicy) {
       console.error("Missing required data for offer");
       return;
     }
 
     await setupOffer({
       data: {
-        processId: process.id,
+        providerPid,
+        consumerPid,
         offer: {
           "@id": (lastOffer.offerContent["@id"] as string) ?? "urn:uuid:placeholder",
           "@type": lastOffer.offerContent["@type"] as any,

@@ -52,7 +52,7 @@ impl NegotiationProtocolStep for NegotiationEventStep {
         mate: &Mates,
     ) -> Outcome<()> {
         validator
-            .on_contract_event(&DspActor::peer(mate), &id.to_string(), input)
+            .on_contract_event(&DspActor::peer(mate), id, input)
             .await
     }
 

@@ -18,17 +18,13 @@
 use crate::data::entities::policy_template;
 use crate::data::entities::policy_template::{Model, NewPolicyTemplateModel};
 use crate::data::repo_traits::catalog_db_errors::{
-    CatalogAgentRepoErrors, OdrlOfferRepoErrors, PolicyTemplatesRepoErrors,
+    CatalogAgentRepoErrors, PolicyTemplatesRepoErrors,
 };
 use crate::data::repo_traits::policy_template_repo::PolicyTemplatesRepositoryTrait;
 use crate::entities::filters::PolicyTemplateFilter;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use common::query::FilterApplier;
-use sea_orm::{
-    ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
-    QuerySelect, Select,
-};
-use urn::Urn;
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Select};
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 impl FilterApplier<Select<policy_template::Entity>> for PolicyTemplateFilter {

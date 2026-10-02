@@ -15,13 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::ids::{ParticipantId, TenantId};
+use crate::entities::ids::ParticipantId;
 use crate::entities::protocol::{ProtocolId, ProtocolState, TransferRole};
 use crate::entities::transfer_message::Direction;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
-use ymir::errors::{BadFormat, Errors, Outcome};
+use ymir::errors::Outcome;
 
 use common::query::{QueryFilter, validate_date_range};
 

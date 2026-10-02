@@ -303,10 +303,7 @@ impl ErrorLog for CommonErrors {
         ) -> String {
             let base = format_info(info, cause);
             let code = http_code.unwrap_or(0);
-            format!(
-                "{}\nMethod: {}\nUrl: {}\nHttp Code: {}",
-                base, method, url, code
-            )
+            format!("{base}\nMethod: {method}\nUrl: {url}\nHttp Code: {code}")
         }
 
         match self {
@@ -474,10 +471,7 @@ impl CommonErrors {
         };
         CommonErrors::MissingActionError {
             info: ErrorInfo {
-                message: format!(
-                    "The action {} is required to proceed with this step",
-                    action
-                ),
+                message: format!("The action {action} is required to proceed with this step"),
                 error_code,
                 status_code: StatusCode::PRECONDITION_FAILED,
                 details: None,
@@ -577,7 +571,7 @@ impl CommonErrors {
     pub fn read_new(path: &str, cause: &str) -> Self {
         Self::ReadError {
             info: ErrorInfo {
-                message: format!("Failed to read file {}", path),
+                message: format!("Failed to read file {path}"),
                 error_code: 6010,
                 status_code: StatusCode::INTERNAL_SERVER_ERROR,
                 details: None,
@@ -592,7 +586,7 @@ impl CommonErrors {
     pub fn write_new(path: &str, cause: &str) -> Self {
         Self::WriteError {
             info: ErrorInfo {
-                message: format!("Failed to write file {}", path),
+                message: format!("Failed to write file {path}"),
                 error_code: 6020,
                 status_code: StatusCode::INTERNAL_SERVER_ERROR,
                 details: None,
@@ -626,7 +620,7 @@ impl CommonErrors {
                 details: None,
                 cause: module.to_string(),
             },
-            cause: format!("module {} is not active", module),
+            cause: format!("module {module} is not active"),
         }
     }
     /// Environment variable missing (500, code 800).

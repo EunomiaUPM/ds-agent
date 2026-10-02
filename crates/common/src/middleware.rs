@@ -43,15 +43,15 @@ pub async fn log_raw_body(req: ExtractRequest, next: Next) -> Response {
     let bytes = match to_bytes(body, 2 * 1024 * 1024).await {
         Ok(b) => b,
         Err(err) => {
-            println!(">>> Error reading raw bytes: {}", err);
+            println!(">>> Error reading raw bytes: {err}");
             return StatusCode::BAD_REQUEST.into_response();
         }
     };
 
     if let Ok(body_str) = std::str::from_utf8(&bytes) {
-        println!(">>> RAW BODY: {}", body_str);
+        println!(">>> RAW BODY: {body_str}");
     } else {
-        println!(">>> RAW BODY (binary): {:?}", bytes);
+        println!(">>> RAW BODY (binary): {bytes:?}");
     }
 
     // Reconstruct the request with the bytes so downstream handlers can read it.

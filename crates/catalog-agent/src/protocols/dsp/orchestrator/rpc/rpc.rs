@@ -27,16 +27,12 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::protocols::dsp::types::dataset_definition::Dataset;
-use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use axum::http::HeaderMap;
 use common::auth::AccessScope;
-use common::errors::{CommonErrors, ErrorLog};
 use common::facades::mates_facade::MatesFacadeTrait;
 use common::well_known::rpc::WellKnownRPCRequest;
-use std::marker::PhantomData;
 use std::sync::Arc;
-use tracing::error;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientExt;
 use ymir::types::http::{HttpBody, Method};
@@ -93,7 +89,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         // validation
         self.validator.on_catalog_request(input).await?;
 
-        if input.no_cache == false {
+        if !input.no_cache {
             // hit caché and return guard
             let catalog_in_cache = self.persistence.get_catalog(scope, &agent_peer).await?;
             if let Some(catalog) = catalog_in_cache {
@@ -121,7 +117,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             .await?;
 
         // send dsp message to peer to fetch catalog
-        let peer_url = format!("{}/catalog/request", provider_address);
+        let peer_url = format!("{provider_address}/catalog/request");
         let request_body: CatalogMessageWrapper<CatalogRequestMessageDto> = input.clone().into();
         let headers = self.peer_headers(scope, agent_peer.clone()).await?;
         let response = http_client()
@@ -132,7 +128,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             )
             .await?;
 
-        if input.no_cache == false {
+        if !input.no_cache {
             // hydrate cache
             let _ = self
                 .persistence
@@ -170,7 +166,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             })
             .await?;
         let dataset = input.get_dataset_id().unwrap_or("".to_string());
-        let peer_url = format!("{}/catalog/datasets/{}", provider_address, dataset);
+        let peer_url = format!("{provider_address}/catalog/datasets/{dataset}");
         let request_body: CatalogMessageWrapper<DatasetRequestMessage> = input.clone().into();
         let peer_id = input.get_associated_agent_peer().unwrap_or_default();
         let headers = self.peer_headers(scope, peer_id).await?;

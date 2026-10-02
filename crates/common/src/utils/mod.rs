@@ -43,9 +43,9 @@ static UUID_PREFIX: &str = "urn:uuid:";
 pub fn get_urn(optional_urn: Option<Urn>) -> Urn {
     optional_urn.unwrap_or_else(|| {
         let uuid = Uuid::new_v4();
-        let id_string = format!("{}{}", UUID_PREFIX, uuid);
-        let urn = id_string.parse::<Urn>().unwrap();
-        urn
+        let id_string = format!("{UUID_PREFIX}{uuid}");
+
+        id_string.parse::<Urn>().unwrap()
     })
 }
 
@@ -56,20 +56,17 @@ pub fn generate_uuid_urn(prefix: &str) -> Urn {
 }
 
 /// Parses a string slice into a `Urn`.
-#[allow(clippy::result_large_err)]
 pub fn parse_urn(s: &str) -> Outcome<Urn> {
     s.parse::<Urn>()
         .map_err(|e| Errors::crazy("invalid URN in database", Some(Box::new(e))))
 }
 
 /// Parses a string slice into a `Url`.
-#[allow(clippy::result_large_err)]
 pub fn parse_url(s: &str) -> Outcome<Url> {
     Url::parse(s).map_err(|e| Errors::parse("Error parsing url", Some(Box::new(e))))
 }
 
 /// Parses a string slice into a `Urn` (backwards-compatible alias).
-#[allow(clippy::result_large_err)]
 pub fn get_urn_from_string(string_in: &str) -> Outcome<Urn> {
     parse_urn(string_in)
 }
@@ -77,12 +74,10 @@ pub fn get_urn_from_string(string_in: &str) -> Outcome<Urn> {
 /// Extension trait for parsing string slices into URNs.
 pub trait ParseUrnExt {
     /// Parses the string slice into a `Urn`.
-    #[allow(clippy::result_large_err)]
     fn parse_urn(&self) -> Outcome<Urn>;
 }
 
 impl ParseUrnExt for str {
-    #[allow(clippy::result_large_err)]
     fn parse_urn(&self) -> Outcome<Urn> {
         parse_urn(self)
     }

@@ -22,14 +22,14 @@ use axum::http::HeaderMap;
 use connector::ApiKeyLocation;
 use dataplane::engine::dataplane_manager::dataplane_runtime::ResolvedAuthCredentials;
 
-use dataplane::engine::dataplane_drivers::proxy::http::*;
+use dataplane::engine::dataplane_drivers::proxy::http::HttpProxyDriver;
 
 fn auth_headers(creds: &ResolvedAuthCredentials) -> HeaderMap {
-    build_auth_artifacts(creds).unwrap().0
+    HttpProxyDriver::build_auth_artifacts(creds).unwrap().0
 }
 
 fn auth_query(creds: &ResolvedAuthCredentials) -> Vec<(String, String)> {
-    build_auth_artifacts(creds).unwrap().1
+    HttpProxyDriver::build_auth_artifacts(creds).unwrap().1
 }
 
 /// No auth adds no headers.

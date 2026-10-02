@@ -27,7 +27,6 @@ use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 /// Persistence of parameters, keyed by tenant and path.
-#[allow(dead_code)]
 #[mockall::automock(type Value = serde_json::Value;)]
 #[async_trait::async_trait]
 pub trait ParameterRepoTrait: Send + Sync {
@@ -67,7 +66,6 @@ pub trait ParameterRepoTrait: Send + Sync {
 
 /// Failures of the parameter repository, mapped onto `Errors`.
 #[derive(Debug, Error)]
-#[allow(dead_code)]
 pub enum ParameterRepoErrors {
     #[error("Parameter not found")]
     ParameterNotFound,

@@ -18,7 +18,7 @@
 use chrono::{DateTime, Utc};
 
 use crate::entities::commands::NewTransferMessageCommand;
-use crate::entities::ids::{MessageId, TenantId, TransferProcessId};
+use crate::entities::ids::{MessageId, TransferProcessId};
 use crate::entities::message_envelope::MessageEnvelope;
 use crate::entities::protocol::{ProtocolId, ProtocolMessageType};
 use ymir::errors::{Errors, Outcome};
@@ -48,7 +48,6 @@ pub struct TransferMessage {
     pub occurred_at: DateTime<Utc>,
 }
 
-#[allow(dead_code, clippy::result_large_err)]
 impl TransferMessage {
     pub fn from_cmd(cmd: &NewTransferMessageCommand) -> Outcome<Self> {
         let id = cmd.id.clone().unwrap_or_else(MessageId::generate);

@@ -75,7 +75,7 @@ impl FromStr for SysParameterType {
         }
         // All unit variants delegate to serde so new variants don't require a FromStr update.
         serde_json::from_value(serde_json::Value::String(s.to_string()))
-            .map_err(|_| Errors::validation(format!("{} system parameter not valid", s), None))
+            .map_err(|_| Errors::validation(format!("{s} system parameter not valid"), None))
     }
 }
 

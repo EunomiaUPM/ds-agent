@@ -40,7 +40,6 @@ macro_rules! urn_id {
         #[serde(transparent)]
         pub struct $name(pub ::urn::Urn);
 
-        #[allow(dead_code)]
         impl $name {
             pub fn new(urn: ::urn::Urn) -> Self {
                 Self(urn)
@@ -58,7 +57,6 @@ macro_rules! urn_id {
     };
     ($name:ident, gen = $prefix:literal) => {
         $crate::urn_id!($name);
-        #[allow(dead_code)]
         impl $name {
             pub fn generate() -> Self {
                 Self($crate::utils::generate_uuid_urn($prefix))
@@ -76,7 +74,6 @@ macro_rules! str_id {
         #[serde(transparent)]
         pub struct $name(pub $inner);
 
-        #[allow(dead_code)]
         impl $name {
             pub fn new(s: impl Into<$inner>) -> Self {
                 Self(s.into())
@@ -94,7 +91,6 @@ macro_rules! str_id {
     };
     ($name:ident, $inner:ty, gen) => {
         $crate::str_id!($name, $inner);
-        #[allow(dead_code)]
         impl $name {
             pub fn generate() -> Self {
                 Self(<$inner>::from(::uuid::Uuid::new_v4().to_string()))

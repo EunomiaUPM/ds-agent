@@ -625,7 +625,7 @@ impl Display for NegotiationProcessState {
             NegotiationProcessState::Finalized => "FINALIZED".to_string(),
             NegotiationProcessState::Terminated => "TERMINATED".to_string(),
         };
-        write!(f, "{}", str)
+        write!(f, "{str}")
     }
 }
 
@@ -698,7 +698,7 @@ impl Display for NegotiationProcessMessageType {
                 "ContractNegotiationError".to_string()
             }
         };
-        write!(f, "{}", str)
+        write!(f, "{str}")
     }
 }
 
@@ -783,10 +783,7 @@ impl TryFrom<NegotiationProcessView>
             Ok(urn) => urn,
             Err(e) => {
                 let err = Errors::parse(
-                    format!(
-                        "Invalid URN format for consumerPid '{}': {}",
-                        consumer_str, e
-                    ),
+                    format!("Invalid URN format for consumerPid '{consumer_str}': {e}"),
                     None,
                 );
                 error!("{}", err);
@@ -809,10 +806,7 @@ impl TryFrom<NegotiationProcessView>
             Ok(urn) => urn,
             Err(e) => {
                 let err = Errors::parse(
-                    format!(
-                        "Invalid URN format for providerPid '{}': {}",
-                        provider_str, e
-                    ),
+                    format!("Invalid URN format for providerPid '{provider_str}': {e}"),
                     None,
                 );
                 error!("{}", err);

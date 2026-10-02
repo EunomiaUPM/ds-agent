@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::types::dataservice_definition::{DataService, DataServiceMinimized};
 use crate::protocols::dsp::types::distribution_definition::{Distribution, DistributionMinimized};
 use crate::protocols::dsp::types::CatalogDspTraitDefinition;
 use common::dsp_common::context_field::ContextField;

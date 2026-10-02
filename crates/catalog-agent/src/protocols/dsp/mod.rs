@@ -38,7 +38,6 @@ use crate::services::peer_catalogs::PeerCatalogServiceTrait;
 use axum::Router;
 use common::auth::http::AuthHttpMiddleware;
 use common::auth::OauthTokenValidator;
-use common::config::services::CatalogConfig;
 use common::facades::mates_facade::MatesFacadeTrait;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use common::well_known::rpc::rpc::WellKnownRPCService;
@@ -63,7 +62,6 @@ pub struct CatalogDSP {
     pub peer_catalog_entity_service: Arc<dyn PeerCatalogServiceTrait>,
     pub mates_facade: Arc<dyn MatesFacadeTrait>,
     ssi_auth_facade: Arc<dyn SSIAuthFacadeTrait>,
-    config: Arc<CatalogConfig>,
     validator: Arc<dyn OauthTokenValidator>,
 }
 
@@ -77,7 +75,6 @@ impl CatalogDSP {
         peer_catalog_entity_service: Arc<dyn PeerCatalogServiceTrait>,
         mates_facade: Arc<dyn MatesFacadeTrait>,
         ssi_auth_facade: Arc<dyn SSIAuthFacadeTrait>,
-        config: Arc<CatalogConfig>,
         validator: Arc<dyn OauthTokenValidator>,
     ) -> Self {
         Self {
@@ -89,7 +86,6 @@ impl CatalogDSP {
             peer_catalog_entity_service,
             mates_facade,
             ssi_auth_facade,
-            config,
             validator,
         }
     }
@@ -158,11 +154,7 @@ impl ProtocolPluginTrait for CatalogDSP {
         ));
 
         // router
-        let dsp_router = DspRouter::new(
-            orchestrator_service.clone(),
-            self.config.clone(),
-            self.ssi_auth_facade.clone(),
-        );
+        let dsp_router = DspRouter::new(orchestrator_service.clone(), self.ssi_auth_facade.clone());
         let rpc_router = RpcRouter::new(orchestrator_service.clone())
             .router()
             .route_layer(axum::middleware::from_fn_with_state(

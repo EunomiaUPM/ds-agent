@@ -69,10 +69,7 @@ impl<'a> RuntimeParametersResolver<'a> {
     pub async fn resolve(&self) -> Outcome<ConnectorInstanceDto> {
         // Serialize once; reuse for keystore regex scan and for in-place mutation.
         let mut value = serde_json::to_value(self.connector_instance).map_err(|e| {
-            Errors::crazy(
-                format!("Failed to serialize connector instance: {}", e),
-                None,
-            )
+            Errors::crazy(format!("Failed to serialize connector instance: {e}"), None)
         })?;
         let json = value.to_string();
 
@@ -84,7 +81,7 @@ impl<'a> RuntimeParametersResolver<'a> {
         self.resolve_value(&mut value, &param_cache, &secret_cache);
         serde_json::from_value(value).map_err(|e| {
             Errors::crazy(
-                format!("Failed to deserialize resolved connector instance: {}", e),
+                format!("Failed to deserialize resolved connector instance: {e}"),
                 None,
             )
         })

@@ -22,7 +22,6 @@ use common::config::services::{
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
-#[allow(dead_code)]
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait KeystoreConfigRepo: Send + Sync {
@@ -35,7 +34,6 @@ pub trait KeystoreConfigRepo: Send + Sync {
 }
 
 #[derive(Debug, Error)]
-#[allow(dead_code)]
 pub enum KeystoreConfigRepoErrors {
     #[error("Error fetching Keystore config. {0}")]
     ErrorFetching(Box<dyn std::error::Error + Send + Sync>),

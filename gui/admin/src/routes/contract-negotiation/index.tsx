@@ -21,18 +21,19 @@ import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
 type ActionsMode = "business" | "standard";
 
 const RouteComponent = () => {
-  const { params: queryParams, apiParams, onQueryChange } = useTableQueryParams({
+  const {
+    params: queryParams,
+    apiParams,
+    onQueryChange,
+  } = useTableQueryParams({
     defaultLimit: 10,
     defaultSort: "created_at_desc",
   });
 
-  const { data: cnProcessesData, isFetching } = useGetNegotiationProcesses({
+  const { data: cnProcessesData, isFetching } = useGetNegotiationProcesses(apiParams, {
     query: {
       queryKey: ["/negotiations/negotiation-processes", apiParams],
       placeholderData: keepPreviousData,
-    },
-    request: {
-      params: apiParams,
     },
   });
   const { data: participants } = useGetAllParticipants();

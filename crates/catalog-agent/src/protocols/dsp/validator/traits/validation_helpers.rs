@@ -15,14 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#![allow(unused)]
 use common::config::types::roles::RoleConfig;
 use urn::Urn;
 use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait ValidationHelpers: Send + Sync + 'static {
-    async fn parse_urn(&self, uri_id: &String) -> Outcome<Urn>;
+    async fn parse_urn(&self, uri_id: &str) -> Outcome<Urn>;
     async fn parse_identifier_into_role(&self, identifier: &str) -> Outcome<RoleConfig>;
     async fn parse_role_into_identifier(&self, role: &RoleConfig) -> Outcome<&str>;
 }

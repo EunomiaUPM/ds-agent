@@ -22,18 +22,19 @@ export const Route = createFileRoute("/agreements/")({
 });
 
 function RouteComponent() {
-  const { params: queryParams, apiParams, onQueryChange } = useTableQueryParams({
+  const {
+    params: queryParams,
+    apiParams,
+    onQueryChange,
+  } = useTableQueryParams({
     defaultLimit: 10,
     defaultSort: "created_at_desc",
   });
 
-  const { data: response, isFetching } = useGetAgreements({
+  const { data: response, isFetching } = useGetAgreements(apiParams, {
     query: {
       queryKey: ["/negotiations/agreements", apiParams],
       placeholderData: keepPreviousData,
-    },
-    request: {
-      params: apiParams,
     },
   });
   const agreements = response?.status === 200 ? response.data : [];

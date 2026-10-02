@@ -2,18 +2,25 @@ import React, { createContext, ReactNode, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetWalletDid,
-  useOidc4vciRequest,
-  useOidc4vpRequest,
-  useOnboardWallet,
+  useLinkWallet,
   getGetWalletDidQueryKey,
 } from "../data/orval/wallet/wallet";
 import {
+  useBegVc,
   useGetAllVCRequests,
-  useRequestVCtoAuthorityCrossUser,
+  useProcessVcRequestOid4vci,
 } from "../data/orval/vc-request/vc-request";
 import { VCRequestDto } from "../data/orval/model";
-import { useOnboardProvider } from "../data/orval/onboard/onboard";
+import {
+  getAllPeerConnectionRequests,
+  getPeerConnectionRequestDetails,
+  useConnectToPeer,
+  useProcessPeerConnectionOid4vp,
+} from "../data/orval/onboard/onboard";
 import { getDidFromUrl } from "../data/orval/did/did";
+
+// Credential type requested from the authority in the guided flow.
+const DEMO_VC_TYPE = "DataSpaceParticipant_jwt_vc_json";
 import { useEffect } from "react";
 
 export interface SSIAuthContextType {
@@ -134,6 +141,7 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
   const [oidc4vpRequestUri, setOidc4vpRequestUriState] = useState<string | null>(null);
   const [oidc4vciRequestUri, setOidc4vciRequestUriState] = useState<string | null>(null);
   const [oidc4vpSuccess, setOidc4vpSuccess] = useState<boolean>(false);
+  const [peerRequestId, setPeerRequestId] = useState<string | null>(null);
 
   // Loading states for manual actions
   const [isFetchingAuthDid, setIsFetchingAuthDid] = useState(false);
@@ -143,21 +151,23 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
   const [isRequestingVP, setIsRequestingVP] = useState(false);
 
   // Data access
-  const { mutateAsync: onboardWallet, isPending: isOnboardingWallet } = useOnboardWallet();
+  const { mutateAsync: linkWallet, isPending: isOnboardingWallet } = useLinkWallet();
   const { data: didResponse } = useGetWalletDid();
   const ownDid = didResponse?.status === 200 ? didResponse.data.id : null;
   const ownWalletOnboarded = didResponse?.status === 200;
-  const { mutateAsync: oidc4vciRequest, isPending: isOidc4vciRequesting } = useOidc4vciRequest();
-  const { mutateAsync: oidc4vpRequest, isPending: isOidc4vpRequesting } = useOidc4vpRequest();
-  const { mutateAsync: requestVCtoAuthorityCrossUser } = useRequestVCtoAuthorityCrossUser();
-  const { data: vcRequestsResponse, refetch: refetchAuthRequestsQuery } = useGetAllVCRequests();
-  const vcRequests = vcRequestsResponse?.status === 200 ? vcRequestsResponse.data : [];
-  const { mutateAsync: onboardProvider } = useOnboardProvider();
+  const { mutateAsync: processVcRequestOid4vci } = useProcessVcRequestOid4vci();
+  const { mutateAsync: processPeerConnectionOid4vp } = useProcessPeerConnectionOid4vp();
+  const { mutateAsync: begVc } = useBegVc();
+  const { data: vcRequestsResponse, refetch: refetchAuthRequestsQuery } = useGetAllVCRequests({
+    sort: "created_at_desc",
+  });
+  const vcRequests = vcRequestsResponse?.status === 200 ? vcRequestsResponse.data.items : [];
+  const { mutateAsync: connectToPeer } = useConnectToPeer();
 
   // Actions
   const onboardInWallet = async () => {
     try {
-      await onboardWallet();
+      await linkWallet();
       await queryClient.invalidateQueries({ queryKey: getGetWalletDidQueryKey() });
     } catch (error) {
       console.error(error);
@@ -209,7 +219,7 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
     const interval = setInterval(async () => {
       try {
         const { data } = await refetchAuthRequestsQuery();
-        const requests = data?.status === 200 ? data.data : [];
+        const requests = data?.status === 200 ? data.data.items : [];
         if (requests.length === 0) return;
 
         // Sort safely by creating a copy
@@ -239,12 +249,14 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
       if (!authDid.url || !ownDid || !authDid.did) {
         throw new Error("Missing Authority URL or Own DID");
       }
-      await requestVCtoAuthorityCrossUser({
+      await begVc({
         data: {
-          url: authDid.url + "/api/v1/gate/access",
           id: authDid.did,
-          slug: "authority",
-          vc_type: "DataspaceParticipant",
+          nick: "authority",
+          url: authDid.url,
+          vc_type: DEMO_VC_TYPE,
+          method: "oid4vp",
+          auto: false,
         },
       });
       setAuthRequestsPollInterval(500);
@@ -277,16 +289,15 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
         throw new Error("Missing Authority URL or Own DID");
       }
       const { data } = await refetchAuthRequestsQuery();
-      const requests = data?.status === 200 ? data.data : [];
-      const requestsSorted = requests.sort(
+      const requests = data?.status === 200 ? data.data.items : [];
+      const requestsSorted = [...requests].sort(
         (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
       );
       const latest = requestsSorted.at(0);
       if (!latest) {
         throw new Error("No Auth Request found");
       }
-      // @ts-ignore vc_uri is not defined in the type but exists
-      setOidc4vciRequestUriState(latest.vc_uri);
+      setOidc4vciRequestUriState(latest.vc_uri ?? null);
     } catch (error) {
       console.error(error);
     }
@@ -296,7 +307,7 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
     setIsRequestingVC(true);
     try {
       const { data } = await refetchAuthRequestsQuery();
-      const requests = data?.status === 200 ? data.data : [];
+      const requests = data?.status === 200 ? data.data.items : [];
       if (requests.length === 0) throw new Error("No requests found");
 
       // Sort safely by creating a copy
@@ -317,10 +328,10 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
         throw new Error("No VC URI found in approved request");
       }
 
-      // @ts-ignore vc_uri is not defined in the type but exists
       setOidc4vciRequestUriState(latest.vc_uri);
 
-      await oidc4vciRequest({
+      await processVcRequestOid4vci({
+        id: latest.id,
         data: {
           uri: latest.vc_uri,
         },
@@ -335,28 +346,38 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
   const setOidc4VpRequestUri = async () => {
     setIsFetchingAuthRequests(true);
     try {
-      if (!tempPeer.did || !tempPeer.tenant) {
+      if (!tempPeer.url || !tempPeer.did || !tempPeer.tenant) {
         throw new Error("No Temp Peer DID or tenant found");
       }
-      const response = await onboardProvider({
+      await connectToPeer({
         data: {
-          url: `${tempPeer.url}/api/v1/gate/${encodeURIComponent(tempPeer.tenant)}/access`,
           id: tempPeer.did,
-          slug: "bro",
-          actions: "talk",
+          nick: "peer",
+          url: `${tempPeer.url}/api/v1/gate/${encodeURIComponent(tempPeer.tenant)}/access`,
+          actions: ["talk"],
+          auto: false,
         },
       });
-      if (response.status === 200) {
-        // response.data is now guaranteed to be the string content (URI) or a JSON object
-        const responseData = response.data as any;
-        const uri =
-          typeof responseData === "string" ? responseData : responseData?.uri || responseData?.url;
-
-        if (uri) {
-          setOidc4vpRequestUriState(uri);
-        } else {
-          console.warn("Unexpected Onboard Provider response format:", responseData);
-        }
+      // The connect call answers no id: take the newest request sent to this peer.
+      const requests = await getAllPeerConnectionRequests({
+        participantId: tempPeer.did,
+        sort: "created_at_desc",
+        limit: 1,
+      });
+      const latest = requests.status === 200 ? requests.data.items[0] : undefined;
+      if (!latest) {
+        throw new Error("No connection request found for the peer");
+      }
+      setPeerRequestId(latest.id);
+      const details = await getPeerConnectionRequestDetails(latest.id);
+      const uri =
+        details.status === 200
+          ? ((details.data as { verification?: { uri?: string } }).verification?.uri ?? null)
+          : null;
+      if (uri) {
+        setOidc4vpRequestUriState(uri);
+      } else {
+        console.warn("Connection request has no OID4VP URI yet:", latest.id);
       }
     } catch (error) {
       console.error(error);
@@ -368,10 +389,11 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
   const presentVPtoPeer = async () => {
     setIsRequestingVP(true);
     try {
-      if (!oidc4vpRequestUri) {
+      if (!oidc4vpRequestUri || !peerRequestId) {
         throw new Error("No OIDC4VP Request URI found");
       }
-      await oidc4vpRequest({
+      await processPeerConnectionOid4vp({
+        id: peerRequestId,
         data: {
           uri: oidc4vpRequestUri,
         },

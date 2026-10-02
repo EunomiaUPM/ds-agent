@@ -29,9 +29,6 @@ mod terminate_strategy;
 use ymir::errors::Outcome;
 
 use crate::protocols::dsp::entities::command::TransferManagerCommand;
-use crate::protocols::dsp::facades::FacadeTrait;
-use crate::services::transfer_message::TransferMessageServiceTrait;
-use crate::services::transfer_process::TransferProcessServiceTrait;
 
 /// What the manager hands back: the DSP `ack` or `error` for the caller to
 /// return on the wire (inbound) or forward to the peer (outbound).

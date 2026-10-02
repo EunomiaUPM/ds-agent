@@ -77,8 +77,8 @@ export const TransferProcessRequestDialog = ({ process }: TransferProcessRequest
           endpointType: "https://w3id.org/idsa/v4.1/HTTP",
           endpoint: pushEndpointUrl,
           endpointProperties: [
-            { "@type": "EndpointProperty", name: "authorization", value: "TOKEN-ABCDEFG" },
-            { "@type": "EndpointProperty", name: "authType", value: "bearer" },
+            { name: "authorization", value: "TOKEN-ABCDEFG" },
+            { name: "authType", value: "bearer" },
           ],
         }
       : undefined;

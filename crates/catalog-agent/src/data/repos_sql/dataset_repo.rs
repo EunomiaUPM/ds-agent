@@ -18,7 +18,7 @@
 use crate::data::entities::dataset::{EditDatasetModel, NewDatasetModel};
 use crate::data::entities::{catalog, dataset};
 use crate::data::repo_traits::catalog_db_errors::{
-    CatalogAgentRepoErrors, CatalogRepoErrors, DatasetRepoErrors, DistributionRepoErrors,
+    CatalogAgentRepoErrors, CatalogRepoErrors, DatasetRepoErrors,
 };
 use crate::data::repo_traits::dataset_repo::DatasetRepositoryTrait;
 use crate::entities::filters::DatasetFilter;
@@ -27,7 +27,7 @@ use common::query::FilterApplier;
 use sea_orm::QueryTrait;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
-    QueryFilter, QueryOrder, QuerySelect,
+    QueryFilter,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -81,7 +81,7 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<dataset::Model>, Option<u64>)> {
-        let mut q = filters.apply_to(dataset::Entity::find());
+        let q = filters.apply_to(dataset::Entity::find());
         let total = q.clone().count(&self.db_connection).await.map_err(|err| {
             CatalogAgentRepoErrors::DatasetRepoErrors(DatasetRepoErrors::ErrorFetchingDataset(
                 err.into(),

@@ -203,7 +203,7 @@ fn claims_and_tenant_validators_reject_bad_input() {
 /// create and query tenants resolve per role.
 #[test]
 fn service_scope_checks_role_and_tenant() {
-    let admin_scope = AccessScope::from_role(RbacRole::Admin, "system");
+    let admin_scope = AccessScope::from_role(RbacRole::Admin, "admin");
     let owner_scope = AccessScope::from_role(RbacRole::Owner, "tenant-a");
     let reader_scope = AccessScope::from_role(RbacRole::Reader, "tenant-a");
 
@@ -231,7 +231,7 @@ fn service_scope_checks_role_and_tenant() {
         admin_scope.resolve_create_tenant(Some("tenant-b")).unwrap(),
         "tenant-b"
     );
-    assert_eq!(admin_scope.resolve_create_tenant(None).unwrap(), "system");
+    assert_eq!(admin_scope.resolve_create_tenant(None).unwrap(), "admin");
     assert_eq!(
         owner_scope.resolve_create_tenant(Some("tenant-b")).unwrap(),
         "tenant-a"
@@ -295,7 +295,7 @@ fn ensure_visible_hides_foreign_records_as_not_found() {
         }
         other => panic!("expected not found, got {other:?}"),
     }
-    let admin = AccessScope::from_role(RbacRole::Admin, "system");
+    let admin = AccessScope::from_role(RbacRole::Admin, "admin");
     assert!(admin.ensure_visible("tenant-b", "urn:x:1").is_ok());
 }
 
@@ -316,7 +316,7 @@ fn admin_naming_a_tenant_is_pinned_to_it() {
 /// Only an admin scope passes `require_admin`; the rejection is a 403.
 #[test]
 fn require_admin_rejects_non_admins_with_forbidden() {
-    assert!(AccessScope::from_role(RbacRole::Admin, "system")
+    assert!(AccessScope::from_role(RbacRole::Admin, "admin")
         .require_admin()
         .is_ok());
     let err = AccessScope::from_role(RbacRole::Owner, "tenant-a")

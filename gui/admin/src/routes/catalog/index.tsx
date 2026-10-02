@@ -17,8 +17,9 @@ import { useMyself } from "shared/src/data/useMyself";
 const RouteComponent = () => {
   const { resolvedTheme } = useTheme();
   const federated = useFederatedCatalog();
-  const { data: participantsResponse } = useGetAllParticipants();
-  const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
+  const { data: participantsResponse } = useGetAllParticipants({ limit: 100 });
+  const localParticipants =
+    participantsResponse?.status === 200 ? participantsResponse.data.items : [];
 
   const myAgent = useMyself();
 
@@ -76,8 +77,7 @@ const RouteComponent = () => {
   // true = they are / false = they're not
   const onboardedWithKnownProvider = agents.some((prov) =>
     localParticipants.some(
-      (lp) =>
-        lp.participant_id === prov.participant_id && lp.participant_type !== "Authority",
+      (lp) => lp.participant_id === prov.participant_id && lp.participant_type !== "Authority",
     ),
   );
 

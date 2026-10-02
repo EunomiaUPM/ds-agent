@@ -21,7 +21,7 @@ use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::get;
-use axum::{Json, Router, middleware};
+use axum::{Json, Router};
 use common::auth::AccessScope;
 use common::auth::http::ExtractedHeaders;
 use uuid::Uuid;

@@ -49,7 +49,7 @@ impl SSIAuthFacadeTrait for SSIAuthRemoteFacade {
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth"))]
     async fn verify_token(&self, token: String) -> Outcome<Mates> {
         let base_url = self.config.get_host(HostType::Http);
-        let url = format!("{}{}", base_url, SSI_AUTH_FACADE_VERIFICATION_URL);
+        let url = format!("{base_url}{SSI_AUTH_FACADE_VERIFICATION_URL}");
         let mate = self
             .client
             .post_json::<VerifyTokenRequest, Mates>(

@@ -24,9 +24,7 @@ use crate::config::services::traits::CatalogConfigTrait;
 use crate::config::services::CommonConfig;
 use crate::config::types::cache::CacheConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
-use crate::config::types::traits::{
-    CacheConfigTrait, CommonConfigTrait, ConfigLoader, DatahubConfigTrait,
-};
+use crate::config::types::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader};
 use crate::config::types::DatahubConfig;
 
 /// `catalog` section: catalog agent config.
@@ -40,16 +38,10 @@ pub struct CatalogConfig {
     contracts: MinKnownConfig,
 }
 
-impl DatahubConfigTrait for CatalogConfig {
-    fn datahub(&self) -> &DatahubConfig {
-        self.datahub.as_ref().expect("Datahub is not active")
-    }
-}
-
 impl ConfigLoader for CatalogConfig {
     fn load(env_file: &str) -> Outcome<Self> {
         Self::global_load(env_file)
-            .map(|data| data.catalog().clone())
+            .and_then(|data| data.catalog().cloned())
             .or_else(|_| Self::local_load(env_file))
     }
 }

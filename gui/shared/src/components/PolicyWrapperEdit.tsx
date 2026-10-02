@@ -167,7 +167,7 @@ export const PolicyWrapperEdit = ({ policy, onChange }: PolicyWrapperEditProps) 
           ...updated[componentIndex],
           constraint: [
             ...(updated[componentIndex].constraint || []),
-            { leftOperand: "", operator: "", rightOperand: "" },
+            { leftOperand: "", operator: "eq", rightOperand: "" },
           ],
         };
         return { ...prev, [componentType]: updated };

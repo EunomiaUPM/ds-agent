@@ -24,7 +24,6 @@ use crate::protocols::dsp::entities::auth::TransferAuthn;
 use axum::extract::{FromRequestParts, Path, Request};
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
-use common::dsp_common::normalizer::WireBody;
 use connector::ConnectorInstanceDto;
 use http::HeaderMap;
 use http::request::Parts;

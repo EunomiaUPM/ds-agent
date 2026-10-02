@@ -51,7 +51,7 @@ impl Display for TransferDSPMessageType {
             TransferDSPMessageType::TransferProcess => "TransferProcess".to_string(),
             TransferDSPMessageType::TransferError => "TransferError".to_string(),
         };
-        write!(f, "{}", str)
+        write!(f, "{str}")
     }
 }
 

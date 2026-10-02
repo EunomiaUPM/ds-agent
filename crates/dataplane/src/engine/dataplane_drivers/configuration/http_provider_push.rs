@@ -15,13 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::engine::dataplane_drivers::{DriverAuthenticatorTrait, DriverProxyConfiguratorTrait};
+use crate::engine::dataplane_drivers::DriverProxyConfiguratorTrait;
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::engine::dataplane_manager::dataplane_proxy::{
     DataplaneProxy, DataplaneProxyEgress, DataplaneProxyIngress, HTTP_LISTENER_PATH,
 };
 use crate::errors::DataplaneError;
-use connector::{InteractionConfig, ProtocolSpec};
 use ymir::errors::Outcome;
 
 #[derive(Debug)]
@@ -30,7 +29,7 @@ pub struct HttpProviderPushConfigurator;
 impl HttpProviderPushConfigurator {
     fn configure_ingress(&self, context: &DataplaneContext) -> Outcome<DataplaneProxyIngress> {
         let dataplane_id = context.dataplane_process().inner.id.clone();
-        let ingress_path = format!("{}{}", HTTP_LISTENER_PATH, dataplane_id);
+        let ingress_path = format!("{HTTP_LISTENER_PATH}{dataplane_id}");
         Ok(DataplaneProxyIngress::HttpListener {
             path: ingress_path,
             token_type: None, // TODO create on fly

@@ -22,14 +22,9 @@ import {
   useListOAuthClients,
   useRegisterOAuthClient,
   useDeleteOAuthClient,
-  useRotateOAuthClientSecret,
   getListOAuthClientsQueryKey,
 } from "shared/src/data/orval/oauth-clients/oauth-clients";
-import {
-  OAuthClient,
-  CreateClientCommandRole,
-  RotateSecretResponse,
-} from "shared/src/data/orval/model";
+import { OAuthClient, CreateClientCommandRole } from "shared/src/data/orval/model";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { DataTable } from "shared/src/components/DataTable";
 import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
@@ -52,7 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "shared/src/components/ui/select";
-import { Plus, Trash2, KeyRound, Copy, Check, RefreshCw, Shield } from "lucide-react";
+import { Plus, Trash2, Copy, Check, Shield } from "lucide-react";
 import { toast } from "sonner";
 
 interface RegisterClientDialogProps {
@@ -61,20 +56,37 @@ interface RegisterClientDialogProps {
   onRegistered: (clientName: string, clientId: string, clientSecret: string) => void;
 }
 
+// The server stores the secret it is given and never returns it, so it is generated here.
+const generateClientSecret = () => {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+};
+
+const slugify = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
 const RegisterClientDialog = ({ open, onClose, onRegistered }: RegisterClientDialogProps) => {
   const queryClient = useQueryClient();
   const [clientName, setClientName] = useState("");
-  const [role, setRole] = useState<CreateClientCommandRole>("Service");
+  const [clientId, setClientId] = useState("");
+  const [role, setRole] = useState<CreateClientCommandRole>("owner");
   const [scopesStr, setScopesStr] = useState("events:read transfers:read");
 
   const { mutate: register, isPending } = useRegisterOAuthClient({
     mutation: {
-      onSuccess: (res) => {
+      onSuccess: (res, variables) => {
         queryClient.invalidateQueries({ queryKey: getListOAuthClientsQueryKey() });
-        const resData = res.data as RotateSecretResponse;
-        onRegistered(resData.client_name, resData.client_id, resData.client_secret);
+        if (res.status === 201) {
+          onRegistered(res.data.clientName, res.data.clientId, variables.data.clientSecret);
+        }
         onClose();
         setClientName("");
+        setClientId("");
       },
       onError: (err) => {
         toast.error(`Failed to register client: ${String(err)}`);
@@ -94,7 +106,9 @@ const RegisterClientDialog = ({ open, onClose, onRegistered }: RegisterClientDia
 
     register({
       data: {
-        client_name: clientName.trim(),
+        clientId: clientId.trim() || slugify(clientName),
+        clientName: clientName.trim(),
+        clientSecret: generateClientSecret(),
         role,
         scopes,
       },
@@ -120,6 +134,16 @@ const RegisterClientDialog = ({ open, onClose, onRegistered }: RegisterClientDia
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Client ID
+            </label>
+            <Input
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              placeholder={slugify(clientName) || "e.g. data-plane-agent"}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               RBAC Role
             </label>
             <Select value={role} onValueChange={(val) => setRole(val as CreateClientCommandRole)}>
@@ -127,10 +151,9 @@ const RegisterClientDialog = ({ open, onClose, onRegistered }: RegisterClientDia
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Service">Service</SelectItem>
-                <SelectItem value="Admin">Admin</SelectItem>
-                <SelectItem value="User">User</SelectItem>
-                <SelectItem value="Auditor">Auditor</SelectItem>
+                <SelectItem value="owner">Owner</SelectItem>
+                <SelectItem value="reader">Reader</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -223,19 +246,20 @@ const ClientsComponent = () => {
     clientSecret: string;
   } | null>(null);
 
-  const { params: queryParams, apiParams, onQueryChange } = useTableQueryParams({
+  const {
+    params: queryParams,
+    apiParams,
+    onQueryChange,
+  } = useTableQueryParams({
     defaultLimit: 10,
     defaultSort: "created_at_desc",
     defaultFilters: { role: "all" },
   });
 
-  const { data, isLoading, isError, isFetching } = useListOAuthClients({
+  const { data, isLoading, isError, isFetching } = useListOAuthClients(apiParams, {
     query: {
       queryKey: ["/oauth/clients", apiParams],
       placeholderData: keepPreviousData,
-    },
-    request: {
-      params: apiParams,
     },
   });
 
@@ -251,24 +275,7 @@ const ClientsComponent = () => {
     },
   });
 
-  const { mutate: rotateSecret } = useRotateOAuthClientSecret({
-    mutation: {
-      onSuccess: (res) => {
-        const resData = res.data as RotateSecretResponse;
-        setSecretData({
-          clientName: resData.client_name,
-          clientId: resData.client_id,
-          clientSecret: resData.client_secret,
-        });
-        toast.success("Secret rotated successfully");
-      },
-      onError: (err) => {
-        toast.error(`Secret rotation failed: ${String(err)}`);
-      },
-    },
-  });
-
-  const clients: OAuthClient[] = Array.isArray(data?.data) ? (data.data as OAuthClient[]) : [];
+  const clients: OAuthClient[] = data?.status === 200 ? data.data.items : [];
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -303,10 +310,10 @@ const ClientsComponent = () => {
             loading={isFetching}
             queryParams={queryParams}
             onQueryChange={onQueryChange}
-            keyExtractor={(client) => client.client_id}
+            keyExtractor={(client) => client.clientId}
             searchPlaceholder="Filter clients by name, ID, or role..."
             emptyMessage='No OAuth clients registered yet. Click "Register Client" to add one.'
-            defaultSortKey="created_at"
+            defaultSortKey="createdAt"
             defaultSortDirection="desc"
             pageSize={10}
             pageSizeOptions={[10, 20, 50, 100]}
@@ -317,23 +324,22 @@ const ClientsComponent = () => {
                 value: queryParams.filters.role ?? "all",
                 options: [
                   { label: "All Roles", value: "all" },
-                  { label: "Consumer", value: "Consumer" },
-                  { label: "Provider", value: "Provider" },
-                  { label: "Admin", value: "Admin" },
-                  { label: "Service", value: "Service" },
+                  { label: "Owner", value: "owner" },
+                  { label: "Reader", value: "reader" },
+                  { label: "Admin", value: "admin" },
                 ],
               },
             ]}
             columns={[
               {
                 header: "Name",
-                accessorKey: "client_name",
-                cell: (client) => <span className="font-medium text-sm">{client.client_name}</span>,
+                accessorKey: "clientName",
+                cell: (client) => <span className="font-medium text-sm">{client.clientName}</span>,
               },
               {
                 header: "Client ID",
-                accessorKey: "client_id",
-                cell: (client) => <Badge variant="info">{client.client_id}</Badge>,
+                accessorKey: "clientId",
+                cell: (client) => <Badge variant="info">{client.clientId}</Badge>,
               },
               {
                 header: "Role",
@@ -356,9 +362,9 @@ const ClientsComponent = () => {
               },
               {
                 header: "Created at",
-                accessorKey: "created_at",
-                sortValue: (client) => new Date(client.created_at).getTime(),
-                cell: (client) => <FormatDate date={client.created_at} />,
+                accessorKey: "createdAt",
+                sortValue: (client) => new Date(client.createdAt).getTime(),
+                cell: (client) => <FormatDate date={client.createdAt} />,
               },
               {
                 header: "Actions",
@@ -367,20 +373,12 @@ const ClientsComponent = () => {
                 cell: (client) => (
                   <div className="flex items-center gap-2">
                     <Button
-                      variant="outline"
-                      size="xs"
-                      className="gap-1"
-                      onClick={() => rotateSecret({ clientId: client.client_id })}
-                    >
-                      <RefreshCw className="h-3 w-3" /> Rotate Secret
-                    </Button>
-                    <Button
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => {
-                        if (confirm(`Delete client "${client.client_name}"?`)) {
-                          deleteClient({ clientId: client.client_id });
+                        if (confirm(`Delete client "${client.clientName}"?`)) {
+                          deleteClient({ clientId: client.clientId });
                         }
                       }}
                     >

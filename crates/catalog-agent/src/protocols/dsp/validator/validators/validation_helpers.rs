@@ -29,7 +29,7 @@ impl ValidationHelperService {
 }
 #[async_trait::async_trait]
 impl ValidationHelpers for ValidationHelperService {
-    async fn parse_urn(&self, uri_id: &String) -> Outcome<Urn> {
+    async fn parse_urn(&self, uri_id: &str) -> Outcome<Urn> {
         todo!()
     }
 

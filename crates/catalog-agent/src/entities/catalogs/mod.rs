@@ -34,6 +34,7 @@ pub struct CatalogDto {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
+#[derive(Default)]
 pub struct NewCatalogDto {
     pub id: Option<Urn>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -43,20 +44,6 @@ pub struct NewCatalogDto {
     pub dct_creator: Option<String>,
     pub dct_title: Option<String>,
     pub dspace_participant_id: Option<String>,
-}
-
-impl Default for NewCatalogDto {
-    fn default() -> Self {
-        Self {
-            id: None,
-            tenant_id: None,
-            foaf_home_page: None,
-            dct_conforms_to: None,
-            dct_creator: None,
-            dct_title: None,
-            dspace_participant_id: None,
-        }
-    }
 }
 
 /// Partial catalog update.

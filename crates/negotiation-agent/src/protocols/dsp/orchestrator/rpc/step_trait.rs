@@ -30,7 +30,7 @@ use common::facades::mates_facade::MatesFacadeTrait;
 use std::fmt::Debug;
 use std::sync::Arc;
 use urn::Urn;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 use ymir::utils::bearer_headers;
 
 /// Routing context for steps that create a brand-new negotiation process

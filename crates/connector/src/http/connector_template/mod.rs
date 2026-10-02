@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#![allow(unused)]
 use crate::entities::connector_template::ConnectorTemplateDto;
 use crate::entities::filters::ConnectorTemplateFilter;
 use crate::services::connector_template::ConnectorTemplateServiceTrait;
@@ -26,17 +25,14 @@ use axum::response::IntoResponse;
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use common::auth::AccessScope;
-use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
 use common::query::QuerySpec;
-use serde::Deserialize;
 use std::sync::Arc;
 use ymir::utils::extract_payload;
 
 #[derive(Clone)]
 pub struct ConnectorTemplateRouter {
     service: Arc<dyn ConnectorTemplateServiceTrait>,
-    config: Arc<CatalogConfig>,
 }
 
 pub use common::paginated_spec::PaginationParams;
@@ -49,11 +45,8 @@ impl FromRef<ConnectorTemplateRouter> for Arc<dyn ConnectorTemplateServiceTrait>
 }
 
 impl ConnectorTemplateRouter {
-    pub fn new(
-        service: Arc<dyn ConnectorTemplateServiceTrait>,
-        config: Arc<CatalogConfig>,
-    ) -> Self {
-        Self { service, config }
+    pub fn new(service: Arc<dyn ConnectorTemplateServiceTrait>) -> Self {
+        Self { service }
     }
 
     pub fn router(self) -> Router {

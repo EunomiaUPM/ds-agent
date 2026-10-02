@@ -52,7 +52,7 @@ impl FromStr for RoleConfig {
             "Consumer" => Ok(RoleConfig::Consumer),
             "Provider" => Ok(RoleConfig::Provider),
             "" => Ok(RoleConfig::NotDefined),
-            _ => Err(Errors::crazy(format!("Invalid config role: {}", s), None)),
+            _ => Err(Errors::crazy(format!("Invalid config role: {s}"), None)),
         }
     }
 }
@@ -64,6 +64,6 @@ impl Display for RoleConfig {
             RoleConfig::Provider => "Provider".to_string(),
             RoleConfig::NotDefined => "Not defined".to_string(),
         };
-        write!(f, "{}", str)
+        write!(f, "{str}")
     }
 }

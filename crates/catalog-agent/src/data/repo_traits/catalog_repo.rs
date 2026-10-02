@@ -19,7 +19,6 @@
 
 use crate::data::entities::catalog;
 use crate::data::entities::catalog::{EditCatalogModel, NewCatalogModel};
-use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
 use crate::entities::filters::CatalogFilter;
 use common::paginated_spec::{Page, Sort};
 use urn::Urn;

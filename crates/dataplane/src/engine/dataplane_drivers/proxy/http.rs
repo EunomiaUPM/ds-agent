@@ -28,144 +28,150 @@ use ymir::errors::Outcome;
 use ymir::services::client::{ClientService, ClientTrait};
 use ymir::types::http::{Method, Response, StreamBody};
 
-/// Builds auth headers and (for query-param API keys) extra query parameters
-/// from already-resolved credentials.
-///
-/// Returns `(extra_headers, query_params)`.
-pub fn build_auth_artifacts(
-    credentials: &ResolvedAuthCredentials,
-) -> Outcome<(HeaderMap, Vec<(String, String)>)> {
-    let mut headers = HeaderMap::new();
-    let mut query_params: Vec<(String, String)> = Vec::new();
+/// Forwarding of proxied requests to the upstream with resolved connector credentials.
+pub struct HttpProxyDriver;
 
-    match credentials {
-        ResolvedAuthCredentials::NoAuth => {}
+impl HttpProxyDriver {
+    /// Builds auth headers and (for query-param API keys) extra query parameters
+    /// from already-resolved credentials.
+    ///
+    /// Returns `(extra_headers, query_params)`.
+    pub fn build_auth_artifacts(
+        credentials: &ResolvedAuthCredentials,
+    ) -> Outcome<(HeaderMap, Vec<(String, String)>)> {
+        let mut headers = HeaderMap::new();
+        let mut query_params: Vec<(String, String)> = Vec::new();
 
-        ResolvedAuthCredentials::BearerToken { token } => {
-            let value = HeaderValue::from_str(&format!("Bearer {}", token)).map_err(|e| {
-                DataplaneError::InvalidHeaderValue {
-                    header: "Authorization".to_string(),
-                    reason: e.to_string(),
-                }
-            })?;
-            headers.insert(AUTHORIZATION, value);
-        }
+        match credentials {
+            ResolvedAuthCredentials::NoAuth => {}
 
-        ResolvedAuthCredentials::BasicAuth { username, password } => {
-            let encoded = BASE64.encode(format!("{}:{}", username, password));
-            let value = HeaderValue::from_str(&format!("Basic {}", encoded)).map_err(|e| {
-                DataplaneError::InvalidHeaderValue {
-                    header: "Authorization".to_string(),
-                    reason: e.to_string(),
-                }
-            })?;
-            headers.insert(AUTHORIZATION, value);
-        }
-
-        ResolvedAuthCredentials::ApiKey {
-            key,
-            value,
-            location,
-        } => match location {
-            ApiKeyLocation::Header => {
-                let name =
-                    HeaderName::from_str(key).map_err(|e| DataplaneError::InvalidHeaderValue {
-                        header: key.to_string(),
-                        reason: e.to_string(),
-                    })?;
-                let hval = HeaderValue::from_str(value).map_err(|e| {
+            ResolvedAuthCredentials::BearerToken { token } => {
+                let value = HeaderValue::from_str(&format!("Bearer {token}")).map_err(|e| {
                     DataplaneError::InvalidHeaderValue {
-                        header: key.to_string(),
+                        header: "Authorization".to_string(),
                         reason: e.to_string(),
                     }
                 })?;
-                headers.insert(name, hval);
+                headers.insert(AUTHORIZATION, value);
             }
-            ApiKeyLocation::Query => {
-                query_params.push((key.clone(), value.clone()));
-            }
-        },
 
-        ResolvedAuthCredentials::OAuth2 {
-            access_token,
-            token_type,
-            ..
-        } => {
-            let value = HeaderValue::from_str(&format!("{} {}", token_type, access_token))
-                .map_err(|e| DataplaneError::InvalidHeaderValue {
-                    header: "Authorization".to_string(),
-                    reason: e.to_string(),
+            ResolvedAuthCredentials::BasicAuth { username, password } => {
+                let encoded = BASE64.encode(format!("{username}:{password}"));
+                let value = HeaderValue::from_str(&format!("Basic {encoded}")).map_err(|e| {
+                    DataplaneError::InvalidHeaderValue {
+                        header: "Authorization".to_string(),
+                        reason: e.to_string(),
+                    }
                 })?;
-            headers.insert(AUTHORIZATION, value);
-        }
-    }
-
-    Ok((headers, query_params))
-}
-
-/// Forward an HTTP request to `target_url` (with optional sub-path appended),
-/// injecting auth artifacts derived from `credentials`.
-///
-/// Incoming client headers are forwarded as-is; auth headers from `credentials`
-/// override any existing `Authorization` header from the client.
-pub async fn forward(
-    client: &ClientService,
-    method: Method,
-    target_url: &str,
-    extra_path: Option<&str>,
-    incoming_headers: &HeaderMap,
-    body: Bytes,
-    credentials: &ResolvedAuthCredentials,
-) -> Outcome<Response> {
-    let mut url = target_url.to_string();
-    if let Some(p) = extra_path {
-        if !url.ends_with('/') {
-            url.push('/');
-        }
-        url.push_str(p);
-    }
-
-    let (auth_headers, query_params) = build_auth_artifacts(credentials)?;
-
-    // Append query-param API key to the URL if needed.
-    if !query_params.is_empty() {
-        let separator = if url.contains('?') { '&' } else { '?' };
-        let qs: String = query_params
-            .iter()
-            .map(|(k, v)| format!("{}={}", k, v))
-            .collect::<Vec<_>>()
-            .join("&");
-        url.push(separator);
-        url.push_str(&qs);
-    }
-
-    // Copy incoming headers first, then let the auth headers override them.
-    let method_str = method.as_str().to_string();
-    let mut headers = HeaderMap::new();
-    for (name, value) in incoming_headers.iter() {
-        // Skip hop-by-hop headers that must not be forwarded.
-        let key = name.as_str().to_ascii_lowercase();
-        if matches!(
-            key.as_str(),
-            "host" | "connection" | "transfer-encoding" | "te" | "trailer" | "upgrade"
-        ) {
-            continue;
-        }
-        headers.append(name.clone(), value.clone());
-    }
-    for (name, value) in auth_headers.iter() {
-        headers.insert(name.clone(), value.clone());
-    }
-
-    client
-        .stream(method, &url, Some(headers), StreamBody::from(body), None)
-        .await
-        .map_err(|e| {
-            DataplaneError::ProxyRequestFailed {
-                method: method_str,
-                url: url.clone(),
-                reason: e.to_string(),
+                headers.insert(AUTHORIZATION, value);
             }
-            .into()
-        })
+
+            ResolvedAuthCredentials::ApiKey {
+                key,
+                value,
+                location,
+            } => match location {
+                ApiKeyLocation::Header => {
+                    let name = HeaderName::from_str(key).map_err(|e| {
+                        DataplaneError::InvalidHeaderValue {
+                            header: key.to_string(),
+                            reason: e.to_string(),
+                        }
+                    })?;
+                    let hval = HeaderValue::from_str(value).map_err(|e| {
+                        DataplaneError::InvalidHeaderValue {
+                            header: key.to_string(),
+                            reason: e.to_string(),
+                        }
+                    })?;
+                    headers.insert(name, hval);
+                }
+                ApiKeyLocation::Query => {
+                    query_params.push((key.clone(), value.clone()));
+                }
+            },
+
+            ResolvedAuthCredentials::OAuth2 {
+                access_token,
+                token_type,
+                ..
+            } => {
+                let value = HeaderValue::from_str(&format!("{token_type} {access_token}"))
+                    .map_err(|e| DataplaneError::InvalidHeaderValue {
+                        header: "Authorization".to_string(),
+                        reason: e.to_string(),
+                    })?;
+                headers.insert(AUTHORIZATION, value);
+            }
+        }
+
+        Ok((headers, query_params))
+    }
+
+    /// Forward an HTTP request to `target_url` (with optional sub-path appended),
+    /// injecting auth artifacts derived from `credentials`.
+    ///
+    /// Incoming client headers are forwarded as-is; auth headers from `credentials`
+    /// override any existing `Authorization` header from the client.
+    pub async fn forward(
+        client: &ClientService,
+        method: Method,
+        target_url: &str,
+        extra_path: Option<&str>,
+        incoming_headers: &HeaderMap,
+        body: Bytes,
+        credentials: &ResolvedAuthCredentials,
+    ) -> Outcome<Response> {
+        let mut url = target_url.to_string();
+        if let Some(p) = extra_path {
+            if !url.ends_with('/') {
+                url.push('/');
+            }
+            url.push_str(p);
+        }
+
+        let (auth_headers, query_params) = Self::build_auth_artifacts(credentials)?;
+
+        // Append query-param API key to the URL if needed.
+        if !query_params.is_empty() {
+            let separator = if url.contains('?') { '&' } else { '?' };
+            let qs: String = query_params
+                .iter()
+                .map(|(k, v)| format!("{k}={v}"))
+                .collect::<Vec<_>>()
+                .join("&");
+            url.push(separator);
+            url.push_str(&qs);
+        }
+
+        // Copy incoming headers first, then let the auth headers override them.
+        let method_str = method.as_str().to_string();
+        let mut headers = HeaderMap::new();
+        for (name, value) in incoming_headers.iter() {
+            // Skip hop-by-hop headers that must not be forwarded.
+            let key = name.as_str().to_ascii_lowercase();
+            if matches!(
+                key.as_str(),
+                "host" | "connection" | "transfer-encoding" | "te" | "trailer" | "upgrade"
+            ) {
+                continue;
+            }
+            headers.append(name.clone(), value.clone());
+        }
+        for (name, value) in auth_headers.iter() {
+            headers.insert(name.clone(), value.clone());
+        }
+
+        client
+            .stream(method, &url, Some(headers), StreamBody::from(body), None)
+            .await
+            .map_err(|e| {
+                DataplaneError::ProxyRequestFailed {
+                    method: method_str,
+                    url: url.clone(),
+                    reason: e.to_string(),
+                }
+                .into()
+            })
+    }
 }

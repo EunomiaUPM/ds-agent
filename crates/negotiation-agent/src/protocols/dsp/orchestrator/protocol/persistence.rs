@@ -20,7 +20,6 @@ use crate::entities::agreement::{EditAgreementDto, NewAgreementDto};
 use crate::entities::negotiation_message::NewNegotiationMessageDto;
 use crate::entities::negotiation_process::{EditNegotiationProcessDto, NewNegotiationProcessDto};
 use crate::entities::offer::NewOfferDto;
-use crate::protocols::dsp::orchestrator::rpc::types::RpcNegotiationProcessMessageTrait;
 use crate::protocols::dsp::orchestrator::traits::orchestration_extractors::OrchestrationExtractors;
 use crate::protocols::dsp::orchestrator::traits::orchestration_helpers::OrchestrationHelpers;
 use crate::protocols::dsp::persistence::process_resolver::NegotiationProcessResolver;
@@ -199,7 +198,7 @@ impl OrchestrationExtractors for OrchestrationPersistenceForProtocol {
             _ => {
                 let err = CommonErrors::parse_new("Message not allowed here");
                 error!("{}", err.log());
-                return Err(Errors::parse(err.to_string().as_str(), None));
+                Err(Errors::parse(err.to_string().as_str(), None))
             }
         }
     }
@@ -373,7 +372,7 @@ impl OrchestrationPersistenceForProtocol {
         &self,
         pid: &Urn,
         mid: &Urn,
-        peer: &String,
+        peer: &str,
         message: &dyn NegotiationProcessMessageTrait,
         tenant_id: &str,
     ) -> Outcome<AgreementView> {

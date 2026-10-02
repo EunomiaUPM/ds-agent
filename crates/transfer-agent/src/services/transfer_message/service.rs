@@ -21,7 +21,7 @@ use common::paginated_spec::Cursor;
 use common::query::{Page, Paginated, QueryFilter, Sort};
 use std::sync::Arc;
 use urn::Urn;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 
 use crate::data::repo::transfer_message::TransferMessageRepoTrait;
 use crate::entities::commands::NewTransferMessageCommand;
@@ -51,7 +51,6 @@ impl TransferMessageService {
 
     /// Validates the date window, injects the scope's tenant into the filter, and
     /// clamps the page size — the normalization shared by both list endpoints.
-    #[allow(clippy::result_large_err)]
     fn scoped_query(
         scope: &AccessScope,
         filters: &TransferMessageFilter,

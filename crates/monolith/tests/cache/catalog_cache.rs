@@ -75,10 +75,7 @@ async fn batch_returns_entries_in_order() {
     cache.set_single(&id1, &dto1).await.unwrap();
     cache.set_single(&id2, &dto2).await.unwrap();
 
-    let batch = cache
-        .get_batch(&vec![id1.clone(), id2.clone()])
-        .await
-        .unwrap();
+    let batch = cache.get_batch(&[id1.clone(), id2.clone()]).await.unwrap();
 
     assert_eq!(batch.len(), 2);
     assert_eq!(batch[0].inner.id, id1.to_string());

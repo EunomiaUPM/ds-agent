@@ -400,3 +400,41 @@ async fn reader_cannot_upsert_or_delete() {
     let delete_res = svc.delete_instance_by_id(&reader, &urn).await;
     assert!(delete_res.is_err());
 }
+
+/// A template missing from the caller's tenant is a 404; no other tenant is searched.
+#[tokio::test]
+async fn upsert_with_template_missing_in_tenant_is_not_found() {
+    let mut template_repo = MockConnectorTemplateRepoTrait::new();
+    template_repo
+        .expect_get_template_by_name_and_version()
+        .withf(|tenant, name, ver| tenant == "tenant-1" && name == "template_name" && ver == "1.0")
+        .times(1)
+        .returning(|_, _, _| Ok(None));
+
+    let svc = build_service(
+        template_repo,
+        MockConnectorInstanceRepoTrait::new(),
+        MockConnectorDistroRelationRepoTrait::new(),
+        MockCatalogFacadeTrait::new(),
+    );
+    let err = svc
+        .upsert_instance(
+            &TestScopes::owner("tenant-1"),
+            &mut ConnectorInstantiationDto {
+                template_name: "template_name".to_string(),
+                template_version: "1.0".to_string(),
+                distribution_id: Urn::from_str("urn:uuid:1").unwrap(),
+                parameters: HashMap::new(),
+                metadata: None,
+                dry_run: false,
+                tenant_id: None,
+            },
+        )
+        .await
+        .unwrap_err();
+
+    assert!(matches!(
+        err,
+        ymir::errors::Errors::MissingResourceError { .. }
+    ));
+}

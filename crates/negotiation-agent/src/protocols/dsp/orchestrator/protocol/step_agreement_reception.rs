@@ -49,7 +49,7 @@ impl NegotiationProtocolStep for AgreementReceptionStep {
         mate: &Mates,
     ) -> Outcome<()> {
         validator
-            .on_contract_agreement(&DspActor::peer(mate), &id.to_string(), input)
+            .on_contract_agreement(&DspActor::peer(mate), id, input)
             .await
     }
 

@@ -1074,7 +1074,11 @@
               "string",
               "null"
             ],
-            "description": "HMAC key used to sign deliveries."
+            "description": "Write-only HMAC key; shows as `*****` when set, null otherwise.",
+            "enum": [
+              "*****",
+              null
+            ]
           },
           "headers": {
             "type": [

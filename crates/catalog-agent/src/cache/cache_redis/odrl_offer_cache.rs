@@ -16,11 +16,8 @@
  */
 
 use crate::cache::cache_traits::DESIRED_CACHE_TTL;
-use crate::{CatalogDto, DataServiceDto, OdrlPolicyDto};
+use crate::OdrlPolicyDto;
 use common::cache::{RedisCacheConnectorTrait, UtilsCacheTrait};
-use common::dsp_common::odrl::OdrlOffer;
-use std::str::FromStr;
-use urn::Urn;
 
 pub struct OdrlOfferCacheForRedis {
     redis_connection: redis::aio::MultiplexedConnection,

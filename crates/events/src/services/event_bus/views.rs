@@ -17,6 +17,8 @@
 
 //! Response views.
 
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -51,27 +53,35 @@ impl EventView {
     }
 }
 
-/// Subscription as returned by the API, without its secret.
+/// Subscription as returned by the API; the HMAC secret is write-only and shows as `*****`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubscriptionView {
     pub id: String,
+    pub tenant_id: String,
     pub callback_address: String,
     pub topic_pattern: String,
-    pub active: bool,
+    pub secret: Option<String>,
+    pub headers: Option<HashMap<String, String>>,
     pub retry_limit: Option<u32>,
+    pub active: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
     pub expiration_time: Option<DateTime<Utc>>,
 }
 
 impl SubscriptionView {
+    pub const MASKED_SECRET: &'static str = "*****";
+
     pub fn assemble(record: SubscriptionRecord) -> Self {
         Self {
             id: record.id,
+            tenant_id: record.tenant_id,
             callback_address: record.callback_address,
             topic_pattern: record.topic_pattern.to_string(),
-            active: record.active,
+            secret: record.secret.map(|_| Self::MASKED_SECRET.to_string()),
+            headers: record.headers,
             retry_limit: record.retry_limit,
+            active: record.active,
             created_at: record.created_at,
             updated_at: record.updated_at,
             expiration_time: record.expiration_time,

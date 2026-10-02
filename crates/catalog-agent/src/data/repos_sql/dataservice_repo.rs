@@ -18,7 +18,7 @@
 use crate::data::entities::dataservice::{EditDataServiceModel, NewDataServiceModel};
 use crate::data::entities::{catalog, dataservice};
 use crate::data::repo_traits::catalog_db_errors::{
-    CatalogAgentRepoErrors, CatalogRepoErrors, DataServiceRepoErrors, DistributionRepoErrors,
+    CatalogAgentRepoErrors, CatalogRepoErrors, DataServiceRepoErrors,
 };
 use crate::data::repo_traits::dataservice_repo::DataServiceRepositoryTrait;
 use crate::entities::filters::DataServiceFilter;
@@ -27,7 +27,7 @@ use common::query::FilterApplier;
 use sea_orm::QueryTrait;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
-    QueryFilter, QueryOrder, QuerySelect, Select,
+    QueryFilter, Select,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -316,11 +316,11 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
             .into_errors());
         }
 
-        let main_dataservice = self
+        if let Some(main_dataservice) = self
             .get_main_data_service(&new_data_service_model.tenant_id)
-            .await?;
-        if main_dataservice.is_some() {
-            return Ok(main_dataservice.unwrap());
+            .await?
+        {
+            return Ok(main_dataservice);
         }
 
         let mut model: dataservice::ActiveModel = new_data_service_model.into();

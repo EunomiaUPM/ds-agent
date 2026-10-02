@@ -94,7 +94,7 @@ impl DataPlaneFacadeTrait for DataPlaneLocalFacade {
     ) -> Outcome<Option<DataAddressDto>> {
         strategy_for(ctx.role, ctx.transfer_direction)
             .on_suspend_pre(ctx, &self.dataplane_manager)
-            .await;
+            .await?;
         Ok(None)
     }
 
@@ -105,7 +105,7 @@ impl DataPlaneFacadeTrait for DataPlaneLocalFacade {
     ) -> Outcome<Option<DataAddressDto>> {
         strategy_for(ctx.role, ctx.transfer_direction)
             .on_suspend_post(ctx, &self.dataplane_manager)
-            .await;
+            .await?;
         Ok(None)
     }
 
@@ -116,7 +116,7 @@ impl DataPlaneFacadeTrait for DataPlaneLocalFacade {
     ) -> Outcome<Option<DataAddressDto>> {
         strategy_for(ctx.role, ctx.transfer_direction)
             .on_complete_pre(ctx, &self.dataplane_manager)
-            .await;
+            .await?;
         Ok(None)
     }
 
@@ -127,7 +127,7 @@ impl DataPlaneFacadeTrait for DataPlaneLocalFacade {
     ) -> Outcome<Option<DataAddressDto>> {
         strategy_for(ctx.role, ctx.transfer_direction)
             .on_complete_post(ctx, &self.dataplane_manager)
-            .await;
+            .await?;
         Ok(None)
     }
 
@@ -138,7 +138,7 @@ impl DataPlaneFacadeTrait for DataPlaneLocalFacade {
     ) -> Outcome<Option<DataAddressDto>> {
         strategy_for(ctx.role, ctx.transfer_direction)
             .on_terminate_pre(ctx, &self.dataplane_manager)
-            .await;
+            .await?;
         Ok(None)
     }
 
@@ -149,7 +149,7 @@ impl DataPlaneFacadeTrait for DataPlaneLocalFacade {
     ) -> Outcome<Option<DataAddressDto>> {
         strategy_for(ctx.role, ctx.transfer_direction)
             .on_terminate_post(ctx, &self.dataplane_manager)
-            .await;
+            .await?;
         Ok(None)
     }
 }

@@ -16,17 +16,15 @@
  */
 
 use crate::engine::dataplane_manager::dataplane_commands::{
-    set_configuring_helper, DataplaneCommandStateMachine, DataplaneInitCommandTypes,
+    set_configuring_helper, DataplaneCommandStateMachine,
 };
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceFacadeTrait;
 use keystore::SecretStore;
-use std::str::FromStr;
 use std::sync::Arc;
-use urn::Urn;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 
 pub struct DataplaneHandlerProviderPull {
     dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,

@@ -76,12 +76,12 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_get_negotiation(
         &self,
-        id: &String,
+        id: &str,
         mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
         let process = self
             .persistence_service
-            .fetch_process(id.as_str(), mate)
+            .fetch_process(id, mate)
             .await?;
         let negotiation_process_dto = NegotiationProcessMessageWrapper::try_from(process)?;
         Ok(negotiation_process_dto)
@@ -103,7 +103,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_consumer_request(
         &self,
-        id: &String,
+        id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>,
         mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
@@ -116,7 +116,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_agreement_verification(
         &self,
-        id: &String,
+        id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>,
         mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
@@ -142,7 +142,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_provider_offer(
         &self,
-        id: &String,
+        id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferMessageDto>,
         mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
@@ -155,7 +155,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_agreement_reception(
         &self,
-        id: &String,
+        id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>,
         mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
@@ -168,7 +168,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_negotiation_event(
         &self,
-        id: &String,
+        id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationEventMessageDto>,
         mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
@@ -181,7 +181,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_negotiation_termination(
         &self,
-        id: &String,
+        id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
         mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {

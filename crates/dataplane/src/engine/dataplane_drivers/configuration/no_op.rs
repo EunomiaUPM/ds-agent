@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::engine::dataplane_drivers::{DriverAuthenticatorTrait, DriverProxyConfiguratorTrait};
+use crate::engine::dataplane_drivers::DriverProxyConfiguratorTrait;
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use ymir::errors::Outcome;
 

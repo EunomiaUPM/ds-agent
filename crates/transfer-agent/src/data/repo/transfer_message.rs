@@ -60,7 +60,6 @@ pub trait TransferMessageRepoTrait: Send + Sync {
 
 #[derive(Debug, Error)]
 pub enum TransferMessageRepoErrors {
-    #[allow(dead_code)]
     #[error("Transfer Message not found")]
     TransferMessageNotFound,
     #[error("Invalid pagination cursor")]

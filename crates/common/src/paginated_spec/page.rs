@@ -355,8 +355,7 @@ where
                 "false" | "0" => Ok(Some(false)),
                 "" => Ok(None),
                 _ => Err(serde::de::Error::custom(format!(
-                    "invalid boolean string: {}",
-                    v
+                    "invalid boolean string: {v}"
                 ))),
             }
         }

@@ -29,7 +29,7 @@ use json_syntax::{Parse, Value as JsonSyntaxValue};
 use locspan::{Location, Meta, Span};
 use sophia_iri::Iri;
 use sophia_jsonld::json_ld::future::{BoxFuture, FutureExt};
-use sophia_jsonld::json_ld::{self, Loader, LoadingResult, RemoteDocument};
+use sophia_jsonld::json_ld::{Loader, LoadingResult, RemoteDocument};
 use sophia_jsonld::vocabulary::ArcIri;
 use tokio::sync::RwLock;
 
@@ -114,7 +114,7 @@ impl RdfContextLoader {
                             .and_then(|n| n.to_str())
                             .unwrap_or_default()
                             .to_string();
-                        let fallback_url = format!("file://local/{}", file_name);
+                        let fallback_url = format!("file://local/{file_name}");
                         if let Ok(parsed) = Self::parse_doc(&fallback_url, &content) {
                             map.insert(file_name, parsed.clone());
                             map.insert(fallback_url, parsed);

@@ -17,9 +17,6 @@
 
 //! Cache traits beyond the shared entity cache.
 
-use crate::CatalogDto;
-use urn::Urn;
-
 pub mod peer_catalog_cache_trait;
 
 const ONE_DAY_TTL: i32 = 86400;

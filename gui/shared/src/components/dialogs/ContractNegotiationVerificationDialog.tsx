@@ -64,19 +64,15 @@ export const ContractNegotiationVerificationDialog = ({
       onSubmit={handleSubmit}
       scrollable={true}
       afterInfoContent={
-        <div className="pt-4">
-          <PolicyWrapperShow
-            policy={
-              process.agreement?.agreementContent || {
-                permission: [],
-                prohibition: [],
-                obligation: [],
-              }
-            }
-            datasetId={process.identifiers?.datasetId}
-            catalogId={process.identifiers?.catalogId}
-          />
-        </div>
+        process.agreement?.agreementContent ? (
+          <div className="pt-4">
+            <PolicyWrapperShow
+              policy={process.agreement.agreementContent}
+              datasetId={process.identifiers?.datasetId}
+              catalogId={process.identifiers?.catalogId}
+            />
+          </div>
+        ) : undefined
       }
     />
   );

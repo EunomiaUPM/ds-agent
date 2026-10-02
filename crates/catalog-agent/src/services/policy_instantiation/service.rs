@@ -19,7 +19,6 @@
 
 use crate::entities::odrl_policies::NewOdrlPolicyDto;
 use crate::entities::policy_instantiation::NewPolicyInstantiationDto;
-use crate::entities::policy_templates::PolicyTemplateDto;
 use crate::services::odrl_policies::OdrlPolicyServiceTrait;
 use crate::services::policy_instantiation::PolicyInstantiationServiceTrait;
 use crate::services::policy_templates::PolicyTemplateServiceTrait;
@@ -28,7 +27,6 @@ use common::dsp_common::odrl::OdrlPolicyInfo;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tracing::error;
 use ymir::errors::Outcome;
 
 pub struct PolicyInstantiationService {
@@ -127,7 +125,7 @@ impl PolicyInstantiationServiceTrait for PolicyInstantiationService {
                     tenant_id: Some(policy_template.tenant_id.clone()),
                     odrl_offer: final_odrl,
                     entity_id: instantiation_request.entity_id.clone(),
-                    entity_type: instantiation_request.entity_type.clone(),
+                    entity_type: instantiation_request.entity_type,
                     source_template_id: Some(instantiation_request.id.clone()),
                     source_template_version: Some(instantiation_request.version.clone()),
                     instantiation_parameters: Some(serde_json::to_value(

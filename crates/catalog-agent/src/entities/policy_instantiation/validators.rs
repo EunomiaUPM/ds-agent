@@ -18,7 +18,6 @@
 use crate::entities::policy_templates::types::{
     ParameterDataType, SelectionAllowedValues, ValidationRestrictions,
 };
-use crate::entities::policy_templates::validator::PolicyTemplateError;
 use crate::entities::policy_templates::PolicyTemplateAllowedDefaultValues;
 use regex::Regex;
 use thiserror::Error;
@@ -75,7 +74,7 @@ impl ParameterValidator for StringValidator {
             val => {
                 return Err(ValidationError::TypeMismatch {
                     expected: "String".into(),
-                    got: format!("{:?}", val),
+                    got: format!("{val:?}"),
                 }
                 .into_errors())
             }
@@ -101,7 +100,7 @@ impl ParameterValidator for StringValidator {
         }
         if let Some(pattern) = &restrictions.regex {
             let re = Regex::new(pattern)
-                .map_err(|e| Errors::crazy(format!("Invalid regex: {}", e), Some(Box::new(e))))?;
+                .map_err(|e| Errors::crazy(format!("Invalid regex: {e}"), Some(Box::new(e))))?;
             if !re.is_match(s) {
                 return Err(ValidationError::RegexMismatch { value: s.clone() }.into_errors());
             }
@@ -123,7 +122,7 @@ impl ParameterValidator for NumericValidator {
             val => {
                 return Err(ValidationError::TypeMismatch {
                     expected: "Numeric".into(),
-                    got: format!("{:?}", val),
+                    got: format!("{val:?}"),
                 }
                 .into_errors())
             }
@@ -183,7 +182,7 @@ impl ParameterValidator for DateTimeValidator {
             val => {
                 return Err(ValidationError::TypeMismatch {
                     expected: "ISO8601 String".into(),
-                    got: format!("{:?}", val),
+                    got: format!("{val:?}"),
                 }
                 .into_errors())
             }

@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#![allow(unused)]
 /*
  *
  *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
@@ -84,8 +83,7 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
             _ => {
                 let err = CommonErrors::parse_new(
                     format!(
-                        "This role: {} does not support negotiation process message type: {}",
-                        role, message_type
+                        "This role: {role} does not support negotiation process message type: {message_type}"
                     )
                     .as_str(),
                 );
@@ -103,129 +101,129 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
         match message_type {
             NegotiationProcessMessageType::NegotiationRequestMessage => match current_state {
                 NegotiationProcessState::Requested => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
                 NegotiationProcessState::Offered => {}
                 NegotiationProcessState::Accepted => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
                 NegotiationProcessState::Agreed => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
                 NegotiationProcessState::Verified => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
                 NegotiationProcessState::Finalized => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
                 NegotiationProcessState::Terminated => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
             },
             NegotiationProcessMessageType::NegotiationOfferMessage => match current_state {
                 NegotiationProcessState::Requested => {}
                 NegotiationProcessState::Offered => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
                 NegotiationProcessState::Accepted => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
                 NegotiationProcessState::Agreed => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
                 NegotiationProcessState::Verified => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
                 NegotiationProcessState::Finalized => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
                 NegotiationProcessState::Terminated => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
             },
             NegotiationProcessMessageType::NegotiationEventMessage(event) => match event {
                 NegotiationEventType::ACCEPTED => match current_state {
                     NegotiationProcessState::Requested => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                     NegotiationProcessState::Offered => {}
                     NegotiationProcessState::Accepted => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                     NegotiationProcessState::Agreed => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                     NegotiationProcessState::Verified => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                     NegotiationProcessState::Finalized => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                     NegotiationProcessState::Terminated => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                 },
                 NegotiationEventType::FINALIZED => match current_state {
                     NegotiationProcessState::Requested => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                     NegotiationProcessState::Offered => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                     NegotiationProcessState::Accepted => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                     NegotiationProcessState::Agreed => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                     NegotiationProcessState::Verified => {}
                     NegotiationProcessState::Finalized => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                     NegotiationProcessState::Terminated => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                 },
             },
             NegotiationProcessMessageType::NegotiationAgreementMessage => match current_state {
                 NegotiationProcessState::Requested => {}
                 NegotiationProcessState::Offered => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
                 NegotiationProcessState::Accepted => {}
                 NegotiationProcessState::Agreed => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
                 NegotiationProcessState::Verified => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
                 NegotiationProcessState::Finalized => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
                 NegotiationProcessState::Terminated => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
             },
             NegotiationProcessMessageType::NegotiationAgreementVerificationMessage => {
                 match current_state {
                     NegotiationProcessState::Requested => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                     NegotiationProcessState::Offered => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                     NegotiationProcessState::Accepted => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                     NegotiationProcessState::Agreed => {}
                     NegotiationProcessState::Verified => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                     NegotiationProcessState::Finalized => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                     NegotiationProcessState::Terminated => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        validate_state_transition_error_helper(current_state, message_type)?;
                     }
                 }
             }
@@ -236,10 +234,10 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
                 NegotiationProcessState::Agreed => {}
                 NegotiationProcessState::Verified => {}
                 NegotiationProcessState::Finalized => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
                 NegotiationProcessState::Terminated => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    validate_state_transition_error_helper(current_state, message_type)?;
                 }
             },
             NegotiationProcessMessageType::NegotiationProcess => {
@@ -267,9 +265,7 @@ fn validate_state_transition_error_helper(
 ) -> Outcome<()> {
     let err = CommonErrors::parse_new(
         format!(
-            "NegotiationProcessMessageType {} is not allowed here. Current state is {}",
-            message_type.to_string(),
-            current_state.to_string()
+            "NegotiationProcessMessageType {message_type} is not allowed here. Current state is {current_state}"
         )
         .as_str(),
     );

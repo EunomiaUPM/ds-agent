@@ -143,21 +143,21 @@ export function mapTransferProcessToInfoItemsForProvider(
   const items: (InfoItemProps | undefined)[] = [
     {
       label: "Provider PID",
-      value: { type: "urn" as const, value: process.identifiers?.providerPid || "" },
+      value: { type: "urn" as const, value: process.correlation.providerPid || "" },
     },
     {
       label: "Consumer PID",
-      value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" },
+      value: { type: "urn" as const, value: process.correlation.consumerPid || "" },
     },
     {
       label: "Associated Consumer",
-      value: { type: "urn" as const, value: process.associatedAgentPeer || "" },
+      value: { type: "urn" as const, value: process.correlation.peerParticipantId || "" },
     },
     { label: "Current State", value: { type: "status" as const, value: process.state || "" } },
-    process.stateAttribute
+    process.stateMetadata.attribute
       ? {
           label: "State Attribute",
-          value: { type: "status" as const, value: process.stateAttribute },
+          value: { type: "status" as const, value: process.stateMetadata.attribute },
         }
       : undefined,
     { label: "Created At", value: { type: "date" as const, value: process.createdAt || "" } },
@@ -177,21 +177,21 @@ export function mapTransferProcessToInfoItemsForConsumer(
   const items: (InfoItemProps | undefined)[] = [
     {
       label: "Provider PID",
-      value: { type: "urn" as const, value: process.identifiers?.providerPid || "" },
+      value: { type: "urn" as const, value: process.correlation.providerPid || "" },
     },
     {
       label: "Consumer ID",
-      value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" },
+      value: { type: "urn" as const, value: process.correlation.consumerPid || "" },
     },
     {
       label: "Associated Provider",
-      value: { type: "urn" as const, value: process.associatedAgentPeer || "" },
+      value: { type: "urn" as const, value: process.correlation.peerParticipantId || "" },
     },
     { label: "Current State", value: { type: "status" as const, value: process.state || "" } },
-    process.stateAttribute
+    process.stateMetadata.attribute
       ? {
           label: "State Attribute",
-          value: { type: "status" as const, value: process.stateAttribute },
+          value: { type: "status" as const, value: process.stateMetadata.attribute },
         }
       : undefined,
     { label: "Created At", value: { type: "date" as const, value: process.createdAt || "" } },

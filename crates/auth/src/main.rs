@@ -20,7 +20,6 @@ use auth::{SERVICE_BIG_NAME, SERVICE_NAME};
 use common::boot::cli::AgentCli;
 use ymir::errors::Outcome;
 
-#[allow(clippy::result_large_err)]
 #[tokio::main]
 async fn main() -> Outcome<()> {
     AgentCli::<AuthBoot>::run(SERVICE_NAME, SERVICE_BIG_NAME).await

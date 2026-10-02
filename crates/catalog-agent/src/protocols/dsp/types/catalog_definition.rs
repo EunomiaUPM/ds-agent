@@ -167,9 +167,3 @@ impl From<Catalog> for CatalogMinimized {
         }
     }
 }
-
-impl From<&Catalog> for CatalogMinimized {
-    fn from(dc: &Catalog) -> Self {
-        dc.into()
-    }
-}

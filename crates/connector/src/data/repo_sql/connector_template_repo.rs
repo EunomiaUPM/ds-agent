@@ -24,10 +24,7 @@ use crate::data::repo_traits::connector_template_repo::ConnectorTemplateRepoTrai
 use crate::entities::filters::ConnectorTemplateFilter;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use common::query::FilterApplier;
-use sea_orm::{
-    ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
-    QuerySelect, Select,
-};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Select};
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 impl FilterApplier<Select<connector_templates::Entity>> for ConnectorTemplateFilter {

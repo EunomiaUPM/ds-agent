@@ -25,7 +25,7 @@ export const TransferProcessBusinessActions = ({
   });
 
   const getActions = () => {
-    if (process.role === "Provider") {
+    if (process.role === "provider") {
       switch (process.state) {
         case "REQUESTED":
           // Start was already sent automatically — only allow terminating
@@ -49,7 +49,7 @@ export const TransferProcessBusinessActions = ({
         default:
           return [];
       }
-    } else if (process.role === "Consumer") {
+    } else if (process.role === "consumer") {
       switch (process.state) {
         case "REQUESTED":
           // Waiting for Provider auto-start — only allow terminating

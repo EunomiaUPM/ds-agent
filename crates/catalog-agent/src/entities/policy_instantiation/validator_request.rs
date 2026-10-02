@@ -18,8 +18,6 @@
 use crate::entities::policy_instantiation::validators::ValidatorFactory;
 use crate::entities::policy_instantiation::NewPolicyInstantiationDto;
 use crate::entities::policy_templates::PolicyTemplateDto;
-use common::errors::CommonErrors;
-use tracing::error;
 use ymir::errors::{Errors, Outcome};
 
 impl NewPolicyInstantiationDto {
@@ -30,9 +28,8 @@ impl NewPolicyInstantiationDto {
         for req_key in self.parameters.keys() {
             if !policy_template.parameters.contains_key(req_key) {
                 let err = Errors::parse(
-                    &format!(
-                        "Validation Error: Unknown parameter '{}' provided. It is not defined in the template.",
-                        req_key
+                    format!(
+                        "Validation Error: Unknown parameter '{req_key}' provided. It is not defined in the template."
                     ),
                     None,
                 );
@@ -48,10 +45,7 @@ impl NewPolicyInstantiationDto {
                         default_val
                     } else {
                         let err = Errors::parse(
-                            &format!(
-                                "Validation Error: Missing required parameter '{}'",
-                                param_key
-                            ),
+                            format!("Validation Error: Missing required parameter '{param_key}'"),
                             None,
                         );
                         return Err(err);
@@ -63,10 +57,7 @@ impl NewPolicyInstantiationDto {
             validator
                 .validate(value_to_validate, &param_def.restrictions)
                 .map_err(|e| {
-                    Errors::parse(
-                        &format!("Validation Error for '{}': {:?}", param_key, e),
-                        None,
-                    )
+                    Errors::parse(format!("Validation Error for '{param_key}': {e:?}"), None)
                 })?;
         }
 

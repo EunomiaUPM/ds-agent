@@ -25,3 +25,4 @@ mod dispatcher;
 mod event_bus;
 mod retry_policy;
 mod retry_worker;
+mod views;

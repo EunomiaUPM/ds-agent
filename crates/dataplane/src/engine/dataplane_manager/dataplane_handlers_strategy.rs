@@ -15,9 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::engine::dataplane_manager::dataplane_commands::{
-    DataplaneCommandStateMachine, DataplaneInitCommandTypes,
-};
+use crate::engine::dataplane_manager::dataplane_commands::DataplaneCommandStateMachine;
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::engine::dataplane_manager::dataplane_handlers_consumer_pull::DataplaneHandlerConsumerPull;
 use crate::engine::dataplane_manager::dataplane_handlers_consumer_push::DataplaneHandlerConsumerPush;
@@ -29,7 +27,6 @@ use common::config::services::TransferConfig;
 use connector::ConnectorInstanceFacadeTrait;
 use keystore::SecretStore;
 use std::sync::Arc;
-use ymir::errors::Outcome;
 
 pub struct DataplaneStrategyFactory {
     dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,

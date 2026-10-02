@@ -107,7 +107,7 @@ impl GaiaSelfAttester {
         let holder_did = identity.did().id();
 
         let now = Utc::now();
-        let credential_id = format!("urn:uuid:{}", Uuid::new_v4().to_string());
+        let credential_id = format!("urn:uuid:{}", Uuid::new_v4());
         let doc = VcDocumentBuilder::new(&vc_type, W3cDataModelVersion::default())
             .id(&credential_id)
             .issuer(VcIssuer::Did(holder_did.to_string()))

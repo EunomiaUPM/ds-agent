@@ -19,7 +19,6 @@
 
 use crate::data::entities::odrl_offer;
 use crate::data::entities::odrl_offer::NewOdrlOfferModel;
-use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
 use crate::entities::filters::OdrlPolicyFilter;
 use common::paginated_spec::{Page, Sort};
 use urn::Urn;

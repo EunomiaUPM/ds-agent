@@ -45,9 +45,9 @@ pub enum DataplaneProxyEgress {
     },
 }
 
-impl Into<DataplaneAddress> for DataplaneProxyEgress {
-    fn into(self) -> DataplaneAddress {
-        match self {
+impl From<DataplaneProxyEgress> for DataplaneAddress {
+    fn from(val: DataplaneProxyEgress) -> Self {
+        match val {
             DataplaneProxyEgress::NoOp => DataplaneAddress {
                 endpoint_type: "".to_string(),
                 endpoint: "".to_string(),

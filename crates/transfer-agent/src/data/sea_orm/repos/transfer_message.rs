@@ -46,7 +46,6 @@ impl SeaOrmTransferMessageRepo {
         TransferMessageRepoErrors::ErrorFetchingTransferMessage(Box::new(e)).into_errors()
     }
 
-    #[allow(clippy::result_large_err)]
     fn decode_cursor(&self, cursor: &str) -> Outcome<chrono::DateTime<chrono::FixedOffset>> {
         Cursor::decode_timestamp(cursor)
             .map_err(|_| TransferMessageRepoErrors::InvalidCursor.into_errors())
@@ -77,7 +76,6 @@ impl SeaOrmTransferMessageRepo {
         q
     }
 
-    #[allow(clippy::result_large_err)]
     fn apply_page_and_sort(
         &self,
         mut q: sea_orm::Select<orm::Entity>,

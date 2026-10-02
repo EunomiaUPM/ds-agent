@@ -16,7 +16,6 @@
  */
 
 use crate::protocols::dsp::types::catalog_definition::CatalogServiceTypes;
-use crate::protocols::dsp::types::dataservice_definition::DataService;
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::odrl::OdrlOffer;
 use serde::{Deserialize, Serialize};

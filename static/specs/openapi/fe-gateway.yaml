@@ -1022,7 +1022,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/DidDocument'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '502':
@@ -3760,31 +3760,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-  /oauth/clients/{clientId}/secret:
-    post:
-      tags:
-      - OAuth Clients
-      summary: Rotate OAuth client secret
-      operationId: rotateOAuthClientSecret
-      parameters:
-      - name: clientId
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: New client secret generated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RotateSecretResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-      deprecated: true
-      description: Not served by the backend any more; kept only because the admin GUI still calls it.
   /oauth/introspect:
     post:
       tags:
@@ -4354,37 +4329,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-  /onboard/provider:
-    post:
-      operationId: onboardProvider
-      summary: Onboard provider
-      tags:
-      - Onboard
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OnboardProviderDto'
-      responses:
-        '200':
-          description: OK
-          content:
-            text/plain:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-        '500':
-          description: Internal Server Error
-      deprecated: true
-      description: Not served by the backend any more; kept only because the admin GUI still calls it.
   /peer-catalogs:
     get:
       tags:
@@ -5742,33 +5686,6 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-  /vc-request/beg/cross-user:
-    post:
-      operationId: requestVCtoAuthorityCrossUser
-      summary: Request VC to authority cross user
-      tags:
-      - VC Request
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/VCRequestCrossUserDto'
-      responses:
-        '200':
-          description: OK
-        '400':
-          description: Bad Request
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-        '500':
-          description: Internal Server Error
-      deprecated: true
-      description: Not served by the backend any more; kept only because the admin GUI still calls it.
   /vc-request/oid4vci/{id}:
     post:
       tags:
@@ -6136,81 +6053,6 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-  /wallet/oidc4vci:
-    post:
-      operationId: oidc4vciRequest
-      summary: Request VC to peer cross user
-      tags:
-      - Wallet
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Oidc4vciRequestDto'
-      responses:
-        '200':
-          description: OK
-        '400':
-          description: Bad Request
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-        '500':
-          description: Internal Server Error
-      deprecated: true
-      description: Not served by the backend any more; kept only because the admin GUI still calls it.
-  /wallet/oidc4vp:
-    post:
-      operationId: oidc4vpRequest
-      summary: Request VP to peer cross user
-      tags:
-      - Wallet
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Oidc4vpRequestDto'
-      responses:
-        '200':
-          description: OK
-        '400':
-          description: Bad Request
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-        '500':
-          description: Internal Server Error
-      deprecated: true
-      description: Not served by the backend any more; kept only because the admin GUI still calls it.
-  /wallet/onboard:
-    post:
-      operationId: onboardWallet
-      summary: Onboard wallet
-      tags:
-      - Wallet
-      responses:
-        '201':
-          description: OK
-        '400':
-          description: Bad Request
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-        '500':
-          description: Internal Server Error
-      deprecated: true
-      description: Not served by the backend any more; kept only because the admin GUI still calls it.
   /wallet/vcs:
     get:
       tags:
@@ -7023,13 +6865,6 @@ components:
           - 'null'
           format: date-time
           description: Without it the token never expires.
-    CreatePatCommandRole:
-      type: string
-      description: Not sent; a personal access token always carries the caller's role.
-      enum:
-      - admin
-      - owner
-      - reader
     CreatePatResponse:
       type: object
       required:
@@ -8050,7 +7885,10 @@ components:
           type:
           - string
           - 'null'
-          description: HMAC key used to sign deliveries.
+          description: Write-only HMAC key; shows as `*****` when set, null otherwise.
+          enum:
+          - '*****'
+          - null
         headers:
           type:
           - object
@@ -9642,22 +9480,6 @@ components:
         createdAt:
           type: string
           format: date-time
-    Oidc4vciRequestDto:
-      type: object
-      title: Oidc4vciRequestDto
-      required:
-      - uri
-      properties:
-        uri:
-          type: string
-    Oidc4vpRequestDto:
-      type: object
-      title: Oidc4vpRequestDto
-      required:
-      - uri
-      properties:
-        uri:
-          type: string
     OidcUri:
       type: object
       required:
@@ -9667,23 +9489,6 @@ components:
           type: string
           examples:
           - openid4vp://?request_uri=...
-    OnboardProviderDto:
-      type: object
-      title: OnboardProviderDto
-      required:
-      - url
-      - id
-      - slug
-      - actions
-      properties:
-        url:
-          type: string
-        id:
-          type: string
-        slug:
-          type: string
-        actions:
-          type: string
     OpenIdConfiguration:
       type: object
       required:
@@ -10561,23 +10366,6 @@ components:
       properties:
         replayed_count:
           type: integer
-    RotateSecretResponse:
-      type: object
-      required:
-      - client_id
-      - client_name
-      - client_secret
-      properties:
-        client_id:
-          type: string
-          example: client-123
-        client_name:
-          type: string
-          example: My Client
-        client_secret:
-          type: string
-          description: Plaintext secret, only returned once upon generation or rotation
-          example: sec_x89aF29bCd...
     RpcCatalogRequestMessageDto:
       type: object
       additionalProperties: false
@@ -11260,23 +11048,6 @@ components:
           - string
           - 'null'
           format: date-time
-    VCRequestCrossUserDto:
-      type: object
-      title: VCRequestCrossUserDto
-      required:
-      - url
-      - id
-      - slug
-      - vc_type
-      properties:
-        url:
-          type: string
-        id:
-          type: string
-        slug:
-          type: string
-        vc_type:
-          type: string
     VCRequestDto:
       $ref: '#/components/schemas/SentGrant'
     VcTypeConfig:

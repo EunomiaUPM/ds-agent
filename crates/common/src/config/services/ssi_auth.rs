@@ -59,7 +59,7 @@ impl WalletConfigTrait for SsiAuthConfig {
 impl ConfigLoader for SsiAuthConfig {
     fn load(env_file: &str) -> Outcome<Self> {
         Self::global_load(env_file)
-            .map(|data| data.ssi_auth().clone())
+            .and_then(|data| data.ssi_auth().cloned())
             .or_else(|_| Self::local_load(env_file))
     }
 }

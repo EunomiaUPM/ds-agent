@@ -19,10 +19,9 @@ use std::sync::Arc;
 
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use axum::routing::{delete, get, post, put};
+use axum::routing::get;
 use axum::{Json, Router};
 use common::auth::AccessScope;
-use serde::Deserialize;
 use ymir::errors::AppResult;
 
 use crate::entities::commands::{EditSecretCommand, NewSecretCommand};
@@ -77,7 +76,7 @@ impl SecretRouter {
         scope: AccessScope,
         Path(key): Path<String>,
     ) -> AppResult<Json<SecretView>> {
-        let key = Key::new(format!("/{}", key))?;
+        let key = Key::new(format!("/{key}"))?;
         let entry = state.service.read(&scope, &key).await?;
         Ok(Json(SecretView::from(entry)))
     }
@@ -88,7 +87,7 @@ impl SecretRouter {
         Path(key): Path<String>,
         Json(cmd): Json<EditSecretCommand>,
     ) -> AppResult<Json<VersionResponse>> {
-        let key = Key::new(format!("/{}", key))?;
+        let key = Key::new(format!("/{key}"))?;
         let version = state.service.update(&scope, &key, &cmd).await?;
         Ok(Json(VersionResponse::from(version)))
     }
@@ -98,7 +97,7 @@ impl SecretRouter {
         scope: AccessScope,
         Path(key): Path<String>,
     ) -> AppResult<StatusCode> {
-        let key = Key::new(format!("/{}", key))?;
+        let key = Key::new(format!("/{key}"))?;
         state.service.delete(&scope, &key).await?;
         Ok(StatusCode::NO_CONTENT)
     }

@@ -29,7 +29,11 @@ export const Route = createFileRoute("/transfer-process/")({
 
 function RouteComponent() {
   const [mode, setMode] = useState<ActionsMode>("business");
-  const { params: queryParams, apiParams, onQueryChange } = useTableQueryParams({
+  const {
+    params: queryParams,
+    apiParams,
+    onQueryChange,
+  } = useTableQueryParams({
     defaultLimit: 10,
     defaultSort: "created_at_desc",
   });
@@ -38,13 +42,10 @@ function RouteComponent() {
     data: transferProcessesResponse,
     isLoading: isTransferProcessesLoading,
     isFetching,
-  } = useGetTransferProcesses({
+  } = useGetTransferProcesses(apiParams, {
     query: {
       queryKey: ["/transfers/transfer-processes", apiParams],
       placeholderData: keepPreviousData,
-    },
-    request: {
-      params: apiParams,
     },
   });
   const transferProcesses =
@@ -131,7 +132,7 @@ function RouteComponent() {
               accessorKey: "state",
               cell: (tp) => (
                 <Badge variant="status" state={tp.state}>
-                  {mergeStateAndAttribute(tp.state ?? "", tp.stateAttribute ?? "")}
+                  {mergeStateAndAttribute(tp.state ?? "", tp.stateMetadata.attribute ?? "")}
                 </Badge>
               ),
             },

@@ -33,7 +33,7 @@ impl DriverAuthenticatorTrait for BearerTokenAuthenticator {
     async fn authenticate(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
         let connector = context
             .connector_instance()
-            .ok_or_else(|| DataplaneError::ConnectorNotAvailable)?;
+            .ok_or(DataplaneError::ConnectorNotAvailable)?;
 
         let AuthenticationConfig::BearerToken { token } = connector.authentication_config.clone()
         else {

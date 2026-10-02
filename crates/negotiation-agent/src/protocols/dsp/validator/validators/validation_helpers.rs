@@ -39,9 +39,8 @@ impl ValidationHelperService {
 }
 #[async_trait::async_trait]
 impl ValidationHelpers for ValidationHelperService {
-    async fn parse_urn(&self, uri_id: &String) -> Outcome<Urn> {
-        Urn::from_str(uri_id.as_str())
-            .map_err(|_| Errors::parse("Invalid URN. The URN is malformed.", None))
+    async fn parse_urn(&self, uri_id: &str) -> Outcome<Urn> {
+        Urn::from_str(uri_id).map_err(|_| Errors::parse("Invalid URN. The URN is malformed.", None))
     }
 
     async fn parse_identifier_into_role(&self, identifier: &str) -> Outcome<RoleConfig> {
@@ -97,7 +96,7 @@ impl ValidationHelpers for ValidationHelperService {
         dto: &NegotiationProcessView,
         role: &RoleConfig,
     ) -> Outcome<Urn> {
-        let role_as_identifier = self.parse_role_into_identifier(&role).await?;
+        let role_as_identifier = self.parse_role_into_identifier(role).await?;
         let pid = dto.identifiers.get(role_as_identifier).ok_or_else(|| {
             Errors::parse("There is no such a identifier, role is mandatory.", None)
         })?;

@@ -81,7 +81,7 @@ impl ServiceModuleTrait for ConnectorModule {
         let router = Router::new()
             .nest(
                 "/templates",
-                ConnectorTemplateRouter::new(ctx.template_svc.clone(), ctx.config.clone()).router(),
+                ConnectorTemplateRouter::new(ctx.template_svc.clone()).router(),
             )
             .nest(
                 "/instances",

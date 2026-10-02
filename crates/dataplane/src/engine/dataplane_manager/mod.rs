@@ -43,21 +43,21 @@ pub struct DataplaneAddress {
     pub authorization: Option<String>,
 }
 
-impl Into<DataplaneAddress> for DataAddress {
-    fn into(self) -> DataplaneAddress {
+impl From<DataAddress> for DataplaneAddress {
+    fn from(val: DataAddress) -> Self {
         DataplaneAddress {
-            endpoint_type: self.endpoint_type,
+            endpoint_type: val.endpoint_type,
             // The wire `endpoint` is optional (DSP Appendix A); the data plane
             // cannot work without one. That it is present here is guaranteed by
             // the domain rule that requires it for the transfer kinds that reach
             // this conversion, not by the wire shape.
-            endpoint: self.endpoint.unwrap_or_default(),
-            authorization_type: self
+            endpoint: val.endpoint.unwrap_or_default(),
+            authorization_type: val
                 .endpoint_properties
                 .iter()
                 .find(|p| p.name == "authType")
                 .map(|p| p.value.clone()),
-            authorization: self
+            authorization: val
                 .endpoint_properties
                 .iter()
                 .find(|p| p.name == "authorization")
@@ -66,24 +66,18 @@ impl Into<DataplaneAddress> for DataAddress {
     }
 }
 
-impl Into<DataAddress> for DataplaneAddress {
-    fn into(self) -> DataAddress {
-        let ep_authorization_type = match self.authorization_type {
-            Some(at) => Some(EndpointProperty {
-                _type: "EndpointProperty".to_string(),
-                name: "authType".to_string(),
-                value: at.to_string(),
-            }),
-            None => None,
-        };
-        let ep_authorization = match self.authorization {
-            Some(at) => Some(EndpointProperty {
-                _type: "EndpointProperty".to_string(),
-                name: "authorization".to_string(),
-                value: at.to_string(),
-            }),
-            None => None,
-        };
+impl From<DataplaneAddress> for DataAddress {
+    fn from(val: DataplaneAddress) -> Self {
+        let ep_authorization_type = val.authorization_type.map(|at| EndpointProperty {
+            _type: "EndpointProperty".to_string(),
+            name: "authType".to_string(),
+            value: at.to_string(),
+        });
+        let ep_authorization = val.authorization.map(|at| EndpointProperty {
+            _type: "EndpointProperty".to_string(),
+            name: "authorization".to_string(),
+            value: at.to_string(),
+        });
         let mut endpoint_properties: Vec<EndpointProperty> = vec![];
         if let Some(ep_authorization_type) = ep_authorization_type {
             endpoint_properties.push(ep_authorization_type)
@@ -93,8 +87,8 @@ impl Into<DataAddress> for DataplaneAddress {
         }
         DataAddress {
             _type: "DataAddress".to_string(),
-            endpoint_type: self.endpoint_type.to_string(),
-            endpoint: Some(self.endpoint.to_string()),
+            endpoint_type: val.endpoint_type.to_string(),
+            endpoint: Some(val.endpoint.to_string()),
             endpoint_properties,
         }
     }
@@ -102,5 +96,5 @@ impl Into<DataAddress> for DataplaneAddress {
 
 pub fn conform_dataplane_forward_url(config: Arc<TransferConfig>, url: String) -> String {
     let base = config.common().get_host(HostType::Http);
-    format!("{}{}", base, url)
+    format!("{base}{url}")
 }

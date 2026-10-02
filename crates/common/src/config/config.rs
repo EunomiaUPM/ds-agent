@@ -31,10 +31,10 @@ use crate::config::services::{
 };
 use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
 
-/// The whole config file of the monolith, one optional section per agent.
+/// The whole config file of the monolith: its own section plus one optional section per agent.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ApplicationConfig {
-    monolith: Option<MonolithConfig>,
+    monolith: MonolithConfig,
     transfer: Option<TransferConfig>,
     contracts: Option<ContractsConfig>,
     catalog: Option<CatalogConfig>,
@@ -46,7 +46,7 @@ impl ApplicationConfig {
     /// Config with only the monolith section, for tests and tools.
     pub fn new(common_config: CommonConfig) -> Self {
         Self {
-            monolith: Some(MonolithConfig::new(common_config)),
+            monolith: MonolithConfig::new(common_config),
             transfer: None,
             contracts: None,
             catalog: None,
@@ -67,32 +67,50 @@ impl ApplicationConfig {
 }
 
 impl ApplicationConfig {
-    /// Panics without an `ssi_auth` section.
-    pub fn ssi_auth(&self) -> &SsiAuthConfig {
-        self.ssi_auth
-            .as_ref()
-            .expect("Missing SSI Authentication Config")
+    pub fn ssi_auth(&self) -> Outcome<&SsiAuthConfig> {
+        Self::section(self.ssi_auth.as_ref(), "ssi_auth")
     }
-    /// Panics without a `transfer` section.
-    pub fn transfer(&self) -> &TransferConfig {
-        self.transfer.as_ref().expect("Missing Transfer Config")
+    pub fn transfer(&self) -> Outcome<&TransferConfig> {
+        Self::section(self.transfer.as_ref(), "transfer")
     }
-    /// Panics without a `contracts` section.
-    pub fn contracts(&self) -> &ContractsConfig {
-        self.contracts.as_ref().expect("Missing Contracts Config")
+    pub fn contracts(&self) -> Outcome<&ContractsConfig> {
+        Self::section(self.contracts.as_ref(), "contracts")
     }
-    /// Panics without a `catalog` section.
-    pub fn catalog(&self) -> &CatalogConfig {
-        self.catalog.as_ref().expect("Missing Catalog Config")
+    pub fn catalog(&self) -> Outcome<&CatalogConfig> {
+        Self::section(self.catalog.as_ref(), "catalog")
     }
-    /// Panics without a `gateway` section.
-    pub fn gateway(&self) -> &GatewayConfig {
-        self.gateway.as_ref().expect("Missing Gateway Config")
+    pub fn gateway(&self) -> Outcome<&GatewayConfig> {
+        Self::section(self.gateway.as_ref(), "gateway")
+    }
+    pub fn monolith(&self) -> &MonolithConfig {
+        &self.monolith
     }
 
-    /// Panics without a `monolith` section.
-    pub fn monolith(&self) -> &MonolithConfig {
-        self.monolith.as_ref().expect("Missing Monolith Config")
+    /// Fails unless every agent section the monolith composes is present.
+    pub fn validate_monolith(&self) -> Outcome<()> {
+        let missing: Vec<&str> = [
+            ("ssi_auth", self.ssi_auth.is_none()),
+            ("transfer", self.transfer.is_none()),
+            ("contracts", self.contracts.is_none()),
+            ("catalog", self.catalog.is_none()),
+            ("gateway", self.gateway.is_none()),
+        ]
+        .into_iter()
+        .filter_map(|(name, absent)| absent.then_some(name))
+        .collect();
+        if missing.is_empty() {
+            Ok(())
+        } else {
+            Err(Errors::parse(
+                format!("config file lacks sections: {}", missing.join(", ")),
+                None,
+            ))
+        }
+    }
+
+    fn section<'a, T>(section: Option<&'a T>, name: &str) -> Outcome<&'a T> {
+        section
+            .ok_or_else(|| Errors::parse(format!("config file lacks the `{name}` section"), None))
     }
 
     /// Reads and parses the YAML file; a relative path is resolved from the `common` crate.
@@ -112,9 +130,12 @@ impl ConnectionConfigTrait for ApplicationConfig {
     }
 }
 
+/// The monolith composes every agent, so its config must carry every section.
 impl ConfigLoader for ApplicationConfig {
     fn load(env_file: &str) -> Outcome<Self> {
-        ApplicationConfig::load(env_file)
+        let config = ApplicationConfig::load(env_file)?;
+        config.validate_monolith()?;
+        Ok(config)
     }
 }
 

@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::ids::{TenantId, TransferProcessId};
+use crate::entities::ids::TransferProcessId;
 use crate::entities::protocol::{
     CONSUMER_PID_KEY, PROVIDER_PID_KEY, ProtocolId, ProtocolState, StateMetadata,
     TransferCorrelation, TransferRole,

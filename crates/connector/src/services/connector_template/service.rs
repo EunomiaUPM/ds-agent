@@ -16,7 +16,6 @@
  */
 
 use crate::data::entities::connector_templates;
-use crate::data::entities::connector_templates::NewConnectorTemplateModel;
 use crate::data::factory_trait::ConnectorRepoTrait;
 use crate::entities::auth_config::AuthenticationConfig;
 use crate::entities::connector_template::{ConnectorMetadata, ConnectorTemplateDto};
@@ -57,7 +56,7 @@ impl ConnectorTemplateService {
         )
         .map_err(|e| {
             Errors::parse(
-                &format!("Error deserializing authentication config: {}", e),
+                format!("Error deserializing authentication config: {e}"),
                 None,
             )
         })?;
@@ -67,19 +66,14 @@ impl ConnectorTemplateService {
                 .ok_or_else(|| Errors::parse("Missing 'interaction' in template spec", None))?
                 .clone(),
         )
-        .map_err(|e| {
-            Errors::parse(
-                &format!("Error deserializing interaction config: {}", e),
-                None,
-            )
-        })?;
+        .map_err(|e| Errors::parse(format!("Error deserializing interaction config: {e}"), None))?;
 
         let parameters: Vec<ParameterDefinition> = serde_json::from_value(
             spec.get("parameters")
                 .ok_or_else(|| Errors::parse("Missing 'parameters' in template spec", None))?
                 .clone(),
         )
-        .map_err(|e| Errors::parse(&format!("Error deserializing parameters: {}", e), None))?;
+        .map_err(|e| Errors::parse(format!("Error deserializing parameters: {e}"), None))?;
 
         Ok(ConnectorTemplateDto {
             metadata: ConnectorMetadata {
@@ -123,8 +117,8 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
             .get_all_templates(&filters, &page, sort)
             .await
             .map_err(|e| {
-                error!("{}", e);
-                Errors::db(&e.to_string(), None)
+                error!("{e}");
+                Errors::db(e.to_string(), None)
             })?;
 
         let dtos: Outcome<Vec<ConnectorTemplateDto>> =
@@ -155,8 +149,8 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
             .get_templates_by_name(scope.acting_tenant(), template_id)
             .await
             .map_err(|e| {
-                error!("{}", e);
-                Errors::db(&e.to_string(), None)
+                error!("{e}");
+                Errors::db(e.to_string(), None)
             })?;
 
         models.into_iter().map(Self::map_model_to_dto).collect()
@@ -176,8 +170,8 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
             .get_template_by_name_and_version(scope.acting_tenant(), name, version)
             .await
             .map_err(|e| {
-                error!("{}", e);
-                Errors::db(&e.to_string(), None)
+                error!("{e}");
+                Errors::db(e.to_string(), None)
             })?;
 
         result.map(Self::map_model_to_dto).transpose()
@@ -206,8 +200,8 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
             .clone()
             .into_model(target_tenant)
             .map_err(|e: Errors| {
-                error!("{}", e);
-                Errors::parse(&format!("Error preparing template model: {}", e), None)
+                error!("{e}");
+                Errors::parse(format!("Error preparing template model: {e}"), None)
             })?;
         let saved_model = self
             .repo
@@ -215,8 +209,8 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
             .create_template(&new_model)
             .await
             .map_err(|e| {
-                error!("{}", e);
-                Errors::db(&e.to_string(), None)
+                error!("{e}");
+                Errors::db(e.to_string(), None)
             })?;
         // create output
         let tenant_id = saved_model.tenant_id.clone();
@@ -246,11 +240,11 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
             .delete_template_by_name_and_version(scope.acting_tenant(), name, version)
             .await
             .map_err(|e| {
-                error!("{}", e);
-                Errors::db(&e.to_string(), None)
+                error!("{e}");
+                Errors::db(e.to_string(), None)
             })?;
 
-        let deleted = events::EntityDeletedDto::new(format!("{}:{}", name, version));
+        let deleted = events::EntityDeletedDto::new(format!("{name}:{version}"));
         events::emit_action!(
             self.event_bus,
             scope.acting_tenant(),

@@ -27,7 +27,7 @@ use common::query::FilterApplier;
 use sea_orm::QueryTrait;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
-    QueryFilter, QueryOrder, QuerySelect,
+    QueryFilter,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -81,7 +81,7 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<distribution::Model>, Option<u64>)> {
-        let mut q = filters.apply_to(distribution::Entity::find());
+        let q = filters.apply_to(distribution::Entity::find());
         let total = q.clone().count(&self.db_connection).await.map_err(|err| {
             CatalogAgentRepoErrors::DistributionRepoErrors(
                 DistributionRepoErrors::ErrorFetchingDistribution(err.into()),

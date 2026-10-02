@@ -19,10 +19,8 @@
 
 use crate::data::entities::policy_template;
 use crate::data::entities::policy_template::NewPolicyTemplateModel;
-use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
 use crate::entities::filters::PolicyTemplateFilter;
 use common::paginated_spec::{Page, Sort};
-use urn::Urn;
 use ymir::errors::Outcome;
 
 /// Persistence of policy templates, one row per template version.

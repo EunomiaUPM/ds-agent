@@ -15,15 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::DataServiceDto;
 use common::well_known::rpc::WellKnownRPCRequest;
-use urn::Urn;
 use ymir::errors::Outcome;
 
 pub mod well_known_rpc_facade;
 
 #[async_trait::async_trait]
-#[allow(unused)]
 pub trait WellKnownRPCFacadeTrait: Send + Sync {
     async fn resolve_dataspace_current_path(&self, input: &WellKnownRPCRequest) -> Outcome<String>;
 }

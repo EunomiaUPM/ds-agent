@@ -35,7 +35,6 @@ pub struct Model {
     pub value: Option<String>,
 }
 
-#[allow(clippy::result_large_err)]
 impl Model {
     pub fn into_domain(self) -> Outcome<TransferProcessIdentifier> {
         let process_id = parse_urn(&self.transfer_process_id)?;

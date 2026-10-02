@@ -101,8 +101,9 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   const [openDialog, setOpenDialog] = useState(false);
 
   //verify if user is onboarded with any provider to decide whether we show the wizard or we dont
-  const { data: participantsResponse } = useGetAllParticipants();
-  const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
+  const { data: participantsResponse } = useGetAllParticipants({ limit: 100 });
+  const localParticipants =
+    participantsResponse?.status === 200 ? participantsResponse.data.items : [];
 
   let isOnboardedWithKnownProvider = localParticipants.some(
     (lp) => lp.participant_type !== "Authority",
@@ -259,7 +260,8 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
             <Server className="h-3 w-3 text-brand-sky" /> 1 Service
           </span>
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-ink/5 text-xs font-mono text-muted-foreground">
-            <Database className="h-3 w-3 text-emerald-700 dark:text-emerald-400" /> {displayDatasetNr} Datasets
+            <Database className="h-3 w-3 text-emerald-700 dark:text-emerald-400" />{" "}
+            {displayDatasetNr} Datasets
           </span>
         </div>
       </CardFooter>

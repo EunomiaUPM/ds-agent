@@ -23,11 +23,7 @@ import { useState } from "react";
 import { Button } from "shared/src/components/ui/button.tsx";
 import { ParticipantDto } from "shared/data/orval/model/participantDto";
 
-interface Participant extends ParticipantDto {
-  last_interaction?: string;
-  saved_at?: string;
-  extra_fields?: any;
-}
+type Participant = ParticipantDto;
 
 /**
  * Route for displaying individual participant details.
@@ -74,7 +70,7 @@ function RouteComponent() {
   }
 
   const p = participant.data as Participant;
-  const agreementList = agreements?.status === 200 ? agreements.data : [];
+  const agreementList = agreements?.status === 200 ? agreements.data.items : [];
 
   return (
     <PageLayout>
@@ -178,7 +174,7 @@ function RouteComponent() {
             <CardContent>
               <DataTable
                 className="text-sm"
-                data={Array.isArray(agreementList) ? agreementList : []}
+                data={agreementList}
                 keyExtractor={(a) => a.id}
                 searchPlaceholder="Filter agreements by ID or state..."
                 emptyMessage="No active agreements with this participant"

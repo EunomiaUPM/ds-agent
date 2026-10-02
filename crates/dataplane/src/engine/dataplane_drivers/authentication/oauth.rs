@@ -174,7 +174,7 @@ impl DriverAuthenticatorTrait for OauthAuthenticator {
                     .map(|d| d.as_secs())
                     .unwrap_or(0);
                 const EXPIRY_BUFFER_SECS: u64 = 30;
-                if expires_at.map_or(false, |exp| exp > now + EXPIRY_BUFFER_SECS) {
+                if expires_at.is_some_and(|exp| exp > now + EXPIRY_BUFFER_SECS) {
                     return Ok(context.clone());
                 }
             }
@@ -182,7 +182,7 @@ impl DriverAuthenticatorTrait for OauthAuthenticator {
 
         let connector = context
             .connector_instance()
-            .ok_or_else(|| DataplaneError::ConnectorNotAvailable)?;
+            .ok_or(DataplaneError::ConnectorNotAvailable)?;
 
         let AuthenticationConfig::OAuth2 {
             grant_type,

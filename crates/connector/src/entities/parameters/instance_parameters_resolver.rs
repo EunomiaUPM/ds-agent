@@ -108,7 +108,7 @@ impl<'a> ConnectorTemplateWalker for InstanceParametersResolver<'a> {
                 if let Some(val) = self.value_resolver(tmpl.as_str()) {
                     let list: Vec<String> = serde_json::from_value(val).map_err(|e| {
                         Errors::crazy(
-                            format!("Failed to resolve TemplateVecString for '{}': {}", tmpl, e),
+                            format!("Failed to resolve TemplateVecString for '{tmpl}': {e}"),
                             None,
                         )
                     })?;
@@ -149,10 +149,7 @@ impl<'a> ConnectorTemplateWalker for InstanceParametersResolver<'a> {
                     let map: std::collections::HashMap<String, String> =
                         serde_json::from_value(val).map_err(|e| {
                             Errors::crazy(
-                                format!(
-                                    "Failed to resolve TemplateMapString for '{}': {}",
-                                    tmpl, e
-                                ),
+                                format!("Failed to resolve TemplateMapString for '{tmpl}': {e}"),
                                 None,
                             )
                         })?;

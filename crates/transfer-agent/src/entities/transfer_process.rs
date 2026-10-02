@@ -16,7 +16,7 @@
  */
 
 use crate::entities::commands::EditTransferProcessCommand;
-use crate::entities::ids::{TenantId, TransferProcessId};
+use crate::entities::ids::TransferProcessId;
 use crate::entities::protocol::{
     ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
 };
@@ -45,7 +45,6 @@ pub struct TransferProcess {
     error_details: Option<serde_json::Value>,
 }
 
-#[allow(dead_code)]
 impl TransferProcess {
     /// TransferProcess entity constructor
     pub fn new(

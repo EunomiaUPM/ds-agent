@@ -188,7 +188,7 @@ pub trait PeerConnectorModule:
     /// Presents through the wallet and records whether it was verified.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_oid4vp(&self, mut verification: verification::Model, uri: &str) -> Outcome<()> {
-        match self.wallet().process_oid4vp(&uri).await {
+        match self.wallet().process_oid4vp(uri).await {
             Ok(_) => verification.status = VerificationStatus::Verified,
             Err(_) => {
                 verification.status = VerificationStatus::Failed;

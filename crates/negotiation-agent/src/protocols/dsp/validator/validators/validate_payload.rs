@@ -35,7 +35,6 @@ impl ValidatePayloadService {
 }
 #[async_trait::async_trait]
 impl ValidatePayload for ValidatePayloadService {
-    #[allow(unused)]
     async fn validate_with_json_schema(
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
@@ -44,12 +43,11 @@ impl ValidatePayload for ValidatePayloadService {
         Ok(())
     }
 
-    async fn validate_uri_id_as_urn(&self, uri_id: &String) -> Outcome<()> {
+    async fn validate_uri_id_as_urn(&self, uri_id: &str) -> Outcome<()> {
         self.helpers.parse_urn(uri_id).await?;
         Ok(())
     }
 
-    #[allow(unused)]
     async fn validate_identifiers_as_urn(
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
@@ -60,7 +58,7 @@ impl ValidatePayload for ValidatePayloadService {
 
     async fn validate_uri_and_pid(
         &self,
-        uri_id: &String,
+        uri_id: &str,
         payload: &dyn NegotiationProcessMessageTrait,
         role: &RoleConfig,
     ) -> Outcome<()> {
@@ -120,7 +118,6 @@ impl ValidatePayload for ValidatePayloadService {
         Ok(())
     }
 
-    #[allow(unused)]
     async fn validate_auth(&self, payload: &dyn NegotiationProcessMessageTrait) -> Outcome<()> {
         // TODO
         Ok(())

@@ -261,8 +261,7 @@ impl OdrlLogicalConstraint {
             Err(Errors::format(
                 BadFormat::Received,
                 format!(
-                    "Exactly one of 'and', 'andSequence', 'or' or 'xone' must be present, found {}",
-                    count
+                    "Exactly one of 'and', 'andSequence', 'or' or 'xone' must be present, found {count}"
                 ),
                 None,
             ))

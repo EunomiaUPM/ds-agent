@@ -29,7 +29,7 @@ export const TransferProcessActions: FC<{
 
   // Determine available actions based on process state and user role
   const getActions = () => {
-    if (process.role === "Provider") {
+    if (process.role === "provider") {
       switch (process.state) {
         case "REQUESTED":
           return [
@@ -58,7 +58,7 @@ export const TransferProcessActions: FC<{
               Component: TransferProcessTerminationDialog,
             },
           ];
-          if (process.stateAttribute && process.stateAttribute !== "ByConsumer") {
+          if (process.stateMetadata.attribute && process.stateMetadata.attribute !== "ByConsumer") {
             actions.push({
               label: "Start",
               variant: "default",
@@ -77,7 +77,7 @@ export const TransferProcessActions: FC<{
         default:
           return [];
       }
-    } else if (process.role === "Consumer") {
+    } else if (process.role === "consumer") {
       switch (process.state) {
         case "REQUESTED":
           return [
@@ -105,7 +105,7 @@ export const TransferProcessActions: FC<{
               Component: TransferProcessTerminationDialog,
             },
           ];
-          if (process.stateAttribute && process.stateAttribute !== "ByProvider") {
+          if (process.stateMetadata.attribute && process.stateMetadata.attribute !== "ByProvider") {
             actions.push({
               label: "Start",
               variant: "default",

@@ -44,7 +44,7 @@ pub trait EntityCacheTrait<D>: LookupCacheTrait<D> + Send + Sync {
     async fn add_to_collection(&self, id: &Urn, score: f64) -> Outcome<()>;
     async fn remove_from_collection(&self, id: &Urn) -> Outcome<()>;
     /// Entities found for `ids`; missing ones are left out.
-    async fn get_batch(&self, ids: &Vec<Urn>) -> Outcome<Vec<D>>;
+    async fn get_batch(&self, ids: &[Urn]) -> Outcome<Vec<D>>;
 }
 
 #[async_trait::async_trait]
@@ -172,7 +172,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn get_batch(&self, ids: &Vec<Urn>) -> Outcome<Vec<D>> {
+    async fn get_batch(&self, ids: &[Urn]) -> Outcome<Vec<D>> {
         tracing::debug!(
             entity = self.get_entity_name(),
             count = ids.len(),
@@ -234,7 +234,7 @@ impl<D: Send + Sync + 'static> EntityCacheTrait<D> for NoopCache<D> {
         Ok(())
     }
 
-    async fn get_batch(&self, _ids: &Vec<Urn>) -> Outcome<Vec<D>> {
+    async fn get_batch(&self, _ids: &[Urn]) -> Outcome<Vec<D>> {
         Ok(vec![])
     }
 }

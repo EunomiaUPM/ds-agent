@@ -20,7 +20,6 @@ use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
-#[allow(dead_code)]
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait TransferIdentifierRepoTrait: Send + Sync {

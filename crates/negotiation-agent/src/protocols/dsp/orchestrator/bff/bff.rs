@@ -50,9 +50,9 @@ impl BFFRPCOrchestratorService {
             .ok_or_else(|| Errors::parse("BFF: missing providerPid in identifiers", None))?;
 
         let consumer_pid = Urn::from_str(consumer_str)
-            .map_err(|e| Errors::parse(&format!("BFF: invalid consumerPid URN: {e}"), None))?;
+            .map_err(|e| Errors::parse(format!("BFF: invalid consumerPid URN: {e}"), None))?;
         let provider_pid = Urn::from_str(provider_str)
-            .map_err(|e| Errors::parse(&format!("BFF: invalid providerPid URN: {e}"), None))?;
+            .map_err(|e| Errors::parse(format!("BFF: invalid providerPid URN: {e}"), None))?;
 
         Ok((consumer_pid, provider_pid))
     }

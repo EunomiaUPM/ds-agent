@@ -25,7 +25,7 @@ pub trait ValidationDspSteps: Send + Sync + 'static {
     async fn on_catalog_request(&self, input: &CatalogMessageWrapper<Catalog>) -> Outcome<()>;
     async fn on_dataset_request(
         &self,
-        uri_id: &String,
+        uri_id: &str,
         input: &CatalogMessageWrapper<Dataset>,
     ) -> Outcome<()>;
 }

@@ -52,7 +52,6 @@ pub struct Model {
     pub error_details: Option<Json>,
 }
 
-#[allow(clippy::result_large_err)]
 impl Model {
     pub fn into_domain(self) -> Outcome<TransferProcess> {
         let id = TransferProcessId::new(parse_urn(&self.id)?);
@@ -85,7 +84,6 @@ impl Model {
     }
 }
 
-#[allow(clippy::result_large_err)]
 impl ActiveModel {
     pub fn from_cmd(cmd: &NewTransferProcessCommand) -> Outcome<Self> {
         let id = cmd.id.clone().unwrap_or_else(TransferProcessId::generate);

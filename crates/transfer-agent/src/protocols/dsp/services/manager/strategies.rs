@@ -33,7 +33,6 @@ pub(super) struct StrategyDeps {
 macro_rules! strategy {
     ($name:ident) => {
         pub(super) struct $name {
-            #[allow(dead_code)] // used once the phase bodies land
             deps: StrategyDeps,
         }
         impl $name {

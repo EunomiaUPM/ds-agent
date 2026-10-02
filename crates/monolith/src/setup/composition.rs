@@ -51,24 +51,24 @@ impl MonolithModule {
     pub async fn compose(config: &ApplicationConfig, root: &RootContext) -> Outcome<Self> {
         let events = EventsModule::compose(root);
         let bus = Some(events.event_bus());
-        let auth = AuthModule::compose(config.ssi_auth(), root).await?;
+        let auth = AuthModule::compose(config.ssi_auth()?, root).await?;
         let auth_ports = auth.local_ports();
         let self_participant = auth.self_participant_onboarder();
         let catalog_ports = CatalogPorts::local(auth_ports.clone());
         let catalog =
-            CatalogAgentModule::compose(config.catalog(), root, bus.clone(), &catalog_ports)
+            CatalogAgentModule::compose(config.catalog()?, root, bus.clone(), &catalog_ports)
                 .await?;
         let negotiation_ports =
             NegotiationPorts::local(auth_ports.clone(), catalog.odrl_policy_service());
         let negotiation = NegotiationAgentModule::compose(
-            config.contracts(),
+            config.contracts()?,
             root,
             bus.clone(),
             &negotiation_ports,
         )
         .await?;
         let transfer_ports = TransferPorts::local(
-            config.transfer(),
+            config.transfer()?,
             root,
             auth_ports.clone(),
             negotiation.agreement_service(),
@@ -84,13 +84,13 @@ impl MonolithModule {
             .register(negotiation)
             .register(OAuthModule::compose(config.common(), root, bus.clone()))
             .register(TransferAgentModule::compose(
-                config.transfer(),
+                config.transfer()?,
                 root,
                 bus.clone(),
                 &transfer_ports,
             ))
             .register(events)
-            .register(BffModule::compose(config.gateway(), root))
+            .register(BffModule::compose(config.gateway()?, root))
             .register(KeystoreModule::compose(config, root, bus));
         Ok(Self {
             modules,

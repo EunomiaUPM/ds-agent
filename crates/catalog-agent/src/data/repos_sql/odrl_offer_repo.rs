@@ -27,10 +27,7 @@ use crate::entities::odrl_policies::CatalogEntityTypes;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use common::query::FilterApplier;
 use sea_orm::QueryTrait;
-use sea_orm::{
-    ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
-    QuerySelect, Select,
-};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Select};
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 

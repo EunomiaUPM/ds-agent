@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::engine::dataplane_drivers::{DriverAuthenticatorTrait, DriverProxyConfiguratorTrait};
+use crate::engine::dataplane_drivers::DriverProxyConfiguratorTrait;
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::engine::dataplane_manager::dataplane_proxy::{
     DataplaneProxy, DataplaneProxyEgress, DataplaneProxyIngress, HTTP_LISTENER_PATH,
@@ -30,7 +30,7 @@ pub struct HttpProviderPullConfigurator;
 impl HttpProviderPullConfigurator {
     fn configure_ingress(&self, context: &DataplaneContext) -> Outcome<DataplaneProxyIngress> {
         let dataplane_id = context.dataplane_process().inner.id.clone();
-        let ingress_path = format!("{}{}", HTTP_LISTENER_PATH, dataplane_id);
+        let ingress_path = format!("{HTTP_LISTENER_PATH}{dataplane_id}");
         Ok(DataplaneProxyIngress::HttpListener {
             path: ingress_path,
             token_type: None, // TODO create on fly
@@ -56,10 +56,10 @@ impl HttpProviderPullConfigurator {
                     token: None,
                 })
             } else {
-                return Err(DataplaneError::UnsupportedProtocol {
+                Err(DataplaneError::UnsupportedProtocol {
                     protocol: "non-HTTP data access spec".to_string(),
                 }
-                .into());
+                .into())
             }
         } else {
             Err(DataplaneError::ConnectorNotAvailable.into())
@@ -70,7 +70,7 @@ impl HttpProviderPullConfigurator {
 #[async_trait::async_trait]
 impl DriverProxyConfiguratorTrait for HttpProviderPullConfigurator {
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "data-endpoint"))]
-    async fn configure_proxy(&self, mut context: &DataplaneContext) -> Outcome<DataplaneContext> {
+    async fn configure_proxy(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
         let mut proxy = DataplaneProxy::new();
         let ingress = self.configure_ingress(context)?;
         let egress = self.configure_egress(context)?;

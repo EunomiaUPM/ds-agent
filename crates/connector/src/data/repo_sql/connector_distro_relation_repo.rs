@@ -22,8 +22,7 @@ use crate::data::repo_traits::connector_repo_errors::{
 };
 use sea_orm::QueryTrait;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
-    QueryFilter,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };
 use ymir::errors::{Outcome, RepoIntoErrors};
 

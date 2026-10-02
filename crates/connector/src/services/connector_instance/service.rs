@@ -156,8 +156,8 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
         let target_tenant = scope.resolve_create_tenant(instance_dto.tenant_id.as_deref())?;
         instance_dto.tenant_id = Some(target_tenant.clone());
 
-        // fetch template or error
-        let mut template_opt = self
+        // Templates belong to the tenant; there is no shared tenant to fall back to.
+        let template_model = self
             .repo
             .get_templates_repo()
             .get_template_by_name_and_version(
@@ -165,32 +165,17 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
                 &instance_dto.template_name,
                 &instance_dto.template_version,
             )
-            .await?;
-
-        if template_opt.is_none() && target_tenant != "system" {
-            template_opt = self
-                .repo
-                .get_templates_repo()
-                .get_template_by_name_and_version(
-                    "system",
-                    &instance_dto.template_name,
-                    &instance_dto.template_version,
-                )
-                .await?;
-        }
-
-        let template_model = match template_opt {
-            Some(t) => t,
-            None => {
-                return Err(Errors::crazy(
+            .await?
+            .ok_or_else(|| {
+                Errors::missing_resource(
                     format!(
-                        "Template {} {} not found",
+                        "{}/{}",
                         instance_dto.template_name, instance_dto.template_version
                     ),
+                    "connector template not found",
                     None,
-                ));
-            }
-        };
+                )
+            })?;
         let mut connector_template_dto: ConnectorTemplateDto =
             serde_json::from_value(template_model.spec.clone())?;
 

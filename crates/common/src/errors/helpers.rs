@@ -49,7 +49,7 @@ impl fmt::Display for MissingAction {
             MissingAction::Onboarding => "Onboarding",
             _ => "Unknown",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 
@@ -58,12 +58,10 @@ use ymir::errors::{Errors, Outcome};
 /// Extension trait for Option to convert None into a 404 missing resource error.
 pub trait NotFoundExt<T> {
     /// Maps None to Errors::missing_resource with the given id and entity name.
-    #[allow(clippy::result_large_err)]
     fn or_not_found(self, id: impl std::fmt::Display, entity_name: &str) -> Outcome<T>;
 }
 
 impl<T> NotFoundExt<T> for Option<T> {
-    #[allow(clippy::result_large_err)]
     fn or_not_found(self, id: impl std::fmt::Display, entity_name: &str) -> Outcome<T> {
         self.ok_or_else(|| ResourceError::not_found(id, entity_name))
     }
@@ -74,7 +72,6 @@ pub struct ResourceError;
 
 impl ResourceError {
     /// Constructs an Errors::missing_resource (404) error.
-    #[allow(clippy::result_large_err)]
     pub fn not_found(id: impl std::fmt::Display, entity_name: &str) -> Errors {
         Errors::missing_resource(id.to_string(), format!("{entity_name} not found"), None)
     }

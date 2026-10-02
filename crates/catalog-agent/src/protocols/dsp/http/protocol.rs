@@ -30,7 +30,6 @@ use axum::{
 };
 use common::auth::claims::RbacRole;
 use common::auth::AccessScope;
-use common::config::services::CatalogConfig;
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::normalizer::dsp_namespace_normalizer;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
@@ -42,7 +41,6 @@ use ymir::data::entities::shared::participant::Model as Mates;
 #[derive(Clone)]
 pub struct DspRouter {
     orchestrator: Arc<dyn OrchestratorTrait>,
-    config: Arc<CatalogConfig>,
     ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
 }
 
@@ -53,14 +51,9 @@ impl FromRef<DspRouter> for Arc<dyn OrchestratorTrait> {
 }
 
 impl DspRouter {
-    pub fn new(
-        service: Arc<dyn OrchestratorTrait>,
-        config: Arc<CatalogConfig>,
-        ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
-    ) -> Self {
+    pub fn new(service: Arc<dyn OrchestratorTrait>, ssi_auth: Arc<dyn SSIAuthFacadeTrait>) -> Self {
         Self {
             orchestrator: service,
-            config,
             ssi_auth,
         }
     }
@@ -133,10 +126,7 @@ impl DspRouter {
         let dataset_id = match Urn::from_str(&id) {
             Ok(urn) => urn,
             Err(_) => {
-                return (
-                    StatusCode::BAD_REQUEST,
-                    format!("Invalid dataset ID: {}", id),
-                )
+                return (StatusCode::BAD_REQUEST, format!("Invalid dataset ID: {id}"))
                     .into_response()
             }
         };

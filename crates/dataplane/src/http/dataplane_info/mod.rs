@@ -185,7 +185,7 @@ impl DataPlaneProcessesRouter {
         let mut ingress_url = None;
         if transfer.inner.interaction_mode == InteractionMode::Pull {
             if let Some(host) = req_headers.get("host").and_then(|h| h.to_str().ok()) {
-                ingress_url = Some(format!("{}/dataplane/proxy/{}", host, data_plane_id));
+                ingress_url = Some(format!("{host}/dataplane/proxy/{data_plane_id}"));
             }
         }
 

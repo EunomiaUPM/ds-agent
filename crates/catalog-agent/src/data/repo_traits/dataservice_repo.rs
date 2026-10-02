@@ -19,7 +19,6 @@
 
 use crate::data::entities::dataservice;
 use crate::data::entities::dataservice::{EditDataServiceModel, NewDataServiceModel};
-use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
 use crate::entities::filters::DataServiceFilter;
 use common::paginated_spec::{Page, Sort};
 use urn::Urn;

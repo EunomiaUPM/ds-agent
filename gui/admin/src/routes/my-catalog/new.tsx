@@ -43,7 +43,10 @@ import {
   useGetMainCatalogs,
 } from "shared/src/data/orval/catalogs/catalogs";
 import { useGetDataServicesByCatalogId } from "shared/src/data/orval/data-services/data-services";
-import type { CreateDatasetOfferingRequest } from "shared/src/data/orval/model";
+import type {
+  CreateDatasetOfferingRequest,
+  OdrlAtomicConstraintOperator,
+} from "shared/src/data/orval/model";
 
 export const Route = createFileRoute("/my-catalog/new")({
   component: NewDatasetOfferingPage,
@@ -183,7 +186,7 @@ function NewDatasetOfferingPage() {
           constraints.length > 0
             ? constraints.map((c) => ({
                 leftOperand: c.leftOperand,
-                operator: c.operator,
+                operator: c.operator as OdrlAtomicConstraintOperator,
                 rightOperand: c.rightOperand,
               }))
             : undefined,

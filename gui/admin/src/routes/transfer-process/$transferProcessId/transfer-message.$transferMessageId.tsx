@@ -47,14 +47,14 @@ function RouteComponent() {
             { label: "Transfer Message Id", value: transferMessageResponse.data.id },
             {
               label: "Transfer Process id",
-              value: transferMessageResponse.data.transferAgentProcessId,
+              value: transferMessageResponse.data.transferProcessId,
             },
             { label: "Message type", value: transferMessageResponse.data.messageType },
             {
               label: "Created at",
               value: {
                 type: "custom",
-                content: <FormatDate date={transferMessageResponse.data.createdAt} />,
+                content: <FormatDate date={transferMessageResponse.data.occurredAt} />,
               },
             },
             { label: "From", value: transferMessageResponse.data.stateTransitionFrom },
@@ -63,7 +63,7 @@ function RouteComponent() {
         />
       </div>
       <pre className="whitespace-pre-wrap">
-        {JSON.stringify(transferMessageResponse.data.payload)}
+        {JSON.stringify(transferMessageResponse.data.envelope.payload)}
       </pre>
     </div>
   );

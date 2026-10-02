@@ -60,11 +60,15 @@ export const useParticipantDSPPath = (participantId: string | undefined, version
     data: participantVersion,
   } = useFetchDataspaceVersionFromParticipant();
 
+  // The registry entry gives the tenant the lookup runs in.
+  const participantTenant =
+    participantData?.status === 200 ? participantData.data.tenant_id : undefined;
+
   useEffect(() => {
-    if (participantId) {
-      fetchVersion({ data: { participant_id: participantId } });
+    if (participantId && participantTenant) {
+      fetchVersion({ data: { tenant_id: participantTenant, participant_id: participantId } });
     }
-  }, [participantId, fetchVersion]);
+  }, [participantId, participantTenant, fetchVersion]);
 
   const resolve = async (id: string, ver = version): Promise<string | null> => {
     // Fetch participant
@@ -72,7 +76,9 @@ export const useParticipantDSPPath = (participantId: string | undefined, version
     if (pData.status !== 200 || !pData.data.base_url) return null;
 
     // Fetch version
-    const vData = await fetchVersionAsync({ data: { participant_id: id } });
+    const vData = await fetchVersionAsync({
+      data: { tenant_id: pData.data.tenant_id, participant_id: id },
+    });
     if (!vData || !vData.data || !("protocolVersions" in vData.data)) return null;
 
     const protocolVersion = vData.data.protocolVersions.find((p: any) => p.version === ver);

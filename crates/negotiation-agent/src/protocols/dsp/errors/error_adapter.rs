@@ -23,7 +23,7 @@ use urn::Urn;
 use ymir::errors::Errors;
 
 pub struct DspNegotiationError {
-    inner: Errors,
+    inner: Box<Errors>,
     pub consumer_pid: Option<Urn>,
     pub provider_pid: Option<Urn>,
 }
@@ -31,7 +31,7 @@ pub struct DspNegotiationError {
 impl From<Errors> for DspNegotiationError {
     fn from(value: Errors) -> Self {
         Self {
-            inner: value,
+            inner: Box::new(value),
             consumer_pid: None,
             provider_pid: None,
         }

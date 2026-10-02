@@ -19,7 +19,6 @@
 
 use crate::data::entities::distribution;
 use crate::data::entities::distribution::{EditDistributionModel, NewDistributionModel};
-use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
 use urn::Urn;
 use ymir::errors::Outcome;
 

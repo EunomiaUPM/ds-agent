@@ -36,7 +36,7 @@ impl ValidatePayload for ValidatePayloadService {
         todo!()
     }
 
-    async fn validate_uri_id_as_urn(&self, uri_id: &String) -> Outcome<()> {
+    async fn validate_uri_id_as_urn(&self, uri_id: &str) -> Outcome<()> {
         todo!()
     }
 
@@ -46,7 +46,7 @@ impl ValidatePayload for ValidatePayloadService {
 
     async fn validate_uri_and_pid(
         &self,
-        uri_id: &String,
+        uri_id: &str,
         payload: &dyn CatalogMessageTrait,
         role: &RoleConfig,
     ) -> Outcome<()> {

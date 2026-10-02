@@ -15,16 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::cache::cache_redis::dataservice_cache::DataServiceCacheForRedis;
 use crate::cache::cache_traits::peer_catalog_cache_trait::PeerCatalogCacheTrait;
 use crate::cache::cache_traits::{DESIRED_CACHE_TTL, PEER_CATALOG_DESIRED_CACHE_TTL};
 use crate::protocols::dsp::types::catalog_definition::Catalog;
-use crate::{CatalogDto, DataServiceDto};
-use async_trait::async_trait;
 use common::cache::{RedisCacheConnectorTrait, UtilsCacheTrait};
-use serde::{Deserialize, Serialize};
-use std::str::FromStr;
-use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 pub struct DcatCatalogCacheForRedis {

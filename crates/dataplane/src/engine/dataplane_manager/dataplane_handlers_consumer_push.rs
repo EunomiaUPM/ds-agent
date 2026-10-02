@@ -15,16 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::engine::dataplane_manager::dataplane_commands::{
-    DataplaneCommandStateMachine, DataplaneInitCommandTypes,
-};
-use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
+use crate::engine::dataplane_manager::dataplane_commands::DataplaneCommandStateMachine;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceFacadeTrait;
 use keystore::SecretStore;
 use std::sync::Arc;
-use ymir::errors::Outcome;
 
 pub struct DataplaneHandlerConsumerPush {
     dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,

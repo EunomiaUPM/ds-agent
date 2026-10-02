@@ -18,7 +18,7 @@
 //! Composable validator registries for inbound DSP messages, outbound RPC commands, and edge validation.
 
 use common::dsp_common::DspRules;
-use common::validation::{Validator, ValidatorRegistry, Violations, codes, violation};
+use common::validation::{Validator, ValidatorRegistry, Violations, codes};
 use std::str::FromStr;
 
 use crate::protocols::dsp::entities::context_common::TransferContextProcessSlot;

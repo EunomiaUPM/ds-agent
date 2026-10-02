@@ -23,7 +23,6 @@ pub mod m20260519_000002_secrets;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
 
 /// Migrator over the keystore tables alone.
-#[allow(dead_code)]
 pub struct Migrator;
 
 #[async_trait::async_trait]

@@ -192,7 +192,7 @@ pub trait VcRequesterModule:
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_oid4vci(&self, mut grant: grant::Model, uri: &str) -> Outcome<()> {
         if grant.auto {
-            self.wallet().process_oid4vci(&uri).await?;
+            self.wallet().process_oid4vci(uri).await?;
 
             grant.status = GrantStatus::Finalized;
             grant.ended_at = Some(Utc::now());
@@ -206,7 +206,7 @@ pub trait VcRequesterModule:
     /// Presents through the wallet and records whether it was verified.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_oid4vp(&self, mut verification: verification::Model, uri: &str) -> Outcome<()> {
-        match self.wallet().process_oid4vp(&uri).await {
+        match self.wallet().process_oid4vp(uri).await {
             Ok(_) => verification.status = VerificationStatus::Verified,
             Err(_) => {
                 verification.status = VerificationStatus::Failed;

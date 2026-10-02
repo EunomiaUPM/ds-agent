@@ -29,7 +29,7 @@ pub fn extract_payload_error<T>(
     match input {
         Ok(Json(data)) => Ok(data),
         Err(err) => {
-            let e = Errors::format(BadFormat::Received, format!("{}", err.body_text()), None);
+            let e = Errors::format(BadFormat::Received, err.body_text().to_string(), None);
             error!("{}", e);
             Err(e.into())
         }

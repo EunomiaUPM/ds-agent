@@ -23,7 +23,7 @@ use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::routing::{get, post};
+use axum::routing::post;
 use axum::{Json, Router};
 use common::auth::AccessScope;
 use std::sync::Arc;

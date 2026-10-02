@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::ids::{MessageId, TenantId, TransferProcessId};
+use crate::entities::ids::{MessageId, TransferProcessId};
 use crate::entities::message_envelope::MessageEnvelope;
 use crate::entities::protocol::{ProtocolId, ProtocolMessageType};
 use crate::entities::transfer_message::{Direction, TransferMessage};

@@ -66,6 +66,17 @@ export interface ConstraintItemProps {
  * @returns An editable constraint row
  */
 export const ConstraintItem: FC<ConstraintItemProps> = ({ constraint, onUpdate, onRemove }) => {
+  // Only atomic constraints are editable here; logical ones (and/or/xone) are shown as a note.
+  if (!("leftOperand" in constraint)) {
+    return (
+      <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+        <span>Logical constraint (and/or/xone): edit it in the JSON view.</span>
+        <Button variant="icon_destructive" size="icon" onClick={onRemove}>
+          <Trash className="mb-0.5" />
+        </Button>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-2">
       <div className="constraint-create mb-2 flex gap-3 justify-end items-end">

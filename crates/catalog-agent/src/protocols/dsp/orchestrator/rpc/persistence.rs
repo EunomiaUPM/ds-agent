@@ -18,9 +18,7 @@
 use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::services::peer_catalogs::PeerCatalogServiceTrait;
 use common::auth::AccessScope;
-use common::errors::{CommonErrors, ErrorLog};
 use std::sync::Arc;
-use tracing::error;
 use ymir::errors::Outcome;
 
 pub struct OrchestrationPersistenceForProtocolForRPC {
@@ -54,8 +52,7 @@ impl OrchestrationPersistenceForProtocolForRPC {
         peer_id: &str,
         catalog: &Catalog,
     ) -> Outcome<()> {
-        let _ = self
-            .peer_catalog_entity_service
+        self.peer_catalog_entity_service
             .set_peer_catalog(scope, peer_id, catalog)
             .await?;
         Ok(())

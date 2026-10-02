@@ -20,7 +20,6 @@ use crate::data::repo::parameters::ParameterRepoTrait;
 use crate::data::repo::secrets::SecretRepoTrait;
 use std::sync::Arc;
 
-#[allow(dead_code)]
 pub trait DataFactory: Send + Sync {
     fn keystore_config_repo(&self) -> Arc<dyn KeystoreConfigRepo>;
     fn keystore_secrets_repo(&self) -> Arc<dyn SecretRepoTrait>;

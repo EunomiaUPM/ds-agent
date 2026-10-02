@@ -94,7 +94,6 @@ impl TryFrom<MessageEnvelopeInput> for MessageEnvelope {
     }
 }
 
-#[allow(dead_code)]
 impl MessageEnvelope {
     pub fn is_canonicalized(&self) -> bool {
         self.canonical_form.is_some()

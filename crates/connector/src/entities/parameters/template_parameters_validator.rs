@@ -28,14 +28,17 @@ pub struct TemplateParametersValidator<'a> {
 }
 
 fn is_compatible(found: &FoundParameterType, defined: &ParameterType) -> bool {
-    match (found, defined) {
-        (FoundParameterType::String, ParameterType::String) => true,
-        (FoundParameterType::String, ParameterType::Int) => true,
-        (FoundParameterType::String, ParameterType::Boolean) => true,
-        (FoundParameterType::VecString, ParameterType::VecString) => true,
-        (FoundParameterType::MapString, ParameterType::MapStringString) => true,
-        _ => false,
-    }
+    matches!(
+        (found, defined),
+        (FoundParameterType::String, ParameterType::String)
+            | (FoundParameterType::String, ParameterType::Int)
+            | (FoundParameterType::String, ParameterType::Boolean)
+            | (FoundParameterType::VecString, ParameterType::VecString)
+            | (
+                FoundParameterType::MapString,
+                ParameterType::MapStringString
+            )
+    )
 }
 
 impl<'a> TemplateParametersValidator<'a> {
@@ -77,7 +80,7 @@ impl<'a> TemplateParametersValidator<'a> {
         if errors.is_empty() {
             Ok(())
         } else {
-            Err(Errors::validation(&errors.join("; "), None))
+            Err(Errors::validation(errors.join("; "), None))
         }
     }
 

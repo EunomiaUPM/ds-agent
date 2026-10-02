@@ -26,7 +26,6 @@
 //! Modules: [`entities`], [`services`], [`data`], [`cache`] (Redis), [`grpc`], [`http`],
 //! [`protocols`] (DSP), [`facades`], [`setup`].
 
-#![allow(unused)]
 pub mod cache;
 pub mod data;
 pub mod entities;

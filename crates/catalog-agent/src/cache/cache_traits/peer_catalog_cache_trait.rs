@@ -16,7 +16,6 @@
  */
 
 use crate::protocols::dsp::types::catalog_definition::Catalog;
-use urn::Urn;
 use ymir::errors::Outcome;
 
 #[mockall::automock]

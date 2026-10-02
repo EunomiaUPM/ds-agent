@@ -43,13 +43,10 @@ use crate::services::odrl_policies::OdrlPolicyServiceTrait;
 use common::auth::AccessScope;
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::odrl::{OdrlOffer, OdrlPolicyInfo, OdrlTypes};
-use common::errors::ErrorLog;
-use common::facades::mates_facade::MatesFacadeTrait;
 use common::paginated_spec::Page;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
-use tracing::{debug, error};
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
@@ -119,8 +116,10 @@ impl OrchestrationPersistenceForProtocol {
         scope: &AccessScope,
         exclude_id: &Urn,
     ) -> Outcome<Vec<CatalogMinimized>> {
-        let mut filter = CatalogFilter::default();
-        filter.with_main_catalog = Some(false);
+        let filter = CatalogFilter {
+            with_main_catalog: Some(false),
+            ..Default::default()
+        };
         let catalogs_dtos = self
             .catalog_entities_service
             .get_all_catalogs(scope, &filter, &Page::default(), &Default::default())
@@ -308,49 +307,6 @@ impl OrchestrationPersistenceForProtocol {
                 datasets.iter().map(|d| d.into()).collect(),
             ),
             data_services: CatalogServiceTypes::ServiceMinimized(main_dataservice_dto.into()),
-        }
-    }
-
-    fn map_catalog(
-        &self,
-        dto: CatalogDto,
-        main_dataservice_dto: Vec<DataService>,
-        catalogs: Vec<Catalog>,
-        datasets: Vec<Dataset>,
-    ) -> Catalog {
-        Catalog {
-            context: ContextField::default(),
-            _type: "Catalog".to_string(),
-            id: Urn::from_str(&dto.inner.id)
-                .unwrap_or_else(|_| Urn::from_str("urn:error").unwrap()),
-            foaf: CatalogFoafDeclaration {
-                homepage: dto.inner.foaf_home_page,
-            },
-            dcat: CatalogDcatDeclaration {
-                theme: None,
-                keyword: None,
-            },
-            dct: CatalogDctDeclaration {
-                conforms_to: dto.inner.dct_conforms_to,
-                creator: dto.inner.dct_creator,
-                identifier: dto.inner.id.clone(),
-                issued: dto.inner.dct_issued.naive_utc(),
-                modified: dto.inner.dct_modified.map(|d| d.naive_utc()),
-                title: dto.inner.dct_title,
-                description: vec![],
-            },
-            dspace: CatalogDSpaceDeclaration {
-                participant_id: None,
-            },
-            odrl_offer: None,
-            extra_fields: Default::default(),
-            catalogs: CatalogCatalogTypes::CatalogMultipleMinimized(
-                catalogs.iter().map(|cat| cat.into()).collect(),
-            ),
-            datasets: CatalogDatasetTypes::DatasetMultipleMinimized(
-                datasets.iter().map(|d| d.into()).collect(),
-            ),
-            data_services: CatalogServiceTypes::ServiceMultiple(main_dataservice_dto),
         }
     }
 

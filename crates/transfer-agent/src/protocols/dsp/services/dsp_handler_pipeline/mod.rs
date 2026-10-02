@@ -93,9 +93,8 @@ pub trait DSPHandlerPipeline: Send + Sync + 'static {
     ) -> Outcome<TransferDSPContextDomain> {
         let raw = Self::extract_wire(request).await?;
         let parsed = Self::parse(raw, message_route, protocol_id)?;
-        let rdf = Self::extract_rdf(parsed).await.or_else(|err| {
+        let rdf = Self::extract_rdf(parsed).await.inspect_err(|err| {
             dbg!("Err: {}", &err.reason());
-            Err(err)
         })?;
         let typed = Self::extract_typed(rdf)?;
 

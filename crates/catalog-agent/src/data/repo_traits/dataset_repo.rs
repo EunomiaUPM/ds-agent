@@ -19,7 +19,6 @@
 
 use crate::data::entities::dataset;
 use crate::data::entities::dataset::{EditDatasetModel, NewDatasetModel};
-use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
 use urn::Urn;
 use ymir::errors::Outcome;
 

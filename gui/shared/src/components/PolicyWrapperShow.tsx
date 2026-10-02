@@ -33,7 +33,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { BusinessRemovePolicyDialog } from "./dialogs/BusinessRemovePolicyDialog";
 import { Dialog, DialogTrigger } from "shared/src/components/ui/dialog";
 import { ContractNegotiationNewRequestDialog } from "./dialogs/ContractNegotiationNewRequestDialog";
-import { OdrlOffer, OdrlPolicyDto } from "../data/orval/model";
+import { OdrlAgreement, OdrlOffer, OdrlPolicyDto } from "../data/orval/model";
 import { ContractNegotiationNewOfferDialog } from "./dialogs/ContractNegotiationNewOfferDialog";
 import {
   Accordion,
@@ -51,7 +51,7 @@ import {
  */
 export interface PolicyWrapperShowProps {
   /** The ODRL policy offer to display */
-  policy: OdrlOffer | OdrlPolicyDto;
+  policy: OdrlOffer | OdrlPolicyDto | OdrlAgreement;
 
   /** ID of the parent dataset (for actions) */
   datasetId?: string;
@@ -119,6 +119,11 @@ export const PolicyWrapperShow = ({
   const description = ("description" in policy ? (policy as any).description : undefined) as
     | string
     | undefined;
+  // A catalog policy keeps its id outside the ODRL content; the negotiation needs a full offer.
+  const requestOffer: OdrlOffer =
+    "odrlOffer" in policy
+      ? { ...policy.odrlOffer, "@id": policy.id, "@type": "Offer", target: entity }
+      : (policy as OdrlOffer);
 
   // ---------------------------------------------------------------------------
   // Render
@@ -233,7 +238,7 @@ export const PolicyWrapperShow = ({
                   </Button>
                 </DialogTrigger>
                 <ContractNegotiationNewRequestDialog
-                  policy={odrlOffer}
+                  policy={requestOffer}
                   catalogId={catalogId || ""}
                   datasetId={datasetId || ""}
                   participantId={participant || ""}

@@ -55,7 +55,7 @@ impl Display for EntityTypes {
             EntityTypes::DataService => "DataService".to_string(),
             EntityTypes::Distribution => "Distribution".to_string(),
         };
-        write!(f, "{}", str)
+        write!(f, "{str}")
     }
 }
 

@@ -38,17 +38,17 @@ impl ConfigPassthroughRepo {
 impl KeystoreConfigRepo for ConfigPassthroughRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_transfer_config(&self) -> Outcome<TransferConfig> {
-        Ok(self.config.transfer().clone())
+        self.config.transfer().cloned()
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_contracts_config(&self) -> Outcome<ContractsConfig> {
-        Ok(self.config.contracts().clone())
+        self.config.contracts().cloned()
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_catalog_config(&self) -> Outcome<CatalogConfig> {
-        Ok(self.config.catalog().clone())
+        self.config.catalog().cloned()
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
@@ -58,7 +58,7 @@ impl KeystoreConfigRepo for ConfigPassthroughRepo {
 
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_gateway_config(&self) -> Outcome<GatewayConfig> {
-        Ok(self.config.gateway().clone())
+        self.config.gateway().cloned()
     }
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_config(&self) -> Outcome<ApplicationConfig> {

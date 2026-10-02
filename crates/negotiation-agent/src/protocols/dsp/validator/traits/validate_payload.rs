@@ -28,7 +28,7 @@ pub trait ValidatePayload: Send + Sync + 'static {
         payload: &dyn NegotiationProcessMessageTrait,
     ) -> Outcome<()>;
     /// Validates uri in URL to check if it is URN encoded
-    async fn validate_uri_id_as_urn(&self, uri_id: &String) -> Outcome<()>;
+    async fn validate_uri_id_as_urn(&self, uri_id: &str) -> Outcome<()>;
     /// Validates if identifiers provider_pid and consumer_pid are urn
     async fn validate_identifiers_as_urn(
         &self,
@@ -37,7 +37,7 @@ pub trait ValidatePayload: Send + Sync + 'static {
     /// Validates depending on role if uri_id == ***_pid
     async fn validate_uri_and_pid(
         &self,
-        uri_id: &String,
+        uri_id: &str,
         payload: &dyn NegotiationProcessMessageTrait,
         role: &RoleConfig,
     ) -> Outcome<()>;

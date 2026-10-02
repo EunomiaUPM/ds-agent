@@ -67,7 +67,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
     async fn on_contract_request(
         &self,
         actor: &DspActor,
-        uri_id: &String,
+        uri_id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>,
     ) -> Outcome<()> {
         let dto = self
@@ -120,7 +120,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
     async fn on_contract_offer(
         &self,
         actor: &DspActor,
-        uri_id: &String,
+        uri_id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferMessageDto>,
     ) -> Outcome<()> {
         let dto = self
@@ -159,7 +159,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
     async fn on_contract_agreement(
         &self,
         actor: &DspActor,
-        uri_id: &String,
+        uri_id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>,
     ) -> Outcome<()> {
         let dto = self
@@ -198,7 +198,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
     async fn on_contract_agreement_verification(
         &self,
         actor: &DspActor,
-        uri_id: &String,
+        uri_id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>,
     ) -> Outcome<()> {
         let dto = self
@@ -237,7 +237,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
     async fn on_contract_event(
         &self,
         actor: &DspActor,
-        uri_id: &String,
+        uri_id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationEventMessageDto>,
     ) -> Outcome<()> {
         let dto = self
@@ -276,7 +276,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
     async fn on_contract_termination(
         &self,
         actor: &DspActor,
-        uri_id: &String,
+        uri_id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
     ) -> Outcome<()> {
         let dto = self

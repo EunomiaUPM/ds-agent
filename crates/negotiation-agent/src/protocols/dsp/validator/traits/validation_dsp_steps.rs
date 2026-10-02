@@ -33,7 +33,7 @@ pub trait ValidationDspSteps: Send + Sync + 'static {
     async fn on_contract_request(
         &self,
         actor: &DspActor,
-        uri_id: &String,
+        uri_id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>,
     ) -> Outcome<()>;
     async fn on_contract_offer_init(
@@ -43,31 +43,31 @@ pub trait ValidationDspSteps: Send + Sync + 'static {
     async fn on_contract_offer(
         &self,
         actor: &DspActor,
-        uri_id: &String,
+        uri_id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferMessageDto>,
     ) -> Outcome<()>;
     async fn on_contract_agreement(
         &self,
         actor: &DspActor,
-        uri_id: &String,
+        uri_id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>,
     ) -> Outcome<()>;
     async fn on_contract_agreement_verification(
         &self,
         actor: &DspActor,
-        uri_id: &String,
+        uri_id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>,
     ) -> Outcome<()>;
     async fn on_contract_event(
         &self,
         actor: &DspActor,
-        uri_id: &String,
+        uri_id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationEventMessageDto>,
     ) -> Outcome<()>;
     async fn on_contract_termination(
         &self,
         actor: &DspActor,
-        uri_id: &String,
+        uri_id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
     ) -> Outcome<()>;
 }

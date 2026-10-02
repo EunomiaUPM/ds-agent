@@ -26,7 +26,6 @@
 //! [`TransferProcess::version`]: crate::entities::transfer_process::TransferProcess::version
 
 use std::collections::HashMap;
-use std::ops::Deref;
 use std::sync::Mutex;
 
 use chrono::{DateTime, Utc};
@@ -39,7 +38,6 @@ use crate::protocols::dsp::entities::auth::TransferDSPAuthn;
 use crate::protocols::dsp::entities::context_common::TransferContextRaw;
 use crate::protocols::dsp::entities::context_dsp::TransferDSPContextTyped;
 use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
-use common::dsp_common::well_known_types::DSPProtocolVersions;
 
 /// What the store knows about a key it has seen before.
 #[derive(Debug, Clone)]
@@ -98,7 +96,6 @@ pub enum IdempotencyVerdict {
 }
 
 /// Storage of idempotency records.
-#[allow(dead_code)]
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait IdempotencyStoreTrait: Send + Sync {

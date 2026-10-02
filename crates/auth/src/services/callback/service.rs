@@ -89,7 +89,7 @@ impl CallbackTrait for BasicCallbackService {
             }
             HashMethod::Other(other) => {
                 return Err(Errors::not_impl(
-                    format!("Hash method '{}' not supported", other),
+                    format!("Hash method '{other}' not supported"),
                     None,
                 ));
             }
@@ -130,7 +130,7 @@ impl CallbackTrait for BasicCallbackService {
             interact_ref: interact_ref.clone(),
         })?;
 
-        let authorization = format!("GNAP {}", token);
+        let authorization = format!("GNAP {token}");
         let mut headers = json_headers();
         headers.insert(AUTHORIZATION, authorization.parse_header()?);
         let httpsig = HttpSig::build(
@@ -138,14 +138,14 @@ impl CallbackTrait for BasicCallbackService {
             &priv_key,
             None,
             "POST",
-            &url,
+            url,
             &body_bytes,
             Some(&authorization),
         )?;
 
         headers.extend(httpsig);
 
-        let res = http_client().post(&url, Some(headers), body).await?;
+        let res = http_client().post(url, Some(headers), body).await?;
 
         res.parse_json().await
     }

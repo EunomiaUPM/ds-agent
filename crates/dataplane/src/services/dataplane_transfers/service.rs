@@ -21,7 +21,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use common::auth::access::{AccessScope, Rbac};
+use common::auth::access::AccessScope;
 use common::batch_requests::BatchRequests;
 use common::errors::NotFoundExt;
 use common::paginated_spec::Cursor;

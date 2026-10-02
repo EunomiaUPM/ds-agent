@@ -53,7 +53,6 @@ use ymir::errors::Outcome;
 /// All nine operations (two initial + seven lifecycle steps) are driven by the
 /// `NegotiationRpcStep` template; `run_lifecycle` encodes the algorithm once:
 /// validate, prepare the context, authenticate, then send and persist.
-#[allow(unused)]
 pub struct RPCOrchestratorService {
     validator: Arc<dyn ValidationRpcSteps>,
     persistence_service: Arc<dyn NegotiationRpcPersistenceTrait>,

@@ -18,7 +18,6 @@
 use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
-#[allow(unused)]
 pub trait ProtocolPluginTrait {
     fn name(&self) -> &'static str;
     fn version(&self) -> &'static str;

@@ -96,7 +96,6 @@ impl From<NewTransferEvent> for ActiveModel {
             message: ActiveValue::Set(value.message),
             data: ActiveValue::Set(value.data),
             created_at: ActiveValue::Set(chrono::Utc::now().into()),
-            ..Default::default()
         }
     }
 }

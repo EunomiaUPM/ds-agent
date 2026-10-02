@@ -15,8 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#![allow(unused)]
-
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationAgreementMessageDto, RpcNegotiationEventAcceptedMessageDto,
     RpcNegotiationEventFinalizedMessageDto, RpcNegotiationOfferInitMessageDto,

@@ -31,7 +31,6 @@ use crate::protocols::dsp::entities::rdf_extractor_dsp::{DspTransfer, ExtractPro
 use common::dsp_common::data_address::DataAddress;
 use common::dsp_common::odrl::OdrlAgreement;
 use common::dsp_common::rdf::DspProfile;
-use common::dsp_common::well_known_types::DSPProtocolVersions;
 use common::rdf::ExpandedDoc;
 use http::request::Parts;
 use sha2::{Digest, Sha256};

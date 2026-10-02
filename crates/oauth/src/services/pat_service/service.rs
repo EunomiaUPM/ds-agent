@@ -25,7 +25,7 @@ use common::auth::claims::Claims;
 use common::paginated_spec::Cursor;
 use common::query::QueryFilter;
 use uuid::Uuid;
-use ymir::errors::{BadFormat, Errors, Outcome};
+use ymir::errors::{Errors, Outcome};
 
 use crate::data::repositories::pat::PatRepository;
 use crate::entities::pat::PersonalAccessToken;

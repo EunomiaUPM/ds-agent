@@ -20,7 +20,6 @@ use monolith::setup::CoreBoot;
 use monolith::{SERVICE_BIG_NAME, SERVICE_NAME};
 use ymir::errors::Outcome;
 
-#[allow(clippy::result_large_err)]
 #[tokio::main]
 async fn main() -> Outcome<()> {
     AgentCli::<CoreBoot>::run(SERVICE_NAME, SERVICE_BIG_NAME).await

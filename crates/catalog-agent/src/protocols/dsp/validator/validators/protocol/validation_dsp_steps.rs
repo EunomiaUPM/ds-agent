@@ -48,7 +48,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
 
     async fn on_dataset_request(
         &self,
-        uri_id: &String,
+        uri_id: &str,
         input: &CatalogMessageWrapper<Dataset>,
     ) -> Outcome<()> {
         todo!()

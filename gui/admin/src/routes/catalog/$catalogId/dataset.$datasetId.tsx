@@ -483,8 +483,8 @@ function RouteComponent() {
                   {filteredDistributions.map((distribution) => (
                     <DistributionItem
                       key={distribution.id}
-                      title={distribution.dctTitle}
-                      description={distribution.dctDescription}
+                      title={distribution.dctTitle ?? undefined}
+                      description={distribution.dctDescription ?? undefined}
                       date={distribution.dctIssued}
                       ownDataset={true}
                       prevRoute={catalogId}
@@ -531,7 +531,7 @@ function RouteComponent() {
                       policy={policy}
                       datasetId={dataset.id!}
                       catalogId={catalogId}
-                      datasetName={dataset.dctTitle}
+                      datasetName={dataset.dctTitle ?? undefined}
                       showOfferAccess
                     />
                   ))}

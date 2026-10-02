@@ -25,7 +25,7 @@ use common::query::FilterApplier;
 use sea_orm::QueryTrait;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
-    QueryFilter, QueryOrder, QuerySelect, Select,
+    QueryFilter, Select,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -245,9 +245,8 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         &self,
         new_catalog_model: &NewCatalogModel,
     ) -> Outcome<catalog::Model> {
-        let main_catalog = self.get_main_catalog(&new_catalog_model.tenant_id).await?;
-        if main_catalog.is_some() {
-            return Ok(main_catalog.unwrap());
+        if let Some(main_catalog) = self.get_main_catalog(&new_catalog_model.tenant_id).await? {
+            return Ok(main_catalog);
         }
 
         let mut model: catalog::ActiveModel = new_catalog_model.into();

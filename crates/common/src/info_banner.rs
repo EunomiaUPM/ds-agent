@@ -43,6 +43,5 @@ Show some love on https://github.com/EunomiaUPM/ds-agent
 
 /// Banner with the agent's name filled in.
 pub fn banner(service_name: &str) -> String {
-    let out = INFO.replace("{replace}", service_name);
-    out
+    INFO.replace("{replace}", service_name)
 }

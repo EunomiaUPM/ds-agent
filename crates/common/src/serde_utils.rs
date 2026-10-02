@@ -36,7 +36,7 @@ use ymir::errors::{Errors, Outcome};
 pub fn deserialize_b64(s: &str, field: &'static str) -> Outcome<Vec<u8>> {
     base64::engine::general_purpose::STANDARD
         .decode(s)
-        .map_err(|e| Errors::parse(e.to_string(), None))
+        .map_err(|e| Errors::parse(format!("{field}: {e}"), None))
 }
 
 /// Serializes bytes as a base64 string.

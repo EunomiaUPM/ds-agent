@@ -22,7 +22,6 @@ pub mod proxy;
 pub mod pubsub;
 
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
-use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::sync::Arc;
 use ymir::errors::Outcome;

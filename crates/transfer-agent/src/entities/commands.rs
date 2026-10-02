@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::ids::{MessageId, ParticipantId, TenantId, TransferProcessId};
+use crate::entities::ids::{MessageId, ParticipantId, TransferProcessId};
 use crate::entities::message_envelope::MessageEnvelope;
 use crate::entities::protocol::{
     ProtocolId, ProtocolMessageType, ProtocolState, StateMetadata, TransferRole,
@@ -38,7 +38,6 @@ pub struct NewTransferProcessCommand {
     pub initial_state: ProtocolState,
     pub initial_state_metadata: StateMetadata,
     pub callback_address: Option<Url>,
-    #[allow(dead_code)]
     pub connector_instance_id: Option<String>,
     pub agreement_id: Urn,
     pub peer_participant_id: ParticipantId,

@@ -134,10 +134,10 @@ impl<'a> RuntimeSecretVault<'a> {
                 expires_at,
                 refresh_token,
             } => {
-                let at_path = format!("{}/access-token", prefix);
+                let at_path = format!("{prefix}/access-token");
 
                 let resolved_refresh = if let Some(rt) = refresh_token {
-                    let rt_path = format!("{}/refresh-token", prefix);
+                    let rt_path = format!("{prefix}/refresh-token");
                     let (r1, r2) = tokio::join!(
                         self.upsert(&at_path, json!(access_token)),
                         self.upsert(&rt_path, json!(rt))
@@ -285,7 +285,7 @@ impl<'a> RuntimeSecretVault<'a> {
     /// Runtime path of a transfer, e.g. `/runtime/abc-123` for `urn:dataplane-transfer:abc-123`.
     fn path_prefix(transfer_id: &str) -> String {
         let id_part = transfer_id.rsplit(':').next().unwrap_or(transfer_id);
-        format!("/runtime/{}", id_part)
+        format!("/runtime/{id_part}")
     }
 
     fn substitute(value: &mut serde_json::Value, cache: &HashMap<String, serde_json::Value>) {

@@ -17,7 +17,7 @@
 
 use crate::entities::filters::PolicyTemplateFilter;
 use crate::entities::policy_instantiation::NewPolicyInstantiationDto;
-use crate::entities::policy_templates::{NewPolicyTemplateDto, PolicyTemplateDto};
+use crate::entities::policy_templates::NewPolicyTemplateDto;
 use crate::http::common::to_camel_case::ToCamelCase;
 use crate::services::policy_instantiation::PolicyInstantiationServiceTrait;
 use crate::services::policy_templates::PolicyTemplateServiceTrait;
@@ -29,7 +29,6 @@ use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use common::batch_requests::BatchRequestsAsString;
 use common::config::services::CatalogConfig;
-use common::errors::CommonErrors;
 use common::query::QuerySpec;
 use serde::Deserialize;
 use std::sync::Arc;

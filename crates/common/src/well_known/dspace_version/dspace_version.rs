@@ -23,6 +23,12 @@ use crate::well_known::dspace_version::WellKnownDSpaceVersionTrait;
 #[derive(Clone)]
 pub struct WellKnownDSpaceVersionService {}
 
+impl Default for WellKnownDSpaceVersionService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WellKnownDSpaceVersionService {
     pub fn new() -> WellKnownDSpaceVersionService {
         WellKnownDSpaceVersionService {}

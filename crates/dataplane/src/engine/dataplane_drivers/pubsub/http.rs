@@ -73,7 +73,7 @@ impl DriverPubSubTrait for HttpPubSubscriber {
         })?;
 
         let dp = &context.dataplane_process().inner.id;
-        let ingress_url = format!("{}{}", HTTP_LISTENER_PATH, dp);
+        let ingress_url = format!("{HTTP_LISTENER_PATH}{dp}");
         let runtime_value = serde_json::to_value(context.runtime().cloned().unwrap_or_default())?;
         let mut resolver = RuntimeParametersResolver::new(connector, &runtime_value)
             .with_ingress(Some(ingress_url));
@@ -136,8 +136,9 @@ impl DriverPubSubTrait for HttpPubSubscriber {
                 operation: "unsubscribe".to_string(),
             }
         })?;
-        let push_lifecycle = match &connector.interaction {
-            InteractionConfig::Push(p) => p,
+        // Only push connectors have an unsubscribe step.
+        match &connector.interaction {
+            InteractionConfig::Push(_) => {}
             _ => {
                 return Err(DataplaneError::WrongInteractionType {
                     expected: "Push".to_string(),
@@ -238,7 +239,7 @@ impl DriverPubSubTrait for HttpPubSubscriber {
             })?,
             other => {
                 return Err(DataplaneError::UnsupportedProtocol {
-                    protocol: format!("HTTP method {}", other),
+                    protocol: format!("HTTP method {other}"),
                 }
                 .into())
             }

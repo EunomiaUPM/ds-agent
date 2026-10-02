@@ -16,11 +16,8 @@
  */
 
 use crate::cache::cache_traits::DESIRED_CACHE_TTL;
-use crate::protocols::dsp::types::distribution_definition::Distribution;
 use crate::DistributionDto;
 use common::cache::{RedisCacheConnectorTrait, UtilsCacheTrait};
-use std::str::FromStr;
-use urn::Urn;
 
 pub struct DistributionCacheForRedis {
     redis_connection: redis::aio::MultiplexedConnection,

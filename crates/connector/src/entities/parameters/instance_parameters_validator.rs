@@ -50,7 +50,7 @@ impl<'a> InstanceParametersValidator<'a> {
         if errors.is_empty() {
             Ok(())
         } else {
-            Err(Errors::validation(&errors.join("; "), None))
+            Err(Errors::validation(errors.join("; "), None))
         }
     }
 
@@ -68,7 +68,7 @@ impl<'a> InstanceParametersValidator<'a> {
         values
             .keys()
             .filter(|k| !valid_names.contains(k))
-            .map(|k| format!("Unknown parameter: '{}'", k))
+            .map(|k| format!("Unknown parameter: '{k}'"))
             .collect()
     }
 
@@ -129,10 +129,10 @@ impl<'a> InstanceParametersValidator<'a> {
             ParameterType::Boolean => actual_value.is_boolean(),
             ParameterType::VecString => actual_value
                 .as_array()
-                .map_or(false, |arr| arr.iter().all(|e| e.is_string())),
+                .is_some_and(|arr| arr.iter().all(|e| e.is_string())),
             ParameterType::MapStringString => actual_value
                 .as_object()
-                .map_or(false, |obj| obj.values().all(|v| v.is_string())),
+                .is_some_and(|obj| obj.values().all(|v| v.is_string())),
         }
     }
 }

@@ -30,8 +30,8 @@ use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 pub trait OrchestrationHelpers: Send + Sync + 'static {
-    fn convert_string_to_urn(&self, uri_id: &String) -> Outcome<Urn> {
-        Urn::from_str(uri_id.as_str()).map_err(|_e| {
+    fn convert_string_to_urn(&self, uri_id: &str) -> Outcome<Urn> {
+        Urn::from_str(uri_id).map_err(|_e| {
             let err = CommonErrors::parse_new("Invalid URN URN. The URN URN is malformed.");
             error!("{}", err.log());
             Errors::parse(err.to_string().as_str(), None)
@@ -52,7 +52,7 @@ pub trait OrchestrationHelpers: Send + Sync + 'static {
             _ => {
                 let err = CommonErrors::parse_new("Not able to parse indentifier into role");
                 error!("{}", err.log());
-                return Err(Errors::parse(err.to_string().as_str(), None));
+                Err(Errors::parse(err.to_string().as_str(), None))
             }
         }
     }
@@ -63,7 +63,7 @@ pub trait OrchestrationHelpers: Send + Sync + 'static {
             _ => {
                 let err = CommonErrors::parse_new("Not able to parse indentifier into role");
                 error!("{}", err.log());
-                return Err(Errors::parse(err.to_string().as_str(), None));
+                Err(Errors::parse(err.to_string().as_str(), None))
             }
         }
     }

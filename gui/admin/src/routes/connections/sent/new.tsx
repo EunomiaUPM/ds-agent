@@ -84,8 +84,9 @@ function NewSentConnection() {
     services: DidService[];
   } | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
-  const { data: participantsResponse } = useGetAllParticipants();
-  const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
+  const { data: participantsResponse } = useGetAllParticipants({ limit: 100 });
+  const localParticipants =
+    participantsResponse?.status === 200 ? participantsResponse.data.items : [];
 
   const federated = useFederatedCatalog();
   const knownProviders = federated.state === "ok" ? federated.agents : [];
@@ -333,10 +334,7 @@ function NewSentConnection() {
                       render={({ field }: { field: any }) => (
                         <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                           <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
+                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
                           <div className="space-y-1 leading-none">
                             <FormLabel>Automatic Authentication</FormLabel>

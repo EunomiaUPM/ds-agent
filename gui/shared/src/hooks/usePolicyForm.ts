@@ -55,7 +55,7 @@ export const usePolicyForm = (initialPolicy?: OdrlInfo) => {
       }
       _newPolicy[componentType]![componentIndex].constraint!.push({
         leftOperand: "",
-        operator: "",
+        operator: "eq",
         rightOperand: "",
       });
     }

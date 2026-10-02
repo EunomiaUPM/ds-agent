@@ -136,11 +136,9 @@ function NewAuthorityRequest() {
   const vcTypeLabelRef = useRef<HTMLElement | null>(null);
   const discoverButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  const { data: participantsResponse } = useGetAllParticipants();
+  const { data: participantsResponse } = useGetAllParticipants({ limit: 100, type: "Authority" });
   const knownAuthorities =
-    participantsResponse?.status === 200
-      ? participantsResponse.data.filter((p) => p.participant_type === "Authority")
-      : [];
+    participantsResponse?.status === 200 ? participantsResponse.data.items : [];
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
@@ -560,10 +558,7 @@ function NewAuthorityRequest() {
                       render={({ field }: { field: any }) => (
                         <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                           <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
+                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
                           <div className="space-y-1 leading-none">
                             <LabelWithInfo label="Automatic Acceptance">

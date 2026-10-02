@@ -16,7 +16,7 @@
  */
 
 use crate::entities::filters::OdrlPolicyFilter;
-use crate::entities::odrl_policies::{NewOdrlPolicyDto, OdrlPolicyDto};
+use crate::entities::odrl_policies::NewOdrlPolicyDto;
 use crate::http::common::to_camel_case::ToCamelCase;
 use crate::services::odrl_policies::OdrlPolicyServiceTrait;
 use axum::extract::rejection::JsonRejection;
@@ -27,9 +27,7 @@ use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
 use common::config::services::CatalogConfig;
-use common::errors::CommonErrors;
 use common::query::QuerySpec;
-use serde::Deserialize;
 use std::sync::Arc;
 use ymir::utils::{extract_path_urn, extract_payload};
 

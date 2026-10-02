@@ -33,11 +33,7 @@ import { Skeleton } from "shared/src/components/ui/skeleton";
 import { keepPreviousData } from "@tanstack/react-query";
 import { useMyself } from "shared/src/data/useMyself";
 
-interface Participant extends ParticipantDto {
-  last_interaction?: string;
-  saved_at?: string;
-  extra_fields?: any;
-}
+type Participant = ParticipantDto;
 
 // =============================================================================
 // ROUTE
@@ -51,7 +47,11 @@ export const Route = createFileRoute("/participants/")({
 });
 
 function RouteComponent() {
-  const { params: queryParams, apiParams, onQueryChange } = useTableQueryParams({
+  const {
+    params: queryParams,
+    apiParams,
+    onQueryChange,
+  } = useTableQueryParams({
     defaultLimit: 10,
     defaultSort: "created_at_desc",
   });
@@ -69,9 +69,7 @@ function RouteComponent() {
   });
   const myAgent = useMyself();
   const rawParticipants = (
-    Array.isArray(participants?.data)
-      ? participants.data
-      : (participants?.data as any)?.items || []
+    Array.isArray(participants?.data) ? participants.data : (participants?.data as any)?.items || []
   ) as Participant[];
   const allParticipants = rawParticipants;
 
@@ -176,9 +174,7 @@ function RouteComponent() {
               accessorKey: "participant_nick",
               cell: (p) => (
                 <div className="flex items-center gap-3">
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs bg-background-200 text-muted-foreground"
-                  >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs bg-background-200 text-muted-foreground">
                     {(p.participant_nick || "U").charAt(0).toUpperCase()}
                   </div>
                   <div className="flex items-baseline gap-2">

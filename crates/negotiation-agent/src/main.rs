@@ -20,7 +20,6 @@ use negotiation_agent::setup::NegotiationAgentBoot;
 use negotiation_agent::{SERVICE_BIG_NAME, SERVICE_NAME};
 use ymir::errors::Outcome;
 
-#[allow(clippy::result_large_err)]
 #[tokio::main]
 async fn main() -> Outcome<()> {
     AgentCli::<NegotiationAgentBoot>::run(SERVICE_NAME, SERVICE_BIG_NAME).await

@@ -23,24 +23,9 @@ use crate::cache::cache_redis::odrl_offer_cache::OdrlOfferCacheForRedis;
 use crate::cache::cache_redis::peer_catalog_cache::DcatCatalogCacheForRedis;
 use crate::cache::cache_traits::peer_catalog_cache_trait::PeerCatalogCacheTrait;
 use crate::cache::factory_trait::CatalogAgentCacheTrait;
-use crate::data::factory_trait::CatalogAgentRepoTrait;
-use crate::data::repo_traits::catalog_repo::CatalogRepositoryTrait;
-use crate::data::repo_traits::dataservice_repo::DataServiceRepositoryTrait;
-use crate::data::repo_traits::dataset_repo::DatasetRepositoryTrait;
-use crate::data::repo_traits::distribution_repo::DistributionRepositoryTrait;
-use crate::data::repo_traits::odrl_offer_repo::OdrlOfferRepositoryTrait;
-use crate::data::repo_traits::policy_template_repo::PolicyTemplatesRepositoryTrait;
-use crate::data::repos_sql::catalog_repo::CatalogRepositoryForSql;
-use crate::data::repos_sql::dataservice_repo::DataServiceRepositoryForSql;
-use crate::data::repos_sql::dataset_repo::DatasetRepositoryForSql;
-use crate::data::repos_sql::distribution_repo::DistributionRepositoryForSql;
-use crate::data::repos_sql::odrl_offer_repo::OdrlOfferRepositoryForSql;
-use crate::data::repos_sql::policy_template_repo::PolicyTemplatesRepositoryForSql;
 use crate::{CatalogDto, DataServiceDto, DatasetDto, DistributionDto, OdrlPolicyDto};
 use common::cache::EntityCacheTrait;
-use sea_orm::DatabaseConnection;
 use std::sync::Arc;
-use urn::Urn;
 
 pub struct CatalogAgentCacheForRedis {
     catalog_repo: Arc<dyn EntityCacheTrait<CatalogDto>>,

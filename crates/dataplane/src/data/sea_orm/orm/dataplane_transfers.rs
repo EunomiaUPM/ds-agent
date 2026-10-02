@@ -19,7 +19,6 @@
 
 use common::config::types::roles::RoleConfig;
 use sea_orm::entity::prelude::*;
-use sea_orm::prelude::StringLen::N;
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};

@@ -33,9 +33,12 @@ const fetchFederatedCatalog = async (authorityBaseUrl: string): Promise<Federate
 };
 
 export const useFederatedCatalog = (): FederatedCatalogResult => {
-  const { data: participantsResponse, isLoading: participantsLoading } = useGetAllParticipants();
+  const { data: participantsResponse, isLoading: participantsLoading } = useGetAllParticipants({
+    limit: 100,
+  });
 
-  const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
+  const localParticipants =
+    participantsResponse?.status === 200 ? participantsResponse.data.items : [];
 
   const authority = localParticipants.find((p) => p.participant_type === "Authority");
   const myParticipantId = useMyself()?.participant_id;

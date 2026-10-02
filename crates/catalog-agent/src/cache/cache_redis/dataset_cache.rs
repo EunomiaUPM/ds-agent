@@ -16,10 +16,8 @@
  */
 
 use crate::cache::cache_traits::DESIRED_CACHE_TTL;
-use crate::{CatalogDto, DatasetDto};
+use crate::DatasetDto;
 use common::cache::{RedisCacheConnectorTrait, UtilsCacheTrait};
-use std::str::FromStr;
-use urn::Urn;
 
 pub struct DatasetCacheForRedis {
     redis_connection: redis::aio::MultiplexedConnection,

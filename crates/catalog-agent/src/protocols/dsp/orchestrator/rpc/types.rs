@@ -16,12 +16,11 @@
  */
 
 use crate::protocols::dsp::protocol_types::{
-    CatalogErrorDto, CatalogMessageTrait, CatalogMessageType, CatalogMessageWrapper,
-    CatalogRequestMessageDto, DatasetRequestMessage,
+    CatalogErrorDto, CatalogMessageType, CatalogMessageWrapper, CatalogRequestMessageDto,
+    DatasetRequestMessage,
 };
 use crate::protocols::dsp::types::CatalogDspTraitDefinition;
 use common::dsp_common::context_field::ContextField;
-use common::dsp_common::odrl::ContractRequestMessageOfferTypes;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::str::FromStr;
@@ -43,13 +42,13 @@ pub struct RpcCatalogRequestMessageDto {
     pub no_cache: bool,
 }
 
-impl Into<CatalogMessageWrapper<CatalogRequestMessageDto>> for RpcCatalogRequestMessageDto {
-    fn into(self) -> CatalogMessageWrapper<CatalogRequestMessageDto> {
+impl From<RpcCatalogRequestMessageDto> for CatalogMessageWrapper<CatalogRequestMessageDto> {
+    fn from(val: RpcCatalogRequestMessageDto) -> Self {
         CatalogMessageWrapper {
             context: ContextField::default(),
             _type: CatalogMessageType::CatalogRequestMessage,
             dto: CatalogRequestMessageDto {
-                filter: Option::from(self.filter),
+                filter: Option::from(val.filter),
             },
         }
     }
@@ -79,9 +78,9 @@ pub struct RpcDatasetRequestMessageDto {
     no_cache: Option<bool>,
 }
 
-impl Into<CatalogMessageWrapper<DatasetRequestMessage>> for RpcDatasetRequestMessageDto {
-    fn into(self) -> CatalogMessageWrapper<DatasetRequestMessage> {
-        let dataset_urn = Urn::from_str(&*self.dataset).unwrap();
+impl From<RpcDatasetRequestMessageDto> for CatalogMessageWrapper<DatasetRequestMessage> {
+    fn from(val: RpcDatasetRequestMessageDto) -> Self {
+        let dataset_urn = Urn::from_str(&val.dataset).unwrap();
         CatalogMessageWrapper {
             context: ContextField::default(),
             _type: CatalogMessageType::DatasetRequestMessage,

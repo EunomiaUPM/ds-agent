@@ -127,7 +127,7 @@ impl EventsRouter {
             events,
             &page,
             Some(total),
-            |last| Cursor::encode_composite(&last.timestamp, &last.id.to_string()),
+            |last| Cursor::encode_composite(&last.timestamp, last.id.as_ref()),
         )))
     }
 

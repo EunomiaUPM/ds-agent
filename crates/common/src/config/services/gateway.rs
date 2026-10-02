@@ -60,7 +60,7 @@ impl GatewayConfigTrait for GatewayConfig {
 impl ConfigLoader for GatewayConfig {
     fn load(env_file: &str) -> Outcome<Self> {
         Self::global_load(env_file)
-            .map(|data| data.gateway().clone())
+            .and_then(|data| data.gateway().cloned())
             .or_else(|_| Self::local_load(env_file))
     }
 }

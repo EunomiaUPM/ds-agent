@@ -26,7 +26,6 @@ use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 /// Persistence of secrets, keyed by tenant and path.
-#[allow(dead_code)]
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait SecretRepoTrait: Send + Sync {

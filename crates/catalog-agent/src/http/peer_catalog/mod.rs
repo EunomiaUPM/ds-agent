@@ -15,23 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::catalogs::{EditCatalogDto, NewCatalogDto};
-use crate::http::common::to_camel_case::ToCamelCase;
-use crate::services::catalogs::CatalogServiceTrait;
 use crate::services::peer_catalogs::PeerCatalogServiceTrait;
-use axum::extract::rejection::JsonRejection;
-use axum::extract::{FromRef, Path, Query, State};
+use axum::extract::{FromRef, Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::routing::{delete, get, post, put};
+use axum::routing::get;
 use axum::{Json, Router};
 use common::auth::AccessScope;
-use common::batch_requests::BatchRequests;
-use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
-use serde::Deserialize;
 use std::sync::Arc;
-use ymir::errors::Outcome;
 
 #[derive(Clone)]
 pub struct PeerCatalogEntityRouter {
@@ -62,7 +54,7 @@ impl PeerCatalogEntityRouter {
     ) -> impl IntoResponse {
         match state.service.get_all_peer_catalogs(&scope).await {
             Ok(data) => (StatusCode::OK, Json(data)).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
 
@@ -78,7 +70,7 @@ impl PeerCatalogEntityRouter {
                     CommonErrors::missing_resource_new("peer catalog", "Peer Catalog not found");
                 err.into_response()
             }
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
 }

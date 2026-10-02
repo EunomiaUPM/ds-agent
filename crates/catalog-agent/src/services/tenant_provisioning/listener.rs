@@ -22,7 +22,7 @@ use std::sync::Arc;
 use common::auth::{AccessScope, RbacRole};
 use common::boot::workers::BackgroundWorker;
 use common::telemetry::TraceParent;
-use events::{EventBus, EventBusTrait};
+use events::EventBus;
 use tokio::sync::broadcast::error::RecvError;
 use tokio_util::sync::CancellationToken;
 use tracing::{info, info_span, warn, Instrument};

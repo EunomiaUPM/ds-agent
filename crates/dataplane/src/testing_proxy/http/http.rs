@@ -19,7 +19,7 @@
 
 use crate::data::factory_trait::DataplaneRepoTrait;
 use crate::data::sea_orm::orm::transfer_event::{LogLevel, NewTransferEvent};
-use crate::engine::dataplane_drivers::proxy::http as http_proxy;
+use crate::engine::dataplane_drivers::proxy::http::HttpProxyDriver;
 use crate::engine::dataplane_manager::dataplane_proxy::{
     DataplaneProxyEgress, DataplaneProxyIngress,
 };
@@ -235,7 +235,7 @@ impl TestingHTTPProxy {
 
     /// Parses the `{data_plane_id}` path segment into a transfer URN.
     fn parse_dataplane_id(raw: &str) -> Result<Urn, ProxyError> {
-        get_urn_from_string(&raw.to_string()).map_err(|_| ProxyError::BadDataplaneId)
+        get_urn_from_string(raw).map_err(|_| ProxyError::BadDataplaneId)
     }
 
     /// Loads the transfer and enforces that it is `Started` — the proxy only
@@ -383,7 +383,7 @@ impl TestingHTTPProxy {
         let mut headers = outbound.headers;
         headers.remove("authorization");
 
-        let response = http_proxy::forward(
+        let response = HttpProxyDriver::forward(
             &self.client,
             outbound.method.clone(),
             target,

@@ -55,7 +55,7 @@ impl WellKnownRPCTrait for WellKnownRPCService {
     ) -> Outcome<(VersionResponse, String)> {
         let mate_id = input.participant_id.clone();
         let base_url = self.get_base_url(&input.tenant_id, &mate_id).await?;
-        let url = format!("{}/.well-known/dspace-version", base_url);
+        let url = format!("{base_url}/.well-known/dspace-version");
         let response = http_client()
             .get_json::<VersionResponse>(url.as_str(), None)
             .await?;

@@ -40,7 +40,7 @@ use ymir::errors::Outcome;
 pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
     async fn on_get_negotiation(
         &self,
-        id: &String,
+        id: &str,
         mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
@@ -55,14 +55,14 @@ pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
 
     async fn on_consumer_request(
         &self,
-        id: &String,
+        id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>,
         mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
     async fn on_agreement_verification(
         &self,
-        id: &String,
+        id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>,
         mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
@@ -78,28 +78,28 @@ pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
 
     async fn on_provider_offer(
         &self,
-        id: &String,
+        id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferMessageDto>,
         mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
     async fn on_agreement_reception(
         &self,
-        id: &String,
+        id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>,
         mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
     async fn on_negotiation_event(
         &self,
-        id: &String,
+        id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationEventMessageDto>,
         mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
     async fn on_negotiation_termination(
         &self,
-        id: &String,
+        id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
         mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;

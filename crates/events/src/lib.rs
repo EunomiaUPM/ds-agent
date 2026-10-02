@@ -25,8 +25,6 @@
 //! Modules: [`entities`] (topics, envelopes, subscriptions, deliveries), [`services`], [`data`],
 //! [`http`], [`setup`].
 
-#![allow(clippy::result_large_err, clippy::module_inception)]
-
 pub mod data;
 pub mod entities;
 pub mod http;

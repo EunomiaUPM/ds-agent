@@ -90,38 +90,38 @@ impl AuthRouter {
             .merge(wallet_router.well_known())
             // .merge(gaia_router.well_known())
             .nest(
-                &format!("{}/wallet", api_path),
+                &format!("{api_path}/wallet"),
                 wallet_router.router().route_layer(guard.clone()),
             )
             .nest(
-                &format!("{}/mates", api_path),
+                &format!("{api_path}/mates"),
                 mate_router.router().route_layer(guard.clone()),
             )
-            .nest(&format!("{}", api_path), health_router.router())
+            .nest(&api_path.to_string(), health_router.router())
             .nest(
-                &format!("{}/vc-request", api_path),
+                &format!("{api_path}/vc-request"),
                 vc_requester_router
                     .protocol_router()
                     .merge(vc_requester_router.router().route_layer(guard.clone())),
             )
             .nest(
-                &format!("{}/gate", api_path),
+                &format!("{api_path}/gate"),
                 gatekeeper_router
                     .protocol_router()
                     .merge(gatekeeper_router.router().route_layer(guard.clone())),
             )
-            .nest(&format!("{}/verifier", api_path), verifier_router.router())
+            .nest(&format!("{api_path}/verifier"), verifier_router.router())
             .nest(
-                &format!("{}/peer-connection", api_path),
+                &format!("{api_path}/peer-connection"),
                 onboarder_router
                     .protocol_router()
                     .merge(onboarder_router.router().route_layer(guard.clone())),
             )
             .nest(
-                &format!("{}/gaia", api_path),
+                &format!("{api_path}/gaia"),
                 gaia_router.router().route_layer(guard),
             )
-            .nest(&format!("{}/docs", api_path), openapi_router.router());
+            .nest(&format!("{api_path}/docs"), openapi_router.router());
 
         router.fallback(Self::fallback).layer(cors).layer(
             TraceLayer::new_for_http()

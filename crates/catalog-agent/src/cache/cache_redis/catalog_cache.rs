@@ -17,11 +17,7 @@
 
 use crate::cache::cache_traits::DESIRED_CACHE_TTL;
 use crate::CatalogDto;
-use async_trait::async_trait;
 use common::cache::{RedisCacheConnectorTrait, UtilsCacheTrait};
-use serde::{Deserialize, Serialize};
-use std::str::FromStr;
-use urn::Urn;
 
 pub struct CatalogCacheForRedis {
     pub redis_connection: redis::aio::MultiplexedConnection,

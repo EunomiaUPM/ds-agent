@@ -24,7 +24,7 @@ import {
   useRevokePersonalAccessToken,
   getListPersonalAccessTokensQueryKey,
 } from "shared/src/data/orval/personal-access-tokens/personal-access-tokens";
-import { PatRecord, CreatePatCommandRole, CreatePatResponse } from "shared/src/data/orval/model";
+import { PatRecord } from "shared/src/data/orval/model";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { DataTable } from "shared/src/components/DataTable";
 import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
@@ -40,13 +40,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "shared/src/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "shared/src/components/ui/select";
 import { Plus, Trash2, KeyRound, Copy, Check, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
@@ -59,7 +52,6 @@ interface CreatePatDialogProps {
 const CreatePatDialog = ({ open, onClose, onCreated }: CreatePatDialogProps) => {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
-  const [role, setRole] = useState<CreatePatCommandRole>("Service");
   const [scopesStr, setScopesStr] = useState("events:* transfers:*");
   const [days, setDays] = useState("90");
 
@@ -67,8 +59,9 @@ const CreatePatDialog = ({ open, onClose, onCreated }: CreatePatDialogProps) => 
     mutation: {
       onSuccess: (res) => {
         queryClient.invalidateQueries({ queryKey: getListPersonalAccessTokensQueryKey() });
-        const resData = res.data as CreatePatResponse;
-        onCreated(resData.token, resData.pat.name);
+        if (res.status === 201) {
+          onCreated(res.data.token, res.data.name);
+        }
         onClose();
         setName("");
       },
@@ -88,14 +81,17 @@ const CreatePatDialog = ({ open, onClose, onCreated }: CreatePatDialogProps) => 
       .map((s) => s.trim())
       .filter(Boolean);
 
+    // The token carries the caller's role; only its lifetime is chosen here.
     const expiresInDays = parseInt(days, 10);
+    const expiresAt = isNaN(expiresInDays)
+      ? null
+      : new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString();
 
     createPat({
       data: {
         name: name.trim(),
-        role,
         scopes,
-        expires_in_days: isNaN(expiresInDays) ? undefined : expiresInDays,
+        expiresAt,
       },
     });
   };
@@ -116,22 +112,6 @@ const CreatePatDialog = ({ open, onClose, onCreated }: CreatePatDialogProps) => 
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. CI/CD Automated Agent"
             />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              RBAC Role
-            </label>
-            <Select value={role} onValueChange={(val) => setRole(val as CreatePatCommandRole)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Service">Service</SelectItem>
-                <SelectItem value="Admin">Admin</SelectItem>
-                <SelectItem value="User">User</SelectItem>
-                <SelectItem value="Auditor">Auditor</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -231,22 +211,23 @@ const PatsComponent = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [tokenData, setTokenData] = useState<{ token: string; name: string } | null>(null);
 
-  const { params: queryParams, apiParams, onQueryChange } = useTableQueryParams({
+  const {
+    params: queryParams,
+    apiParams,
+    onQueryChange,
+  } = useTableQueryParams({
     defaultLimit: 10,
     defaultSort: "created_at_desc",
     defaultFilters: { status: "all" },
   });
 
-  const { data, isLoading, isError, isFetching } = useListPersonalAccessTokens({
+  const { data, isLoading, isError, isFetching } = useListPersonalAccessTokens(apiParams, {
     query: {
       queryKey: ["/oauth/pats", apiParams],
       placeholderData: keepPreviousData,
     },
-    request: {
-      params: apiParams,
-    },
   });
-  const pats: PatRecord[] = Array.isArray(data?.data) ? (data.data as PatRecord[]) : [];
+  const pats: PatRecord[] = data?.status === 200 ? data.data.items : [];
 
   const { mutate: revokePat } = useRevokePersonalAccessToken({
     mutation: {
@@ -296,7 +277,7 @@ const PatsComponent = () => {
             keyExtractor={(pat) => pat.id}
             searchPlaceholder="Filter tokens by name, prefix, or role..."
             emptyMessage='No active Personal Access Tokens. Click "Generate New PAT" to create one.'
-            defaultSortKey="created_at"
+            defaultSortKey="createdAt"
             defaultSortDirection="desc"
             pageSize={10}
             pageSizeOptions={[10, 20, 50, 100]}
@@ -320,8 +301,8 @@ const PatsComponent = () => {
               },
               {
                 header: "Prefix",
-                accessorKey: "token_prefix",
-                cell: (pat) => <Badge variant="code">{pat.token_prefix}...</Badge>,
+                accessorKey: "tokenPrefix",
+                cell: (pat) => <Badge variant="code">{pat.tokenPrefix}...</Badge>,
               },
               {
                 header: "Status",
@@ -352,17 +333,17 @@ const PatsComponent = () => {
               },
               {
                 header: "Created at",
-                accessorKey: "created_at",
-                sortValue: (pat) => new Date(pat.created_at).getTime(),
-                cell: (pat) => <FormatDate date={pat.created_at} />,
+                accessorKey: "createdAt",
+                sortValue: (pat) => new Date(pat.createdAt).getTime(),
+                cell: (pat) => <FormatDate date={pat.createdAt} />,
               },
               {
                 header: "Expires at",
-                accessorKey: "expires_at",
-                sortValue: (pat) => (pat.expires_at ? new Date(pat.expires_at).getTime() : 0),
+                accessorKey: "expiresAt",
+                sortValue: (pat) => (pat.expiresAt ? new Date(pat.expiresAt).getTime() : 0),
                 cell: (pat) =>
-                  pat.expires_at ? (
-                    <FormatDate date={pat.expires_at} />
+                  pat.expiresAt ? (
+                    <FormatDate date={pat.expiresAt} />
                   ) : (
                     <span className="text-xs text-muted-foreground">Never</span>
                   ),

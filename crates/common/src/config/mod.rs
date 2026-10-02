@@ -113,8 +113,8 @@
 //!
 //! [`ApplicationConfig`] is the monolith's config. Its own `monolith.common` drives the process
 //! (ports, vault, database), and `transfer()`, `catalog()` and the rest hand each module its
-//! section. Those accessors panic when the section is missing, which only happens with a
-//! malformed file.
+//! section, or an error when the file lacks it. Loading it as the monolith's config fails at
+//! once, naming every missing section.
 
 mod config;
 mod parse_from;
@@ -122,3 +122,6 @@ pub mod services;
 pub mod types;
 
 pub use config::ApplicationConfig;
+
+#[cfg(test)]
+mod tests;

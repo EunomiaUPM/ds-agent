@@ -443,7 +443,7 @@ impl OrchestrationExtractors for NegotiationPersistenceForRpcService {
             _ => {
                 let err = CommonErrors::parse_new("Message not allowed here");
                 error!("{}", err.log());
-                return Err(Errors::parse(err.to_string().as_str(), None));
+                Err(Errors::parse(err.to_string().as_str(), None))
             }
         }
     }

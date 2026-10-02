@@ -47,7 +47,6 @@ impl SeaOrmTransferProcessRepo {
         TransferProcessRepoErrors::ErrorFetchingTransferProcess(Box::new(e)).into_errors()
     }
 
-    #[allow(clippy::result_large_err)]
     fn decode_cursor(&self, cursor: &str) -> Outcome<chrono::DateTime<chrono::FixedOffset>> {
         Cursor::decode_timestamp(cursor)
             .map_err(|_| TransferProcessRepoErrors::InvalidCursor.into_errors())

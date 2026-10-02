@@ -16,7 +16,7 @@
  */
 
 use crate::engine::dataplane_manager::dataplane_commands::{
-    set_configuring_helper, DataplaneCommandStateMachine, DataplaneInitCommandTypes,
+    set_configuring_helper, DataplaneCommandStateMachine,
 };
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;

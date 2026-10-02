@@ -87,7 +87,6 @@ impl AccessScope {
 
     /// Scope from the `x-tenant-id` header: non-admins may only name their own tenant, an admin
     /// naming one is pinned to it, and without the header the claims tenant applies.
-    #[allow(clippy::result_large_err)]
     pub fn from_tenant_header(claims: &Claims, requested: Option<&str>) -> Outcome<Self> {
         let tenant_id = match requested {
             Some(raw) => {

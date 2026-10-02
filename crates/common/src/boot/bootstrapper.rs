@@ -42,7 +42,7 @@ use crate::http_tracing::HttpTracing;
 use crate::module_loader::root_context::RootContext;
 use crate::module_loader::service_composer::ServiceComposer;
 use crate::utils::show_table;
-use crate::vault_utils::vault;
+use crate::vault_utils::VaultSelector;
 use crate::well_known::WellKnownRoot;
 
 /// Time workers get to drain once shutdown starts.
@@ -115,7 +115,7 @@ impl<S: BootstrapServiceTrait> Bootstrapper<S> {
     fn load(env_file: &str) -> Outcome<(S::Config, Arc<VaultService>)> {
         let config = S::Config::load(env_file)?;
         show_table(&config)?;
-        let vault = Arc::new(vault(config.common())?);
+        let vault = Arc::new(VaultSelector::select(config.common())?);
         Ok((config, vault))
     }
 

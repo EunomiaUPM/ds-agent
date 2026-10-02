@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::engine::dataplane_drivers::DriverPubSubTrait;
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::engine::dataplane_manager::dataplane_driver_factory::{
     DataplaneDriverFactory, DataplaneDriverFactoryTrait,
@@ -163,7 +162,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
             }
         };
         let mut context = authenticator.authenticate(&context).await?;
-        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+        let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         let new_state = TransferState::Auth;
         let flow_control = self.export_runtime_flow_control(&context).await?;
         let dataplane_process = self
@@ -216,7 +215,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     }
     #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_ready(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
-        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+        let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         // state
         let new_state = TransferState::Ready;
         // driver.auth
@@ -237,7 +236,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     }
     #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_started(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
-        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+        let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         let new_state = TransferState::Started;
         let dataplane_process = self
             .dataplane_service()
@@ -263,7 +262,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         let Some(subscriber) = subscriber else {
             return Ok(context);
         };
-        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+        let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         let dataplane_process = self
             .dataplane_service()
             .edit(
@@ -296,7 +295,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         let Some(subscriber) = subscriber else {
             return Ok(context);
         };
-        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+        let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         let dataplane_process = self
             .dataplane_service()
             .edit(
@@ -322,7 +321,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     }
     #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_stopped(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
-        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+        let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         // state
         let new_state = TransferState::Stopped;
         // driver.auth
@@ -343,7 +342,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
 
     #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_terminating(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
-        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+        let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         let new_state = TransferState::Terminated;
         let dataplane_process = self
             .dataplane_service()
@@ -385,7 +384,7 @@ pub async fn set_configuring_helper(
     context.set_driver(driver);
     context.set_runtime(runtime);
     // dataplane
-    let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+    let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
     let new_state = TransferState::Configuring;
     let dataplane_process = dp_trait
         .edit(

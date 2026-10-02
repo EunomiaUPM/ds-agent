@@ -17,14 +17,10 @@
 
 use crate::config::types::cache::CacheConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
-use crate::config::types::traits::{
-    CacheConfigTrait, CommonConfigTrait, ConfigLoader, DatahubConfigTrait,
-};
+use crate::config::types::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader};
 
 /// What the catalog agent reads from its config.
-pub trait CatalogConfigTrait:
-    ConfigLoader + CommonConfigTrait + DatahubConfigTrait + CacheConfigTrait
-{
+pub trait CatalogConfigTrait: ConfigLoader + CommonConfigTrait + CacheConfigTrait {
     /// Address of the negotiation agent.
     fn contracts(&self) -> &MinKnownConfig;
 

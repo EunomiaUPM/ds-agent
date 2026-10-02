@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::connector_instance::{ConnectorInstanceDto, ConnectorInstantiationDto};
+use crate::entities::connector_instance::ConnectorInstantiationDto;
 use crate::entities::filters::ConnectorInstanceFilter;
 use crate::services::connector_instance::ConnectorInstanceServiceTrait;
 use axum::extract::rejection::JsonRejection;

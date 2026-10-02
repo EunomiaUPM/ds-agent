@@ -309,7 +309,7 @@ impl RpcRouter {
             }
         };
         let callback_base = state.config.ssi_auth().hosts.get_host(HostType::Http);
-        let callback_address = format!("{}/dsp/current/negotiations", callback_base);
+        let callback_address = format!("{callback_base}/dsp/current/negotiations");
         let rpc_dto = RpcNegotiationRequestInitMessageDto::new(
             input.provider_id,
             input.connector_address,

@@ -49,7 +49,7 @@ impl ContractsConfigTrait for ContractsConfig {
 impl ConfigLoader for ContractsConfig {
     fn load(env_file: &str) -> Outcome<Self> {
         Self::global_load(env_file)
-            .map(|data| data.contracts().clone())
+            .and_then(|data| data.contracts().cloned())
             .or_else(|_| Self::local_load(env_file))
     }
 }

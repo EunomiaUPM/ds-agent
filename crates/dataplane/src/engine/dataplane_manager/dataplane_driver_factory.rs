@@ -107,7 +107,7 @@ impl DataplaneDriverFactory {
         if let Some(connector_instance) = context.connector_instance() {
             let role = context.dataplane_process_role();
             let interaction_mode = context.dataplane_process_interaction_mode();
-            let protocol_spec = Self::extract_protocol(&connector_instance);
+            let protocol_spec = Self::extract_protocol(connector_instance);
 
             match (protocol_spec, &role, &interaction_mode) {
                 (ProtocolSpec::Http(_), TransferRole::Provider, InteractionMode::Pull) => {
@@ -146,16 +146,14 @@ impl DataplaneDriverFactory {
             let interaction_mode = context.dataplane_process_interaction_mode();
             match interaction_mode {
                 InteractionMode::Pull => Ok(None),
-                InteractionMode::Push => match Self::extract_protocol(&connector_instance) {
+                InteractionMode::Push => match Self::extract_protocol(connector_instance) {
                     ProtocolSpec::Http(_) => Ok(Some(Arc::new(HttpPubSubscriber::new(
                         self.keystore.clone(),
                     )))),
-                    ProtocolSpec::Kafka(_) => {
-                        return Err(DataplaneError::FeatureNotImplemented {
-                            feature: "Kafka push subscriber".to_string(),
-                        }
-                        .into())
+                    ProtocolSpec::Kafka(_) => Err(DataplaneError::FeatureNotImplemented {
+                        feature: "Kafka push subscriber".to_string(),
                     }
+                    .into()),
                 },
             }
         } else {

@@ -33,14 +33,14 @@ export const TransferProcessTerminationDialog = ({
    * Payload structure differs based on the user's role.
    */
   const handleSubmit = async () => {
-    if (!process.identifiers?.consumerPid || !process.identifiers?.providerPid) {
+    if (!process.correlation.consumerPid || !process.correlation.providerPid) {
       console.error("Missing process identifiers");
       return;
     }
     await terminateAsync({
       data: {
-        consumerPid: process.identifiers.consumerPid,
-        providerPid: process.identifiers.providerPid,
+        consumerPid: process.correlation.consumerPid,
+        providerPid: process.correlation.providerPid,
         code: "TERMINATED",
         reason: ["Terminated from GUI"],
       },

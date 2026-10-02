@@ -72,7 +72,7 @@ export function DataPlaneTab({ dp, info }: DataPlaneTabProps) {
                       <Badge
                         variant="info"
                         className={
-                          dp.interactionMode === "PULL"
+                          dp.interactionMode === "Pull"
                             ? "text-sky-700 dark:text-sky-300 border-sky-500/40"
                             : "text-orange-700 dark:text-orange-300 border-orange-500/40"
                         }
@@ -167,10 +167,10 @@ export function DataPlaneTab({ dp, info }: DataPlaneTabProps) {
             )}
           </PageSection>
 
-          {(dp.ingressConfig || dp.egressConfig || dp.flowControl) && (
+          {Boolean(dp.ingressConfig || dp.egressConfig || dp.flowControl) && (
             <PageSection title="Transfer Config">
               <div className="space-y-4">
-                {dp.ingressConfig && Object.keys(dp.ingressConfig).length > 0 && (
+                {!!dp.ingressConfig && Object.keys(dp.ingressConfig).length > 0 && (
                   <div>
                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                       Ingress Config
@@ -180,7 +180,7 @@ export function DataPlaneTab({ dp, info }: DataPlaneTabProps) {
                     </div>
                   </div>
                 )}
-                {dp.egressConfig && Object.keys(dp.egressConfig).length > 0 && (
+                {!!dp.egressConfig && Object.keys(dp.egressConfig).length > 0 && (
                   <div>
                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                       Egress Config
@@ -190,7 +190,7 @@ export function DataPlaneTab({ dp, info }: DataPlaneTabProps) {
                     </div>
                   </div>
                 )}
-                {dp.flowControl && (
+                {!!dp.flowControl && (
                   <div>
                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                       Flow Control

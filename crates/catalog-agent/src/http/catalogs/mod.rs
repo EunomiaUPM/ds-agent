@@ -29,11 +29,7 @@ use common::batch_requests::BatchRequests;
 use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
 use common::query::QuerySpec;
-use serde::Deserialize;
-use std::str::FromStr;
 use std::sync::Arc;
-use urn::Urn;
-use ymir::errors::Errors;
 use ymir::utils::{extract_path_urn, extract_payload};
 
 #[derive(Clone)]

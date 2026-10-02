@@ -59,7 +59,7 @@ impl DataplaneContext {
         config: Arc<TransferConfig>,
         init: DataplaneInitCommandTypes,
     ) -> Outcome<Self> {
-        let id = Urn::from_str(&*format!("urn:dataplane-transfer:{}", uuid::Uuid::new_v4()))?;
+        let id = Urn::from_str(&format!("urn:dataplane-transfer:{}", uuid::Uuid::new_v4()))?;
         let transfer_id = match &init {
             DataplaneInitCommandTypes::AsProvider {
                 transfer_process_id,
@@ -160,7 +160,7 @@ impl DataplaneContext {
         let connector_id = &dataplane_process.inner.connector_instance_id;
         let connector = match connector_id {
             Some(connector_id) => {
-                let connector_urn = Urn::from_str(&connector_id)?;
+                let connector_urn = Urn::from_str(connector_id)?;
                 connector_service
                     .get_instance_by_id(&dataplane_process.inner.tenant_id, &connector_urn)
                     .await?

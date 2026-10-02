@@ -15,8 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Admin user seeded at boot.
+
 use serde::{Deserialize, Serialize};
 
+/// Admin user seeded at boot; its `tenant_id` is the admin tenant.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(default)]
 pub struct AdminSeedConfig {

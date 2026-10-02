@@ -16,8 +16,6 @@
  */
 
 mod mappers;
-#[cfg(test)]
-mod tests;
 
 use std::sync::Arc;
 

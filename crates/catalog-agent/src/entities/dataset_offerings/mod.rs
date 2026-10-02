@@ -24,6 +24,7 @@ use crate::entities::datasets::DatasetDto;
 use crate::entities::distributions::DistributionDto;
 use crate::entities::odrl_policies::OdrlPolicyDto;
 
+/// Dataset, distribution and optional policy published in one call.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NewDatasetOfferingDto {
@@ -63,6 +64,7 @@ pub struct PolicyOfferingInput {
     pub constraints: Option<Vec<Value>>,
 }
 
+/// The dataset, distribution and policy an offering created.
 #[derive(Debug, Clone, Serialize)]
 pub struct DatasetOfferingDto {
     pub dataset: DatasetDto,

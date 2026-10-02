@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Parameter repository port.
+
 use crate::entities::commands::{EditParameterCommand, NewParameterCommand};
 use crate::entities::entry::Entry;
 use crate::entities::filters::PrefixFilter;
@@ -24,14 +26,18 @@ use serde::{Serialize, de::DeserializeOwned};
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
+/// Persistence of parameters, keyed by tenant and path.
 #[allow(dead_code)]
 #[mockall::automock(type Value = serde_json::Value;)]
 #[async_trait::async_trait]
 pub trait ParameterRepoTrait: Send + Sync {
+    /// Value type stored for each parameter.
     type Value: Serialize + DeserializeOwned + Send + Sync + 'static;
 
+    /// Parameters whose key starts with the filter's prefix.
     async fn get_all_parameters(&self, filter: &PrefixFilter) -> Outcome<Vec<Entry<Self::Value>>>;
     async fn count_parameters(&self, filter: &PrefixFilter) -> Outcome<u64>;
+    /// Parameters of the tenant found among `keys`; missing ones are left out.
     async fn get_batch_parameters(
         &self,
         tenant_id: &str,
@@ -42,20 +48,24 @@ pub trait ParameterRepoTrait: Send + Sync {
         tenant_id: &str,
         key: &Key,
     ) -> Outcome<Option<Entry<Self::Value>>>;
+    /// Fails when the key already exists for the tenant.
     async fn create_parameter(
         &self,
         tenant_id: &str,
         new_model: &NewParameterCommand<Self::Value>,
     ) -> Outcome<Entry<Self::Value>>;
+    /// Replaces the value if `expected_version` matches, and bumps the version.
     async fn put_parameter(
         &self,
         tenant_id: &str,
         key: &Key,
         edit_model: &EditParameterCommand<Self::Value>,
     ) -> Outcome<Entry<Self::Value>>;
+    /// Fails when the key does not exist.
     async fn delete_parameter(&self, tenant_id: &str, key: &Key) -> Outcome<()>;
 }
 
+/// Failures of the parameter repository, mapped onto `Errors`.
 #[derive(Debug, Error)]
 #[allow(dead_code)]
 pub enum ParameterRepoErrors {

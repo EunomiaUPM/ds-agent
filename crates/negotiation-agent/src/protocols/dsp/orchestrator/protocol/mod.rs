@@ -15,17 +15,17 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod persistence;
-pub(crate) mod protocol;
-pub(crate) mod step_agreement_reception;
-pub(crate) mod step_agreement_verification;
-pub(crate) mod step_consumer_request;
-pub(crate) mod step_initial_offer;
-pub(crate) mod step_initial_request;
-pub(crate) mod step_negotiation_event;
-pub(crate) mod step_provider_offer;
-pub(crate) mod step_termination;
-pub(crate) mod step_trait;
+pub mod persistence;
+pub mod protocol;
+pub mod step_agreement_reception;
+pub mod step_agreement_verification;
+pub mod step_consumer_request;
+pub mod step_initial_offer;
+pub mod step_initial_request;
+pub mod step_negotiation_event;
+pub mod step_provider_offer;
+pub mod step_termination;
+pub mod step_trait;
 
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationAgreementMessageDto, NegotiationEventMessageDto,

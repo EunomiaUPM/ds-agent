@@ -15,6 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod factory;
-pub(crate) mod repo;
-pub(crate) mod sea_orm;
+pub mod factory;
+pub mod repo;
+pub mod sea_orm;

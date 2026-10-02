@@ -34,16 +34,16 @@ use crate::services::pat_service::PatServiceTrait;
 use crate::services::pat_service::views::{CreatePatResponse, PatView};
 
 #[derive(Clone)]
-pub(crate) struct PatsRouter {
+pub struct PatsRouter {
     pat_svc: Arc<dyn PatServiceTrait>,
 }
 
 impl PatsRouter {
-    pub(crate) fn new(pat_svc: Arc<dyn PatServiceTrait>) -> Self {
+    pub fn new(pat_svc: Arc<dyn PatServiceTrait>) -> Self {
         Self { pat_svc }
     }
 
-    pub(crate) fn router(self) -> Router {
+    pub fn router(self) -> Router {
         Router::new()
             .route("/", get(Self::handle_list).post(Self::handle_create))
             .route("/{id}", axum::routing::delete(Self::handle_delete))

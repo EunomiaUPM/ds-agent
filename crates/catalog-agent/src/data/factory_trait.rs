@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Repository factory port.
+
 use crate::data::repo_traits::catalog_repo::CatalogRepositoryTrait;
 use crate::data::repo_traits::dataservice_repo::DataServiceRepositoryTrait;
 use crate::data::repo_traits::dataset_repo::DatasetRepositoryTrait;
@@ -23,6 +25,7 @@ use crate::data::repo_traits::odrl_offer_repo::OdrlOfferRepositoryTrait;
 use crate::data::repo_traits::policy_template_repo::PolicyTemplatesRepositoryTrait;
 use std::sync::Arc;
 
+/// Hands out the catalog repositories.
 #[mockall::automock]
 pub trait CatalogAgentRepoTrait: Send + Sync + 'static {
     fn get_catalog_repo(&self) -> Arc<dyn CatalogRepositoryTrait>;

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Diagnostic events.
+
 use crate::data::sea_orm::orm::transfer_event;
 use crate::data::sea_orm::orm::transfer_event::NewTransferEvent;
 use crate::entities::filters::TransferEventFilter;
@@ -23,9 +25,11 @@ use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
+/// Persistence of diagnostic events emitted while a transfer runs.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait TransferEventRepo: Send + Sync + 'static {
+    /// Page of events matching the filters.
     async fn get_all_transfer_events(
         &self,
         filters: &TransferEventFilter,
@@ -35,12 +39,14 @@ pub trait TransferEventRepo: Send + Sync + 'static {
 
     async fn count_transfer_events(&self, filters: &TransferEventFilter) -> Outcome<u64>;
 
+    /// Events found among `ids`; `tenant_id` of `None` searches every tenant.
     async fn get_batch_transfer_events(
         &self,
         tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<transfer_event::Model>>;
 
+    /// Every event of the process.
     async fn get_all_transfer_events_by_process_id(
         &self,
         tenant_id: Option<String>,
@@ -59,6 +65,7 @@ pub trait TransferEventRepo: Send + Sync + 'static {
     ) -> Outcome<transfer_event::Model>;
 }
 
+/// Failures of the event repository, mapped onto `Errors`.
 #[derive(Debug, Error)]
 pub enum TransferEventRepoErrors {
     #[error("Transfer event not found")]

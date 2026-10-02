@@ -15,12 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! State transition log table.
+
 use super::dataplane_transfers::TransferState;
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::UrnBuilder;
 
+/// State transition of a process: previous and new state, what triggered it and why.
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "dataplane_transfer_logs")]
 pub struct Model {

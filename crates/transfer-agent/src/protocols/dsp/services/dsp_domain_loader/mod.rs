@@ -25,9 +25,12 @@ use ymir::errors::Outcome;
 
 pub mod dsp_domain_loader;
 
-#[cfg_attr(test, mockall::automock)]
+/// Facts the domain loader needs from other agents.
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait DspDomainLoaderTrait: Send + Sync {
+    /// Agreement named by the message.
     async fn resolve_agreement(&self, typed: &TransferDSPContextTyped) -> Outcome<OdrlAgreement>;
+    /// Role this agent plays in a process the message would create.
     async fn resolve_role_for_new(&self, typed: &TransferDSPContextTyped) -> Outcome<TransferRole>;
 }

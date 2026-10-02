@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! SeaORM data factory.
+
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
@@ -28,6 +30,7 @@ use crate::data::sea_orm::repos::dataplane_transfer::DataplaneTransfersRepoForSq
 use crate::data::sea_orm::repos::dataplane_transfer_log::DataplaneTransferLogsRepoForSql;
 use crate::data::sea_orm::repos::transfer_event::TransferEventRepoForSql;
 
+/// Data factory over SeaORM repositories sharing one connection.
 pub struct SeaOrmDataFactory {
     dataplane_transfers_repo: Arc<dyn DataplaneTransfersRepo>,
     dataplane_fields_repo: Arc<dyn DataplaneFieldRepoTrait>,
@@ -48,6 +51,7 @@ impl SeaOrmDataFactory {
         }
     }
 
+    /// Same as `new`.
     pub fn create_repo(db_connection: DatabaseConnection) -> Self {
         Self::new(db_connection)
     }

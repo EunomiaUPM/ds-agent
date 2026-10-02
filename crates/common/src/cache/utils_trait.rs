@@ -21,8 +21,10 @@ use serde::de::DeserializeOwned;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
+/// Key layout and RedisJSON hydration shared by every entity cache.
 #[async_trait::async_trait]
 pub trait UtilsCacheTrait: Send + Sync {
+    /// Type stored in the cache.
     type Dto: DeserializeOwned + Send + Sync;
 
     /// Prefix scoping every key this cache writes, e.g. "ds_agent_dataplane".
@@ -33,6 +35,7 @@ pub trait UtilsCacheTrait: Send + Sync {
         format!("{}:{}:{}", self.key_namespace(), entity, id)
     }
 
+    /// Key for a single entity whose id is not a URN.
     fn format_key_name_with_string(&self, entity: &str, id: &String) -> String {
         format!("{}:{}:{}", self.key_namespace(), entity, id)
     }
@@ -68,6 +71,7 @@ pub trait UtilsCacheTrait: Send + Sync {
         key.replace(&format!("{}:{}:", self.key_namespace(), entity), "")
     }
 
+    /// Redis `ZRANGE` bounds for a 1-based page; no limit and no page mean the whole set.
     fn compute_pagination_range(&self, limit: Option<u64>, page: Option<u64>) -> (isize, isize) {
         match (limit, page) {
             (None, None) => (0, -1),

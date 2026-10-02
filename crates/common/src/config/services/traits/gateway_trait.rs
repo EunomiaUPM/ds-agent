@@ -18,11 +18,14 @@
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
 
+/// What the gateway reads from its config: the address of every agent it proxies.
 pub trait GatewayConfigTrait: ConfigLoader + CommonConfigTrait {
     fn ssi_auth(&self) -> &MinKnownConfig;
     fn transfer(&self) -> &MinKnownConfig;
     fn contracts(&self) -> &MinKnownConfig;
     fn catalog(&self) -> &MinKnownConfig;
+    /// `is_production` flag of the gateway section; nothing reads it today.
     fn is_production(&self) -> bool;
+    /// Whether the catalog is backed by a datahub.
     fn is_catalog_datahub(&self) -> bool;
 }

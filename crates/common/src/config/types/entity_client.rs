@@ -17,12 +17,14 @@
 
 use serde::{Deserialize, Serialize};
 
+/// How this participant presents itself to the authority when requesting credentials.
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct EntityClientConfig {
     pub class_id: String, // como se denomina una entidad a si misma
     pub display: Option<DisplayInfo>,
 }
 
+/// Display name and links shown to the authority.
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct DisplayInfo {
     pub name: String,

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! State transition log.
+
 pub mod service;
 
 pub use service::DataplaneTransferLogsService;
@@ -25,9 +27,11 @@ use ymir::errors::Outcome;
 
 use crate::entities::dataplane_transfer_logs::DataplaneTransferLogDto;
 
+/// Reading the state transitions of a process.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DataplaneTransferLogServiceTrait: Send + Sync + 'static {
+    /// Every transition of the process visible to the caller.
     async fn get_transfer_logs_by_dataplane_process_id(
         &self,
         scope: &AccessScope,

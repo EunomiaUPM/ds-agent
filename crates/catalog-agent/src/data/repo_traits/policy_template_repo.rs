@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Policy template repository.
+
 use crate::data::entities::policy_template;
 use crate::data::entities::policy_template::NewPolicyTemplateModel;
 use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
@@ -23,9 +25,11 @@ use common::paginated_spec::{Page, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
+/// Persistence of policy templates, one row per template version.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait PolicyTemplatesRepositoryTrait: Send + Sync {
+    /// Page of templates matching the filters, with the total.
     async fn get_all_policy_templates(
         &self,
         filters: &PolicyTemplateFilter,
@@ -37,6 +41,7 @@ pub trait PolicyTemplatesRepositoryTrait: Send + Sync {
         tenant_id: &str,
         ids: &[String],
     ) -> Outcome<Vec<policy_template::Model>>;
+    /// Every version of the template.
     async fn get_policy_templates_by_id(
         &self,
         tenant_id: &str,

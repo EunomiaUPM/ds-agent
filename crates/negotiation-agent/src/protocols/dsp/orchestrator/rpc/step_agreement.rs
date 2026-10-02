@@ -40,14 +40,10 @@ use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientExt;
 use ymir::utils::http_client;
 
-// AgreementEnricher (helper for build_message) ─────────────────────────────
-
 /// Unit struct that implements [`OrchestrationHelpers`] to gain access to the
 /// `create_entity_urn` helper needed in `send_and_persist`.
 struct AgreementEnricher;
 impl OrchestrationHelpers for AgreementEnricher {}
-
-// RpcAgreementStep ─────────────────────────────────────────────────────────
 
 /// Sends a `ContractAgreementMessage` to the Consumer (Provider - Consumer).
 ///

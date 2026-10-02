@@ -22,6 +22,7 @@ use crate::modules::{
     VcRequesterModule, VerifierModule,
 };
 
+/// Every capability module at once, as one trait object for the routers.
 pub trait AuthOrchestratorTrait:
     PeerConnectorModule
     + WalletModuleTrait

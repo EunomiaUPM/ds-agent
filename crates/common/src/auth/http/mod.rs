@@ -22,4 +22,8 @@ pub mod middleware;
 
 pub use extractors::{AuthClaims, ExtractedHeaders};
 pub use middleware::AuthHttpMiddleware;
+/// Short name kept for existing imports.
 pub type AuthMiddleware = AuthHttpMiddleware;
+
+#[cfg(test)]
+mod tests;

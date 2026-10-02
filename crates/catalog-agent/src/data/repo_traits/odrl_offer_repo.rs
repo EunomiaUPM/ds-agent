@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! ODRL offer repository.
+
 use crate::data::entities::odrl_offer;
 use crate::data::entities::odrl_offer::NewOdrlOfferModel;
 use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
@@ -23,9 +25,11 @@ use common::paginated_spec::{Page, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
+/// Persistence of ODRL offers; `tenant_id` of `None` reaches every tenant.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait OdrlOfferRepositoryTrait: Send + Sync {
+    /// Page of offers matching the filters, with the total.
     async fn get_all_odrl_offers(
         &self,
         filters: &OdrlPolicyFilter,
@@ -37,6 +41,7 @@ pub trait OdrlOfferRepositoryTrait: Send + Sync {
         tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<odrl_offer::Model>>;
+    /// Offers attached to the entity.
     async fn get_all_odrl_offers_by_entity(
         &self,
         tenant_id: Option<String>,

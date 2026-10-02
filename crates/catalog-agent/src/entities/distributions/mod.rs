@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Distributions.
+
 use crate::data::entities::distribution;
 use crate::data::entities::distribution::{EditDistributionModel, Model, NewDistributionModel};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 
+/// Distribution as returned by the API.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DistributionDto {
@@ -27,6 +30,7 @@ pub struct DistributionDto {
     pub inner: distribution::Model,
 }
 
+/// New distribution.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -41,6 +45,7 @@ pub struct NewDistributionDto {
     pub dataset_id: Urn,
 }
 
+/// Partial distribution update.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -51,6 +56,7 @@ pub struct EditDistributionDto {
 }
 
 impl NewDistributionDto {
+    /// Row for `tenant_id`.
     pub fn into_model(self, tenant_id: String) -> NewDistributionModel {
         NewDistributionModel {
             id: self.id,

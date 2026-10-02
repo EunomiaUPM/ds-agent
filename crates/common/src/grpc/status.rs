@@ -23,6 +23,7 @@ use ymir::errors::Errors;
 
 /// Conversion of a domain error into a gRPC `Status`.
 pub trait IntoStatus {
+    /// Maps the error onto the gRPC code matching its HTTP status.
     fn into_status(self) -> Status;
 }
 

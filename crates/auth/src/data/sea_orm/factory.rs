@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! SeaORM repository factory.
+
 use std::sync::Arc;
 
 use sea_orm::DatabaseConnection;
@@ -35,6 +37,7 @@ use ymir::services::repo::traits::shared::{ParticipantRepoTrait, ResourceReqRepo
 
 use crate::data::factory::AuthRepoTrait;
 
+/// Repository factory over one database connection.
 pub struct AuthRepoForSql {
     sent_grant_repo: Arc<dyn SentGrantRepoTrait>,
     sent_interaction_repo: Arc<dyn SentInteractionRepoTrait>,

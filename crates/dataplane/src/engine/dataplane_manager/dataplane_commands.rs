@@ -33,6 +33,7 @@ use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
 
+/// Command the control plane sends to move a dataplane process through its states.
 #[derive(Clone, Debug)]
 pub enum DataplaneCommand {
     GetAssociated(DataplaneContinuation),
@@ -47,6 +48,7 @@ pub enum DataplaneCommand {
     SetTerminating(DataplaneContinuation),
 }
 
+/// Data needed to create a process, depending on the side it serves.
 #[derive(Clone, Debug)]
 pub enum DataplaneInitCommandTypes {
     AsProvider {
@@ -71,6 +73,7 @@ impl DataplaneInitCommandTypes {
     }
 }
 
+/// Pull or push, with the peer's data address when it is already known.
 #[derive(Clone, Debug)]
 pub enum DataplaneInitCommandDirection {
     Pull {
@@ -81,6 +84,7 @@ pub enum DataplaneInitCommandDirection {
     },
 }
 
+/// Process a command applies to.
 #[derive(Clone, Debug)]
 pub struct DataplaneContinuation {
     pub transfer_dto_urn: Urn,
@@ -88,6 +92,7 @@ pub struct DataplaneContinuation {
     pub tenant_id: String,
 }
 
+/// Answer to a command; some transitions return the address the peer must use.
 #[derive(Debug)]
 pub enum DataplaneCommandResponse {
     Ok,
@@ -365,7 +370,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     }
 }
 
-pub(crate) async fn set_configuring_helper(
+pub async fn set_configuring_helper(
     dp_trait: Arc<dyn DataplaneTransferServiceTrait>,
     driver_factory: &dyn DataplaneDriverFactoryTrait,
     context: DataplaneContext,

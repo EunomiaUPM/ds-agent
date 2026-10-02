@@ -33,7 +33,9 @@ use sophia_jsonld::json_ld::{self, Loader, LoadingResult, RemoteDocument};
 use sophia_jsonld::vocabulary::ArcIri;
 use tokio::sync::RwLock;
 
+/// JSON value as parsed by the JSON-LD loader, with source locations.
 pub type JsonVal = JsonSyntaxValue<Location<ArcIri, Span>>;
+/// `JsonVal` with its location metadata.
 pub type MetaVal = Meta<JsonVal, Location<ArcIri, Span>>;
 
 /// Errors that may occur when resolving and loading JSON-LD context documents.

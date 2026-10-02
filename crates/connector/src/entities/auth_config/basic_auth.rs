@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! HTTP basic authentication.
+
 use crate::entities::common::secret_management::SecretString;
 use crate::entities::parameters::TemplateString;
 use serde::{Deserialize, Serialize};

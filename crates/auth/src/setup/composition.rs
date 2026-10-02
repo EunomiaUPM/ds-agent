@@ -35,6 +35,7 @@ use crate::setup::context::AppContext;
 use crate::setup::seeders::SelfParticipantOnboarder;
 use crate::SERVICE_NAME;
 
+/// SSI auth agent as a module: wallet, gatekeeper, verifier and, optionally, issuer and Gaia-X.
 pub struct AuthModule {
     ctx: AppContext,
     /// Tenant of the service client, whose token the local facades impersonate.
@@ -42,6 +43,7 @@ pub struct AuthModule {
 }
 
 impl AuthModule {
+    /// Builds the core on the shared root context, connecting to the configured wallet.
     pub async fn compose(config: &SsiAuthConfig, root: &RootContext) -> Outcome<Self> {
         Ok(Self::new(
             AppContext::build(config, root).await?,
@@ -49,7 +51,7 @@ impl AuthModule {
         ))
     }
 
-    pub(crate) fn new(ctx: AppContext, service_tenant: String) -> Self {
+    pub fn new(ctx: AppContext, service_tenant: String) -> Self {
         Self {
             ctx,
             service_tenant,
@@ -72,6 +74,7 @@ impl AuthModule {
         }
     }
 
+    /// Static, so the hosting agent's migrator can list them.
     pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         get_auth_migrations()
     }

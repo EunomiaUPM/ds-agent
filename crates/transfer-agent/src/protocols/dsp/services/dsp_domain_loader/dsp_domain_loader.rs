@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Loader over the process repository and the resolvers.
+
 use std::sync::Arc;
 
 use urn::Urn;
@@ -31,6 +33,7 @@ use crate::protocols::dsp::entities::context_dsp::{
 use crate::protocols::dsp::services::connector_resolver::ConnectorResolverTrait;
 use crate::protocols::dsp::services::dsp_domain_loader::DspDomainLoaderTrait;
 
+/// Loads or mints the process an inbound message refers to, with its agreement and connector.
 pub struct DspDomainLoader {
     process_repo: Arc<dyn TransferProcessRepoTrait>,
     connectors: Arc<dyn ConnectorResolverTrait>,
@@ -50,6 +53,7 @@ impl DspDomainLoader {
         }
     }
 
+    /// Turns the typed context into the domain context.
     #[tracing::instrument(level = "info", skip_all, err)]
     pub async fn load(&self, typed: TransferDSPContextTyped) -> Outcome<TransferDSPContextDomain> {
         let process = self.process_slot(&typed).await?;

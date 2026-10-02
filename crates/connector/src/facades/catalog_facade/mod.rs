@@ -15,10 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Distributions read from the catalog that hosts the connector.
+
 use ymir::errors::Outcome;
 
 /// Served in-process by the catalog agent, which always hosts the connector.
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait CatalogFacadeTrait: Send + Sync {
     /// Fails unless the catalog holds the distribution within `tenant_id`.

@@ -15,12 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! `@context` handling and protocol version detection.
+
 use std::fmt::{Display, Formatter};
 
 use crate::dsp_common::well_known_types::DSPProtocolVersions;
 use serde::{Deserialize, Serialize};
 use ymir::errors::{BadFormat, Errors, Outcome};
 
+/// DSP 2025-1 context put on outgoing messages.
 pub static CONTEXT: &str = "https://w3id.org/dspace/2025/1/context.jsonld";
 
 /// All context URLs that this implementation will accept on incoming messages.
@@ -29,6 +32,7 @@ const ACCEPTED_CONTEXTS: &[&str] = &[
     "https://w3id.org/dspace/2025/1/context.jsonld",
 ];
 
+/// `@context` of a DSP message, as one URL or a list.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum ContextField {
@@ -37,6 +41,7 @@ pub enum ContextField {
 }
 
 impl ContextField {
+    /// Accepts the 2024-1 and 2025-1 DSP contexts; anything else is a 400.
     pub fn validate(&self) -> Outcome<()> {
         let is_valid = match self {
             ContextField::Single(s) => ACCEPTED_CONTEXTS.contains(&s.as_str()),
@@ -60,12 +65,8 @@ impl Display for ContextField {
     }
 }
 
-/// The protocol version a `@context` URL implies (DSP 4.3).
-///
-/// The endpoint version and the vocabulary version are formally different things
-/// — the first comes from the mount path, the second from `@context` — but a
-/// conformant peer uses the context of the version it is speaking, so this is a
-/// sound derivation and a great deal better than a constant.
+/// The protocol version a `@context` URL implies. A conformant peer uses the context of the
+/// version it speaks, so this is a sound stand-in for the endpoint version.
 pub fn version_from_context_url(url: &str) -> Option<DSPProtocolVersions> {
     match url {
         "https://w3id.org/dspace/2024/1/context.json" => Some(DSPProtocolVersions::V2024_1),

@@ -46,8 +46,6 @@ use common::facades::mates_facade::MatesFacadeTrait;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
-// Service ──────────────────────────────────────────────────────────────────
-
 /// RPC orchestrator for outbound negotiation operations.
 ///
 /// Translates internal RPC requests into DSP protocol messages, sends them to
@@ -79,8 +77,6 @@ impl RPCOrchestratorService {
         }
     }
 }
-
-// Trait implementation ──────────────────────────────────────────────────────
 
 #[async_trait::async_trait]
 impl RPCOrchestratorTrait for RPCOrchestratorService {
@@ -233,8 +229,6 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         })
     }
 }
-
-// Template engine ───────────────────────────────────────────────────────────
 
 impl RPCOrchestratorService {
     /// Execute any RPC negotiation lifecycle step using the

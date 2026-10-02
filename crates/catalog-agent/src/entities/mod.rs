@@ -15,13 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! DTOs of catalogs, datasets, distributions, data services, offers and templates.
+
 pub mod catalogs;
-pub(crate) mod common;
+pub mod common;
 pub mod data_services;
 pub mod dataset_offerings;
 pub mod datasets;
 pub mod distributions;
 pub mod filters;
 pub mod odrl_policies;
-pub(crate) mod policy_instantiation;
+pub mod policy_instantiation;
 pub mod policy_templates;

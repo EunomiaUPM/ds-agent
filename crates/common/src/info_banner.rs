@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! ASCII banner logged by `AgentCli::run` when an agent starts.
+
 const INFO: &str = r"
 ----------
 :::::::::: :::    ::: ::::    :::  ::::::::  ::::    ::::  :::::::::::     :::
@@ -39,6 +41,7 @@ Show some love on https://github.com/EunomiaUPM/ds-agent
 
 ";
 
+/// Banner with the agent's name filled in.
 pub fn banner(service_name: &str) -> String {
     let out = INFO.replace("{replace}", service_name);
     out

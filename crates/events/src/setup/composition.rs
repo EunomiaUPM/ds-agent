@@ -36,6 +36,7 @@ pub struct EventsModule {
 }
 
 impl EventsModule {
+    /// Builds the bus on the shared database, with the default retry policy.
     pub fn compose(root: &RootContext) -> Self {
         Self {
             ctx: Arc::new(AppContext::build(root, None)),

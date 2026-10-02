@@ -33,7 +33,7 @@ use ymir::errors::AppResult;
 use ymir::utils::{extract_path_urn, extract_payload};
 
 #[derive(Clone)]
-pub(crate) struct TransferMessageRouter {
+pub struct TransferMessageRouter {
     service: Arc<dyn TransferMessageServiceTrait>,
 }
 
@@ -44,7 +44,7 @@ impl FromRef<TransferMessageRouter> for Arc<dyn TransferMessageServiceTrait> {
 }
 
 impl TransferMessageRouter {
-    pub(crate) fn new(service: Arc<dyn TransferMessageServiceTrait>) -> Self {
+    pub fn new(service: Arc<dyn TransferMessageServiceTrait>) -> Self {
         Self { service }
     }
 

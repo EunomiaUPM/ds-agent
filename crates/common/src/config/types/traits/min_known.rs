@@ -17,7 +17,10 @@
 
 use ymir::config::types::HostType;
 
+/// Address of another agent.
 pub trait MinKnownConfigTrait {
+    /// Base URL for the given plane, e.g. `http://127.0.0.1:1200`.
     fn get_host(&self, host_type: HostType) -> String;
+    /// API prefix, e.g. `/api/v1`.
     fn get_api_version(&self) -> String;
 }

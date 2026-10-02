@@ -15,9 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod catalog_cache;
-pub(crate) mod dataservice_cache;
-pub(crate) mod dataset_cache;
-pub(crate) mod distribution_cache;
-pub(crate) mod odrl_offer_cache;
-pub(crate) mod peer_catalog_cache;
+pub mod catalog_cache;
+pub mod dataservice_cache;
+pub mod dataset_cache;
+pub mod distribution_cache;
+pub mod odrl_offer_cache;
+pub mod peer_catalog_cache;

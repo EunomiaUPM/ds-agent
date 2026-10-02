@@ -18,6 +18,7 @@
 use serde::{Deserialize, Serialize};
 use ymir::types::vcs::VcType;
 
+/// Legal person data for Gaia-X self-attestation.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GaiaConfig {
     pub legal_person: LegalPersonInfo,

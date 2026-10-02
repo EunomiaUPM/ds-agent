@@ -38,7 +38,6 @@ use common::config::services::ContractsConfig;
 use std::sync::Arc;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
-// Service ──────────────────────────────────────────────────────────────────
 
 /// DSP protocol orchestrator for inbound negotiation operations.
 ///
@@ -47,8 +46,7 @@ use ymir::errors::Outcome;
 /// [`NegotiationProtocolStep`] template; `run_lifecycle` encodes the algorithm
 /// once:
 ///
-/// 1. **validate** - 2. **prepare context** (with optional early ack) →
-/// 3. **persist**
+/// The steps are validate, prepare the context (with an optional early ack) and persist.
 ///
 /// Unlike the transfer orchestrator there is no `post_hook` because negotiation
 /// does not involve a data-plane session.
@@ -74,8 +72,6 @@ impl ProtocolOrchestratorService {
         }
     }
 }
-
-// Trait implementation ──────────────────────────────────────────────────────
 
 #[async_trait::async_trait]
 impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
@@ -197,8 +193,6 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         Ok(ack)
     }
 }
-
-// Template engine ───────────────────────────────────────────────────────────
 
 impl ProtocolOrchestratorService {
     /// Execute any inbound DSP negotiation lifecycle step using the

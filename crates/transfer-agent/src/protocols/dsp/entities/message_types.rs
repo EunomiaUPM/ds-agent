@@ -22,6 +22,7 @@ use std::fmt::Display;
 use std::str::FromStr;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
+/// DSP transfer messages this agent sends and receives.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub enum TransferDSPMessageType {
     TransferRequestMessage,
@@ -79,6 +80,7 @@ impl std::str::FromStr for TransferDSPMessageType {
 }
 
 impl TransferDSPMessageType {
+    /// Message type named by the payload's `@type`, prefixed or not.
     pub fn from_json_payload(payload: &serde_json::Value) -> Outcome<Self> {
         if let Some(t) = payload.get("@type").and_then(Self::type_term) {
             return Self::from_str(&t);
@@ -109,48 +111,5 @@ impl TransferDSPMessageType {
                 .map(str::to_string),
             _ => None,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    #[test]
-    fn reads_the_top_level_type() {
-        let t =
-            TransferDSPMessageType::from_json_payload(&json!({"@type": "TransferRequestMessage"}));
-        assert_eq!(t.unwrap(), TransferDSPMessageType::TransferRequestMessage);
-    }
-
-    #[test]
-    fn accepts_the_prefixed_form() {
-        let t = TransferDSPMessageType::from_json_payload(
-            &json!({"@type": "dspace:TransferStartMessage"}),
-        );
-        assert_eq!(t.unwrap(), TransferDSPMessageType::TransferStartMessage);
-    }
-
-    /// The `@graph` form carries no top-level `@type`; the message node is inside.
-    #[test]
-    fn finds_the_type_inside_a_graph() {
-        let payload = json!({
-            "@context": "https://w3id.org/dspace/2025/1/context.jsonld",
-            "@graph": [
-                {"@id": "_:addr", "@type": "DataAddress"},
-                {"@id": "_:msg", "@type": "TransferRequestMessage"}
-            ]
-        });
-        let t = TransferDSPMessageType::from_json_payload(&payload);
-        assert_eq!(t.unwrap(), TransferDSPMessageType::TransferRequestMessage);
-    }
-
-    #[test]
-    fn a_payload_without_a_type_is_an_error() {
-        assert!(
-            TransferDSPMessageType::from_json_payload(&json!({"consumerPid": "urn:uuid:cc"}))
-                .is_err()
-        );
     }
 }

@@ -20,7 +20,7 @@ use crate::data::repo_traits::connector_instance_repo::ConnectorInstanceRepoTrai
 use crate::data::repo_traits::connector_template_repo::ConnectorTemplateRepoTrait;
 use std::sync::Arc;
 
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 pub trait ConnectorRepoTrait: Send + Sync {
     fn get_templates_repo(&self) -> Arc<dyn ConnectorTemplateRepoTrait>;
     fn get_instances_repo(&self) -> Arc<dyn ConnectorInstanceRepoTrait>;

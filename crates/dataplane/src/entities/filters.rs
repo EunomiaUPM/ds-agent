@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Listing filters.
+
 use chrono::{DateTime, Utc};
 use common::query::{validate_date_range, QueryFilter};
 use serde::{Deserialize, Serialize};

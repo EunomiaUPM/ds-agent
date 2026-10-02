@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! SeaORM adapter: tables and repositories.
+
 pub mod factory;
 pub mod orm;
 pub mod repos;

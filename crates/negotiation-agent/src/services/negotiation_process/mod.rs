@@ -29,9 +29,11 @@ use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
+/// Management of negotiation processes.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait NegotiationProcessServiceTrait: Send + Sync + 'static {
+    /// Page of processes visible to the caller.
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -40,8 +42,10 @@ pub trait NegotiationProcessServiceTrait: Send + Sync + 'static {
         sort: &Sort,
     ) -> Outcome<Paginated<NegotiationProcessView>>;
 
+    /// 404 when the process is not visible to the caller.
     async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<NegotiationProcessView>;
 
+    /// Process whose identifier under `key_id` equals `id`.
     async fn get_by_key_id(
         &self,
         scope: &AccessScope,
@@ -49,24 +53,28 @@ pub trait NegotiationProcessServiceTrait: Send + Sync + 'static {
         id: &Urn,
     ) -> Outcome<NegotiationProcessView>;
 
+    /// Process whose own id or any identifier equals `value`.
     async fn get_by_key_value(
         &self,
         scope: &AccessScope,
         value: &Urn,
     ) -> Outcome<NegotiationProcessView>;
 
+    /// Processes found among the requested ids.
     async fn batch(
         &self,
         scope: &AccessScope,
         req: &BatchRequests,
     ) -> Outcome<Vec<NegotiationProcessView>>;
 
+    /// Stores the process with its identifiers.
     async fn create(
         &self,
         scope: &AccessScope,
         cmd: &NewNegotiationProcessDto,
     ) -> Outcome<NegotiationProcessView>;
 
+    /// Changes the fields set in `cmd`.
     async fn edit(
         &self,
         scope: &AccessScope,

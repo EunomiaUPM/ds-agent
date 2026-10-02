@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Event store repository.
+
 use async_trait::async_trait;
 use common::paginated_spec::{Page, Sort};
 use sea_orm::sea_query::{BinOper, Expr};
@@ -31,7 +33,6 @@ use crate::data::sea_orm::repos::listing::NaiveKeyset;
 use crate::entities::envelope::EventEnvelope;
 use crate::entities::queries::EventFilter;
 
-// SeaORM-backed implementation of EventStoreRepo.
 #[derive(Clone)]
 pub struct SeaOrmEventRepo {
     db: DatabaseConnection,

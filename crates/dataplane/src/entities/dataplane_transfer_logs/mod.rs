@@ -15,9 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! State transition log.
+
 use crate::data::sea_orm::orm::dataplane_transfer_logs;
 use serde::{Deserialize, Serialize};
 
+/// State transition as returned by the API.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DataplaneTransferLogDto {

@@ -36,8 +36,6 @@ use ymir::errors::Outcome;
 use ymir::services::client::ClientExt;
 use ymir::utils::http_client;
 
-// RpcRequestInitStep ───────────────────────────────────────────────────────
-
 /// Initiates a brand-new negotiation by sending a `ContractRequestMessage` to
 /// the Provider (Consumer-initiated flow, first message).
 ///

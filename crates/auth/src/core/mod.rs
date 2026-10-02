@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! `AuthCore` and the trait bundling every module.
+
 mod core;
 mod orchestrator;
 

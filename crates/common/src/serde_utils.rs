@@ -15,6 +15,18 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Serde helpers for binary fields: base64 for bytes, lowercase hex for 32-byte hashes.
+//!
+//! ```rust,ignore
+//! #[derive(Serialize, Deserialize)]
+//! struct Evidence {
+//!     #[serde(serialize_with = "serialize_bytes_b64", deserialize_with = "deserialize_b64_bytes")]
+//!     payload: Bytes,
+//!     #[serde(serialize_with = "serialize_hash_hex")]
+//!     digest: [u8; 32],
+//! }
+//! ```
+
 use base64::Engine;
 use bytes::Bytes;
 use serde::{Deserialize, Deserializer, Serializer};

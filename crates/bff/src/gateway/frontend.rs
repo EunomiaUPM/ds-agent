@@ -36,11 +36,11 @@ use crate::setup::context::AppContext;
 #[folder = "src/static/admin/dist"]
 struct ReactApp;
 
-pub(crate) struct FrontendHandlers;
+pub struct FrontendHandlers;
 
 impl FrontendHandlers {
     /// Serves a bundled asset, falling back to `index.html` for client-side routes.
-    pub(crate) async fn static_asset(uri: Uri) -> Response {
+    pub async fn static_asset(uri: Uri) -> Response {
         let path = match uri.path().trim_start_matches('/') {
             "" => "index.html",
             path => path,
@@ -65,7 +65,7 @@ impl FrontendHandlers {
             .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
     }
 
-    pub(crate) async fn fe_config(State(ctx): State<Arc<AppContext>>) -> impl IntoResponse {
+    pub async fn fe_config(State(ctx): State<Arc<AppContext>>) -> impl IntoResponse {
         let gateway_base = ctx.config.common().hosts.get_host(HostType::Http);
         Json(json!({ "gateway_base": gateway_base }))
     }

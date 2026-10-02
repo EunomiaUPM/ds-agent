@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Routes of every capability.
+
 mod core_router;
 mod gaia_self_attester_router;
 mod gatekeeper_router;

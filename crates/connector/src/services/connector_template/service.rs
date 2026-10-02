@@ -263,6 +263,3 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod tests;

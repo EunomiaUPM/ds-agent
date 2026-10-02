@@ -26,6 +26,7 @@ const REGEX_VERSION: &str = r"^[a-zA-Z0-9.]+$";
 const REGEX_PARAM: &str = r"^\$[a-zA-Z][a-zA-Z0-9_-]*$";
 
 impl NewPolicyTemplateDto {
+    /// Checks id, version and parameter names, and that every placeholder is declared.
     pub fn validate_dto(&self) -> Outcome<()> {
         // syntactic validation already performed by serde deserializing
         // template name just alphanumeric,-,:,.,_

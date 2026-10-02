@@ -28,6 +28,7 @@ use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
 use crate::protocols::dsp::entities::state::TransferDSPState;
 use crate::protocols::dsp::entities::state_metadata::TransferDSPStateAttribute;
 
+/// Checks that a message is allowed in the current state and for this role.
 pub struct TransitionValidator;
 
 impl TransitionValidator {
@@ -126,99 +127,5 @@ impl TransitionValidator {
             },
             _ => Ok(()),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use TransferDSPMessageType::*;
-    use TransferDSPState::*;
-    use TransitionValidator as V;
-
-    #[test]
-    fn state_machine_legal_and_illegal() {
-        // legal
-        assert!(V::validate_state_transition(None, &TransferRequestMessage).is_ok());
-        assert!(V::validate_state_transition(Some(&REQUESTED), &TransferStartMessage).is_ok());
-        assert!(V::validate_state_transition(Some(&SUSPENDED), &TransferStartMessage).is_ok());
-        assert!(V::validate_state_transition(Some(&STARTED), &TransferCompletionMessage).is_ok());
-        assert!(V::validate_state_transition(Some(&STARTED), &TransferSuspensionMessage).is_ok());
-        assert!(
-            V::validate_state_transition(Some(&REQUESTED), &TransferTerminationMessage).is_ok()
-        );
-        // illegal
-        assert!(V::validate_state_transition(Some(&REQUESTED), &TransferRequestMessage).is_err());
-        assert!(V::validate_state_transition(Some(&COMPLETED), &TransferStartMessage).is_err());
-        assert!(
-            V::validate_state_transition(Some(&REQUESTED), &TransferSuspensionMessage).is_err()
-        );
-        assert!(
-            V::validate_state_transition(Some(&TERMINATED), &TransferTerminationMessage).is_err()
-        );
-        assert!(V::validate_state_transition(None, &TransferStartMessage).is_err());
-    }
-
-    #[test]
-    fn role_gate() {
-        assert!(
-            V::validate_role_for_message(&TransferRole::Provider, &TransferRequestMessage).is_ok()
-        );
-        assert!(
-            V::validate_role_for_message(&TransferRole::Consumer, &TransferRequestMessage).is_err()
-        );
-        assert!(
-            V::validate_role_for_message(&TransferRole::Consumer, &TransferStartMessage).is_ok()
-        );
-        assert!(V::validate_role_for_message(&TransferRole::Relay, &TransferStartMessage).is_err());
-    }
-
-    #[test]
-    fn suspension_semaphore() {
-        use TransferDSPStateAttribute::*;
-        // a role can't resume what it suspended…
-        assert!(
-            V::validate_state_attribute_transition(
-                &ByConsumer,
-                &TransferStartMessage,
-                &TransferRole::Consumer
-            )
-            .is_err()
-        );
-        assert!(
-            V::validate_state_attribute_transition(
-                &ByProvider,
-                &TransferStartMessage,
-                &TransferRole::Provider
-            )
-            .is_err()
-        );
-        // …but the counterparty can
-        assert!(
-            V::validate_state_attribute_transition(
-                &ByConsumer,
-                &TransferStartMessage,
-                &TransferRole::Provider
-            )
-            .is_ok()
-        );
-        // the first start always passes
-        assert!(
-            V::validate_state_attribute_transition(
-                &OnRequest,
-                &TransferStartMessage,
-                &TransferRole::Consumer
-            )
-            .is_ok()
-        );
-        // other messages aren't gated by the semaphore
-        assert!(
-            V::validate_state_attribute_transition(
-                &ByConsumer,
-                &TransferCompletionMessage,
-                &TransferRole::Consumer
-            )
-            .is_ok()
-        );
     }
 }

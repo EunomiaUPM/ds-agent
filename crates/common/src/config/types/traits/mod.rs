@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Accessor traits shared by the agent configs.
+
 mod cache_trait;
 mod common_trait;
 mod config_loader;

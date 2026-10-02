@@ -15,12 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Repository factory port.
+
 use crate::data::repo::dataplane_field::DataplaneFieldRepoTrait;
 use crate::data::repo::dataplane_transfer::DataplaneTransfersRepo;
 use crate::data::repo::dataplane_transfer_log::DataplaneTransferLogsRepo;
 use crate::data::repo::transfer_event::TransferEventRepo;
 use std::sync::Arc;
 
+/// Hands out the dataplane repositories.
 #[mockall::automock]
 pub trait DataplaneRepoTrait: Send + Sync + 'static {
     fn get_dataplane_transfers_repo(&self) -> Arc<dyn DataplaneTransfersRepo>;

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Catalog repository.
+
 use crate::data::entities::catalog;
 use crate::data::entities::catalog::{EditCatalogModel, NewCatalogModel};
 use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
@@ -23,9 +25,11 @@ use common::paginated_spec::{Page, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
+/// Persistence of catalogs; `tenant_id` of `None` reaches every tenant.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait CatalogRepositoryTrait: Send + Sync {
+    /// Page of catalogs matching the filters, with the total.
     async fn get_all_catalogs(
         &self,
         filters: &CatalogFilter,
@@ -42,6 +46,7 @@ pub trait CatalogRepositoryTrait: Send + Sync {
         tenant_id: Option<String>,
         catalog_id: &Urn,
     ) -> Outcome<Option<catalog::Model>>;
+    /// The tenant's main catalog, the one served over DSP.
     async fn get_main_catalog(&self, tenant_id: &str) -> Outcome<Option<catalog::Model>>;
 
     async fn put_catalog_by_id(
@@ -52,6 +57,7 @@ pub trait CatalogRepositoryTrait: Send + Sync {
     ) -> Outcome<catalog::Model>;
     async fn create_catalog(&self, new_catalog_model: &NewCatalogModel) -> Outcome<catalog::Model>;
 
+    /// Stores the catalog as the tenant's main one.
     async fn create_main_catalog(
         &self,
         new_catalog_model: &NewCatalogModel,

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The bus itself.
+
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -42,7 +44,7 @@ use crate::services::event_bus::{EventBusTrait, EventPublisherTrait};
 use common::paginated_spec::{Cursor, Page, Sort};
 use ymir::errors::{Errors, Outcome, PetitionFailure};
 
-// Central event bus orchestrating event persistence, broadcasting, and delivery.
+/// The bus: stores every event, broadcasts it in-process and delivers it to matching webhooks.
 #[derive(Clone)]
 pub struct EventBus {
     event_repo: Arc<dyn EventStoreRepo>,
@@ -55,7 +57,6 @@ pub struct EventBus {
 }
 
 impl EventBus {
-    // Initialize EventBus with repositories, policy, and broadcast channel capacity.
     pub fn new(
         event_repo: Arc<dyn EventStoreRepo>,
         subscription_repo: Arc<dyn EventSubscriptionRepo>,
@@ -90,22 +91,22 @@ impl EventBus {
         )
     }
 
-    // Publish a strongly-typed domain event instance.
+    /// Same as `publish_event`.
     pub async fn emit<E: Event>(&self, event: E) -> Outcome<EventEnvelope> {
         <Self as EventBusTrait>::publish(self, event.into_envelope()).await
     }
 
-    // Publish an event envelope into the event store and broadcast channels.
+    /// Stores the envelope, broadcasts it and starts a delivery per matching subscription.
     pub async fn publish(&self, envelope: EventEnvelope) -> Outcome<EventEnvelope> {
         <Self as EventBusTrait>::publish(self, envelope).await
     }
 
-    // Publish a typed domain event into the event bus.
+    /// Wraps the event in an envelope and publishes it.
     pub async fn publish_event<E: Event>(&self, event: E) -> Outcome<EventEnvelope> {
         <Self as EventPublisherTrait>::publish_event(self, event).await
     }
 
-    // Publish a serializable payload to a topic with explicit tenant_id.
+    /// Publishes `payload` under `topic` for the tenant; used by `emit_action!`.
     pub async fn emit_payload_with_tenant<T: serde::Serialize + ?Sized>(
         &self,
         tenant_id: &str,
@@ -121,42 +122,36 @@ impl EventBus {
         self.publish(envelope).await
     }
 
-    // Subscribe to the in-process event broadcast stream.
+    /// New receiver of every envelope published from now on.
     pub fn subscribe(&self) -> broadcast::Receiver<EventEnvelope> {
         <Self as EventBusTrait>::subscribe(self)
     }
 
-    // Access underlying retry policy.
     pub fn policy(&self) -> &RetryPolicy {
         &self.policy
     }
 
-    // Access event store repository.
     pub fn event_repo(&self) -> Arc<dyn EventStoreRepo> {
         self.event_repo.clone()
     }
 
-    // Access subscription repository.
     pub fn subscription_repo(&self) -> Arc<dyn EventSubscriptionRepo> {
         self.subscription_repo.clone()
     }
 
-    // Access delivery repository.
     pub fn delivery_repo(&self) -> Arc<dyn EventDeliveryRepo> {
         self.delivery_repo.clone()
     }
 
-    // Access dead letter queue repository.
     pub fn dlq_repo(&self) -> Arc<dyn EventDeadLetterRepo> {
         self.dlq_repo.clone()
     }
 
-    // Access HTTP event dispatcher.
     pub fn dispatcher(&self) -> Arc<EventDispatcher> {
         self.dispatcher.clone()
     }
 
-    // Replay a single dead letter record by ID; `tenant_id: None` reaches any tenant (admin).
+    /// Replay a single dead letter record by ID; `tenant_id: None` reaches any tenant (admin).
     #[tracing::instrument(level = "info", skip_all, err)]
     pub async fn replay_dead_letter(
         &self,
@@ -236,7 +231,7 @@ impl EventBus {
         }
     }
 
-    // Replay all unresolved dead letter records in batches, oldest first.
+    /// Replay all unresolved dead letter records in batches, oldest first.
     #[tracing::instrument(level = "info", skip_all, err)]
     pub async fn replay_all_dead_letters(&self, tenant_id: Option<String>) -> Outcome<usize> {
         let filter = DeadLetterFilter {

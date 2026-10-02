@@ -287,7 +287,6 @@ impl RpcRouter {
         .await
     }
 
-    // TCK bridge ────────────────────────────────────────────────────────────
     // Accepts the format the Eclipse DSP TCK POSTs to initiate a consumer-role
     // negotiation and translates it to the internal RPC call.
     async fn tck_initiate_negotiation(

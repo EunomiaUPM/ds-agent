@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! `subscriptions` table.
+
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
@@ -25,6 +27,7 @@ use ymir::errors::{Errors, Outcome};
 use crate::entities::subscription::SubscriptionRecord;
 use crate::entities::topic_pattern::TopicPattern;
 
+/// `subscriptions` row.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "subscriptions")]
 pub struct Model {
@@ -57,7 +60,6 @@ impl Related<super::delivery::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 impl Model {
-    // Map SeaORM model to pure domain SubscriptionRecord entity.
     pub fn into_domain(self) -> Outcome<SubscriptionRecord> {
         let topic_pattern = TopicPattern::new(&self.topic_pattern)
             .map_err(|e| Errors::db(format!("invalid topic pattern: {e}"), None))?;
@@ -87,7 +89,6 @@ impl Model {
 }
 
 impl ActiveModel {
-    // Construct SeaORM ActiveModel from domain SubscriptionRecord entity.
     pub fn from_domain(entity: &SubscriptionRecord) -> Self {
         Self {
             id: ActiveValue::Set(entity.id.clone()),

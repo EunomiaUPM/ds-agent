@@ -21,9 +21,9 @@ use axum::extract::rejection::JsonRejection;
 use tracing::error;
 use ymir::errors::{BadFormat, Errors};
 
-pub(crate) mod error_adapter;
+pub mod error_adapter;
 
-pub(crate) fn extract_payload_error<T>(
+pub fn extract_payload_error<T>(
     input: Result<Json<T>, JsonRejection>,
 ) -> Result<T, DspNegotiationError> {
     match input {

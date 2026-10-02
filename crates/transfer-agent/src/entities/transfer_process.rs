@@ -25,7 +25,7 @@ use common::utils::json_merge;
 
 /// TransferProcess domain entity
 #[derive(Debug, Clone)]
-pub(crate) struct TransferProcess {
+pub struct TransferProcess {
     // Common
     transfer_id: TransferProcessId,
     tenant_id: String,
@@ -47,7 +47,6 @@ pub(crate) struct TransferProcess {
 
 #[allow(dead_code)]
 impl TransferProcess {
-    // Constructors  ─────────────────────────────────────────────────────────────
     /// TransferProcess entity constructor
     pub fn new(
         tenant_id: String,
@@ -74,10 +73,10 @@ impl TransferProcess {
     }
 
     /// TransferProcess entity constructor from arguments
-    /// Is same as having all pub(crate) in struct definition
+    /// Is same as having all pub in struct definition
     /// But protecting version
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn rehydrate(
+    pub fn rehydrate(
         transfer_id: TransferProcessId,
         tenant_id: String,
         role: TransferRole,
@@ -107,8 +106,6 @@ impl TransferProcess {
         }
     }
 
-    // Mutators ──────────────────────────────────────────────────────────────
-
     /// Mutates TransferProcess entity with a `EditTransferProcessCommand`
     /// Useful when comes to mutate process to be persisted
     pub fn apply_edit(&mut self, cmd: EditTransferProcessCommand) {
@@ -133,8 +130,6 @@ impl TransferProcess {
         self.version = self.version.saturating_add(1);
         self.updated_at = Utc::now();
     }
-
-    // Accessors ─────────────────────────────────────────────────────────────
 
     pub fn id(&self) -> &TransferProcessId {
         &self.transfer_id
@@ -172,8 +167,6 @@ impl TransferProcess {
     pub fn updated_at(&self) -> DateTime<Utc> {
         self.updated_at
     }
-
-    // Predicates ────────────────────────────────────────────────────────────
 
     pub fn belongs_to(&self, tenant: &String) -> bool {
         &self.tenant_id == tenant

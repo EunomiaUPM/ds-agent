@@ -21,9 +21,10 @@ use std::sync::Arc;
 
 use crate::facades::catalog_facade::CatalogFacadeTrait;
 
+/// Ports the connector consumes; today only the hosting catalog.
 #[derive(Clone)]
 pub struct ConnectorPorts {
-    pub(crate) catalog: Arc<dyn CatalogFacadeTrait>,
+    pub catalog: Arc<dyn CatalogFacadeTrait>,
 }
 
 impl ConnectorPorts {

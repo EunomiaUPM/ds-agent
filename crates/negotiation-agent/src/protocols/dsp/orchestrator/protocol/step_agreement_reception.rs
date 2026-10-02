@@ -28,7 +28,6 @@ use common::dsp_common::DspActor;
 use std::sync::Arc;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
-// AgreementReceptionStep ───────────────────────────────────────────────────
 
 /// Handles an inbound `ContractAgreementMessage` from the Provider.
 ///

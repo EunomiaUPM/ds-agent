@@ -20,6 +20,7 @@ use ymir::config::types::HostConfig;
 
 use crate::config::types::traits::DatahubConfigTrait;
 
+/// Datahub the catalog reads from when `is_datahub` is set.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DatahubConfig {
     pub host: HostConfig,

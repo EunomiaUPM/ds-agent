@@ -15,11 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod bff;
-pub(crate) mod orchestrator;
-pub(crate) mod protocol;
-pub(crate) mod rpc;
-pub(crate) mod traits;
+pub mod bff;
+pub mod orchestrator;
+pub mod protocol;
+pub mod rpc;
+pub mod traits;
 
 use crate::protocols::dsp::orchestrator::bff::BFFRPCOrchestratorTrait;
 use crate::protocols::dsp::orchestrator::protocol::ProtocolOrchestratorTrait;

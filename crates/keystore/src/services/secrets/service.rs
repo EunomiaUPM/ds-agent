@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Store implementation over the repository.
+
 use std::sync::Arc;
 
 use common::auth::AccessScope;
@@ -31,6 +33,7 @@ use crate::entities::secret_value::SecretValue;
 use crate::entities::version::Version;
 use crate::services::secrets::SecretStore;
 
+/// Secret store over a repository, emitting `keystore:` events when a bus is set.
 pub struct SecretStoreImpl {
     repo: Arc<dyn SecretRepoTrait>,
     event_bus: Option<events::EventBus>,
@@ -44,6 +47,7 @@ impl SecretStoreImpl {
         }
     }
 
+    /// Publishes create, update and delete events on `event_bus`.
     pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
         self.event_bus = event_bus;
         self

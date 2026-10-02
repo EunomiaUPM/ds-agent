@@ -24,10 +24,12 @@ pub mod offer;
 
 /// Generated protobuf/tonic code and the reflection descriptor set.
 pub mod api {
+    /// Generated `negotiation_agent.v1` messages and services.
     pub mod negotiation_agent {
         tonic::include_proto!("negotiation_agent.v1");
     }
 
+    /// Encoded descriptors for the reflection service.
     pub const FILE_DESCRIPTOR_SET: &[u8] =
         tonic::include_file_descriptor_set!("negotiation_descriptor");
 }

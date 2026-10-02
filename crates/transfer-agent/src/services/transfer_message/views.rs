@@ -24,7 +24,7 @@ use serde::Serialize;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct TransferMessageView {
+pub struct TransferMessageView {
     pub id: MessageId,
     pub transfer_process_id: TransferProcessId,
     pub tenant_id: String,
@@ -38,7 +38,7 @@ pub(crate) struct TransferMessageView {
 }
 
 impl TransferMessageView {
-    pub(crate) fn assemble(msg: TransferMessage) -> Self {
+    pub fn assemble(msg: TransferMessage) -> Self {
         Self {
             id: msg.id,
             transfer_process_id: msg.transfer_process_id,

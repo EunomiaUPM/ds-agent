@@ -31,6 +31,8 @@ use ymir::utils::extract_form_payload;
 
 use crate::modules::VerifierModule;
 
+/// OID4VP routes where a peer's wallet fetches the presentation definition and posts its
+/// presentation.
 pub struct VerifierRouter {
     verifier: Arc<dyn VerifierModule>,
 }

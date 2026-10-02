@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Consumer or provider role of a participant.
+
 use std::fmt::Display;
 use std::ops::Not;
 use std::str::FromStr;
@@ -22,6 +24,7 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use ymir::errors::Errors;
 
+/// Role a participant plays in a DSP process; `!` gives the other side.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
 pub enum RoleConfig {
     NotDefined,

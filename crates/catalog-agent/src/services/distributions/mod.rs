@@ -26,9 +26,11 @@ use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
+/// Management of distributions.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DistributionServiceTrait: Send + Sync {
+    /// Page of distributions visible to the caller.
     async fn get_all_distributions(
         &self,
         scope: &AccessScope,
@@ -36,23 +38,27 @@ pub trait DistributionServiceTrait: Send + Sync {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<DistributionDto>>;
+    /// Distributions found among `ids`.
     async fn get_batch_distributions(
         &self,
         scope: &AccessScope,
         ids: &[Urn],
     ) -> Outcome<Vec<DistributionDto>>;
 
+    /// Distributions of the dataset.
     async fn get_distributions_by_dataset_id(
         &self,
         scope: &AccessScope,
         dataset_id: &Urn,
     ) -> Outcome<Vec<DistributionDto>>;
+    /// Distribution of the dataset in the given `dct:format`.
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
         scope: &AccessScope,
         dataset_id: &Urn,
         dct_formats: &str,
     ) -> Outcome<DistributionDto>;
+    /// 404 when the distribution is not visible to the caller.
     async fn get_distribution_by_id(
         &self,
         scope: &AccessScope,

@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Diagnostic events table.
+
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::UrnBuilder;
 
+/// Severity of a diagnostic event.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
 pub enum LogLevel {
@@ -33,6 +36,7 @@ pub enum LogLevel {
     Error,
 }
 
+/// Diagnostic event: level, component, message and optional data.
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "transfer_events")]
 pub struct Model {

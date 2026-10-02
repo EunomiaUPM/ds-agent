@@ -15,8 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod config;
-pub(crate) mod factory;
+//! Repositories and their SeaORM adapter.
+
+pub mod config;
+pub mod factory;
 pub mod repo;
 pub mod sea_orm;
-pub(crate) mod vault;
+pub mod vault;

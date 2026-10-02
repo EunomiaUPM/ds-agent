@@ -32,12 +32,14 @@ pub enum DspActor {
 }
 
 impl DspActor {
+    /// Peer authenticated by the SSI token, acting in the tenant it onboarded into.
     pub fn peer(mate: &Mates) -> Self {
         Self::Peer {
             participant_id: mate.participant_id.clone(),
         }
     }
 
+    /// Local user authenticated through OAuth.
     pub fn user(scope: &AccessScope) -> Self {
         Self::User(scope.clone())
     }

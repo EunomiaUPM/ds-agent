@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Proto ⇄ domain mappers for the offer RPCs.
+//! Mappers between proto and domain types for the offer RPCs.
 
 use crate::entities::filters::OfferFilter;
 use crate::entities::offer::NewOfferDto;
@@ -29,8 +29,6 @@ use common::grpc::{JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoField
 use common::paginated_spec::Paginated;
 use serde_json::Value as Json;
 use tonic::Status;
-
-// Request to Domain ───────────────────────────────────────────────────────
 
 impl TryFrom<ListOffersRequest> for ListParams<OfferFilter> {
     type Error = Status;
@@ -80,8 +78,6 @@ impl TryFrom<CreateOfferRequest> for NewOfferDto {
         })
     }
 }
-
-// Domain to Response ──────────────────────────────────────────────────────
 
 impl From<OfferView> for ProtoOffer {
     fn from(view: OfferView) -> Self {

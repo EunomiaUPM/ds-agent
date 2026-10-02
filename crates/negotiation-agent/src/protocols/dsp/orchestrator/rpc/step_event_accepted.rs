@@ -36,8 +36,6 @@ use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientExt;
 use ymir::utils::http_client;
 
-// RpcEventAcceptedStep ─────────────────────────────────────────────────────
-
 /// Sends a `ContractNegotiationEventMessage` with event type `ACCEPTED`.
 ///
 /// Signals to the peer that the latest offer has been accepted.  Only the

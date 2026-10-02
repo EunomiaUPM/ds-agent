@@ -15,9 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod api_key;
-pub(crate) mod basic_config;
-pub(crate) mod bearer_token;
-pub(crate) mod no_auth;
-pub(crate) mod no_op;
-pub(crate) mod oauth;
+pub mod api_key;
+pub mod basic_config;
+pub mod bearer_token;
+pub mod no_auth;
+pub mod no_op;
+pub mod oauth;

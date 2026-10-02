@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Proto ⇄ domain mappers for the agreement RPCs.
+//! Mappers between proto and domain types for the agreement RPCs.
 
 use crate::entities::agreement::{EditAgreementDto, NewAgreementDto};
 use crate::entities::filters::AgreementFilter;
@@ -29,8 +29,6 @@ use common::grpc::{JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoField
 use common::paginated_spec::Paginated;
 use serde_json::Value as Json;
 use tonic::Status;
-
-// Request to Domain ───────────────────────────────────────────────────────
 
 impl TryFrom<ListAgreementsRequest> for ListParams<AgreementFilter> {
     type Error = Status;
@@ -90,8 +88,6 @@ impl From<PutAgreementRequest> for EditAgreementDto {
         Self { state: req.state }
     }
 }
-
-// Domain to Response ──────────────────────────────────────────────────────
 
 impl From<AgreementView> for ProtoAgreement {
     fn from(view: AgreementView) -> Self {

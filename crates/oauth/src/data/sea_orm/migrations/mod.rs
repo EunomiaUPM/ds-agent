@@ -23,6 +23,7 @@ mod m20260514_000003_clients;
 mod m20260514_000004_auth_codes;
 mod m20260514_000005_pats;
 
+/// OAuth tables, in creation order.
 pub fn get_oauth_migrations() -> Vec<Box<dyn MigrationTrait>> {
     vec![
         Box::new(m20260514_000001_users::Migration),

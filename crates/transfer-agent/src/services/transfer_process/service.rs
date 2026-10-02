@@ -34,7 +34,7 @@ use crate::entities::transfer_process_identifier::TransferProcessIdentifier;
 use crate::services::transfer_process::TransferProcessServiceTrait;
 use crate::services::transfer_process::views::TransferProcessView;
 
-pub(crate) struct TransferProcessService {
+pub struct TransferProcessService {
     process_repo: Arc<dyn TransferProcessRepoTrait>,
     identifiers_repo: Arc<dyn TransferIdentifierRepoTrait>,
     event_bus: Option<events::EventBus>,

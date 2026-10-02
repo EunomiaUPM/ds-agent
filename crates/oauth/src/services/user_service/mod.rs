@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Users.
+
 use common::auth::AccessScope;
 use ymir::errors::Outcome;
 
@@ -25,9 +27,11 @@ use crate::services::user_service::views::{UserInfo, UserView};
 pub mod service;
 pub mod views;
 
-#[cfg_attr(test, mockall::automock)]
+/// Management of users.
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait UserServiceTrait: Send + Sync + 'static {
+    /// Page of users visible to the caller.
     async fn list_users(
         &self,
         scope: &AccessScope,
@@ -35,9 +39,13 @@ pub trait UserServiceTrait: Send + Sync + 'static {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<UserView>>;
+    /// 404 when the user is not visible to the caller.
     async fn get_user(&self, scope: &AccessScope, tenant_id: &str) -> Outcome<UserView>;
+    /// OIDC-style user info of the caller.
     async fn user_info(&self, scope: &AccessScope, tenant_id: &str) -> Outcome<UserInfo>;
+    /// Stores the user; the password is hashed.
     async fn create_user(&self, scope: &AccessScope, cmd: &CreateUserCommand) -> Outcome<UserView>;
+    /// Changes the fields set in `cmd`.
     async fn patch_user(
         &self,
         scope: &AccessScope,

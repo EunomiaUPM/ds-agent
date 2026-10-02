@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Event routes.
+
 use std::convert::Infallible;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -44,8 +46,10 @@ use crate::entities::topic::Topic;
 use crate::entities::topic_pattern::TopicPattern;
 use crate::services::event_bus::EventBus;
 
+/// Query string of the event listing.
 pub type EventsQuery = QuerySpec<EventFilter>;
 
+/// Query string of the live stream: a topic pattern and, for admins, a tenant.
 #[derive(Debug, Deserialize)]
 pub struct StreamQuery {
     #[serde(flatten)]
@@ -53,7 +57,7 @@ pub struct StreamQuery {
     pub tenant: Option<String>,
 }
 
-// Axum HTTP router handling event publishing, listing, live streaming and delivery tracking.
+/// Event routes: publish, list, live stream and the deliveries of each event.
 #[derive(Clone)]
 pub struct EventsRouter {
     bus: Arc<EventBus>,

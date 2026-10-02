@@ -40,6 +40,7 @@ pub struct RootContext {
 }
 
 impl RootContext {
+    /// Opens the database through the vault and builds the validator and service client.
     pub async fn connect(
         common: &CommonConfig,
         vault: Arc<VaultService>,

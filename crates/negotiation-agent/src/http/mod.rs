@@ -15,7 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod agreement;
-pub(crate) mod negotiation_message;
-pub(crate) mod negotiation_process;
-pub(crate) mod offer;
+//! Management API routes.
+
+pub mod agreement;
+pub mod negotiation_message;
+pub mod negotiation_process;
+pub mod offer;

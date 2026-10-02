@@ -30,6 +30,7 @@ use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
 use crate::protocols::dsp::entities::state_metadata::TransferDSPStateAttribute;
 use crate::protocols::dsp::services::validator::rules::TransferRules;
 
+/// Validator registries for inbound DSP messages, outbound RPC calls and edge checks.
 pub struct TransferValidators;
 
 impl TransferValidators {

@@ -33,6 +33,8 @@ tower-http = { workspace = true }
 async-trait = {workspace = true}
 ymir = { workspace = true }
 json_value_merge = {workspace = true}
+mockall = { workspace = true }
 
 [dev-dependencies]
+ymir = { workspace = true, features = ["mock"] }
 serde_urlencoded = { workspace = true }

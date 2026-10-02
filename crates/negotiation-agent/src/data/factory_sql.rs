@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Repository factory over SeaORM.
+
 use crate::data::factory_trait::NegotiationAgentRepoTrait;
 use crate::data::repo_traits::agreement_repo::AgreementRepoTrait;
 use crate::data::repo_traits::negotiation_message_repo::NegotiationMessageRepoTrait;
@@ -29,6 +31,7 @@ use crate::data::repos_sql::offer_repo::OfferRepoForSql;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
+/// Repository factory over one database connection.
 pub struct NegotiationAgentRepoForSql {
     negotiation_process_repo: Arc<dyn NegotiationProcessRepoTrait>,
     negotiation_process_identifier_repo: Arc<dyn NegotiationIdentifierRepoTrait>,

@@ -20,3 +20,6 @@
 pub mod auth;
 
 pub use auth::GrpcAuth;
+
+#[cfg(test)]
+mod tests;

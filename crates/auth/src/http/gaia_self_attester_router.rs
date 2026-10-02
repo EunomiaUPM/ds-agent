@@ -24,6 +24,7 @@ use axum::Router;
 use common::auth::AccessScope;
 use ymir::errors::AppResult;
 
+/// Routes of the Gaia-X self-attestation.
 pub struct GaiaSelfAttesterRouter {
     gaia: Arc<dyn GaiaSelfAttesterModule>,
 }

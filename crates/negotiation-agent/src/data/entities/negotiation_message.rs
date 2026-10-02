@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Negotiation messages table.
+
 use sea_orm::prelude::{DateTimeWithTimeZone, Json};
 use sea_orm::{
     ActiveModelBehavior, ActiveValue, DeriveEntityModel, DerivePrimaryKey, DeriveRelation,
@@ -23,6 +25,7 @@ use sea_orm::{
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
 
+/// `negotiation_agent_messages` row: one DSP message sent or received in a process.
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "negotiation_agent_messages")]
 #[serde(rename_all = "camelCase")]

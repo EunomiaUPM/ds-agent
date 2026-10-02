@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Template service over the repository.
+
 use crate::data::entities::policy_template::NewPolicyTemplateModel;
 use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::filters::PolicyTemplateFilter;
@@ -27,6 +29,7 @@ use common::query::QueryFilter;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
+/// Template service over a repository, emitting `catalog:` events when a bus is set.
 pub struct PolicyTemplateService {
     repo: Arc<dyn CatalogAgentRepoTrait>,
     event_bus: Option<events::EventBus>,
@@ -40,6 +43,7 @@ impl PolicyTemplateService {
         }
     }
 
+    /// Publishes create and delete events on `event_bus`.
     pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
         self.event_bus = event_bus;
         self

@@ -27,6 +27,7 @@ use urn::Urn;
 pub struct InvalidField;
 
 impl InvalidField {
+    /// `INVALID_ARGUMENT` reading `"<field>: <reason>"`.
     pub fn status(field: &str, reason: impl std::fmt::Display) -> Status {
         Status::invalid_argument(format!("{field}: {reason}"))
     }
@@ -46,11 +47,17 @@ pub trait ProtoField {
     where
         T: FromStr,
         T::Err: std::fmt::Display;
+    /// Required URN.
     fn urn(&self, field: &str) -> Result<Urn, Status>;
+    /// Optional URN; `""` is `None`.
     fn opt_urn(&self, field: &str) -> Result<Option<Urn>, Status>;
+    /// Required RFC 3339 timestamp, converted to UTC.
     fn rfc3339(&self, field: &str) -> Result<DateTime<Utc>, Status>;
+    /// Optional RFC 3339 timestamp; `""` is `None`.
     fn opt_rfc3339(&self, field: &str) -> Result<Option<DateTime<Utc>>, Status>;
+    /// Required JSON document carried as a string.
     fn json(&self, field: &str) -> Result<serde_json::Value, Status>;
+    /// Optional JSON document; `""` is `None`.
     fn opt_json(&self, field: &str) -> Result<Option<serde_json::Value>, Status>;
 }
 

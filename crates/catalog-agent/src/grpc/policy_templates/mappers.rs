@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Proto ⇄ domain mappers for the policy-template RPCs.
+//! Mappers between proto and domain types for the policy-template RPCs.
 
 use crate::entities::filters::PolicyTemplateFilter;
 use crate::entities::policy_templates::types::LocalizedText;
@@ -28,8 +28,6 @@ use common::dsp_common::odrl::OdrlPolicyInfo;
 use common::grpc::{InvalidField, JsonStruct, JsonStructExt, ListParams, PageMeta, ProtoField};
 use common::paginated_spec::Paginated;
 use tonic::Status;
-
-// Request to Domain ───────────────────────────────────────────────────────
 
 impl TryFrom<ListPolicyTemplatesRequest> for ListParams<PolicyTemplateFilter> {
     type Error = Status;
@@ -83,8 +81,6 @@ impl TryFrom<CreatePolicyTemplateRequest> for NewPolicyTemplateDto {
         })
     }
 }
-
-// Domain to Response ──────────────────────────────────────────────────────
 
 /// Fallible because ODRL content and parameters are re-serialized into `Struct`.
 impl TryFrom<PolicyTemplateDto> for PolicyTemplate {

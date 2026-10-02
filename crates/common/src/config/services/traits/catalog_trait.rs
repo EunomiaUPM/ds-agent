@@ -21,14 +21,19 @@ use crate::config::types::traits::{
     CacheConfigTrait, CommonConfigTrait, ConfigLoader, DatahubConfigTrait,
 };
 
+/// What the catalog agent reads from its config.
 pub trait CatalogConfigTrait:
     ConfigLoader + CommonConfigTrait + DatahubConfigTrait + CacheConfigTrait
 {
+    /// Address of the negotiation agent.
     fn contracts(&self) -> &MinKnownConfig;
 
+    /// Address of the auth agent.
     fn ssi_auth(&self) -> &MinKnownConfig;
     fn cache(&self) -> &CacheConfig;
+    /// Whether the catalog is backed by a datahub instead of the database.
     fn is_datahub(&self) -> bool;
 
+    /// Folder of policy templates loaded at boot.
     fn get_policy_templates_folder(&self) -> &str;
 }

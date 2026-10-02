@@ -48,6 +48,7 @@ use crate::well_known::WellKnownRoot;
 /// Time workers get to drain once shutdown starts.
 const SHUTDOWN_GRACE: Duration = Duration::from_secs(15);
 
+/// Runs the `start` and `setup` sequences of the agent described by `S`.
 pub struct Bootstrapper<S>(PhantomData<S>);
 
 impl<S: BootstrapServiceTrait> Bootstrapper<S> {

@@ -22,6 +22,7 @@ use std::fmt;
 use std::str::FromStr;
 use ymir::errors::Errors;
 
+/// DSP transfer process states.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum TransferDSPState {
     #[serde(rename = "REQUESTED")]

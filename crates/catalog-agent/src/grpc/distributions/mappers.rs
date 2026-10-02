@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Proto ⇄ domain mappers for the distribution RPCs.
+//! Mappers between proto and domain types for the distribution RPCs.
 
 use crate::entities::distributions::{DistributionDto, EditDistributionDto, NewDistributionDto};
 use crate::entities::filters::DistributionFilter;
@@ -26,8 +26,6 @@ use crate::grpc::api::catalog_agent::{
 use common::grpc::{ListParams, PageMeta, ProtoField};
 use common::paginated_spec::Paginated;
 use tonic::Status;
-
-// Request to Domain ───────────────────────────────────────────────────────
 
 impl TryFrom<ListDistributionsRequest> for ListParams<DistributionFilter> {
     type Error = Status;
@@ -71,8 +69,6 @@ impl From<PutDistributionRequest> for EditDistributionDto {
         }
     }
 }
-
-// Domain to Response ──────────────────────────────────────────────────────
 
 impl From<DistributionDto> for Distribution {
     fn from(dto: DistributionDto) -> Self {

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Repository ports and their errors.
+
 pub mod catalog_db_errors;
 pub mod catalog_repo;
 pub mod dataservice_repo;

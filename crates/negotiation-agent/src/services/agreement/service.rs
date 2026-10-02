@@ -34,6 +34,7 @@ use crate::entities::filters::AgreementFilter;
 use crate::services::agreement::AgreementServiceTrait;
 use crate::services::agreement::views::AgreementView;
 
+/// Agreement service over a repository, emitting `negotiations:` events when a bus is set.
 pub struct AgreementService {
     agreement_repo: Arc<dyn AgreementRepoTrait>,
     event_bus: Option<events::EventBus>,
@@ -47,6 +48,7 @@ impl AgreementService {
         }
     }
 
+    /// Publishes create, edit and delete events on `event_bus`.
     pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
         self.event_bus = event_bus;
         self

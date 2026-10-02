@@ -36,8 +36,6 @@ use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientExt;
 use ymir::utils::http_client;
 
-// RpcVerificationStep ──────────────────────────────────────────────────────
-
 /// Sends a `ContractAgreementVerificationMessage` to the Provider
 /// (Consumer - Provider).
 ///

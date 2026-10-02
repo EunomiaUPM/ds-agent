@@ -16,7 +16,7 @@
  */
 
 //! The inbound DSP pipeline, as a template. Each stage consumes the previous
-//! context, so `Raw -> Parsed -> Rdf -> Typed -> Domain` is enforced by types.
+//! context, so the types enforce the order Raw, Parsed, Rdf, Typed, Domain.
 
 use axum::extract::Request;
 use common::validation::ValidatorRegistry;
@@ -34,6 +34,7 @@ use crate::protocols::dsp::entities::context_dsp::{
 use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
 use crate::protocols::dsp::http::dsp::DspRouter;
 
+/// Stages an inbound DSP request goes through, from wire bytes to domain context.
 #[async_trait::async_trait]
 pub trait DSPHandlerPipeline: Send + Sync + 'static {
     /// Read body and headers, and pick up the participant the auth middleware
@@ -81,6 +82,7 @@ pub trait DSPHandlerPipeline: Send + Sync + 'static {
         Ok(())
     }
 
+    /// Runs every stage in order, with the edge and domain validators in between.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn run(
         request: Request,

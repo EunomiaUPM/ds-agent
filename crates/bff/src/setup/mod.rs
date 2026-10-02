@@ -15,9 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Composition of the gateway as a module and as a standalone binary.
+
 mod boot;
 mod composition;
-pub(crate) mod context;
+pub mod context;
 
 pub use boot::GatewayBoot;
 pub use composition::BffModule;

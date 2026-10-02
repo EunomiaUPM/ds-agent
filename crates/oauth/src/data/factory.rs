@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Factory handing out the repositories.
+
 use std::sync::Arc;
 
 use crate::data::repositories::auth_code::AuthCodeRepository;
@@ -23,7 +25,7 @@ use crate::data::repositories::pat::PatRepository;
 use crate::data::repositories::token::TokenRepository;
 use crate::data::repositories::user::UserRepository;
 
-pub(crate) trait OAuthDataFactory: Send + Sync {
+pub trait OAuthDataFactory: Send + Sync {
     fn user_repository(&self) -> Arc<dyn UserRepository>;
     fn token_repository(&self) -> Arc<dyn TokenRepository>;
     fn client_repository(&self) -> Arc<dyn ClientRepository>;

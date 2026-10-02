@@ -27,8 +27,11 @@ use ymir::types::gnap::grant_request::{GrantRequest, GrantRequestKind};
 use ymir::types::gnap::InteractionFinishResponse;
 use ymir::types::oauth::RolePath;
 
+/// Gatekeeper side of GNAP: building and checking what peers send.
+#[mockall::automock]
 #[async_trait]
 pub trait GateKeeperTrait: Send + Sync + 'static {
+    /// New received grant handled under `role`; `class_id` is the class the peer claims.
     fn build_grant_plan(&self, role: &RolePath, class_id: Option<String>) -> Outcome<grant::Plan>;
     fn build_resource_req_plan(
         &self,
@@ -41,16 +44,21 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
         client: Client,
         interact: Option<InteractRequest>,
     ) -> Outcome<interaction::Plan>;
+    /// Participant record of the peer once verified.
     fn build_mate_plan(&self, holder: &str, nick: &str, base_url: &str) -> participant::Plan;
+    /// Private relation of the verification with the verified peer, under `role`.
     fn build_mate_rel_plan(&self, role: &RolePath, holder: &str) -> participant_relation::Model;
+    /// Parses a grant request; only HTTP signature key proofs are accepted.
     fn validate_grant_req(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest>;
 
+    /// Checks a continuation request against its interaction.
     fn validate_cont_req(
         &self,
         model: &interaction::Model,
         payload: &Bytes,
         headers: &HeaderMap,
     ) -> Outcome<()>;
+    /// Answer that closes the interaction, sent to the peer's callback.
     async fn finish_interaction(
         &self,
         model: &interaction::Model,

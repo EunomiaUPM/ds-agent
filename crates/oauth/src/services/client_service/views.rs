@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Response views of clients.
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 

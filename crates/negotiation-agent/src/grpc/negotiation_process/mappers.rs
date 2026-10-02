@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Proto ⇄ domain mappers for the negotiation-process RPCs.
+//! Mappers between proto and domain types for the negotiation-process RPCs.
 
 use crate::entities::filters::NegotiationProcessFilter;
 use crate::entities::negotiation_process::{EditNegotiationProcessDto, NewNegotiationProcessDto};
@@ -33,8 +33,6 @@ use common::grpc::{JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoField
 use common::paginated_spec::Paginated;
 use std::collections::HashMap;
 use tonic::Status;
-
-// Request to Domain ───────────────────────────────────────────────────────
 
 impl TryFrom<ListNegotiationProcessesRequest> for ListParams<NegotiationProcessFilter> {
     type Error = Status;
@@ -101,8 +99,6 @@ impl From<PutNegotiationProcessRequest> for EditNegotiationProcessDto {
         }
     }
 }
-
-// Domain to Response ──────────────────────────────────────────────────────
 
 /// Sub-entities travel as bare rows in the view; they are lifted to their own views first.
 impl From<NegotiationProcessView> for ProtoProcess {

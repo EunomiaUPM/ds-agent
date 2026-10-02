@@ -15,12 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Diagnostic events.
+
 use crate::data::sea_orm::orm::transfer_event;
 use crate::data::sea_orm::orm::transfer_event::{LogLevel, NewTransferEvent};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urn::Urn;
 
+/// Diagnostic event as returned by the API.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransferEventDto {
@@ -28,6 +31,7 @@ pub struct TransferEventDto {
     pub inner: transfer_event::Model,
 }
 
+/// New diagnostic event.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]

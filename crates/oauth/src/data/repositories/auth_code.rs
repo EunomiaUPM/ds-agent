@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Authorization codes of the PKCE flow.
+
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
@@ -22,14 +24,14 @@ use crate::entities::auth_code::AuthCode;
 
 #[mockall::automock]
 #[async_trait::async_trait]
-pub(crate) trait AuthCodeRepository: Send + Sync {
+pub trait AuthCodeRepository: Send + Sync {
     async fn save(&self, auth_code: &AuthCode) -> Outcome<AuthCode>;
     async fn get_by_code(&self, code: &str) -> Outcome<Option<AuthCode>>;
     async fn mark_used(&self, code: &str) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]
-pub(crate) enum AuthCodeRepositoryError {
+pub enum AuthCodeRepositoryError {
     #[error("code not found")]
     NotFound,
     #[error("database error: {0}")]

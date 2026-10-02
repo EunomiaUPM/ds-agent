@@ -15,11 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(super) mod authentication;
-pub(super) mod configuration;
+pub mod authentication;
+pub mod configuration;
 pub mod keystore_lookup;
-pub(crate) mod proxy;
-pub(super) mod pubsub;
+pub mod proxy;
+pub mod pubsub;
 
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use serde::{Deserialize, Serialize};
@@ -34,19 +34,19 @@ pub struct DataplaneDriver {
     pub subscriber: Option<Arc<dyn DriverPubSubTrait>>,
 }
 
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait DriverAuthenticatorTrait: Send + Sync + Debug {
     async fn authenticate(&self, context: &DataplaneContext) -> Outcome<DataplaneContext>;
 }
 
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait DriverProxyConfiguratorTrait: Send + Sync + Debug {
     async fn configure_proxy(&self, context: &DataplaneContext) -> Outcome<DataplaneContext>;
 }
 
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait DriverPubSubTrait: Send + Sync + Debug {
     async fn subscribe(&self, context: &DataplaneContext) -> Outcome<DataplaneContext>;

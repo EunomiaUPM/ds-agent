@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Root of the composition that the boot reads every plane from.
+
 use crate::boot::seeders::BootSeeder;
 use crate::boot::workers::BackgroundWorker;
 use crate::facades::AuthPorts;
@@ -46,6 +48,7 @@ impl ServiceComposer {
         self
     }
 
+    /// `None` unless `with_auth_ports` was called.
     pub fn auth_ports(&self) -> Option<&AuthPorts> {
         self.auth_ports.as_ref()
     }

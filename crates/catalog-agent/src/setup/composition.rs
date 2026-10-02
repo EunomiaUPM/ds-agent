@@ -45,6 +45,7 @@ use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
 use ymir::errors::Outcome;
 
+/// Catalog agent as a module: management API, DSP catalog and the connector.
 pub struct CatalogAgentModule {
     ctx: Arc<AppContext>,
     modules: ModuleGroup,
@@ -52,6 +53,7 @@ pub struct CatalogAgentModule {
 }
 
 impl CatalogAgentModule {
+    /// Builds the agent and its connector on the shared root context and the given ports.
     pub async fn compose(
         config: &CatalogConfig,
         root: &RootContext,
@@ -80,14 +82,17 @@ impl CatalogAgentModule {
         self.connector_instances.clone()
     }
 
+    /// Dataset service, for agents that read datasets in-process.
     pub fn dataset_service(&self) -> Arc<dyn DatasetServiceTrait> {
         self.ctx.dataset_svc.clone()
     }
 
+    /// Distribution service, for agents that read distributions in-process.
     pub fn distribution_service(&self) -> Arc<dyn DistributionServiceTrait> {
         self.ctx.distribution_svc.clone()
     }
 
+    /// ODRL offer service, for agents that read policies in-process.
     pub fn odrl_policy_service(&self) -> Arc<dyn OdrlPolicyServiceTrait> {
         self.ctx.odrl_policy_svc.clone()
     }

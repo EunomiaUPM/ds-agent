@@ -33,8 +33,10 @@ use ymir::services::HasWallet;
 use ymir::types::listing::{ParticipantListFilter, ParticipantSort};
 use ymir::types::participants::ParticipantType;
 
+/// The participant registry: peers and authorities this tenant knows, and itself.
 #[async_trait]
 pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'static {
+    /// Page of participants visible to the caller.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all(
         &self,
@@ -103,6 +105,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
         })
     }
 
+    /// Participants found among the requested ids.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_participant_batch(
         &self,
@@ -115,6 +118,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
             .await
     }
 
+    /// Participant that owns `token`, used to authenticate peers on DSP endpoints.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_by_token(
         &self,
@@ -130,6 +134,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
         Ok(mate)
     }
 
+    /// Merges `extra_fields` into the participant's own.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn update_extra_fields_by_id(
         &self,
@@ -145,6 +150,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
         self.repo().participant().update(mate).await
     }
 
+    /// Stores the participant in the tenant resolved from the scope.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create_participant(&self, scope: &AccessScope, mut payload: Plan) -> Outcome<Model> {
         payload.tenant_id = scope.resolve_create_tenant(Some(&payload.tenant_id))?;

@@ -24,8 +24,9 @@
 //! [`SecretSource`]: secret_management::SecretSource
 //! [`SecretString`]: secret_management::SecretString
 
-pub(crate) mod secret_management;
+pub mod secret_management;
 
+/// Empty; superseded by the parameter resolver and kept so old paths still resolve.
 pub mod parameter_mutator {
     // Deprecated or removed. Use ParameterResolverBehavior instead.
 }

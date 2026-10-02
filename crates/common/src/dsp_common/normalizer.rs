@@ -50,29 +50,19 @@
 use axum::{body::Body, body::Bytes, extract::Request, middleware::Next, response::Response};
 
 /// Cap on the inbound body this middleware will buffer.
-const MAX_BODY_BYTES: usize = 4 * 1024 * 1024;
+pub(super) const MAX_BODY_BYTES: usize = 4 * 1024 * 1024;
 
-/// The request body **exactly as it arrived**, stashed in the request extensions
-/// before [`dsp_namespace_normalizer`] rewrites it.
-///
-/// Everything downstream sees the normalised body, which is the right input for
-/// deserialization but the wrong one for anything that must speak about what the
-/// peer actually sent: signature verification and audit. Those read this.
-///
-/// It is captured here, rather than by a separate layer, so it cannot be ordered
-/// after the rewrite that would make it a lie.
+/// The body exactly as it arrived, for signature checks and audit. Captured by the normaliser
+/// itself so no layer ordering can put it after the rewrite.
 #[derive(Clone, Debug)]
 pub struct WireBody(pub Bytes);
 
-/// Prefixes stripped from object keys and `@type` values.
-///
-/// `xsd:` is deliberately **not** here: it is a datatype vocabulary, never a DSP
-/// field name, so `"@type": "xsd:dateTime"` on a literal is correct compact
-/// JSON-LD. Stripping it leaves a relative IRI that expansion resolves against
-/// the document base (`x-string:///dateTime`), silently corrupting the datatype
-/// and therefore the canonical hash.
+/// Prefixes stripped from keys and `@type` values. Not `xsd:`: stripping a datatype leaves a
+/// relative IRI (`x-string:///dateTime`) that corrupts the canonical hash.
 const DSP_PREFIXES: &[&str] = &["dspace:", "odrl:", "dct:"];
 
+/// Strips `dspace:`, `odrl:` and `dct:` prefixes from JSON bodies; the original stays as
+/// [`WireBody`].
 pub async fn dsp_namespace_normalizer(request: Request, next: Next) -> Response {
     let (mut parts, body) = request.into_parts();
 
@@ -111,7 +101,7 @@ pub async fn dsp_namespace_normalizer(request: Request, next: Next) -> Response 
     next.run(Request::from_parts(parts, new_body)).await
 }
 
-fn normalise_value(value: serde_json::Value) -> serde_json::Value {
+pub(super) fn normalise_value(value: serde_json::Value) -> serde_json::Value {
     match value {
         serde_json::Value::Object(map) => {
             let new_map = map
@@ -164,99 +154,5 @@ fn normalise_type_value(value: serde_json::Value) -> serde_json::Value {
             serde_json::Value::Array(arr.into_iter().map(normalise_type_value).collect())
         }
         other => other,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use axum::{routing::post, Router};
-    use serde_json::json;
-    use tower::ServiceExt;
-
-    /// A literal's `xsd:` datatype must survive normalisation: stripping it
-    /// would leave a relative IRI that expands to `x-string:///dateTime`.
-    #[test]
-    fn keeps_xsd_datatypes_on_literals() {
-        let out = normalise_value(json!({
-            "odrl:constraint": [{
-                "odrl:leftOperand": "odrl:dateTime",
-                "odrl:rightOperand": {
-                    "@type": "xsd:dateTime",
-                    "@value": "2026-12-31T23:59:59Z"
-                }
-            }]
-        }));
-        assert_eq!(
-            out["constraint"][0]["rightOperand"]["@type"],
-            json!("xsd:dateTime")
-        );
-        // The DSP/ODRL prefixes are still stripped from keys as before.
-        assert_eq!(out["constraint"][0]["leftOperand"], json!("odrl:dateTime"));
-    }
-
-    #[test]
-    fn still_strips_dsp_prefixes_from_keys_and_types() {
-        let out = normalise_value(json!({
-            "@type": "dspace:TransferRequestMessage",
-            "dspace:consumerPid": "urn:uuid:cc",
-            "dct:format": "HttpData-PULL"
-        }));
-        assert_eq!(out["@type"], json!("TransferRequestMessage"));
-        assert_eq!(out["consumerPid"], json!("urn:uuid:cc"));
-        assert_eq!(out["format"], json!("HttpData-PULL"));
-    }
-    /// The normalizer rewrites the body downstream handlers read, so it must also
-    /// preserve the bytes the peer actually sent — otherwise nothing downstream
-    /// can verify a signature or audit what arrived.
-    #[tokio::test]
-    async fn stashes_the_pre_rewrite_body() {
-        const SENT: &str =
-            r#"{"@type":"dspace:TransferRequestMessage","dspace:consumerPid":"urn:uuid:cc"}"#;
-
-        async fn handler(request: axum::extract::Request) -> String {
-            let wire = request
-                .extensions()
-                .get::<WireBody>()
-                .expect("normalizer must stash the wire body")
-                .0
-                .clone();
-            let seen = axum::body::to_bytes(request.into_body(), MAX_BODY_BYTES)
-                .await
-                .unwrap();
-            format!(
-                "{}|{}",
-                String::from_utf8(wire.to_vec()).unwrap(),
-                String::from_utf8(seen.to_vec()).unwrap()
-            )
-        }
-
-        let app = Router::new()
-            .route("/request", post(handler))
-            .layer(axum::middleware::from_fn(dsp_namespace_normalizer));
-
-        let response = app
-            .oneshot(
-                axum::extract::Request::builder()
-                    .method("POST")
-                    .uri("/request")
-                    .header("content-type", "application/json")
-                    .body(axum::body::Body::from(SENT))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        let out = axum::body::to_bytes(response.into_body(), MAX_BODY_BYTES)
-            .await
-            .unwrap();
-        let out = String::from_utf8(out.to_vec()).unwrap();
-        let (wire, seen) = out.split_once('|').unwrap();
-
-        assert_eq!(wire, SENT, "wire body must be untouched");
-        assert_ne!(seen, SENT, "the handler's body really was rewritten");
-        assert!(
-            seen.contains(r#""consumerPid""#) && !seen.contains("dspace:consumerPid"),
-            "got: {seen}"
-        );
     }
 }

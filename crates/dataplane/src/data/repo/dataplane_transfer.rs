@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Dataplane processes.
+
 use crate::data::sea_orm::orm::dataplane_transfers::{
     self, EditDataplaneTransferModel, NewDataplaneTransferModel,
 };
@@ -24,9 +26,11 @@ use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
+/// Persistence of dataplane processes, one per transfer process.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DataplaneTransfersRepo: Send + Sync + 'static {
+    /// Page of processes matching the filters.
     async fn get_all_dataplane_transfers(
         &self,
         filters: &DataplaneTransferFilter,
@@ -36,12 +40,14 @@ pub trait DataplaneTransfersRepo: Send + Sync + 'static {
 
     async fn count_dataplane_transfers(&self, filters: &DataplaneTransferFilter) -> Outcome<u64>;
 
+    /// Processes found among `ids`; `tenant_id` of `None` searches every tenant.
     async fn get_batch_dataplane_transfers(
         &self,
         tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<dataplane_transfers::Model>>;
 
+    /// `tenant_id` of `None` searches every tenant.
     async fn get_dataplane_transfers_by_id(
         &self,
         tenant_id: Option<String>,
@@ -55,6 +61,7 @@ pub trait DataplaneTransfersRepo: Send + Sync + 'static {
         id: &Urn,
     ) -> Outcome<Option<dataplane_transfers::Model>>;
 
+    /// Process serving the given control-plane transfer process.
     async fn get_by_transfer_process_id(
         &self,
         tenant_id: Option<String>,
@@ -66,6 +73,7 @@ pub trait DataplaneTransfersRepo: Send + Sync + 'static {
         new_dataplane_transfer: &NewDataplaneTransferModel,
     ) -> Outcome<dataplane_transfers::Model>;
 
+    /// Changes the fields set in the edit model.
     async fn put_dataplane_transfers(
         &self,
         tenant_id: Option<String>,
@@ -80,6 +88,7 @@ pub trait DataplaneTransfersRepo: Send + Sync + 'static {
     ) -> Outcome<()>;
 }
 
+/// Failures of the process repository, mapped onto `Errors`.
 #[derive(Debug, Error)]
 pub enum DataplaneTransfersRepoErrors {
     #[error("Dataplane transfer not found")]

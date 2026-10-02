@@ -28,30 +28,29 @@ use ymir::errors::{Errors, Outcome};
 /// Some messages are Inbound (incoming protocol-shaped messages), some are
 /// Outbound (outgoing protocol-shaped messages).
 #[derive(Clone)]
-pub(crate) struct TransferMessage {
+pub struct TransferMessage {
     // Common
-    pub(crate) id: MessageId,
-    pub(crate) transfer_process_id: TransferProcessId,
-    pub(crate) tenant_id: String,
-    pub(crate) direction: Direction,
+    pub id: MessageId,
+    pub transfer_process_id: TransferProcessId,
+    pub tenant_id: String,
+    pub direction: Direction,
 
     // Protocol
-    pub(crate) protocol: ProtocolId,
-    pub(crate) message_type: ProtocolMessageType,
-    pub(crate) state_transition_from: String,
-    pub(crate) state_transition_to: String,
+    pub protocol: ProtocolId,
+    pub message_type: ProtocolMessageType,
+    pub state_transition_from: String,
+    pub state_transition_to: String,
 
     // RDF Payload
-    pub(crate) envelope: MessageEnvelope,
+    pub envelope: MessageEnvelope,
 
     // Traceability
-    pub(crate) occurred_at: DateTime<Utc>,
+    pub occurred_at: DateTime<Utc>,
 }
 
 #[allow(dead_code, clippy::result_large_err)]
 impl TransferMessage {
-    // Constructors ─────────────────────────────────────────────────────────────
-    pub(crate) fn from_cmd(cmd: &NewTransferMessageCommand) -> Outcome<Self> {
+    pub fn from_cmd(cmd: &NewTransferMessageCommand) -> Outcome<Self> {
         let id = cmd.id.clone().unwrap_or_else(MessageId::generate);
         let tenant_id = cmd.tenant_id.clone().ok_or_else(|| {
             Errors::crazy(
@@ -72,8 +71,6 @@ impl TransferMessage {
             occurred_at: Utc::now(),
         })
     }
-
-    // Accessors ─────────────────────────────────────────────────────────────
 
     pub fn id(&self) -> &MessageId {
         &self.id
@@ -117,7 +114,7 @@ impl TransferMessage {
 /// Inbound, from peer to agent, or Outbound, from admin to agent, to create message to peer
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub(crate) enum Direction {
+pub enum Direction {
     Inbound,
     Outbound,
 }

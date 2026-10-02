@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Repository factory port.
+
 use std::sync::Arc;
 
 use ymir::services::repo::traits::received::{
@@ -25,6 +27,8 @@ use ymir::services::repo::traits::sent::{
 };
 use ymir::services::repo::traits::shared::{ParticipantRepoTrait, ResourceReqRepoTrait};
 
+/// Hands out the auth repositories; `sent_*` are flows we start, `recv_*` flows peers start.
+#[mockall::automock]
 pub trait AuthRepoTrait: Send + Sync + 'static {
     fn sent_grant(&self) -> Arc<dyn SentGrantRepoTrait>;
     fn sent_interaction(&self) -> Arc<dyn SentInteractionRepoTrait>;

@@ -26,7 +26,7 @@ use ymir::errors::Outcome;
 
 const DSP_BASE_PATH: &str = "/dsp/current/catalog";
 
-pub(crate) struct DspModule {
+pub struct DspModule {
     router: Router,
 }
 

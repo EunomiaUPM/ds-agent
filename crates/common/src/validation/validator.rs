@@ -27,6 +27,7 @@ use std::hash::Hash;
 use crate::validation::rule::Rule;
 use crate::validation::violation::{codes, violation, Path, Violations};
 
+/// Rules over one subject, run in stages.
 pub struct Validator<S> {
     stages: Vec<Vec<Box<dyn Rule<S> + Send + Sync>>>,
 }
@@ -46,6 +47,7 @@ impl<S> Rule<S> for Validator<S> {
 }
 
 impl<S> Validator<S> {
+    /// Validator with one empty stage.
     pub fn new() -> Self {
         Self::default()
     }
@@ -189,6 +191,7 @@ impl<S> Validator<S> {
         self
     }
 
+    /// Runs every stage in order and stops at the first one that fails.
     pub fn validate(&self, subject: &S) -> Result<(), Violations> {
         for stage in &self.stages {
             let mut found = Violations::new();
@@ -205,9 +208,8 @@ impl<S> Validator<S> {
     }
 }
 
-/// Validators by message type. Registering twice for the same key composes:
-/// both run and their failures merge, so a profile can add rules without
-/// touching the core's.
+/// Validators by message type. Registering a key twice runs both, so a profile can add rules
+/// without touching the core's.
 pub struct ValidatorRegistry<K, S> {
     by_key: HashMap<K, Vec<Validator<S>>>,
 }
@@ -225,6 +227,7 @@ impl<K: Eq + Hash, S> ValidatorRegistry<K, S> {
         Self::default()
     }
 
+    /// Adds a validator for `key`; earlier ones for the same key keep running.
     pub fn register(&mut self, key: K, validator: Validator<S>) {
         self.by_key.entry(key).or_default().push(validator);
     }
@@ -258,107 +261,5 @@ impl<K: Eq + Hash, S> ValidatorRegistry<K, S> {
             }
         }
         found.into_result()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::validation::violation::{codes, violation};
-
-    struct Msg {
-        pid: Option<String>,
-        format: Option<String>,
-    }
-
-    fn pid_present(m: &Msg) -> Result<(), Violations> {
-        m.pid
-            .as_ref()
-            .map(|_| ())
-            .ok_or_else(|| violation("pid", codes::MISSING, "is required"))
-    }
-    fn format_present(m: &Msg) -> Result<(), Violations> {
-        m.format
-            .as_ref()
-            .map(|_| ())
-            .ok_or_else(|| violation("format", codes::MISSING, "is required"))
-    }
-    fn pid_is_urn(m: &Msg) -> Result<(), Violations> {
-        match m.pid.as_deref() {
-            Some(p) if p.starts_with("urn:") => Ok(()),
-            _ => Err(violation("pid", codes::MALFORMED, "must be a URN")),
-        }
-    }
-
-    fn validator() -> Validator<Msg> {
-        Validator::new()
-            .rule(pid_present)
-            .rule(format_present)
-            .then()
-            .rule(pid_is_urn)
-    }
-
-    /// DSP renders several reasons in one error, so a stage reports all of them.
-    #[test]
-    fn a_stage_reports_every_failure_not_just_the_first() {
-        let out = validator().validate(&Msg {
-            pid: None,
-            format: None,
-        });
-        assert_eq!(out.unwrap_err().len(), 2);
-    }
-
-    /// The second stage would say "must be a URN" about a pid that is not there.
-    #[test]
-    fn a_failed_stage_stops_the_next_one() {
-        let out = validator().validate(&Msg {
-            pid: None,
-            format: Some("f".into()),
-        });
-        let vs = out.unwrap_err();
-        assert_eq!(vs.len(), 1);
-        assert_eq!(vs.code(), Some(codes::MISSING));
-    }
-
-    #[test]
-    fn later_stages_run_when_the_earlier_ones_pass() {
-        let out = validator().validate(&Msg {
-            pid: Some("nope".into()),
-            format: Some("f".into()),
-        });
-        assert_eq!(out.unwrap_err().code(), Some(codes::MALFORMED));
-
-        let ok = validator().validate(&Msg {
-            pid: Some("urn:uuid:cc".into()),
-            format: Some("f".into()),
-        });
-        assert!(ok.is_ok());
-    }
-
-    #[test]
-    fn registering_twice_composes_instead_of_replacing() {
-        let mut reg: ValidatorRegistry<&str, Msg> = ValidatorRegistry::new();
-        reg.register("Request", Validator::new().rule(pid_present));
-        reg.register("Request", Validator::new().rule(format_present));
-        let vs = reg
-            .validate(
-                &"Request",
-                &Msg {
-                    pid: None,
-                    format: None,
-                },
-            )
-            .unwrap_err();
-        assert_eq!(vs.len(), 2, "both registrations ran");
-    }
-
-    #[test]
-    fn an_unregistered_key_is_rejected() {
-        let reg: ValidatorRegistry<&str, Msg> = ValidatorRegistry::new();
-        let subject = Msg {
-            pid: Some("urn:uuid:cc".into()),
-            format: Some("f".into()),
-        };
-        assert!(reg.validate(&"Unknown", &subject).is_err());
     }
 }

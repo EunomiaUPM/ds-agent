@@ -15,15 +15,30 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Transfer agent: the control plane of the DSP transfer process.
+//!
+//! Peers drive it through the DSP transfer endpoints and the owner through a management API over
+//! HTTP and gRPC. It checks agreements with the negotiation agent, reads datasets and connector
+//! instances from the catalog, and hands the data side to the dataplane it registers.
+//! [`setup::TransferAgentModule`] composes it into a larger process and [`setup::TransferBoot`]
+//! runs it as its own service. Its events use the `transfers:` prefix.
+//!
+//! Modules: [`entities`], [`protocols`] (DSP), [`services`], [`data`], [`http`], [`grpc`],
+//! [`setup`].
+
+/// Service id used in logs and telemetry.
 pub const SERVICE_NAME: &str = "transfer-agent-ref";
+/// Name shown in the boot banner.
 pub const SERVICE_BIG_NAME: &str = "Transfer Agent Ref";
+/// Domain name of the transfer events.
 pub const EVENT_DOMAIN: &str = "transfers";
+/// Topic prefix of the transfer events.
 pub const EVENT_PREFIX: &str = "transfers:";
 
-mod data;
+pub mod data;
 pub mod entities;
-mod grpc;
-mod http;
+pub mod grpc;
+pub mod http;
 pub mod protocols;
-mod services;
+pub mod services;
 pub mod setup;

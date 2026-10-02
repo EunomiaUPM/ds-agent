@@ -15,14 +15,27 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod data;
+//! Connector service: templates that describe how to reach an external system, and the
+//! instances that bind a template to concrete parameters and secrets.
+//!
+//! Templates carry `{{__PARAM__}}` placeholders that each instance fills in; secrets can be
+//! resolved from the keystore at runtime. There is no binary: the catalog agent mounts
+//! [`ConnectorModule`] under `{api}/connector`, and other agents reach the instances through
+//! [`ConnectorInstanceFacadeTrait`], in-process or over HTTP. The DSL is described in `DESIGN.md`.
+//!
+//! Modules: [`entities`] (templates, instances, auth and interaction config), [`services`],
+//! [`facades`], [`data`], [`http`], [`setup`].
+
+pub mod data;
 pub mod entities;
 pub mod facades;
-pub(crate) mod http;
+pub mod http;
 pub mod services;
-pub(crate) mod setup;
+pub mod setup;
 
+/// Domain name of the connector's events.
 pub const EVENT_DOMAIN: &str = "connector";
+/// Topic prefix of the connector's events.
 pub const EVENT_PREFIX: &str = "connector:";
 
 pub use data::entities::connector_instances::Model as ConnectorInstanceModel;
@@ -52,5 +65,4 @@ pub use entities::parameters::keystore_lookup::KeystoreLookup;
 pub use entities::parameters::{template_runtime_parameter_regex, template_runtime_secret_regex};
 pub use services::connector_instance::ConnectorInstanceServiceTrait;
 pub use services::connector_template::ConnectorTemplateServiceTrait;
-#[cfg(test)]
 pub use services::connector_template::MockConnectorTemplateServiceTrait;

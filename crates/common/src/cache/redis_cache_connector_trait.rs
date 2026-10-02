@@ -22,11 +22,15 @@ use serde::Serialize;
 
 use crate::cache::DEFAULT_CACHE_TTL;
 
+/// Connection and naming a Redis entity cache provides; the cache operations come for free.
 #[async_trait::async_trait]
 pub trait RedisCacheConnectorTrait: Send + Sync {
+    /// Type stored in the cache.
     type Dto: Serialize + DeserializeOwned + Send + Sync;
 
+    /// Connection for one operation; multiplexed connections are cheap to clone.
     fn get_conn(&self) -> redis::aio::MultiplexedConnection;
+    /// Entity segment of every key, e.g. `catalogs`.
     fn get_entity_name(&self) -> &str;
 
     /// Seconds an entity written by this cache stays alive.

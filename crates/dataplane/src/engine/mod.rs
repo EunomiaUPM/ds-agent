@@ -17,5 +17,5 @@
 
 //! Transfer execution engine: per-role state machines and the pluggable drivers they run.
 
-pub(crate) mod dataplane_drivers;
-pub(crate) mod dataplane_manager;
+pub mod dataplane_drivers;
+pub mod dataplane_manager;

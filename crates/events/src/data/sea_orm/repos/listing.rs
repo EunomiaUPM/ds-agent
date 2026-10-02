@@ -21,11 +21,11 @@ use common::paginated_spec::{Cursor, Page, Sort};
 use sea_orm::sea_query::Condition;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Select};
 
-pub(crate) struct NaiveKeyset;
+pub struct NaiveKeyset;
 
 impl NaiveKeyset {
     /// Orders by `(time, id)` and resumes after the page cursor, or skips to the page number.
-    pub(crate) fn apply<E, T, I>(
+    pub fn apply<E, T, I>(
         mut select: Select<E>,
         page: &Page,
         sort: &Sort,

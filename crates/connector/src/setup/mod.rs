@@ -16,7 +16,7 @@
  */
 
 mod composition;
-pub(crate) mod context;
+pub mod context;
 mod ports;
 
 pub use composition::ConnectorModule;

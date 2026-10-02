@@ -19,14 +19,17 @@ use crate::config::types::{DisplayInfo, EntityClientConfig};
 use ymir::errors::Outcome;
 use ymir::types::gnap::grant_request::client::{Client, ClientKey, KeyProof};
 
+/// Access to the client identity this participant uses with the authority.
 pub trait EntityClientTrait {
     fn client_config(&self) -> &EntityClientConfig;
+    /// Class this participant claims, such as `Provider`.
     fn get_clas_id(&self) -> &str {
         &self.client_config().class_id
     }
     fn get_display_info(&self) -> Option<&DisplayInfo> {
         self.client_config().display.as_ref()
     }
+    /// GNAP client bound to `cert` (PEM armour is stripped) with HTTP signature proofs.
     fn get_client(&self, cert: &str) -> Outcome<Client> {
         let clean_cert = cert
             .lines()

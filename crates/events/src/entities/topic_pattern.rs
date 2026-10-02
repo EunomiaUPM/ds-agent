@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Subscription pattern matching event topics, with single- and multi-level wildcards.
+//! Subscription pattern matching event topics, with prefix and segment wildcards.
 
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -24,13 +24,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::entities::topic::Topic;
 
-// Pattern supporting exact match, single-segment (*), and multi-segment (**) wildcards.
+/// Topic pattern: `*` alone is every topic, `transfers.*` everything under `transfers`,
+/// `transfers.*.started` one segment in the middle, and no wildcard an exact topic.
+/// `**` still matches any number of segments, including none.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct TopicPattern(String);
 
 impl TopicPattern {
-    // Validate and create a new topic pattern.
     pub fn new(pattern: impl Into<String>) -> Result<Self, String> {
         let s = pattern.into();
         let trimmed = s.trim();
@@ -40,46 +41,43 @@ impl TopicPattern {
         Ok(Self(trimmed.to_string()))
     }
 
-    // Return global wildcard matching any event topic.
+    /// Pattern `*`, matching every topic.
     pub fn match_all() -> Self {
-        Self("**".to_string())
+        Self("*".to_string())
     }
 
-    // Access underlying pattern string.
     pub fn as_str(&self) -> &str {
         &self.0
     }
 
-    // Check whether this pattern contains wildcard tokens.
     pub fn has_wildcard(&self) -> bool {
         self.0.contains('*')
     }
 
-    // Evaluate whether the topic satisfies this subscription pattern.
+    /// Whether `topic` falls under this pattern; see the type docs for the wildcard rules.
     pub fn matches(&self, topic: &Topic) -> bool {
-        if self.0 == "*" || self.0 == "**" || self.0 == "*.*.*" {
+        let pat_segments = self.segments();
+        if Self::is_match_all(&pat_segments) {
             return true;
         }
-
-        let pat_segments: Vec<&str> = self.0.split(['.', ':']).collect();
-        let topic_segments = topic.segments();
-
-        Self::match_segments(&pat_segments, &topic_segments)
+        Self::match_segments(&pat_segments, &topic.segments())
     }
 
-    // Recursive segment matcher handling single- and multi-level wildcards.
     /// POSIX regex with the same semantics as `matches`, so topic filters run in the database.
     pub fn to_sql_regex(&self) -> String {
-        let segments: Vec<&str> = self.0.split(['.', ':']).collect();
-        if segments.iter().all(|s| *s == "**") {
+        let segments = self.segments();
+        if Self::is_match_all(&segments) {
             return ".*".to_string();
         }
+        let last = segments.len() - 1;
         let mut regex = String::from("^");
         let mut needs_separator = false;
         for (i, segment) in segments.iter().enumerate() {
             match *segment {
                 "**" if i == 0 => regex.push_str("([^.:]+[.:])*"),
                 "**" => regex.push_str("([.:][^.:]+)*"),
+                "*" if i == last && needs_separator => regex.push_str("([.:][^.:]+)+"),
+                "*" if i == last => regex.push_str("[^.:]+([.:][^.:]+)*"),
                 other => {
                     if needs_separator {
                         regex.push_str("[.:]");
@@ -102,9 +100,23 @@ impl TopicPattern {
         regex
     }
 
+    fn segments(&self) -> Vec<&str> {
+        self.0.split(['.', ':']).collect()
+    }
+
+    // `*` alone, or only `**` segments, matches every topic.
+    fn is_match_all(segments: &[&str]) -> bool {
+        segments == ["*"] || segments.iter().all(|s| *s == "**")
+    }
+
     fn match_segments(pat: &[&str], topic: &[&str]) -> bool {
         if pat.is_empty() {
             return topic.is_empty();
+        }
+
+        // A trailing `*` takes every remaining segment, at least one.
+        if pat == ["*"] {
+            return !topic.is_empty();
         }
 
         if pat[0] == "**" {

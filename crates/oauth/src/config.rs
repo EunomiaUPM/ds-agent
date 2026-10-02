@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Runtime config of the token issuer.
+
 use common::config::services::CommonConfig;
 use serde::Deserialize;
 use ymir::config::traits::HostsConfigTrait;
@@ -38,6 +40,7 @@ pub struct OAuthConfig {
 }
 
 impl OAuthConfig {
+    /// Defaults to one hour for access tokens and thirty days for refresh tokens.
     pub fn new(
         jwt_secret: impl Into<String>,
         issuer: impl Into<String>,

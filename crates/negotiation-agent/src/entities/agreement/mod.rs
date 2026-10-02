@@ -15,10 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Agreements.
+
 use crate::data::entities::agreement::{EditAgreementModel, NewAgreementModel};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 
+/// New agreement.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -34,6 +37,7 @@ pub struct NewAgreementDto {
     pub target: Urn,
 }
 
+/// Agreement update.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -42,6 +46,7 @@ pub struct EditAgreementDto {
 }
 
 impl NewAgreementDto {
+    /// Row for `tenant_id`.
     pub fn into_model(self, tenant_id: String) -> NewAgreementModel {
         NewAgreementModel {
             id: self.id,

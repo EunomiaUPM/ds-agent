@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Proto ⇄ domain mappers for the negotiation-message RPCs.
+//! Mappers between proto and domain types for the negotiation-message RPCs.
 
 use crate::entities::filters::NegotiationMessageFilter;
 use crate::entities::negotiation_message::NewNegotiationMessageDto;
@@ -30,8 +30,6 @@ use common::grpc::{JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoField
 use common::paginated_spec::Paginated;
 use serde_json::Value as Json;
 use tonic::Status;
-
-// Request to Domain ───────────────────────────────────────────────────────
 
 impl TryFrom<ListNegotiationMessagesRequest> for ListParams<NegotiationMessageFilter> {
     type Error = Status;
@@ -86,8 +84,6 @@ impl TryFrom<CreateNegotiationMessageRequest> for NewNegotiationMessageDto {
         })
     }
 }
-
-// Domain to Response ──────────────────────────────────────────────────────
 
 impl From<NegotiationMessageView> for ProtoMessage {
     fn from(view: NegotiationMessageView) -> Self {

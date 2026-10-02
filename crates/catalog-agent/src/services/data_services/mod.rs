@@ -26,9 +26,11 @@ use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
+/// Management of data services.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DataServiceServiceTrait: Send + Sync {
+    /// Page of data services visible to the caller.
     async fn get_all_data_services(
         &self,
         scope: &AccessScope,
@@ -36,19 +38,23 @@ pub trait DataServiceServiceTrait: Send + Sync {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<DataServiceDto>>;
+    /// Data services found among `ids`.
     async fn get_batch_data_services(
         &self,
         scope: &AccessScope,
         ids: &[Urn],
     ) -> Outcome<Vec<DataServiceDto>>;
 
+    /// Data services of the catalog.
     async fn get_data_services_by_catalog_id(
         &self,
         scope: &AccessScope,
         catalog_id: &Urn,
     ) -> Outcome<Vec<DataServiceDto>>;
 
+    /// The acting tenant's main data service, if it has one.
     async fn get_main_data_service(&self, scope: &AccessScope) -> Outcome<Option<DataServiceDto>>;
+    /// 404 when the data service is not visible to the caller.
     async fn get_data_service_by_id(
         &self,
         scope: &AccessScope,
@@ -65,6 +71,7 @@ pub trait DataServiceServiceTrait: Send + Sync {
         scope: &AccessScope,
         new_data_service_model: &NewDataServiceDto,
     ) -> Outcome<DataServiceDto>;
+    /// Creates the acting tenant's main data service.
     async fn create_main_data_service(
         &self,
         scope: &AccessScope,

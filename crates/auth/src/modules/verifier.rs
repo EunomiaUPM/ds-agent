@@ -23,13 +23,16 @@ use ymir::types::gnap::InteractionFinishResponse;
 use ymir::types::vcs::VPDef;
 use ymir::types::verification::VerifyPayload;
 
+/// Verifying the presentations peers send during onboarding.
 #[async_trait]
 pub trait VerifierModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync + 'static {
+    /// Presentation definition of the verification opened with `state`.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn get_vpd(&self, state: String) -> Outcome<VPDef> {
         let verification = self.repo().recv_verification().get_by_state(&state).await?;
         self.verifier().generate_vpd(&verification)
     }
+    /// Verifies the presentation and finishes the GNAP interaction with the result.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn verify(
         &self,

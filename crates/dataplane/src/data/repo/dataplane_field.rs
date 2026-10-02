@@ -15,12 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Process fields.
+
 use crate::data::sea_orm::orm::dataplane_field;
 use crate::data::sea_orm::orm::dataplane_field::{EditDataPlaneFieldModel, NewDataPlaneFieldModel};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
+/// Persistence of the key/value fields attached to a dataplane process.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DataplaneFieldRepoTrait: Send + Sync + 'static {
@@ -59,6 +62,7 @@ pub trait DataplaneFieldRepoTrait: Send + Sync + 'static {
     ) -> Outcome<()>;
 }
 
+/// Failures of the field repository, mapped onto `Errors`.
 #[derive(Debug, Error)]
 pub enum DataplaneFieldRepoErrors {
     #[error("Dataplane field not found")]

@@ -15,10 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod service;
-#[cfg(test)]
-mod tests;
-pub(crate) mod views;
+pub mod service;
+pub mod views;
 
 use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::filters::TransferMessageFilter;
@@ -28,9 +26,9 @@ use common::query::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
-pub(crate) trait TransferMessageServiceTrait: Send + Sync + 'static {
+pub trait TransferMessageServiceTrait: Send + Sync + 'static {
     async fn get_all(
         &self,
         scope: &AccessScope,

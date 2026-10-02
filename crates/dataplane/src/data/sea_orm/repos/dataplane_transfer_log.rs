@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Transition log repository.
+
 use sea_orm::QueryTrait;
 use std::sync::Arc;
 
@@ -37,6 +39,7 @@ impl DataplaneTransferLogsRepoForSql {
         Self { db }
     }
 
+    /// Same as `new`, for callers that hold the connection by value.
     pub fn new_with_raw_db(db: DatabaseConnection) -> Self {
         Self { db: Arc::new(db) }
     }

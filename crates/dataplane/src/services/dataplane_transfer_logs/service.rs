@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Log service over the repository.
+
 use std::sync::Arc;
 
 use common::auth::access::AccessScope;

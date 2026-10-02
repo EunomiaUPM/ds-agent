@@ -21,7 +21,7 @@ use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 #[allow(dead_code)]
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait TransferIdentifierRepoTrait: Send + Sync {
     async fn get_identifiers_by_process_id(

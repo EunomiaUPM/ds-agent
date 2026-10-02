@@ -15,9 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod entities;
-pub(crate) mod factory_sql;
-pub(crate) mod factory_trait;
-pub(crate) mod migrations;
-pub(crate) mod repo_sql;
-pub(crate) mod repo_traits;
+pub mod entities;
+pub mod factory_sql;
+pub mod factory_trait;
+pub mod migrations;
+pub mod repo_sql;
+pub mod repo_traits;

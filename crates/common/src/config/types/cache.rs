@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Cache backend settings.
+
 use std::fmt::Display;
 use std::str::FromStr;
 
@@ -22,6 +24,7 @@ use crate::config::types::traits::CacheConfigTrait;
 use serde::{Deserialize, Serialize};
 use ymir::errors::Errors;
 
+/// Where the cache lives and how to log in.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CacheConfig {
     pub cache_type: CacheType,
@@ -37,6 +40,7 @@ impl CacheConfigTrait for CacheConfig {
     }
 }
 
+/// Cache backend; Redis is implemented and `Noop` disables caching. Memcached and Memory are not.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum CacheType {
     Redis,

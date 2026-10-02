@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Dataplane processes.
+
 pub mod service;
 
 pub use service::DataplaneTransferService;
@@ -30,9 +32,11 @@ use crate::entities::dataplane_transfers::{
 };
 use crate::entities::filters::DataplaneTransferFilter;
 
+/// Management of dataplane processes.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DataplaneTransferServiceTrait: Send + Sync + 'static {
+    /// Page of processes visible to the caller.
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -41,14 +45,17 @@ pub trait DataplaneTransferServiceTrait: Send + Sync + 'static {
         sort: &Sort,
     ) -> Outcome<Paginated<DataplaneTransferDto>>;
 
+    /// 404 when the process is not visible to the caller.
     async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<DataplaneTransferDto>;
 
+    /// Process serving the given transfer process.
     async fn get_by_process_id(
         &self,
         scope: &AccessScope,
         process_id: &Urn,
     ) -> Outcome<DataplaneTransferDto>;
 
+    /// Processes found among the requested ids.
     async fn batch(
         &self,
         scope: &AccessScope,
@@ -61,6 +68,7 @@ pub trait DataplaneTransferServiceTrait: Send + Sync + 'static {
         cmd: &NewDataplaneTransferDto,
     ) -> Outcome<DataplaneTransferDto>;
 
+    /// Changes the fields set in `cmd`.
     async fn edit(
         &self,
         scope: &AccessScope,

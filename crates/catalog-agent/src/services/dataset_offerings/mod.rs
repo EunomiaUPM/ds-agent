@@ -23,6 +23,7 @@ use crate::entities::dataset_offerings::{DatasetOfferingDto, NewDatasetOfferingD
 use common::auth::AccessScope;
 use ymir::errors::Outcome;
 
+/// Publishing a dataset together with its distribution and policy.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DatasetOfferingServiceTrait: Send + Sync {

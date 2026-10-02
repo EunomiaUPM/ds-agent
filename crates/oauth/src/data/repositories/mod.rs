@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Repository ports and their errors.
+
 pub mod auth_code;
 pub mod client;
 pub mod pat;

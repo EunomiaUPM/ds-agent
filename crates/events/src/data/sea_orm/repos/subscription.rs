@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Subscription repository.
+
 use async_trait::async_trait;
 use chrono::Utc;
 use common::paginated_spec::{Page, Sort};
@@ -34,7 +36,6 @@ use crate::entities::subscription::SubscriptionRecord;
 use crate::entities::topic::Topic;
 use crate::entities::topic_pattern::TopicPattern;
 
-// SeaORM-backed implementation of EventSubscriptionRepo.
 #[derive(Clone)]
 pub struct SeaOrmSubscriptionRepo {
     db: DatabaseConnection,

@@ -317,6 +317,3 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod tests;

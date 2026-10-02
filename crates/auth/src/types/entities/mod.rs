@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Request payloads.
+
 mod reacher;
 
 pub use reacher::*;

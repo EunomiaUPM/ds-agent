@@ -37,7 +37,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub(crate) fn into_domain(self) -> Outcome<Client> {
+    pub fn into_domain(self) -> Outcome<Client> {
         let role = self.role.parse::<RbacRole>().map_err(|e| {
             Errors::crazy(
                 "invalid role stored in database",
@@ -58,7 +58,7 @@ impl Model {
 }
 
 impl ActiveModel {
-    pub(crate) fn from_domain(c: &Client) -> Self {
+    pub fn from_domain(c: &Client) -> Self {
         Self {
             client_id: Set(c.client_id.clone()),
             tenant_id: Set(c.tenant_id.clone()),

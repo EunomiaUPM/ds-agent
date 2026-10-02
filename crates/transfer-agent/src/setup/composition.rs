@@ -31,11 +31,13 @@ use crate::setup::admin_module::TransferAdminModule;
 use crate::setup::context::AppContext;
 use crate::setup::ports::TransferPorts;
 
+/// Transfer agent as a module, with the dataplane it registers.
 pub struct TransferAgentModule {
     modules: ModuleGroup,
 }
 
 impl TransferAgentModule {
+    /// Builds the agent on the shared root context and the given ports.
     pub fn compose(
         config: &TransferConfig,
         root: &RootContext,

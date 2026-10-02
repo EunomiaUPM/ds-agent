@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Repositories, migrations and their SeaORM adapter.
+
 pub mod factory;
 pub mod migrations;
 pub mod repo;
@@ -24,7 +26,7 @@ pub use factory::DataFactory;
 pub use migrations::get_events_migrations;
 pub use sea_orm::SeaOrmDataFactory;
 
-// Backward-compatible module alias for legacy entity references
+/// Old path to the ORM tables, kept for existing imports.
 pub mod entities {
     pub use crate::data::sea_orm::orm::*;
 }

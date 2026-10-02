@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Dead letter repository.
+
 use async_trait::async_trait;
 use chrono::Utc;
 use common::paginated_spec::{Page, Sort};
@@ -31,7 +33,6 @@ use crate::entities::dead_letter::DeadLetterRecord;
 use crate::entities::dead_letter::DeadLetterStatus;
 use crate::entities::queries::DeadLetterFilter;
 
-// SeaORM-backed implementation of EventDeadLetterRepo.
 #[derive(Clone)]
 pub struct SeaOrmDeadLetterRepo {
     db: DatabaseConnection,

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The contract every composable module implements.
+
 use axum::Router;
 use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
@@ -22,9 +24,8 @@ use tonic::service::RoutesBuilder;
 use crate::boot::seeders::BootSeeder;
 use crate::boot::workers::BackgroundWorker;
 
-/// One composable slice of an agent. A module owns its dependencies
-/// (constructor injection) and every hook has a no-op default: implement
-/// only the planes the module actually has.
+/// One composable slice of an agent, built with its dependencies. Every hook defaults to
+/// nothing, so a module implements only the planes it has.
 pub trait ServiceModuleTrait: Send + Sync {
     /// Stable identifier, used for logging/diagnostics.
     fn name(&self) -> &'static str;

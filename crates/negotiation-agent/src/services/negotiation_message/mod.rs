@@ -29,9 +29,11 @@ use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
+/// Management of negotiation messages.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait NegotiationMessageServiceTrait: Send + Sync + 'static {
+    /// Page of messages visible to the caller.
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -40,8 +42,10 @@ pub trait NegotiationMessageServiceTrait: Send + Sync + 'static {
         sort: &Sort,
     ) -> Outcome<Paginated<NegotiationMessageView>>;
 
+    /// 404 when the message is not visible to the caller.
     async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<NegotiationMessageView>;
 
+    /// Messages found among the requested ids.
     async fn batch(
         &self,
         scope: &AccessScope,

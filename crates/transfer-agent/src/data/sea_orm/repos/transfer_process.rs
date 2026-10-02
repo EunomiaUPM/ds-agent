@@ -34,7 +34,7 @@ use sea_orm::{
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
-pub(crate) struct SeaOrmTransferProcessRepo {
+pub struct SeaOrmTransferProcessRepo {
     db: Arc<DatabaseConnection>,
 }
 

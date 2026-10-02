@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Response views of parameters.
+
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
@@ -22,6 +24,7 @@ use crate::entities::entry::Entry;
 use crate::entities::metadata::Metadata;
 use crate::entities::version::Version;
 
+/// Parameter as returned by the API, value included.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ParameterView {
@@ -50,6 +53,7 @@ impl From<Entry<serde_json::Value>> for ParameterView {
     }
 }
 
+/// Parameter without its value, for listings.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ParameterMetadataView {
@@ -76,6 +80,7 @@ impl From<Metadata> for ParameterMetadataView {
     }
 }
 
+/// Version left by a write.
 #[derive(Serialize)]
 pub struct VersionResponse {
     pub version: u64,

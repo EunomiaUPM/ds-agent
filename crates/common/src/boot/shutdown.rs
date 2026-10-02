@@ -15,12 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Waiting for SIGINT or SIGTERM.
+
 use tokio::signal;
 
 /// Process termination request: Ctrl+C or, on unix, SIGTERM (docker/k8s stop).
 pub struct ShutdownSignal;
 
 impl ShutdownSignal {
+    /// Resolves on the first Ctrl+C or SIGTERM.
     pub async fn received() {
         let ctrl_c = async {
             if let Err(e) = signal::ctrl_c().await {

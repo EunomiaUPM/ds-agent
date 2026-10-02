@@ -21,10 +21,15 @@ use ymir::errors::Outcome;
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::ApprovedCallbackBody;
 
+/// GNAP callbacks: what the other side sends back at the end of an interaction.
+#[mockall::automock]
 #[async_trait]
 pub trait CallbackTrait: Send + Sync + 'static {
+    /// Copies the callback's interaction reference and hash into the interaction.
     fn apply_callback(&self, interaction: &mut interaction::Model, payload: &ApprovedCallbackBody);
+    /// Fails unless the callback hash matches the interaction's nonces and reference.
     fn check_callback(&self, interaction: &interaction::Model, grant: &grant::Model)
         -> Outcome<()>;
+    /// Sends the GNAP continuation request for the interaction.
     async fn send_continue_req(&self, int_model: &interaction::Model) -> Outcome<GrantResponse>;
 }

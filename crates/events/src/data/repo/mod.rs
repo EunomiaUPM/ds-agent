@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Repository ports and their errors.
+
 pub mod dead_letter;
 pub mod delivery;
 pub mod event;

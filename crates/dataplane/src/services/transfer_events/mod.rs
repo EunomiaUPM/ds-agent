@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Diagnostic events.
+
 pub mod service;
 
 pub use service::TransferEventsService;
@@ -28,9 +30,11 @@ use ymir::errors::Outcome;
 use crate::entities::filters::TransferEventFilter;
 use crate::entities::transfer_events::{NewTransferEventDto, TransferEventDto};
 
+/// Recording and reading diagnostic events.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait TransferEventServiceTrait: Send + Sync + 'static {
+    /// Page of events visible to the caller.
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -39,14 +43,17 @@ pub trait TransferEventServiceTrait: Send + Sync + 'static {
         sort: &Sort,
     ) -> Outcome<Paginated<TransferEventDto>>;
 
+    /// 404 when the event is not visible to the caller.
     async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<TransferEventDto>;
 
+    /// Every event of the process.
     async fn get_by_process_id(
         &self,
         scope: &AccessScope,
         process_id: &Urn,
     ) -> Outcome<Vec<TransferEventDto>>;
 
+    /// Events found among the requested ids.
     async fn batch(
         &self,
         scope: &AccessScope,

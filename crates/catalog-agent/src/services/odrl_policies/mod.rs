@@ -26,9 +26,11 @@ use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
+/// Management of the ODRL offers attached to catalog entities.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait OdrlPolicyServiceTrait: Sync + Send {
+    /// Page of offers visible to the caller.
     async fn get_all_odrl_offers(
         &self,
         scope: &AccessScope,
@@ -36,16 +38,19 @@ pub trait OdrlPolicyServiceTrait: Sync + Send {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<OdrlPolicyDto>>;
+    /// Offers found among `ids`.
     async fn get_batch_odrl_offers(
         &self,
         scope: &AccessScope,
         ids: &[Urn],
     ) -> Outcome<Vec<OdrlPolicyDto>>;
+    /// Offers attached to the entity.
     async fn get_all_odrl_offers_by_entity(
         &self,
         scope: &AccessScope,
         entity: &Urn,
     ) -> Outcome<Vec<OdrlPolicyDto>>;
+    /// 404 when the offer is not visible to the caller.
     async fn get_odrl_offer_by_id(
         &self,
         scope: &AccessScope,
@@ -61,6 +66,7 @@ pub trait OdrlPolicyServiceTrait: Sync + Send {
         scope: &AccessScope,
         odrl_offer_id: &Urn,
     ) -> Outcome<()>;
+    /// Deletes every offer attached to the entity.
     async fn delete_odrl_offers_by_entity(
         &self,
         scope: &AccessScope,

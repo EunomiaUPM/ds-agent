@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! The outbound RPC context, stage by stage: raw -> parsed -> typed -> domain.
+//! The outbound RPC context, stage by stage: raw, parsed, typed and domain.
 //! Plain JSON, so the typed stage is a single serde pass.
 
 use crate::entities::protocol::{TransferDirection, TransferRole};
@@ -31,8 +31,6 @@ use oauth::entities::user::User;
 use serde::Deserialize;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::{BadFormat, Errors, Outcome};
-
-// TransferContextRaw --
 
 impl BuildAuthn for TransferRPCAuthn {
     fn from_request_parts(parts: &Parts) -> Outcome<Self> {
@@ -60,8 +58,7 @@ impl BuildAuthn for TransferRPCAuthn {
     }
 }
 
-// TransferRPCContextParsed --
-
+/// Outbound RPC call read as JSON.
 #[derive(Debug)]
 pub struct TransferRPCContextParsed {
     pub raw: TransferContextRaw<TransferRPCAuthn>,
@@ -77,22 +74,21 @@ impl TransferRPCContextParsed {
     }
 }
 
-// TransferRPCContextTyped --
-
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-struct RpcMessageFields {
-    consumer_pid: Option<String>,
-    provider_pid: Option<String>,
-    agreement_id: Option<String>,
-    data_address: Option<DataAddressDto>,
-    format: Option<String>,
+pub struct RpcMessageFields {
+    pub consumer_pid: Option<String>,
+    pub provider_pid: Option<String>,
+    pub agreement_id: Option<String>,
+    pub data_address: Option<DataAddressDto>,
+    pub format: Option<String>,
     /// Routing fields consumed locally, never forwarded on the wire.
-    provider_address: Option<String>,
-    callback_address: Option<String>,
-    associated_agent_peer: Option<String>,
+    pub provider_address: Option<String>,
+    pub callback_address: Option<String>,
+    pub associated_agent_peer: Option<String>,
 }
 
+/// Outbound RPC call with its fields deserialized.
 #[derive(Debug)]
 pub struct TransferRPCContextTyped {
     pub parsed: TransferRPCContextParsed,
@@ -133,8 +129,7 @@ impl TransferRPCContextTyped {
     }
 }
 
-// TransferRPCContextDomain --
-
+/// Outbound RPC call with the process, role and direction it acts on.
 #[derive(Debug)]
 pub struct TransferRPCContextDomain {
     pub typed: TransferRPCContextTyped,
@@ -162,32 +157,5 @@ impl TransferRPCContextDomain {
             connector_instance,
             is_restart,
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    #[test]
-    fn serde_extraction_pulls_request_fields_and_tolerates_missing() {
-        // A TransferRequest-shaped RPC body: routing + agreement, no pids yet.
-        let body = json!({
-            "agreementId": "urn:uuid:agr",
-            "format": "HttpData",
-            "providerAddress": "https://provider.example/dsp",
-            "callbackAddress": "https://me.example/cb",
-            "associatedAgentPeer": "urn:peer:provider",
-            "somethingWeIgnore": true
-        });
-        let f: RpcMessageFields = serde_json::from_value(body).unwrap();
-        assert_eq!(f.agreement_id.as_deref(), Some("urn:uuid:agr"));
-        assert_eq!(
-            f.provider_address.as_deref(),
-            Some("https://provider.example/dsp")
-        );
-        assert!(f.consumer_pid.is_none()); // minted later, not in the request body
-        assert!(f.data_address.is_none());
     }
 }

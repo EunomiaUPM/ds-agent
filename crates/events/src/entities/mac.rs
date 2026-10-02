@@ -17,8 +17,8 @@
 
 //! Declarative macros for defining, implementing, and emitting domain events.
 
-// Declarative macro to define or implement domain events with static topics and source crates.
-// The event type must carry a `tenant_id: String` field: the tenant of the record it describes.
+/// Declarative macro to define or implement domain events with static topics and source crates.
+/// The event type must carry a `tenant_id: String` field: the tenant of the record it describes.
 #[macro_export]
 macro_rules! event {
     // Form 1: Inline struct definition with topic and source crate
@@ -115,7 +115,7 @@ macro_rules! event {
     };
 }
 
-// Backward-compatible macro alias.
+/// Old name of `event!`, kept for existing callers.
 #[macro_export]
 macro_rules! impl_into_event {
     ($($arg:tt)*) => {
@@ -123,7 +123,7 @@ macro_rules! impl_into_event {
     };
 }
 
-// Publishes an event about a record of `$tenant` under the topic <prefix><service>:<action>.
+/// Publishes an event about a record of `$tenant` under the topic `<prefix><service>:<action>`.
 #[macro_export]
 macro_rules! emit_action {
     ($bus:expr, $tenant:expr, $prefix:expr, $service:expr, $action:expr, $payload:expr) => {

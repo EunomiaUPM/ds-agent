@@ -25,7 +25,7 @@ pub(super) fn deser_enum<T: for<'de> Deserialize<'de>>(s: &str) -> Outcome<T> {
         .map_err(|e| Errors::crazy("invalid enum value in database", Some(Box::new(e))))
 }
 
-pub(crate) fn ser_enum<T: Serialize>(v: &T) -> String {
+pub fn ser_enum<T: Serialize>(v: &T) -> String {
     serde_json::to_value(v)
         .expect("enum serialization never fails")
         .as_str()

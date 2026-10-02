@@ -17,11 +17,14 @@
 
 use crate::config::types::DatahubConfig;
 
+/// Access to the datahub settings of a config.
 pub trait DatahubConfigTrait {
     fn datahub(&self) -> &DatahubConfig;
+    /// Base URL of the datahub.
     fn get_host(&self) -> String {
         self.datahub().get_host()
     }
+    /// Token the catalog sends to the datahub.
     fn get_token(&self) -> &str {
         &self.datahub().token
     }

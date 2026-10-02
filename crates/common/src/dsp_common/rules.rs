@@ -23,6 +23,7 @@ use urn::Urn;
 
 use crate::validation::violation::{codes, violation, Path, Violations};
 
+/// Atomic DSP checks for validation pipelines.
 pub struct DspRules;
 
 impl DspRules {

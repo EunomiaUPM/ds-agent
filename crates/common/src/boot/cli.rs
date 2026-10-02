@@ -56,6 +56,7 @@ struct SetupArgs {
     reset: bool,
 }
 
+/// Command line of the agent described by `S`.
 pub struct AgentCli<S>(PhantomData<S>);
 
 impl<S: BootstrapServiceTrait> AgentCli<S> {

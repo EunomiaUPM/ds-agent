@@ -15,5 +15,5 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod validate_state_transition;
-pub(crate) mod validation_rpc_steps;
+pub mod validate_state_transition;
+pub mod validation_rpc_steps;

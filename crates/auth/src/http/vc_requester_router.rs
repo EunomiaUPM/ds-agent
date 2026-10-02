@@ -37,6 +37,7 @@ use common::query::{QueryFilter, QuerySpec};
 
 pub type VcRequesterQuery = QuerySpec<SentGrantFilter>;
 
+/// Routes to request credentials from an authority and follow the request.
 pub struct VcRequesterRouter {
     requester: Arc<dyn VcRequesterModule>,
 }

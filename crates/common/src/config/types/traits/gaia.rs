@@ -17,6 +17,8 @@
 
 use crate::config::types::GaiaConfig;
 
+/// Access to the Gaia-X settings of a config.
 pub trait GaiaConfigTrait {
+    /// `None` when Gaia-X is not configured.
     fn gaia_config(&self) -> Option<&GaiaConfig>;
 }

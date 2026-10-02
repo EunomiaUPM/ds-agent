@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Bus listener that provisions tenants created elsewhere.
+
 use std::sync::Arc;
 
 use common::auth::{AccessScope, RbacRole};

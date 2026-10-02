@@ -47,6 +47,7 @@ pub struct HttpServer {
 }
 
 impl HttpServer {
+    /// Binds `0.0.0.0:<port>` now, so a taken port fails the boot before anything is spawned.
     pub async fn bind(port: String, router: Router, tls: Option<RustlsConfig>) -> Outcome<Self> {
         let listener = Self::listen(port, "HTTP").await?;
         Ok(Self {
@@ -56,6 +57,7 @@ impl HttpServer {
         })
     }
 
+    /// Address actually bound, useful when the port was `0`.
     pub fn local_addr(&self) -> Outcome<SocketAddr> {
         self.listener
             .local_addr()
@@ -138,6 +140,7 @@ pub struct GrpcServer {
 }
 
 impl GrpcServer {
+    /// Binds `0.0.0.0:<port>`; `descriptors` feed the reflection service.
     pub async fn bind(
         port: String,
         routes: Routes,

@@ -20,7 +20,7 @@ use urn::Urn;
 /// Extra Identifiers for TransferProcess in case there is some dependence of
 /// protocol-dependant identifiers
 #[derive(Clone)]
-pub(crate) struct TransferProcessIdentifier {
+pub struct TransferProcessIdentifier {
     pub tenant_id: String,
     pub transfer_process_id: Urn,
     pub key: String,

@@ -18,7 +18,7 @@
 use crate::protocols::dsp::facades::well_known_rpc_facade::WellKnownRPCFacadeTrait;
 use std::sync::Arc;
 
-pub(crate) mod well_known_rpc_facade;
+pub mod well_known_rpc_facade;
 
 #[async_trait::async_trait]
 pub trait FacadeTrait: Send + Sync {

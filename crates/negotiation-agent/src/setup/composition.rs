@@ -35,12 +35,14 @@ use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
 use ymir::errors::Outcome;
 
+/// Negotiation agent as a module: management API and DSP negotiation.
 pub struct NegotiationAgentModule {
     ctx: Arc<AppContext>,
     modules: ModuleGroup,
 }
 
 impl NegotiationAgentModule {
+    /// Builds the agent on the shared root context and the given ports.
     pub async fn compose(
         config: &ContractsConfig,
         root: &RootContext,
@@ -54,10 +56,12 @@ impl NegotiationAgentModule {
         Ok(Self { ctx, modules })
     }
 
+    /// Agreement service, for agents that read agreements in-process.
     pub fn agreement_service(&self) -> Arc<dyn AgreementServiceTrait> {
         self.ctx.agreement_svc.clone()
     }
 
+    /// Static, so the hosting agent's migrator can list them.
     pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         crate::data::migrations::get_negotiation_agent_migrations()
     }

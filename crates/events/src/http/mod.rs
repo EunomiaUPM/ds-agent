@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Events, subscriptions and dead letter routes.
+
 pub mod dlq;
 pub mod events;
 pub mod subscriptions;
@@ -34,6 +36,7 @@ use common::auth::OauthTokenValidator;
 pub struct EventsHttpRouter;
 
 impl EventsHttpRouter {
+    /// All event routes behind the OAuth middleware.
     pub fn build(bus: Arc<EventBus>, validator: Arc<dyn OauthTokenValidator>) -> Router {
         Router::new()
             .merge(EventsRouter::new(bus.clone()).router())

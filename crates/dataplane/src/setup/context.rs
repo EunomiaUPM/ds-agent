@@ -38,7 +38,7 @@ use crate::services::transfer_events::service::TransferEventsService;
 use crate::setup::ports::DataplanePorts;
 
 #[derive(Clone)]
-pub(crate) struct AppContext {
+pub struct AppContext {
     pub repo: Arc<dyn DataplaneRepoTrait>,
     pub transfer_svc: Arc<DataplaneTransferService>,
     pub logs_svc: Arc<DataplaneTransferLogsService>,

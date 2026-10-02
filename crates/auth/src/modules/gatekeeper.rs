@@ -32,8 +32,10 @@ use ymir::types::gnap::GrantStatus;
 use ymir::types::listing::{GrantSort, RecvGrantListFilter};
 use ymir::utils::{create_opaque_token, errors_to_error_code, require_field};
 
+/// Answering GNAP grant requests from peers: each one is verified with an OID4VP presentation.
 #[async_trait]
 pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync + 'static {
+    /// Starts a grant and answers with the verification URI; failures become a GNAP error body.
     #[tracing::instrument(level = "info", skip_all)]
     async fn manage_grant_req(
         &self,
@@ -50,6 +52,8 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
             })
     }
 
+    /// Continues a verified grant and issues the peer's access token; failures become a GNAP
+    /// error body.
     #[tracing::instrument(level = "info", skip_all)]
     async fn manage_continue_req(
         &self,
@@ -67,7 +71,7 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
             })
     }
 
-    // =================================== GETTERS FOR FRONTEND ====================================
+    /// Page of grants received from peers, visible to the caller.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all(
         &self,
@@ -112,6 +116,7 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         Ok(grant)
     }
 
+    /// The grant with its resource request, interaction and verification.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_by_id_with_details(&self, scope: &AccessScope, id: String) -> Outcome<Value> {
         let grant = self.get_by_id(scope, id.clone()).await?;
@@ -126,8 +131,8 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         }))
     }
 
-    // ========================================= INTERNALS =========================================
-
+    /// Validates the request and stores the grant, its interaction, resource request and
+    /// verification.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn inner_manage_grant_req(
         &self,
@@ -162,6 +167,7 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         Ok(GrantResponse::pending(uri, &interaction))
     }
 
+    /// Checks the continuation against its interaction and registers the peer with a new token.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn inner_manage_continue_req(
         &self,

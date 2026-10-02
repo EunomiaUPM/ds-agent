@@ -82,7 +82,7 @@ impl BFFRPCOrchestratorTrait for BFFRPCOrchestratorService {
             .await
     }
 
-    // ACCEPTED -> AGREED -> VERIFIED -> FINALIZED (Provider triggers the tail in one call)
+    // From ACCEPTED through AGREED and VERIFIED to FINALIZED; the provider runs it in one call.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_agreement_bff_rpc(
         &self,
@@ -109,7 +109,7 @@ impl BFFRPCOrchestratorTrait for BFFRPCOrchestratorService {
             .await
     }
 
-    // OFFERED -> ACCEPTED
+    // Moves an OFFERED negotiation to ACCEPTED.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_event_accepted_bff_rpc(
         &self,

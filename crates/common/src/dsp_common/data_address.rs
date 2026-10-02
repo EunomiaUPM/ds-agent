@@ -15,25 +15,26 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Data address of a transfer.
+
 use serde::{Deserialize, Serialize};
 
+/// Where and how to reach the data of a transfer (DSP Appendix A).
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Eq)]
 pub struct DataAddress {
     #[serde(rename = "@type")]
     pub _type: String,
     #[serde(rename = "endpointType")] // TODO define this
     pub endpoint_type: String,
-    /// OPTIONAL per DSP Appendix A. A pull `dataAddress` sent with a
-    /// `TransferRequestMessage` may legitimately carry none — the provider
-    /// supplies the endpoint later, in the `TransferStartMessage`. Whether a
-    /// given message *needs* one is a domain rule (it depends on the connector
-    /// behind the `format`), not a shape rule.
+    /// Optional (DSP Appendix A): a pull request may carry none and get it in the start message.
+    /// Whether a message needs one depends on the connector behind `format`, not on its shape.
     #[serde(rename = "endpoint", skip_serializing_if = "Option::is_none")]
     pub endpoint: Option<String>,
     #[serde(rename = "endpointProperties")]
     pub endpoint_properties: Vec<EndpointProperty>,
 }
 
+/// Name and value pair inside a data address, such as an auth token.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Eq)]
 pub struct EndpointProperty {
     #[serde(rename = "@type")]

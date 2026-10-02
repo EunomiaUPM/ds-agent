@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 
 /// Unified OAuth 2.0 token request supporting multiple grant types.
 #[derive(Debug, Clone, Deserialize, Default)]
-pub(crate) struct TokenRequest {
+pub struct TokenRequest {
     pub grant_type: Option<String>,
     pub username: Option<String>,
     pub password: Option<String>,
@@ -40,7 +40,7 @@ pub(crate) struct TokenRequest {
 
 /// RFC 7636 Authorization request for PKCE flow.
 #[derive(Debug, Clone, Deserialize)]
-pub(crate) struct AuthorizeRequest {
+pub struct AuthorizeRequest {
     pub response_type: String,
     pub client_id: String,
     pub redirect_uri: Option<String>,
@@ -61,26 +61,26 @@ pub struct AuthorizeResponse {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub(crate) struct RefreshRequest {
+pub struct RefreshRequest {
     pub refresh_token: String,
 }
 
 /// RFC 7009 revocation request.
 #[derive(Debug, Clone, Deserialize)]
-pub(crate) struct RevokeRequest {
+pub struct RevokeRequest {
     pub token: String,
     pub token_type_hint: Option<String>,
 }
 
 /// RFC 7662 token introspection request.
 #[derive(Debug, Clone, Deserialize)]
-pub(crate) struct IntrospectRequest {
+pub struct IntrospectRequest {
     pub token: String,
     pub token_type_hint: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct OpenIdConfiguration {
+pub struct OpenIdConfiguration {
     pub issuer: String,
     pub authorization_endpoint: String,
     pub token_endpoint: String,
@@ -100,7 +100,7 @@ pub(crate) struct OpenIdConfiguration {
 }
 
 impl OpenIdConfiguration {
-    pub(crate) fn build(issuer: &str) -> Self {
+    pub fn build(issuer: &str) -> Self {
         Self {
             issuer: issuer.to_string(),
             authorization_endpoint: format!("{issuer}/authorize"),

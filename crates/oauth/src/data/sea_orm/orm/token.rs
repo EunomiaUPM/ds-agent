@@ -35,7 +35,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub(crate) fn into_domain(self) -> Outcome<RefreshToken> {
+    pub fn into_domain(self) -> Outcome<RefreshToken> {
         Ok(RefreshToken {
             id: self.id,
             tenant_id: self.tenant_id,
@@ -48,7 +48,7 @@ impl Model {
 }
 
 impl ActiveModel {
-    pub(crate) fn from_domain(rt: &RefreshToken) -> Self {
+    pub fn from_domain(rt: &RefreshToken) -> Self {
         Self {
             id: Set(rt.id),
             tenant_id: Set(rt.tenant_id.clone()),

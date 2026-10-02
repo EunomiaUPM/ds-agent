@@ -1,9 +1,0 @@
-language: "en"
-reviews:
-  line_by_line: true
-  summarize: true
-  exclude:
-    - "**/dist/**"
-    - "**/*.min.js"
-    - "**/__tests__/**"
-    - "**/package-lock.json"

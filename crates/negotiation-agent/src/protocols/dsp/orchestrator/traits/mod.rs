@@ -15,5 +15,5 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod orchestration_extractors;
-pub(crate) mod orchestration_helpers;
+pub mod orchestration_extractors;
+pub mod orchestration_helpers;

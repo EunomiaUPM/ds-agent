@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Event feed, publishing and live stream.
+
 pub mod events;
 
 pub use crate::entities::commands::PublishEventRequest;

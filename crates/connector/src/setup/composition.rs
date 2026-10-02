@@ -34,12 +34,14 @@ use crate::http::connector_template::ConnectorTemplateRouter;
 use crate::setup::context::AppContext;
 use crate::setup::ports::ConnectorPorts;
 
+/// Connector as a module mounted by the catalog agent.
 pub struct ConnectorModule {
     prefix: String,
     ctx: AppContext,
 }
 
 impl ConnectorModule {
+    /// Builds the services on the catalog's config and root context.
     pub fn compose(
         config: &CatalogConfig,
         root: &RootContext,
@@ -59,6 +61,7 @@ impl ConnectorModule {
         ))
     }
 
+    /// Static, so the hosting agent's migrator can list them.
     pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         crate::get_connector_migrations()
     }

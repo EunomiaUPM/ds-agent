@@ -25,6 +25,7 @@ use crate::config::services::CommonConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
 
+/// `contracts` section: negotiation agent config.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ContractsConfig {
     common: CommonConfig,

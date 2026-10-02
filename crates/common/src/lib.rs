@@ -15,6 +15,20 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Shared foundation of every agent: how a process boots and composes its modules, and the
+//! cross-cutting pieces they all rely on.
+//!
+//! Each module explains how to use it in its own docs.
+//!
+//! - Boot and composition: [`boot`], [`module_loader`], [`config`], [`telemetry`], [`info_banner`].
+//! - HTTP and gRPC: [`http_tracing`], [`http_global_404`], [`middleware`], [`grpc`],
+//!   [`well_known`].
+//! - Security: [`auth`], [`facades`], [`vault_utils`].
+//! - Errors and data: [`errors`], [`paginated_spec`], [`query`], [`validation`], [`cache`],
+//!   [`batch_requests`].
+//! - Linked data and DSP: [`rdf`], [`dsp_common`].
+//! - Utilities: [`utils`], [`serde_utils`], [`id_mac`], [`test_utils`].
+
 pub mod auth;
 pub mod batch_requests;
 pub mod boot;

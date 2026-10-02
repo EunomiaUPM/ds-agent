@@ -45,7 +45,6 @@ impl<F: Default, S: Default> Default for QuerySpec<F, S> {
 }
 
 impl<F, S> QuerySpec<F, S> {
-    /// Creates a new query specification.
     pub fn new(filter: F, page: Page, sort: S) -> Self {
         Self { filter, page, sort }
     }

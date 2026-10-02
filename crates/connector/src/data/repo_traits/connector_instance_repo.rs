@@ -19,7 +19,8 @@ use crate::data::entities::connector_instances;
 use crate::data::entities::connector_instances::NewConnectorInstanceModel;
 use ymir::errors::Outcome;
 
-#[cfg_attr(test, mockall::automock)]
+/// Persistence of connector instances.
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait ConnectorInstanceRepoTrait: Send + Sync {
     async fn create_instance(
@@ -27,6 +28,7 @@ pub trait ConnectorInstanceRepoTrait: Send + Sync {
         new_instance_model: &NewConnectorInstanceModel,
     ) -> Outcome<connector_instances::Model>;
 
+    /// `tenant_id` of `None` searches every tenant.
     async fn get_instance_by_id(
         &self,
         tenant_id: Option<String>,
@@ -40,6 +42,7 @@ pub trait ConnectorInstanceRepoTrait: Send + Sync {
         version: &str,
     ) -> Outcome<Option<connector_instances::Model>>;
 
+    /// Instance linked to the distribution, if any.
     async fn get_instances_by_distribution(
         &self,
         tenant_id: &str,

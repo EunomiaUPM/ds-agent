@@ -37,6 +37,7 @@ use common::grpc::{IntoStatus, ListParams, ProtoField};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 
+/// gRPC adapter of the process service.
 pub struct NegotiationAgentProcessesGrpc {
     service: Arc<dyn NegotiationProcessServiceTrait>,
     auth: GrpcAuth,

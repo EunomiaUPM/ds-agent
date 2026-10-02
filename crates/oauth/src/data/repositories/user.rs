@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Users.
+
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
@@ -22,14 +24,18 @@ use crate::entities::query::{Page, Sort, UserFilter};
 use crate::entities::role::RbacRole;
 use crate::entities::user::User;
 
+/// Persistence of users; a user is identified by its tenant.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait UserRepository: Send + Sync {
+    /// Page of users matching the filter.
     async fn get_all(&self, filter: &UserFilter, page: &Page, sort: &Sort) -> Outcome<Vec<User>>;
     async fn count(&self, filter: &UserFilter) -> Outcome<u64>;
     async fn get_by_tenant_id(&self, tenant_id: &str) -> Outcome<Option<User>>;
+    /// Lookup by email, used at password login.
     async fn get_by_email(&self, email: &str) -> Outcome<Option<User>>;
     async fn create(&self, user: &User) -> Outcome<User>;
+    /// Changes only the fields given as `Some`.
     async fn patch(
         &self,
         tenant_id: &str,
@@ -40,6 +46,7 @@ pub trait UserRepository: Send + Sync {
     async fn delete(&self, tenant_id: &str) -> Outcome<()>;
 }
 
+/// Failures of the user repository, mapped onto `Errors`.
 #[derive(Debug, Error)]
 pub enum UserRepositoryError {
     #[error("user not found")]

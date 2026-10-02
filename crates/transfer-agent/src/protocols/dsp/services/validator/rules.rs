@@ -27,6 +27,7 @@ use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
 use crate::protocols::dsp::entities::state::TransferDSPState;
 use crate::protocols::dsp::entities::state_metadata::TransferDSPStateAttribute;
 
+/// Transfer-specific rules for the validator registries.
 pub struct TransferRules;
 
 impl TransferRules {

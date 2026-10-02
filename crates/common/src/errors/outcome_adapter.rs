@@ -15,5 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Placeholder: the `Errors` conversions live in ymir.
+
 // From conversions for ymir::errors::Errors are defined in the ymir crate itself,
 // where Errors is local (required by Rust's orphan rule).

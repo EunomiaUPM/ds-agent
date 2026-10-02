@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The event bus, its webhook dispatcher and retry worker.
+
 pub mod event_bus;
 
 pub use event_bus::*;

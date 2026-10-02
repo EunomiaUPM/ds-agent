@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Catalogs table.
+
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
 
+/// `catalog_catalogs` row: a DCAT catalog of a tenant.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
 #[sea_orm(table_name = "catalog_catalogs")]
 #[serde(rename_all = "camelCase")]
@@ -108,6 +111,7 @@ impl From<&NewCatalogModel> for ActiveModel {
     }
 }
 
+/// Partial catalog update; absent fields stay as they are.
 pub struct EditCatalogModel {
     pub foaf_home_page: Option<String>,
     pub dct_conforms_to: Option<String>,

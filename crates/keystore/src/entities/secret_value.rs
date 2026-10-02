@@ -15,6 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Secret values that never print or serialize in clear.
+
+/// Secret value; `Debug` and `Serialize` print `*****`, only `expose` gives the content.
 #[derive(Clone)]
 pub struct SecretValue(serde_json::Value);
 
@@ -22,6 +25,7 @@ impl SecretValue {
     pub fn new(v: serde_json::Value) -> Self {
         Self(v)
     }
+    /// The value in clear; keep it out of logs and responses.
     pub fn expose(&self) -> &serde_json::Value {
         &self.0
     }

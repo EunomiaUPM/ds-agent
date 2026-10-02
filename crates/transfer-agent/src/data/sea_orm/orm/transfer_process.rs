@@ -54,7 +54,7 @@ pub struct Model {
 
 #[allow(clippy::result_large_err)]
 impl Model {
-    pub(crate) fn into_domain(self) -> Outcome<TransferProcess> {
+    pub fn into_domain(self) -> Outcome<TransferProcess> {
         let id = TransferProcessId::new(parse_urn(&self.id)?);
         let tenant_id = self.tenant_id;
         let role = deser_enum::<TransferRole>(&self.role)?;
@@ -87,7 +87,7 @@ impl Model {
 
 #[allow(clippy::result_large_err)]
 impl ActiveModel {
-    pub(crate) fn from_cmd(cmd: &NewTransferProcessCommand) -> Outcome<Self> {
+    pub fn from_cmd(cmd: &NewTransferProcessCommand) -> Outcome<Self> {
         let id = cmd.id.clone().unwrap_or_else(TransferProcessId::generate);
         let tenant_id = cmd.tenant_id.clone().ok_or_else(|| {
             ymir::errors::Errors::crazy("tenant_id must be resolved before reaching the repo", None)
@@ -118,7 +118,7 @@ impl ActiveModel {
         Ok(Self::from_domain(&process))
     }
 
-    pub(crate) fn from_domain(process: &TransferProcess) -> Self {
+    pub fn from_domain(process: &TransferProcess) -> Self {
         let correlation = process.correlation();
         Self {
             id: Set(process.id().to_string()),

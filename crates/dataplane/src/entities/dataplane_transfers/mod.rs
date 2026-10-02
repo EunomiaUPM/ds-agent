@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Dataplane processes.
+
 use crate::data::sea_orm::orm::dataplane_transfer_logs;
 use crate::data::sea_orm::orm::dataplane_transfers;
 pub use crate::data::sea_orm::orm::dataplane_transfers::{
@@ -25,6 +27,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use urn::Urn;
 
+/// Dataplane process as returned by the API, with its fields.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DataplaneTransferDto {
@@ -34,6 +37,7 @@ pub struct DataplaneTransferDto {
     pub logs: Vec<dataplane_transfer_logs::Model>,
 }
 
+/// New dataplane process.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -49,6 +53,7 @@ pub struct NewDataplaneTransferDto {
     pub egress_config: Value,
 }
 
+/// Partial process update.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]

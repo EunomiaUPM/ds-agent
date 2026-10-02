@@ -19,7 +19,7 @@ use common::auth::AccessScope;
 use common::config::ApplicationConfig;
 use ymir::errors::Outcome;
 
-pub(crate) mod config;
+pub mod config;
 
 #[async_trait::async_trait]
 pub trait ConfigStore: Send + Sync {

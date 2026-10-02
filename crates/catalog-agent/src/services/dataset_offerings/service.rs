@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Offering service over the catalog, data service, dataset, distribution and policy services.
+
 use std::str::FromStr;
 use std::sync::Arc;
 

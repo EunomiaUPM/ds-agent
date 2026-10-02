@@ -31,7 +31,6 @@ pub struct Paginated<T> {
 }
 
 impl<T> Paginated<T> {
-    /// Creates a new paginated response.
     pub fn new(items: Vec<T>, next_cursor: Option<String>, total: Option<u64>) -> Self {
         Self {
             items,
@@ -49,7 +48,6 @@ impl<T> Paginated<T> {
         }
     }
 
-    /// Returns the number of items in the current page.
     pub fn len(&self) -> usize {
         self.items.len()
     }

@@ -60,8 +60,9 @@ impl JsonStruct {
     }
 }
 
-/// `prost_types::{Struct, Value}` → `serde_json::Value`.
+/// Conversion from `prost_types::{Struct, Value}` into `serde_json::Value`.
 pub trait JsonStructExt {
+    /// Converts into plain JSON; whole numbers become integers.
     fn into_json(self) -> JsonValue;
     /// Deserializes into a typed value, failing with `INVALID_ARGUMENT` on `field`.
     fn into_typed<T: DeserializeOwned>(self, field: &str) -> Result<T, Status>
@@ -98,8 +99,9 @@ impl JsonStructExt for ProstValue {
     }
 }
 
-/// `serde_json::Value` → `prost_types::{Struct, Value}`.
+/// Conversion from `serde_json::Value` into `prost_types::{Struct, Value}`.
 pub trait JsonValueExt {
+    /// Converts into a `google.protobuf.Value`; numbers become `f64`.
     fn into_prost_value(self) -> ProstValue;
     /// Objects map field by field; any other JSON value yields an empty `Struct`.
     fn into_prost_struct(self) -> Struct;

@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Datasets table.
+
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
 
+/// `catalog_datasets` row: a DCAT dataset inside a catalog.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "catalog_datasets")]
 #[serde(rename_all = "camelCase")]
@@ -110,6 +113,7 @@ impl From<&NewDatasetModel> for ActiveModel {
     }
 }
 
+/// Partial dataset update; absent fields stay as they are.
 pub struct EditDatasetModel {
     pub dct_conforms_to: Option<String>,
     pub dct_creator: Option<String>,

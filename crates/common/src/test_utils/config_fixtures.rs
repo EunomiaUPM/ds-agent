@@ -15,9 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Ready-made configs.
+
 use crate::config::services::TransferConfig;
 use std::sync::Arc;
 
+/// Transfer config pointing every agent at `localhost`, with no cache.
 pub fn transfer_config_fixture() -> Arc<TransferConfig> {
     let json = serde_json::json!({
         "common": {

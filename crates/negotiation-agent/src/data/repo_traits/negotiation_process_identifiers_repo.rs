@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Process identifier repository.
+
 use crate::data::entities::negotiation_process_identifier;
 use crate::data::entities::negotiation_process_identifier::{
     EditNegotiationIdentifierModel, NewNegotiationIdentifierModel,
@@ -24,6 +26,7 @@ use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
+/// Persistence of process identifiers.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait NegotiationIdentifierRepoTrait: Send + Sync {
@@ -33,11 +36,13 @@ pub trait NegotiationIdentifierRepoTrait: Send + Sync {
         page: Option<u64>,
     ) -> Outcome<Vec<negotiation_process_identifier::Model>>;
 
+    /// Every identifier of the process.
     async fn get_identifiers_by_process_id(
         &self,
         process_id: &Urn,
     ) -> Outcome<Vec<negotiation_process_identifier::Model>>;
 
+    /// Identifiers of all the given processes.
     async fn get_identifiers_by_batch_process_id(
         &self,
         process_ids: &[Urn],
@@ -48,6 +53,7 @@ pub trait NegotiationIdentifierRepoTrait: Send + Sync {
         id: &Urn,
     ) -> Outcome<Option<negotiation_process_identifier::Model>>;
 
+    /// Identifier of the process stored under `key`, such as `consumerPid`.
     async fn get_identifier_by_key(
         &self,
         process_id: &Urn,
@@ -68,6 +74,7 @@ pub trait NegotiationIdentifierRepoTrait: Send + Sync {
     async fn delete_identifier(&self, id: &Urn) -> Outcome<()>;
 }
 
+/// Failures of the identifier repository, mapped onto `Errors`.
 #[derive(Debug, Error)]
 pub enum NegotiationIdentifierRepoErrors {
     #[error("Negotiation Identifier not found")]

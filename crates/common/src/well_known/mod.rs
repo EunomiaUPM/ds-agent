@@ -15,6 +15,66 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The `.well-known/dspace-version` surface and the RPC that reads it from a peer.
+//!
+//! Every agent process serves the version document at its root: the boot merges
+//! [`WellKnownRoot::get_well_known_router`] into the HTTP plane, so modules never mount it
+//! themselves. The same router exposes two RPC endpoints the local side uses to discover where
+//! a known peer serves DSP 2025-1, by fetching that peer's own version document.
+//!
+//! ## 1. What it serves
+//!
+//! | Method | Path | Answer |
+//! |---|---|---|
+//! | `GET` | `/.well-known/dspace-version` | `VersionResponse` with every supported version |
+//! | `GET` | `/.well-known/dspace-version/2025-1` | that version alone |
+//! | `POST` | `/rpc/.well-known/dspace-version` | a peer's `VersionResponse` |
+//! | `POST` | `/rpc/.well-known/dspace-version/path` | a peer's DSP 2025-1 base URL |
+//!
+//! The only version advertised is 2025-1 at `/dsp/current`, over HTTPS, with GNAP auth and
+//! `did:jwk` identifiers. Its `serviceId` is a URN derived from the path, so it is stable
+//! across restarts.
+//!
+//! ```json
+//! { "protocolVersions": [{
+//!     "binding": "HTTPS", "path": "/dsp/current", "version": "2025-1",
+//!     "auth": { "protocol": "GNAP", "version": "1" },
+//!     "identifierType": "did:jwk", "serviceId": "urn:dsp-service-id:..."
+//! }] }
+//! ```
+//!
+//! ## 2. Mounting it
+//!
+//! The boot does this already. `mates` is the process's resolved participant port; without it
+//! the router reads participants from the auth agent over HTTP.
+//!
+//! ```rust,ignore
+//! use common::well_known::WellKnownRoot;
+//!
+//! let router = composer
+//!     .http_router()
+//!     .merge(WellKnownRoot::get_well_known_router(
+//!         &MinKnownConfig::from(common),
+//!         composer.auth_ports().map(|p| p.mates.clone()),
+//!     )?);
+//! ```
+//!
+//! ## 3. Finding a peer's DSP endpoint
+//!
+//! [`WellKnownRPCTrait`] looks the participant up in the tenant's registry, fetches
+//! `{base_url}/.well-known/dspace-version` and returns the base URL for 2025-1. Agents call it
+//! before sending the first message of a process.
+//!
+//! ```rust,ignore
+//! use common::well_known::rpc::{WellKnownRPCRequest, WellKnownRPCTrait};
+//!
+//! let input = WellKnownRPCRequest { tenant_id, participant_id };
+//! let dsp_base = self.rpc.fetch_dataspace_current_path(&input).await?.path;
+//! // "https://provider.example.org/dsp/current"
+//! ```
+//!
+//! [`WellKnownRPCTrait`]: rpc::WellKnownRPCTrait
+
 use std::sync::Arc;
 
 use ymir::errors::Outcome;
@@ -33,6 +93,7 @@ pub mod dspace_version;
 pub mod router;
 pub mod rpc;
 
+/// Entry point the boot uses to build the well-known router.
 pub struct WellKnownRoot;
 impl WellKnownRoot {
     /// `mates` is the process's resolved port; without one, participants are read over HTTP.

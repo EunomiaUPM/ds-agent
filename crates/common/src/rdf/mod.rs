@@ -191,3 +191,6 @@ pub use loader::{RdfContextLoader, RdfLoaderError};
 pub use node::{ExpandedDoc, RdfNode};
 pub use profile::{DefaultProfile, RdfProfile};
 pub use traits::FromRdf;
+
+#[cfg(test)]
+mod tests;

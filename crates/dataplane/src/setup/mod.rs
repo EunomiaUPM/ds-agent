@@ -15,8 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The dataplane as a module registered by the transfer agent.
+
 mod composition;
-pub(crate) mod context;
+pub mod context;
 mod ports;
 
 pub use composition::DataplaneModule;

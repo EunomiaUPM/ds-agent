@@ -34,6 +34,7 @@ use ymir::types::vcs::VcType;
 use ymir::types::vcs::{VcIssuer, W3cDataModelVersion};
 use ymir::types::wallet::Identity;
 
+/// Gaia-X self-attester over the configured legal person and the wallet identity.
 pub struct GaiaSelfAttester {
     config: GaiaConfig,
     identity: Arc<RwLock<Identity>>,

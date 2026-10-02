@@ -15,13 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Retry backoff and failure classification.
+
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use rand::RngExt;
 use serde::{Deserialize, Serialize};
 
-// Exponential backoff retry policy with full jitter for external webhook deliveries.
+/// Exponential backoff with jitter, attempt limit and timeouts for webhook deliveries.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RetryPolicy {
     pub max_attempts: u32,
@@ -48,7 +50,7 @@ impl Default for RetryPolicy {
 }
 
 impl RetryPolicy {
-    // Calculate backoff duration for a given attempt with full jitter.
+    /// Delay before attempt `attempt`, capped at the maximum backoff and never under a second.
     pub fn calculate_delay(&self, attempt: u32) -> Duration {
         if attempt == 0 || self.initial_backoff_secs == 0 {
             return Duration::ZERO;
@@ -65,28 +67,27 @@ impl RetryPolicy {
         Duration::from_secs_f64(final_secs)
     }
 
-    // Calculate the absolute UTC timestamp for the next retry attempt.
+    /// When attempt `attempt` should run.
     pub fn calculate_next_retry(&self, attempt: u32) -> DateTime<Utc> {
         let delay = self.calculate_delay(attempt);
         Utc::now() + chrono::Duration::from_std(delay).unwrap_or(chrono::Duration::seconds(5))
     }
 
-    // Determine if an HTTP status code indicates a retryable failure.
+    /// 408, 429 and 5xx are retried; every other status goes straight to the dead letter queue.
     pub fn is_retryable_status(status_code: u16) -> bool {
         matches!(status_code, 408 | 429 | 500..=599)
     }
 
-    // Check if the attempt count has reached or exceeded maximum attempts.
     pub fn is_exhausted(&self, attempts: u32) -> bool {
         attempts >= self.max_attempts
     }
 
-    // Return the HTTP client timeout duration.
+    /// Timeout of each webhook request.
     pub fn timeout(&self) -> Duration {
         Duration::from_secs(self.timeout_secs)
     }
 
-    // Return the background poller scan interval duration.
+    /// How often the retry worker looks for due deliveries.
     pub fn poll_interval(&self) -> Duration {
         Duration::from_secs(self.poll_interval_secs)
     }

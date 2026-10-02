@@ -25,7 +25,7 @@ use crate::data::repositories::auth_code::{AuthCodeRepository, AuthCodeRepositor
 use crate::data::sea_orm::orm::auth_code as orm;
 use crate::entities::auth_code::AuthCode;
 
-pub(crate) struct SeaOrmAuthCodeRepository {
+pub struct SeaOrmAuthCodeRepository {
     db: Arc<DatabaseConnection>,
 }
 

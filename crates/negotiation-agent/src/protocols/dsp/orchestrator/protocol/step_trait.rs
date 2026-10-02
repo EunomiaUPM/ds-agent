@@ -24,7 +24,6 @@ use crate::services::negotiation_process::views::NegotiationProcessView;
 use std::sync::Arc;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
-// Contexts ─────────────────────────────────────────────────────────────────
 
 /// Context for steps that create a new negotiation process (initial request and
 /// initial offer).
@@ -44,8 +43,6 @@ pub(super) struct NegotiationInitialContext;
 pub(super) struct NegotiationContinuationContext {
     pub id: String,
 }
-
-// Lifecycle step template ──────────────────────────────────────────────────
 
 /// Template trait for a single inbound DSP negotiation protocol lifecycle step.
 ///
@@ -114,8 +111,6 @@ pub(super) trait NegotiationProtocolStep: Send + Sync + 'static {
         mate: &Mates,
     ) -> Outcome<NegotiationProcessView>;
 }
-
-// Shared helpers for continuation steps ────────────────────────────────────
 
 /// Build the continuation context by verifying the process identified by `id` exists and
 /// belongs to the calling peer.

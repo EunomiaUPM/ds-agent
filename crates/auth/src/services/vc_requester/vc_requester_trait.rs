@@ -25,15 +25,16 @@ use ymir::types::gnap::grant_request::interact::InteractStart;
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::oauth::UserInfo;
 
+/// Client side of GNAP towards an authority: building, sending and reading credential requests.
+#[mockall::automock]
 #[async_trait]
 pub trait VcRequesterTrait: Send + Sync + 'static {
-    fn build_grant_plan(
-        &self,
-        user_info: &UserInfo,
-        payload: ReachAuthority,
-    ) -> grant::Plan;
+    fn build_grant_plan(&self, user_info: &UserInfo, payload: ReachAuthority) -> grant::Plan;
+    /// Interaction started the way the request asks, such as a redirect.
     fn build_interaction_plan(&self, id: &str, start: InteractStart) -> interaction::Plan;
+    /// Presentation the authority asks for at `uri`.
     fn build_verification_plan(&self, uri: &str, id: &str) -> Outcome<verification::Plan>;
+    /// Participant record of the authority once the credential is issued.
     fn build_authority_plan(&self, grant: &grant::Model) -> participant::Plan;
     fn build_auth_relation(
         &self,
@@ -45,6 +46,7 @@ pub trait VcRequesterTrait: Send + Sync + 'static {
         grant: &grant::Model,
         interaction: &interaction::Model,
     ) -> Outcome<GrantResponse>;
+    /// Updates grant and interaction from the authority's answer and says what to do next.
     fn manage_grant_resp(
         &self,
         response: GrantResponse,

@@ -38,6 +38,7 @@ use ymir::services::verifier::VerifierTrait;
 use ymir::services::wallet::WalletTrait;
 use ymir::services::{HasIssuer, HasVerifier, HasWallet};
 
+/// Every auth service of the agent wired together; implements all the capability modules.
 pub struct AuthCore {
     vc_requester: Arc<dyn VcRequesterTrait>,
     peer_connector: Arc<dyn PeerConnectorTrait>,
@@ -78,8 +79,6 @@ impl AuthCore {
         }
     }
 }
-
-// ========================================== SERVICES =============================================
 
 impl HasPeerConnector for AuthCore {
     fn peer_connector(&self) -> Arc<dyn PeerConnectorTrait> {
@@ -144,7 +143,6 @@ impl HasIssuer for AuthCore {
     }
 }
 
-// ========================================== MODULES ==============================================
 impl PeerConnectorModule for AuthCore {}
 impl ParticipantModule for AuthCore {}
 impl VcRequesterModule for AuthCore {}
@@ -155,5 +153,4 @@ impl VerifierModule for AuthCore {}
 impl GateKeeperModule for AuthCore {}
 impl WalletModuleTrait for AuthCore {}
 
-// ======================================== ORCHESTATOR ============================================
 impl AuthOrchestratorTrait for AuthCore {}

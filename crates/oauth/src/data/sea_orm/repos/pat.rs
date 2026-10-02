@@ -33,7 +33,7 @@ use crate::data::sea_orm::orm::pat as orm;
 use crate::entities::pat::PersonalAccessToken;
 use crate::entities::query::{Page, PatFilter, Sort};
 
-pub(crate) struct SeaOrmPatRepository {
+pub struct SeaOrmPatRepository {
     db: Arc<DatabaseConnection>,
 }
 

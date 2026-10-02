@@ -77,6 +77,7 @@ pub struct PolicyTemplateLoader {
 }
 
 impl PolicyTemplateLoader {
+    /// Loads every template file in `folder` into `tenant`.
     pub fn new(
         service: Arc<dyn PolicyTemplateServiceTrait>,
         tenant: String,

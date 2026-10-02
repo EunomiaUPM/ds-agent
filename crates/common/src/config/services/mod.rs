@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! One config type per agent, with its accessor trait.
+
 mod catalog;
 mod common;
 mod contracts;

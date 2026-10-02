@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Field repository.
+
 use std::sync::Arc;
 
 use crate::data::repo::dataplane_field::{DataplaneFieldRepoErrors, DataplaneFieldRepoTrait};
@@ -36,6 +38,7 @@ impl DataplaneFieldRepoForSql {
         Self { db }
     }
 
+    /// Same as `new`, for callers that hold the connection by value.
     pub fn new_with_raw_db(db: DatabaseConnection) -> Self {
         Self { db: Arc::new(db) }
     }

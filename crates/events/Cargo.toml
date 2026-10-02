@@ -35,3 +35,6 @@ hmac = "0.12"
 futures-util = { workspace = true }
 url = { workspace = true }
 bytes = { workspace = true }
+
+[dev-dependencies]
+regex = { workspace = true }

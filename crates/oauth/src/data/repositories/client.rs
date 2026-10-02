@@ -15,15 +15,19 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! OAuth clients.
+
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 use crate::entities::client::Client;
 use crate::entities::query::{ClientFilter, Page, Sort};
 
+/// Persistence of OAuth clients.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait ClientRepository: Send + Sync {
+    /// Page of clients matching the filter.
     async fn get_all(
         &self,
         filter: &ClientFilter,
@@ -31,18 +35,22 @@ pub trait ClientRepository: Send + Sync {
         sort: &Sort,
     ) -> Outcome<Vec<Client>>;
     async fn count(&self, filter: &ClientFilter) -> Outcome<u64>;
+    /// `tenant_id` of `None` searches every tenant.
     async fn get_by_id(
         &self,
         tenant_id: Option<String>,
         client_id: &str,
     ) -> Outcome<Option<Client>>;
+    /// Clients of the tenant found among `client_ids`.
     async fn get_batch(&self, tenant_id: &str, client_ids: &[String]) -> Outcome<Vec<Client>>;
+    /// Lookup across tenants, used when a client authenticates.
     async fn get_by_client_id(&self, client_id: &str) -> Outcome<Option<Client>>;
     async fn create(&self, client: &Client) -> Outcome<Client>;
     /// Returns the tenant of the removed client.
     async fn delete(&self, tenant_id: Option<String>, client_id: &str) -> Outcome<String>;
 }
 
+/// Failures of the client repository, mapped onto `Errors`.
 #[derive(Debug, Error)]
 pub enum ClientRepositoryError {
     #[error("client not found")]

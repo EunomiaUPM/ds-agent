@@ -18,6 +18,7 @@
 #[async_trait::async_trait]
 pub trait FacadeTrait: Send + Sync {}
 
+#[derive(Default)]
 pub struct FacadeService {}
 
 impl FacadeService {

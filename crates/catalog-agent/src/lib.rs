@@ -15,20 +15,35 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Catalog agent: DCAT 3 catalogs, datasets, distributions, data services and ODRL policies,
+//! served to peers over the DSP catalog protocol and to the owner through a management API.
+//!
+//! It also mounts the connector, keeps cached copies of peer catalogs and builds policies from
+//! templates. [`setup::CatalogAgentModule`] composes it into a larger process and
+//! [`setup::CatalogAgentBoot`] runs it as its own service. Other crates get its migrations,
+//! repository trait and main DTOs from the root; its events use the `catalog:` prefix.
+//!
+//! Modules: [`entities`], [`services`], [`data`], [`cache`] (Redis), [`grpc`], [`http`],
+//! [`protocols`] (DSP), [`facades`], [`setup`].
+
 #![allow(unused)]
 pub mod cache;
 pub mod data;
 pub mod entities;
-pub(crate) mod facades;
+pub mod facades;
 pub mod grpc;
-pub(crate) mod http;
-pub(crate) mod protocols;
+pub mod http;
+pub mod protocols;
 pub mod services;
 pub mod setup;
 
+/// Service id used in logs and telemetry.
 pub const SERVICE_NAME: &str = "catalog-agent";
+/// Name shown in the boot banner.
 pub const SERVICE_BIG_NAME: &str = "Catalog Agent";
+/// Domain name of the catalog events.
 pub const EVENT_DOMAIN: &str = "catalog";
+/// Topic prefix of the catalog events.
 pub const EVENT_PREFIX: &str = "catalog:";
 
 pub use data::migrations::get_catalog_migrations;

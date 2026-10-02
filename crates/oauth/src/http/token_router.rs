@@ -37,14 +37,14 @@ use common::auth::AccessScope;
 use common::auth::http::AuthHttpMiddleware;
 
 #[derive(Clone)]
-pub(crate) struct TokenRouter {
+pub struct TokenRouter {
     token_svc: Arc<dyn TokenServiceTrait>,
     user_svc: Arc<dyn UserServiceTrait>,
     oidc_config: OpenIdConfiguration,
 }
 
 impl TokenRouter {
-    pub(crate) fn new(
+    pub fn new(
         token_svc: Arc<dyn TokenServiceTrait>,
         user_svc: Arc<dyn UserServiceTrait>,
         issuer: impl Into<String>,
@@ -57,7 +57,7 @@ impl TokenRouter {
         }
     }
 
-    pub(crate) fn router(self) -> Router {
+    pub fn router(self) -> Router {
         Router::new()
             .route(
                 "/authorize",

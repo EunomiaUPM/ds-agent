@@ -19,7 +19,7 @@ use serde_json::Value;
 
 /// Evaluate a jq expression against a JSON value. Returns the first output, or `None` on
 /// parse/compile/runtime error (warnings are emitted via `tracing`).
-pub(crate) fn run_jq(expr: &str, value: Value) -> Option<Value> {
+pub fn run_jq(expr: &str, value: Value) -> Option<Value> {
     use jaq_interpret::{Ctx, FilterT, ParseCtx, RcIter, Val};
 
     let (f, errs) = jaq_parse::parse(expr, jaq_parse::main());

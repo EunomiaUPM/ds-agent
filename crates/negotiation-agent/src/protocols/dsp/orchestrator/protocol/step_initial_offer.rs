@@ -27,7 +27,6 @@ use crate::services::negotiation_process::views::NegotiationProcessView;
 use std::sync::Arc;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
-// InitialProviderOfferStep ─────────────────────────────────────────────────
 
 /// Handles an inbound `ContractOfferMessage` that initiates a new negotiation
 /// process (Provider - Consumer, first message of the offer flow).

@@ -17,8 +17,10 @@
 
 use crate::config::types::cache::{CacheConfig, CacheType};
 
+/// Access to the cache settings of a config.
 pub trait CacheConfigTrait {
     fn cache_config(&self) -> &CacheConfig;
+    /// Redis URL with credentials; only meaningful when `cache_type` is Redis.
     fn get_full_cache_url(&self) -> String {
         match self.cache_config().cache_type {
             CacheType::Redis => {

@@ -15,8 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Default version document, with DSP mounted at `/dsp/current`.
+
 use crate::well_known::dspace_version::WellKnownDSpaceVersionTrait;
 
+/// Version document of this agent, served at `/dsp/current`.
 #[derive(Clone)]
 pub struct WellKnownDSpaceVersionService {}
 

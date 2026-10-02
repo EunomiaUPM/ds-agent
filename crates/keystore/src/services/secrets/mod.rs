@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Secret store.
+
 pub mod service;
 pub mod views;
 
@@ -27,12 +29,16 @@ use crate::entities::version::Version;
 use common::auth::AccessScope;
 use ymir::errors::Outcome;
 
+/// Tenant-scoped secrets: credentials connectors and services resolve at runtime.
 #[async_trait::async_trait]
 pub trait SecretStore: Send + Sync {
+    /// Stores a new secret in the tenant resolved from the scope.
     async fn create(&self, scope: &AccessScope, cmd: &NewSecretCommand) -> Outcome<SecretEntry>;
 
+    /// 404 when the key does not exist for the caller.
     async fn read(&self, scope: &AccessScope, key: &Key) -> Outcome<SecretEntry>;
 
+    /// Replaces the value; fails when `expected_version` is stale.
     async fn update(
         &self,
         scope: &AccessScope,
@@ -42,10 +48,13 @@ pub trait SecretStore: Send + Sync {
 
     async fn delete(&self, scope: &AccessScope, key: &Key) -> Outcome<()>;
 
+    /// Secrets under the filter's prefix.
     async fn list(&self, scope: &AccessScope, filter: &PrefixFilter) -> Outcome<Vec<SecretEntry>>;
 
+    /// Secrets found among `keys`; missing ones are left out.
     async fn batch(&self, scope: &AccessScope, keys: &[Key]) -> Outcome<Vec<SecretEntry>>;
 
+    /// Creates the secret or overwrites it whatever its version, in the acting tenant.
     async fn upsert(&self, scope: &AccessScope, key: &Key, value: SecretValue) -> Outcome<()>;
 
     async fn list_by_prefix(

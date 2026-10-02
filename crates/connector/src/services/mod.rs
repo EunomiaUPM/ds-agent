@@ -15,5 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Template and instance use cases.
+
 pub mod connector_instance;
 pub mod connector_template;

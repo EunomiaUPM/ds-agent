@@ -15,8 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Policy templates and their parameters.
+
 pub mod types;
-pub(crate) mod validator;
+pub mod validator;
 
 use crate::data::entities::policy_template;
 use crate::data::entities::policy_template::{Model, NewPolicyTemplateModel};
@@ -27,6 +29,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use ymir::errors::{Errors, Outcome};
 
+/// Default value of a parameter: a string or a number.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum PolicyTemplateAllowedDefaultValues {
@@ -34,6 +37,7 @@ pub enum PolicyTemplateAllowedDefaultValues {
     Numerable(f32),
 }
 
+/// Policy template as returned by the API: ODRL content with `$parameter` placeholders.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PolicyTemplateDto {
@@ -51,6 +55,7 @@ pub struct PolicyTemplateDto {
     pub parameters: HashMap<String, ParameterDefinition>,
 }
 
+/// New policy template or new version of one.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -75,6 +80,7 @@ pub struct NewPolicyTemplateDto {
 }
 
 impl NewPolicyTemplateDto {
+    /// Row for `tenant_id`; fails when content or parameters cannot be serialized.
     pub fn into_model(self, tenant_id: String) -> Outcome<NewPolicyTemplateModel> {
         Ok(NewPolicyTemplateModel {
             id: self.id,

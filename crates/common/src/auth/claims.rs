@@ -20,6 +20,7 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Role carried in the token; decides what a caller may read and write.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum RbacRole {

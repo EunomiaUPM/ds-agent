@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Modules grouped into one module.
+
 use crate::boot::seeders::BootSeeder;
 use crate::boot::workers::BackgroundWorker;
 use crate::module_loader::service_module::ServiceModuleTrait;
@@ -23,9 +25,8 @@ use axum::Router;
 use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
 
-/// A named collection of modules that is itself a [`ServiceModuleTrait`] — the
-/// composite that makes composition recursive: groups can contain groups.
-/// An optional `prefix` nests every child's HTTP surface under it.
+/// Named collection of modules that is itself a module, so groups nest. An optional `prefix`
+/// nests every child's HTTP surface under it.
 pub struct ModuleGroup {
     name: &'static str,
     prefix: Option<String>,
@@ -33,6 +34,7 @@ pub struct ModuleGroup {
 }
 
 impl ModuleGroup {
+    /// Empty group; `name` shows in logs.
     pub fn new(name: &'static str) -> Self {
         Self {
             name,

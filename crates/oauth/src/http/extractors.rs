@@ -22,7 +22,7 @@ use base64::Engine;
 use serde::de::DeserializeOwned;
 
 /// Flexible extractor supporting both application/x-www-form-urlencoded and application/json.
-pub(crate) struct OAuthPayload<T>(pub T);
+pub struct OAuthPayload<T>(pub T);
 
 impl<T, S> FromRequest<S> for OAuthPayload<T>
 where
@@ -56,7 +56,7 @@ where
 }
 
 /// Extracted client credentials from either HTTP Basic auth or request body.
-pub(crate) struct ClientAuth {
+pub struct ClientAuth {
     pub client_id: String,
     pub client_secret: String,
 }

@@ -36,8 +36,6 @@ use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientExt;
 use ymir::utils::http_client;
 
-// RpcEventFinalizedStep ────────────────────────────────────────────────────
-
 /// Sends a `ContractNegotiationEventMessage` with event type `FINALIZED`.
 ///
 /// Signals that the negotiation is complete.  The existing agreement record is

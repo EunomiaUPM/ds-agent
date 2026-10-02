@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The proxy and its routes.
+
 use crate::data::factory_trait::DataplaneRepoTrait;
 use crate::data::sea_orm::orm::transfer_event::{LogLevel, NewTransferEvent};
 use crate::engine::dataplane_drivers::proxy::http as http_proxy;
@@ -115,6 +117,7 @@ struct OutboundRequest {
     body: Bytes,
 }
 
+/// HTTP data proxy: forwards `/{data_plane_id}/...` to the back end of that process.
 #[derive(Clone)]
 pub struct TestingHTTPProxy {
     client: Arc<ClientService>,
@@ -130,6 +133,7 @@ impl FromRef<TestingHTTPProxy> for Arc<dyn DataplaneTransferServiceTrait> {
 }
 
 impl TestingHTTPProxy {
+    /// Accepts self-signed upstream certificates and times out dead upstreams.
     pub fn new(
         dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,
         repo: Arc<dyn DataplaneRepoTrait>,

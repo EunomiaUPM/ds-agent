@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Data services.
+
 use crate::data::entities::dataservice;
 use crate::data::entities::dataservice::{EditDataServiceModel, Model, NewDataServiceModel};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 
+/// Data service as returned by the API.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DataServiceDto {
@@ -27,6 +30,7 @@ pub struct DataServiceDto {
     pub inner: dataservice::Model,
 }
 
+/// New data service.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -59,6 +63,7 @@ impl Default for NewDataServiceDto {
     }
 }
 
+/// Partial data service update.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -72,6 +77,7 @@ pub struct EditDataServiceDto {
 }
 
 impl NewDataServiceDto {
+    /// Row for `tenant_id`.
     pub fn into_model(self, tenant_id: String) -> NewDataServiceModel {
         NewDataServiceModel {
             id: self.id,

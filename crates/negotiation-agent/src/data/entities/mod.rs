@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! SeaORM table models.
+
 pub mod agreement;
 pub mod negotiation_message;
 pub mod negotiation_process;

@@ -17,6 +17,7 @@
 
 use crate::config::services::CommonConfig;
 
+/// Access to the common section of a config.
 pub trait CommonConfigTrait {
     fn common(&self) -> &CommonConfig;
 }

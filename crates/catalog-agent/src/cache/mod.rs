@@ -15,7 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod cache_redis;
+//! Caches of catalog entities and peer catalogs: Redis, or none with `cache_type: Noop`.
+
+pub mod cache_noop;
+pub mod cache_redis;
 pub mod cache_traits;
-pub(crate) mod factory_redis;
+pub mod factory_noop;
+pub mod factory_redis;
 pub mod factory_trait;

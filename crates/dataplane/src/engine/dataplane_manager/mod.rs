@@ -22,18 +22,19 @@ use std::sync::Arc;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 
-pub(crate) mod dataplane_commands;
-pub(crate) mod dataplane_context;
-pub(crate) mod dataplane_driver_factory;
-mod dataplane_handlers_consumer_pull;
-mod dataplane_handlers_consumer_push;
-mod dataplane_handlers_provider_pull;
-mod dataplane_handlers_provider_push;
-mod dataplane_handlers_strategy;
-pub(crate) mod dataplane_manager;
-pub(crate) mod dataplane_proxy;
-pub(crate) mod dataplane_runtime;
+pub mod dataplane_commands;
+pub mod dataplane_context;
+pub mod dataplane_driver_factory;
+pub mod dataplane_handlers_consumer_pull;
+pub mod dataplane_handlers_consumer_push;
+pub mod dataplane_handlers_provider_pull;
+pub mod dataplane_handlers_provider_push;
+pub mod dataplane_handlers_strategy;
+pub mod dataplane_manager;
+pub mod dataplane_proxy;
+pub mod dataplane_runtime;
 
+/// Where and how to reach the data: endpoint, its type and optional authorization.
 #[derive(Debug, Clone)]
 pub struct DataplaneAddress {
     pub endpoint_type: String,
@@ -99,7 +100,7 @@ impl Into<DataAddress> for DataplaneAddress {
     }
 }
 
-pub(crate) fn conform_dataplane_forward_url(config: Arc<TransferConfig>, url: String) -> String {
+pub fn conform_dataplane_forward_url(config: Arc<TransferConfig>, url: String) -> String {
     let base = config.common().get_host(HostType::Http);
     format!("{}{}", base, url)
 }

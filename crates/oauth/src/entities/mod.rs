@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Users, clients, tokens and commands.
+
 pub mod auth_code;
 pub mod client;
 pub mod commands;

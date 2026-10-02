@@ -31,6 +31,7 @@ pub struct EventFilter {
 }
 
 impl EventFilter {
+    /// Parsed `topic` pattern; fails on an invalid pattern.
     pub fn topic_pattern(&self) -> Outcome<Option<TopicPattern>> {
         self.topic
             .as_deref()
@@ -49,6 +50,7 @@ impl QueryFilter for EventFilter {
     }
 }
 
+/// Subscription listing filter; `active` accepts `true`/`false` or `1`/`0`.
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct SubscriptionFilter {
     #[serde(default, deserialize_with = "deserialize_opt_bool_from_str_or_bool")]
@@ -61,6 +63,7 @@ impl QueryFilter for SubscriptionFilter {
     }
 }
 
+/// Dead letter listing filter by status, such as `Unresolved`.
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct DeadLetterFilter {
     pub status: Option<String>,

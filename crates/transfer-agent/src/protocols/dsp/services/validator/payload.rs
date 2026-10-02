@@ -26,6 +26,7 @@ use ymir::errors::{Errors, Outcome};
 use crate::entities::protocol::TransferRole;
 use crate::protocols::dsp::entities::state_metadata::TransferDSPStateAttribute;
 
+/// Format checks on single payload values.
 pub struct PayloadValidator;
 
 impl PayloadValidator {
@@ -103,57 +104,5 @@ impl PayloadValidator {
     // TODO: stub until the peer/token store is available.
     pub fn auth() -> Outcome<()> {
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use PayloadValidator as V;
-
-    #[test]
-    fn uri_pid_correlation() {
-        // provider role → matches provider pid
-        assert!(
-            V::uri_and_pid(
-                "urn:uuid:pp",
-                None,
-                Some("urn:uuid:pp"),
-                &TransferRole::Provider
-            )
-            .is_ok()
-        );
-        // mismatch
-        assert!(
-            V::uri_and_pid(
-                "urn:uuid:pp",
-                None,
-                Some("urn:uuid:xx"),
-                &TransferRole::Provider
-            )
-            .is_err()
-        );
-        // missing the role's pid
-        assert!(V::uri_and_pid("urn:uuid:pp", None, None, &TransferRole::Provider).is_err());
-    }
-
-    #[test]
-    fn pid_correlation() {
-        assert!(V::correlation(Some("c"), Some("p"), Some("c"), Some("p")).is_ok());
-        assert!(V::correlation(Some("c"), Some("p"), Some("c"), Some("x")).is_err());
-        assert!(V::correlation(None, None, None, None).is_ok());
-    }
-
-    #[test]
-    fn data_address_rule() {
-        use TransferDSPStateAttribute::*;
-        // provider first start with a data address → fine
-        assert!(V::data_address_in_start(true, &TransferRole::Provider, &OnRequest).is_ok());
-        // consumer with a data address on a non-first start → rejected
-        assert!(V::data_address_in_start(true, &TransferRole::Consumer, &ByProvider).is_err());
-        // consumer on the first start → fine
-        assert!(V::data_address_in_start(true, &TransferRole::Consumer, &OnRequest).is_ok());
-        // no data address → always fine
-        assert!(V::data_address_in_start(false, &TransferRole::Consumer, &ByProvider).is_ok());
     }
 }

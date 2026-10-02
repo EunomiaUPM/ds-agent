@@ -31,6 +31,7 @@ use crate::config::services::{
 };
 use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
 
+/// The whole config file of the monolith, one optional section per agent.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ApplicationConfig {
     monolith: Option<MonolithConfig>,
@@ -42,6 +43,7 @@ pub struct ApplicationConfig {
 }
 
 impl ApplicationConfig {
+    /// Config with only the monolith section, for tests and tools.
     pub fn new(common_config: CommonConfig) -> Self {
         Self {
             monolith: Some(MonolithConfig::new(common_config)),
@@ -55,6 +57,7 @@ impl ApplicationConfig {
 }
 
 impl ApplicationConfig {
+    /// Whether the catalog is backed by a datahub.
     pub fn is_mono_catalog_datahub(&self) -> bool {
         self.catalog
             .as_ref()
@@ -64,28 +67,35 @@ impl ApplicationConfig {
 }
 
 impl ApplicationConfig {
+    /// Panics without an `ssi_auth` section.
     pub fn ssi_auth(&self) -> &SsiAuthConfig {
         self.ssi_auth
             .as_ref()
             .expect("Missing SSI Authentication Config")
     }
+    /// Panics without a `transfer` section.
     pub fn transfer(&self) -> &TransferConfig {
         self.transfer.as_ref().expect("Missing Transfer Config")
     }
+    /// Panics without a `contracts` section.
     pub fn contracts(&self) -> &ContractsConfig {
         self.contracts.as_ref().expect("Missing Contracts Config")
     }
+    /// Panics without a `catalog` section.
     pub fn catalog(&self) -> &CatalogConfig {
         self.catalog.as_ref().expect("Missing Catalog Config")
     }
+    /// Panics without a `gateway` section.
     pub fn gateway(&self) -> &GatewayConfig {
         self.gateway.as_ref().expect("Missing Gateway Config")
     }
 
+    /// Panics without a `monolith` section.
     pub fn monolith(&self) -> &MonolithConfig {
         self.monolith.as_ref().expect("Missing Monolith Config")
     }
 
+    /// Reads and parses the YAML file; a relative path is resolved from the `common` crate.
     pub fn load(env_file: &str) -> Outcome<Self> {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(env_file);
         debug!("Config file path: {}", path.display());

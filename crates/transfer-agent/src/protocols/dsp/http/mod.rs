@@ -15,6 +15,4 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod dsp;
-#[cfg(test)]
-mod tests;
+pub mod dsp;

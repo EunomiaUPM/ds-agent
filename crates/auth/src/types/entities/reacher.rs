@@ -20,6 +20,7 @@ use ymir::types::gnap::grant_request::interact::{InteractAction, InteractStart};
 use ymir::types::participants::ParticipantVisibility;
 use ymir::types::vcs::VcTypeConfig;
 
+/// Credential request to an authority; `auto` skips the manual steps.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReachAuthority {
     pub id: String,
@@ -31,6 +32,7 @@ pub struct ReachAuthority {
     pub auto: Option<bool>,
 }
 
+/// Onboarding request to a peer for `actions`; `auto` skips the manual steps.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReachProvider {
     pub id: String,

@@ -33,10 +33,12 @@ use ymir::types::listing::{GrantSort, SentGrantListFilter};
 use ymir::types::verification::VerificationStatus;
 use ymir::types::wallet::OidcUri;
 
+/// Onboarding with a peer through GNAP, presenting our credentials over OID4VP when asked.
 #[async_trait]
 pub trait PeerConnectorModule:
     HasPeerConnector + HasRepo + HasCallback + HasWallet + Send + Sync + 'static
 {
+    /// Sends a grant request to the peer and follows its answer.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn req_peer_connection(
         &self,
@@ -73,6 +75,7 @@ pub trait PeerConnectorModule:
         self.manage_what_resp(grant, what_response).await
     }
 
+    /// Handles the peer's callback: continues on approval, marks the grant rejected otherwise.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_interaction_finish(&self, id: String, payload: CallbackBody) -> Outcome<()> {
         match payload {
@@ -81,7 +84,7 @@ pub trait PeerConnectorModule:
         }
     }
 
-    // =================================== GETTERS FOR FRONTEND ====================================
+    /// Page of grants sent to peers, visible to the caller.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all(
         &self,
@@ -127,6 +130,7 @@ pub trait PeerConnectorModule:
         Ok(grant)
     }
 
+    /// The grant with its interaction and verification.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_by_id_with_details(&self, scope: &AccessScope, id: String) -> Outcome<Value> {
         let grant = self.get_by_id(scope, id.clone()).await?;
@@ -141,6 +145,7 @@ pub trait PeerConnectorModule:
         }))
     }
 
+    /// Answers a pending presentation request through the wallet.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn process_oid4vp(
         &self,
@@ -162,7 +167,7 @@ pub trait PeerConnectorModule:
         Ok(())
     }
 
-    // ========================================= INTERNALS =========================================
+    /// Stores the peer once the grant completes, or starts the presentation it asks for.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_what_resp(
         &self,
@@ -180,6 +185,7 @@ pub trait PeerConnectorModule:
         }
     }
 
+    /// Presents through the wallet and records whether it was verified.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_oid4vp(&self, mut verification: verification::Model, uri: &str) -> Outcome<()> {
         match self.wallet().process_oid4vp(&uri).await {
@@ -193,6 +199,7 @@ pub trait PeerConnectorModule:
         Ok(())
     }
 
+    /// Records the presentation request; presents right away when the grant is automatic.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_auto_oid4vp(&self, grant: &grant::Model, uri: &str) -> Outcome<()> {
         let verification =
@@ -207,6 +214,7 @@ pub trait PeerConnectorModule:
         }
     }
 
+    /// Checks the callback, sends the GNAP continuation and follows its answer.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn req_peer_continuation(
         &self,

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Dataset repository.
+
 use crate::data::entities::dataset;
 use crate::data::entities::dataset::{EditDatasetModel, NewDatasetModel};
 use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
@@ -24,9 +26,11 @@ use ymir::errors::Outcome;
 use crate::entities::filters::DatasetFilter;
 use common::paginated_spec::{Page, Sort};
 
+/// Persistence of datasets; `tenant_id` of `None` reaches every tenant.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DatasetRepositoryTrait: Send + Sync {
+    /// Page of datasets matching the filters, with the total.
     async fn get_all_datasets(
         &self,
         filters: &DatasetFilter,
@@ -38,6 +42,7 @@ pub trait DatasetRepositoryTrait: Send + Sync {
         tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<dataset::Model>>;
+    /// Datasets of the catalog.
     async fn get_datasets_by_catalog_id(
         &self,
         tenant_id: Option<String>,

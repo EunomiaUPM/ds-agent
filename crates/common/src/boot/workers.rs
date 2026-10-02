@@ -27,6 +27,7 @@ use ymir::errors::{Errors, Outcome};
 /// A task that runs for the whole process lifetime until its token is cancelled.
 #[async_trait::async_trait]
 pub trait BackgroundWorker: Send + 'static {
+    /// Name shown in logs and in the error when the worker stops on its own.
     fn name(&self) -> &'static str;
 
     /// Consumes the worker; returning before cancellation means it stopped on its own.
@@ -55,6 +56,7 @@ impl WorkerSet {
         }
     }
 
+    /// Starts the worker with a clone of the shared token.
     pub fn spawn(&mut self, worker: Box<dyn BackgroundWorker>) {
         let name = worker.name();
         tracing::info!(worker = name, "Spawning background worker");

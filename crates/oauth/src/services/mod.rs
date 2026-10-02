@@ -15,9 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Token issuing and user, client and PAT management.
+
 pub mod admin_seeder;
 pub mod client_service;
-pub(crate) mod password;
+pub mod password;
 pub mod pat_service;
 pub mod token_service;
 pub mod user_service;

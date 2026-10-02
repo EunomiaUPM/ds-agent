@@ -20,6 +20,7 @@ use common::config::types::roles::RoleConfig;
 use urn::Urn;
 use ymir::errors::Outcome;
 
+#[derive(Default)]
 pub struct ValidationHelperService {}
 impl ValidationHelperService {
     pub fn new() -> Self {

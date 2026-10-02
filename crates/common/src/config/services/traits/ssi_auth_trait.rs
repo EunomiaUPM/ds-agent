@@ -21,6 +21,7 @@ use crate::config::types::traits::{
     CommonConfigTrait, ConfigLoader, EntityClientTrait, GaiaConfigTrait,
 };
 
+/// What the auth agent reads from its config.
 pub trait SsiAuthConfigTrait:
     ConfigLoader
     + CommonConfigTrait
@@ -30,5 +31,6 @@ pub trait SsiAuthConfigTrait:
     + EntityClientTrait
     + GaiaConfigTrait
 {
+    /// Whether Gaia-X self-attestation is configured.
     fn is_gaia_active(&self) -> bool;
 }

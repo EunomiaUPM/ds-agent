@@ -78,10 +78,6 @@ impl OrchestrationPersistenceForProtocol {
         }
     }
 
-    // =========================================================================
-    // Public API
-    // =========================================================================
-
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     pub async fn get_catalog(&self, scope: &AccessScope) -> Outcome<Catalog> {
         // 1. Main catalog
@@ -118,9 +114,6 @@ impl OrchestrationPersistenceForProtocol {
         Ok(dataset)
     }
 
-    // =========================================================================
-    // Builders
-    // =========================================================================
     async fn build_sub_catalogs(
         &self,
         scope: &AccessScope,
@@ -239,10 +232,6 @@ impl OrchestrationPersistenceForProtocol {
         Ok(distributions)
     }
 
-    // =========================================================================
-    // FETCHERS
-    // =========================================================================
-
     async fn fetch_main_catalog_dto(&self, scope: &AccessScope) -> Outcome<CatalogDto> {
         match self
             .catalog_entities_service
@@ -280,10 +269,6 @@ impl OrchestrationPersistenceForProtocol {
             .get_dataset_by_id(scope, dataset_id)
             .await
     }
-
-    // =========================================================================
-    // MAPPERS from DTOs to DCAT representations
-    // =========================================================================
 
     fn map_main_catalog(
         &self,

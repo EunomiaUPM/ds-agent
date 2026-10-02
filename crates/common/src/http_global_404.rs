@@ -15,9 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Fallback handler for unknown routes, answering 404 in the common error format.
+//!
+//! The boot sets it as the fallback of the composed router; modules do not mount it.
+
 use crate::errors::CommonErrors;
 use axum::response::IntoResponse;
 
+/// Logs the unknown route and answers 404.
 pub async fn global_handler_404(uri: axum::http::Uri) -> impl IntoResponse {
     tracing::info!("404 Not Found: {}", uri);
     CommonErrors::missing_resource_new(&uri.to_string(), "Route not found or Method not allowed")

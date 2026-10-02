@@ -20,7 +20,7 @@ use common::well_known::rpc::WellKnownRPCRequest;
 use urn::Urn;
 use ymir::errors::Outcome;
 
-pub(crate) mod well_known_rpc_facade;
+pub mod well_known_rpc_facade;
 
 #[async_trait::async_trait]
 #[allow(unused)]

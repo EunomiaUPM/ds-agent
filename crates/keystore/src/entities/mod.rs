@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Keys, entries, versions and commands.
+
 pub mod commands;
 pub mod entry;
 pub mod filters;

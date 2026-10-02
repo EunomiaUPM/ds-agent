@@ -15,8 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The OAuth server as a module, plus its admin seeder.
+
 mod composition;
-pub(crate) mod context;
+pub mod context;
 mod seeders;
 
 pub use composition::OAuthModule;

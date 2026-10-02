@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Distributions table.
+
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
 
+/// `catalog_distributions` row: one format of a dataset, served by a data service.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "catalog_distributions")]
 #[serde(rename_all = "camelCase")]
@@ -110,6 +113,7 @@ impl From<&NewDistributionModel> for ActiveModel {
     }
 }
 
+/// Partial distribution update; absent fields stay as they are.
 pub struct EditDistributionModel {
     pub dct_title: Option<String>,
     pub dct_description: Option<String>,

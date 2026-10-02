@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The event bus.
+
 pub mod dispatcher;
 pub mod policy;
 pub mod service;
@@ -34,18 +36,22 @@ use crate::entities::envelope::EventEnvelope;
 use crate::entities::event::Event;
 use ymir::errors::Outcome;
 
-// Core trait defining event publishing and in-process broadcast subscription.
+/// Publishing envelopes and listening to them in-process.
 #[async_trait]
 pub trait EventBusTrait: Send + Sync + 'static {
+    /// Stores the envelope, broadcasts it and starts a delivery per matching subscription.
     async fn publish(&self, envelope: EventEnvelope) -> Outcome<EventEnvelope>;
+    /// New receiver of every envelope published from now on.
     fn subscribe(&self) -> broadcast::Receiver<EventEnvelope>;
 }
 
-// Extension trait enabling publishing strongly-typed domain events directly.
+/// Publishing typed events and raw payloads.
 #[async_trait]
 pub trait EventPublisherTrait: Send + Sync {
+    /// Wraps the event in an envelope and publishes it.
     async fn publish_event<E: Event>(&self, event: E) -> Outcome<EventEnvelope>;
 
+    /// Publishes `payload` under `topic` for the tenant.
     async fn emit_payload(
         &self,
         tenant_id: &str,

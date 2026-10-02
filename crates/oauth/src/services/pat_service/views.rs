@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Response views of personal access tokens.
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -22,6 +24,7 @@ use uuid::Uuid;
 use crate::entities::pat::PersonalAccessToken;
 use crate::entities::role::RbacRole;
 
+/// Answer to a token creation; the only place the raw token appears.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreatePatResponse {
@@ -35,6 +38,7 @@ pub struct CreatePatResponse {
     pub created_at: DateTime<Utc>,
 }
 
+/// Token as listed, without its raw value.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PatView {

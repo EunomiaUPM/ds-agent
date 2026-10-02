@@ -21,14 +21,12 @@ use ymir::errors::{BadFormat, Errors, PetitionFailure};
 
 #[derive(Debug, Error)]
 pub enum DataplaneError {
-    // Transfer lifecycle ──────────────────────────────────────────────────
     #[error("Dataplane Error: Transfer not found: {transfer_process_id}")]
     TransferNotFound { transfer_process_id: String },
 
     #[error("Dataplane Error: Command '{command}' is not valid in the current context")]
     UnexpectedCommand { command: String },
 
-    // Driver / connector setup ────────────────────────────────────────────
     #[error("Dataplane Error: Connector instance is not available")]
     ConnectorNotAvailable,
 
@@ -50,7 +48,6 @@ pub enum DataplaneError {
     #[error("Dataplane Error: Required transfer context is missing: {detail}")]
     MissingTransferContext { detail: String },
 
-    // Authentication (outgoing auth calls) ────────────────────────────────
     #[error("Dataplane Error: Auth network error calling {url}: {reason}")]
     AuthNetworkError { url: String, reason: String },
 
@@ -64,7 +61,6 @@ pub enum DataplaneError {
     #[error("Dataplane Error: Failed to parse auth endpoint response from {url}: {reason}")]
     AuthResponseParseFailed { url: String, reason: String },
 
-    // Proxy HTTP ───────────────────────────────────────────────────────────
     #[error("Dataplane Error: Invalid HTTP header '{header}': {reason}")]
     InvalidHeaderValue { header: String, reason: String },
 
@@ -75,7 +71,6 @@ pub enum DataplaneError {
         reason: String,
     },
 
-    // PubSub ──────────────────────────────────────────────────────────────
     #[error("Dataplane Error: No connector available for pubsub operation '{operation}'")]
     PubSubConnectorNotAvailable { operation: String },
 
@@ -86,11 +81,9 @@ pub enum DataplaneError {
         reason: String,
     },
 
-    // State machine / serialization ────────────────────────────────────────
     #[error("Dataplane Error: Failed to serialize runtime state: {reason}")]
     RuntimeSerializationFailed { reason: String },
 
-    // Configuration ────────────────────────────────────────────────────────
     #[error("Dataplane Error: RoleConfig::NotDefined is not valid in dataplane context")]
     InvalidRoleConfig,
 }

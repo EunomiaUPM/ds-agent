@@ -23,6 +23,7 @@ use std::fmt;
 use std::str::FromStr;
 use ymir::errors::Errors;
 
+/// Who caused the current state, such as `BY_PROVIDER`.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum TransferDSPStateAttribute {
     #[serde(rename = "ON_REQUEST")]

@@ -15,11 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod commands;
-pub(crate) mod filters;
-pub(crate) mod ids;
-pub(crate) mod message_envelope;
+//! Protocol-neutral process fields.
+
+pub mod commands;
+pub mod filters;
+pub mod ids;
+pub mod message_envelope;
 pub mod protocol;
-pub(crate) mod transfer_message;
-pub(crate) mod transfer_process;
-pub(crate) mod transfer_process_identifier;
+pub mod transfer_message;
+pub mod transfer_process;
+pub mod transfer_process_identifier;

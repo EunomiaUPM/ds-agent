@@ -61,7 +61,7 @@ impl Default for Page {
 }
 
 impl Page {
-    /// Creates a new pagination request specification.
+    /// Cursor-based page; `page` stays unset.
     pub fn new(limit: u32, cursor: Option<String>) -> Self {
         Self {
             limit,
@@ -70,7 +70,7 @@ impl Page {
         }
     }
 
-    /// Creates an indexed pagination request specification.
+    /// Offset-based page; `page` is 1-based.
     pub fn new_indexed(limit: u32, page: Option<u32>) -> Self {
         Self {
             limit,
@@ -171,7 +171,6 @@ pub struct PaginationParams {
 }
 
 impl PaginationParams {
-    /// Creates a new page-indexed pagination parameter specification.
     pub fn new(limit: Option<u64>, page: Option<u64>) -> Self {
         Self { limit, page }
     }

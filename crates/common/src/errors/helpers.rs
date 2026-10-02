@@ -15,10 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! `MissingAction`, `BadFormat` and the 404 helpers.
+
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
+/// Step the caller must complete first, reported with a 412.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum MissingAction {
     Token,
@@ -29,6 +32,7 @@ pub enum MissingAction {
     Unknown,
 }
 
+/// Side that produced a malformed payload: what we sent or what we received.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BadFormat {
     Sent,

@@ -24,6 +24,7 @@ use crate::auth::claims::Claims;
 /// Port implemented by services capable of verifying bearer tokens and resolving claims.
 #[async_trait::async_trait]
 pub trait OauthTokenValidator: Send + Sync + 'static {
+    /// Verifies the bearer token and returns its claims; any failure is a 401.
     async fn validate_token(&self, token: &str) -> Outcome<Claims>;
 }
 

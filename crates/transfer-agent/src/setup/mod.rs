@@ -15,10 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The agent as a module and as a standalone binary.
+
 mod admin_module;
 mod boot;
 mod composition;
-pub(crate) mod context;
+pub mod context;
 mod ports;
 
 pub use boot::TransferBoot;

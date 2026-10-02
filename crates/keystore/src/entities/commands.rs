@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Create and update commands.
+
 use crate::entities::key::Key;
 use crate::entities::secret_value::SecretValue;
 use crate::entities::version::Version;
 use serde::{Deserialize, Serialize};
 
+/// New parameter; `tenant_id` is only honoured for admins.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewParameterCommand<T> {
     pub key: Key,
@@ -29,6 +32,7 @@ pub struct NewParameterCommand<T> {
     pub tenant_id: Option<String>,
 }
 
+/// Parameter update, rejected unless `expected_version` is the current one.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EditParameterCommand<T> {
@@ -37,6 +41,7 @@ pub struct EditParameterCommand<T> {
     pub description: Option<String>,
 }
 
+/// New secret; `tenant_id` is only honoured for admins.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewSecretCommand {
     pub key: Key,
@@ -46,6 +51,7 @@ pub struct NewSecretCommand {
     pub tenant_id: Option<String>,
 }
 
+/// Secret update, rejected unless `expected_version` is the current one.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EditSecretCommand {

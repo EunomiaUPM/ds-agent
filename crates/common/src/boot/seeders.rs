@@ -30,14 +30,18 @@ pub enum BootPhase {
     AfterServe,
 }
 
+/// One-off task run at every boot, in the phase it asks for.
 #[async_trait::async_trait]
 pub trait BootSeeder: Send + Sync {
+    /// Name shown in the boot logs.
     fn name(&self) -> &'static str;
 
+    /// `AfterServe` unless the seeder must run before anything listens.
     fn phase(&self) -> BootPhase {
         BootPhase::AfterServe
     }
 
+    /// Runs the task; an error aborts the boot.
     async fn seed(&self) -> Outcome<()>;
 }
 
@@ -47,6 +51,7 @@ pub struct RedisCacheFlush {
 }
 
 impl RedisCacheFlush {
+    /// `url` is the full Redis URL, credentials included.
     pub fn new(url: String) -> Self {
         Self { url }
     }

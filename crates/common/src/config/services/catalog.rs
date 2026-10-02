@@ -29,6 +29,7 @@ use crate::config::types::traits::{
 };
 use crate::config::types::DatahubConfig;
 
+/// `catalog` section: catalog agent config.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CatalogConfig {
     common: CommonConfig,

@@ -60,5 +60,5 @@ pub mod connector_instance;
 pub mod connector_template;
 pub mod filters;
 pub mod interaction;
-pub(crate) mod parameters;
+pub mod parameters;
 pub mod resource;

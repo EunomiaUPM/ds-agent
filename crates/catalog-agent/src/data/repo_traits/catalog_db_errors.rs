@@ -15,9 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Errors shared by the catalog repositories.
+
 use thiserror::Error;
 use ymir::errors::RepoIntoErrors;
 
+/// Failures of any catalog repository, mapped onto `Errors`.
 #[derive(Error, Debug)]
 pub enum CatalogAgentRepoErrors {
     #[error("Catalog Repo error: {0}")]
@@ -34,6 +37,7 @@ pub enum CatalogAgentRepoErrors {
     PolicyTemplatesRepoErrors(PolicyTemplatesRepoErrors),
 }
 
+/// Failures of the catalog repository.
 #[derive(Error, Debug)]
 pub enum CatalogRepoErrors {
     #[error("Catalog not found")]
@@ -48,6 +52,7 @@ pub enum CatalogRepoErrors {
     ErrorUpdatingCatalog(Box<dyn std::error::Error + Send + Sync>),
 }
 
+/// Failures of the data service repository.
 #[derive(Error, Debug)]
 pub enum DataServiceRepoErrors {
     #[error("DataService not found")]
@@ -62,6 +67,7 @@ pub enum DataServiceRepoErrors {
     ErrorUpdatingDataService(Box<dyn std::error::Error + Send + Sync>),
 }
 
+/// Failures of the dataset repository.
 #[derive(Error, Debug)]
 pub enum DatasetRepoErrors {
     #[error("Dataset not found")]
@@ -76,6 +82,7 @@ pub enum DatasetRepoErrors {
     ErrorUpdatingDataset(Box<dyn std::error::Error + Send + Sync>),
 }
 
+/// Failures of the distribution repository.
 #[derive(Error, Debug)]
 pub enum DistributionRepoErrors {
     #[error("Distribution not found")]
@@ -90,6 +97,7 @@ pub enum DistributionRepoErrors {
     ErrorUpdatingDistribution(Box<dyn std::error::Error + Send + Sync>),
 }
 
+/// Failures of the ODRL offer repository.
 #[derive(Error, Debug)]
 pub enum OdrlOfferRepoErrors {
     #[error("OdrlOffer not found")]
@@ -106,6 +114,7 @@ pub enum OdrlOfferRepoErrors {
     SomeOdrlOffersNotFound { missing_ids: String },
 }
 
+/// Failures of the policy template repository.
 #[derive(Error, Debug)]
 pub enum PolicyTemplatesRepoErrors {
     #[error("PolicyTemplate not found")]

@@ -20,62 +20,19 @@
 
 use crate::validation::violation::Violations;
 
+/// One pure check over a subject.
 pub trait Rule<S>: Send + Sync {
+    /// `Ok` or every violation found.
     fn check(&self, subject: &S) -> Result<(), Violations>;
 }
 
-/// Any function of the right shape is a rule, with no wrapper.
-///
-/// There is deliberately only one such impl: a second one over a different `Fn`
-/// signature cannot be proven disjoint and the compiler rejects it.
+/// Any function of the right shape is a rule. Only one such impl is possible: a second `Fn`
+/// signature cannot be proven disjoint.
 impl<S, F> Rule<S> for F
 where
     F: Fn(&S) -> Result<(), Violations> + Send + Sync,
 {
     fn check(&self, subject: &S) -> Result<(), Violations> {
         self(subject)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::validation::violation::{codes, violation};
-
-    struct Msg {
-        pid: Option<String>,
-    }
-
-    fn pid_required(m: &Msg) -> Result<(), Violations> {
-        match &m.pid {
-            Some(p) if !p.is_empty() => Ok(()),
-            _ => Err(violation("pid", codes::MISSING, "is required")),
-        }
-    }
-
-    #[test]
-    fn a_plain_function_is_a_rule() {
-        let rules: Vec<Box<dyn Rule<Msg>>> = vec![Box::new(pid_required)];
-        assert!(rules[0]
-            .check(&Msg {
-                pid: Some("x".into())
-            })
-            .is_ok());
-        assert!(rules[0].check(&Msg { pid: None }).is_err());
-    }
-
-    #[test]
-    fn a_closure_carrying_data_is_a_rule_too() {
-        let forbidden = "urn:uuid:bad".to_string();
-        let not_forbidden = move |m: &Msg| match &m.pid {
-            Some(p) if *p == forbidden => Err(violation("pid", codes::NOT_ALLOWED, "is denied")),
-            _ => Ok(()),
-        };
-        let rules: Vec<Box<dyn Rule<Msg>>> = vec![Box::new(not_forbidden)];
-        assert!(rules[0]
-            .check(&Msg {
-                pid: Some("urn:uuid:bad".into())
-            })
-            .is_err());
     }
 }

@@ -76,7 +76,7 @@ pub struct AccessScope {
 }
 
 impl AccessScope {
-    /// Creates a new access scope bound to a tenant and caller role.
+    /// Unpinned scope on `tenant` with the caller's role.
     pub fn new(claims: &Claims, tenant: &str) -> Self {
         Self {
             acting_tenant: tenant.to_string(),
@@ -85,9 +85,8 @@ impl AccessScope {
         }
     }
 
-    /// Builds the caller scope from a requested tenant header, shared by HTTP and gRPC adapters.
-    /// Non-admins may only request their own tenant; a missing header falls back to the claims tenant.
-    /// An admin naming a tenant is pinned to it; without the header an admin sees every tenant.
+    /// Scope from the `x-tenant-id` header: non-admins may only name their own tenant, an admin
+    /// naming one is pinned to it, and without the header the claims tenant applies.
     #[allow(clippy::result_large_err)]
     pub fn from_tenant_header(claims: &Claims, requested: Option<&str>) -> Outcome<Self> {
         let tenant_id = match requested {

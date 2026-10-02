@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Proto ⇄ domain mappers for the transfer-message RPCs.
+//! Mappers between proto and domain types for the transfer-message RPCs.
 
 use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::filters::TransferMessageFilter;
@@ -35,8 +35,6 @@ use compact_str::CompactString;
 use serde_json::Value as Json;
 use tonic::Status;
 use urn::Urn;
-
-// Request to Domain ───────────────────────────────────────────────────────
 
 impl TryFrom<ListTransferMessagesRequest> for ListParams<TransferMessageFilter> {
     type Error = Status;
@@ -117,8 +115,6 @@ impl TryFrom<CreateTransferMessageRequest> for NewTransferMessageCommand {
     }
 }
 
-// Domain to Response ──────────────────────────────────────────────────────
-
 impl From<TransferMessageView> for TransferMessageResponse {
     fn from(view: TransferMessageView) -> Self {
         Self {
@@ -147,8 +143,6 @@ impl From<Paginated<TransferMessageView>> for TransferMessageListResponse {
     }
 }
 
-// Nested types ────────────────────────────────────────────────────────────
-
 /// A null payload is sent as an absent `Struct`; the hash travels hex-encoded.
 impl From<MessageEnvelope> for ProtoEnvelope {
     fn from(env: MessageEnvelope) -> Self {
@@ -159,8 +153,6 @@ impl From<MessageEnvelope> for ProtoEnvelope {
         }
     }
 }
-
-// Proto enums ⇄ domain enums ──────────────────────────────────────────────
 
 impl From<ProtoDirection> for Direction {
     fn from(dir: ProtoDirection) -> Self {

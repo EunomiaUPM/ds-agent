@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Dataset RPCs.
+
 mod mappers;
 
 use std::sync::Arc;
@@ -31,6 +33,7 @@ use common::grpc::{IntoStatus, ListParams, ProtoField, ProtoFieldList};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 
+/// gRPC adapter of the dataset service.
 pub struct DatasetEntityGrpc {
     service: Arc<dyn DatasetServiceTrait>,
     auth: GrpcAuth,

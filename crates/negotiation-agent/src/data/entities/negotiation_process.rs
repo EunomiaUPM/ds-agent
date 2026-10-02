@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Negotiation processes table.
+
 use sea_orm::prelude::{DateTimeWithTimeZone, Json};
 use sea_orm::{
     ActiveModelBehavior, ActiveValue, DeriveEntityModel, DerivePrimaryKey, DeriveRelation,
@@ -23,6 +25,7 @@ use sea_orm::{
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
 
+/// `negotiation_agent_process` row: state, role, peer and protocol of a negotiation.
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "negotiation_agent_process")]
 #[serde(rename_all = "camelCase")]
@@ -143,6 +146,7 @@ impl From<&NewNegotiationProcessModel> for ActiveModel {
     }
 }
 
+/// Partial process update; absent fields stay as they are.
 #[derive(Default)]
 pub struct EditNegotiationProcessModel {
     pub state: Option<String>,

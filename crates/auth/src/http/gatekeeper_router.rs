@@ -35,6 +35,7 @@ use common::query::{QueryFilter, QuerySpec};
 
 pub type GateKeeperQuery = QuerySpec<RecvGrantFilter>;
 
+/// GNAP routes peers call to request access to this agent.
 pub struct GateKeeperRouter {
     gatekeeper: Arc<dyn GateKeeperModule>,
 }

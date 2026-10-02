@@ -61,7 +61,7 @@ impl DataplaneDriverFactory {
     }
 }
 
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 pub trait DataplaneDriverFactoryTrait: Send + Sync {
     fn get_or_create_driver(&self, context: &DataplaneContext) -> Outcome<DataplaneDriver>;
 }

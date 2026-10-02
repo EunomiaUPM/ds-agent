@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Control API routes.
+
 pub mod dataplane_info;
 pub mod dataplane_transfer_logs;
 pub mod transfer_events;

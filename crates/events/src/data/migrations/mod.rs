@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Event bus migrations.
+
 use sea_orm_migration::prelude::*;
 
 pub mod m20241123_0000001_subscriptions;
 pub mod m20260601_0000003_event_bus;
 
+/// Event bus tables, in creation order.
 pub fn get_events_migrations() -> Vec<Box<dyn MigrationTrait>> {
     vec![
         Box::new(m20241123_0000001_subscriptions::Migration),
@@ -27,6 +30,7 @@ pub fn get_events_migrations() -> Vec<Box<dyn MigrationTrait>> {
     ]
 }
 
+/// Migrator over the event bus tables alone.
 pub struct Migrator;
 #[async_trait::async_trait]
 impl MigratorTrait for Migrator {

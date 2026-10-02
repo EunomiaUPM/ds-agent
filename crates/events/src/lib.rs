@@ -15,6 +15,16 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Event bus shared by every agent: in-process broadcast, persisted events and webhook delivery
+//! to external subscribers.
+//!
+//! Modules publish through [`EventPublisherTrait`] and listen on the same [`EventBus`]. Webhooks
+//! are signed with HMAC-SHA256, retried with backoff by the [`RetryWorker`] and moved to a dead
+//! letter queue when they keep failing. The HTTP API lives under `/api/v1/events`.
+//!
+//! Modules: [`entities`] (topics, envelopes, subscriptions, deliveries), [`services`], [`data`],
+//! [`http`], [`setup`].
+
 #![allow(clippy::result_large_err, clippy::module_inception)]
 
 pub mod data;
@@ -23,6 +33,7 @@ pub mod http;
 pub mod services;
 pub mod setup;
 
+/// Service id, also the mount path segment of the API.
 pub const SERVICE_NAME: &str = "events";
 
 pub use entities::dto::EntityDeletedDto;

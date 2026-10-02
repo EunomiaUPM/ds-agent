@@ -31,16 +31,16 @@ use crate::http::common::to_camel_case::ToCamelCase;
 use crate::services::dataset_offerings::DatasetOfferingServiceTrait;
 
 #[derive(Clone)]
-pub(crate) struct DatasetOfferingRouter {
+pub struct DatasetOfferingRouter {
     service: Arc<dyn DatasetOfferingServiceTrait>,
 }
 
 impl DatasetOfferingRouter {
-    pub(crate) fn new(service: Arc<dyn DatasetOfferingServiceTrait>) -> Self {
+    pub fn new(service: Arc<dyn DatasetOfferingServiceTrait>) -> Self {
         Self { service }
     }
 
-    pub(crate) fn router(self) -> Router {
+    pub fn router(self) -> Router {
         Router::new()
             .route("/", post(Self::handle_create))
             .with_state(self)

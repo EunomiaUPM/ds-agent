@@ -21,7 +21,7 @@ use crate::entities::filters::ConnectorTemplateFilter;
 use common::paginated_spec::{Page, Sort};
 use ymir::errors::Outcome;
 
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait ConnectorTemplateRepoTrait: Send + Sync {
     async fn create_template(

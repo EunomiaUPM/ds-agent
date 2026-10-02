@@ -15,9 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Parameter definitions and localized texts.
+
 use crate::entities::policy_templates::PolicyTemplateAllowedDefaultValues;
 use serde::{Deserialize, Serialize};
 
+/// Text in one language.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct LocalizedString {
     #[serde(rename = "@value")]
@@ -26,6 +29,7 @@ pub struct LocalizedString {
     pub language: String,
 }
 
+/// Text as a plain string or in several languages.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum LocalizedText {
@@ -33,6 +37,7 @@ pub enum LocalizedText {
     Multiple(Vec<LocalizedString>),
 }
 
+/// Value of a selection parameter with its label.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SelectionOption {
     pub value: String,
@@ -40,6 +45,7 @@ pub struct SelectionOption {
     pub label: Option<LocalizedText>,
 }
 
+/// Allowed values of a selection: plain strings or labelled options.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum SelectionAllowedValues {
@@ -47,6 +53,7 @@ pub enum SelectionAllowedValues {
     Complex(Vec<SelectionOption>),
 }
 
+/// Type of a template parameter.
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ParameterDataType {
@@ -60,6 +67,7 @@ pub enum ParameterDataType {
     Selection,
 }
 
+/// Limits a parameter value must respect, depending on its type.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ValidationRestrictions {
@@ -84,6 +92,7 @@ pub struct ValidationRestrictions {
     pub values: Option<SelectionAllowedValues>,
 }
 
+/// How the admin UI shows a parameter.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct UiHints {
@@ -97,6 +106,7 @@ pub struct UiHints {
     pub hidden: bool,
 }
 
+/// One template parameter: type, restrictions, UI hints and default.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ParameterDefinition {

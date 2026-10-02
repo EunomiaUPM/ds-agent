@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Adapter that reads participants from the auth agent over HTTP.
+
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -28,6 +30,7 @@ use crate::facades::mates_facade::MatesFacadeTrait;
 use crate::paginated_spec::Paginated;
 use ymir::data::entities::shared::participant::Model as Mates;
 
+/// Participants read from the auth agent's `/mates` API.
 pub struct MatesRemoteFacade {
     config: Arc<MinKnownConfig>,
     client: Arc<ServiceHttpClient>,

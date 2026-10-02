@@ -15,6 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod transfer_identifier;
-pub(crate) mod transfer_message;
-pub(crate) mod transfer_process;
+pub mod transfer_identifier;
+pub mod transfer_message;
+pub mod transfer_process;

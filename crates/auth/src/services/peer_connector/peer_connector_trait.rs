@@ -26,16 +26,21 @@ use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::oauth::UserInfo;
 use ymir::types::participants::ParticipantVisibility;
 
+/// Client side of GNAP towards a peer: building, sending and reading grant requests.
+#[mockall::automock]
 #[async_trait]
 pub trait PeerConnectorTrait: Send + Sync + 'static {
     fn build_grant_plan(&self, user_info: &UserInfo, payload: ReachProvider) -> grant::Plan;
     fn build_interaction_plan(&self, id: &str) -> interaction::Plan;
+    /// Resource request asking for `actions`.
     fn build_resource_req_plan(
         &self,
         id: &str,
         actions: Vec<InteractAction>,
     ) -> resource_req::Model;
+    /// Presentation the peer asks for at `uri`.
     fn build_verification_plan(&self, uri: &str, id: &str) -> Outcome<verification::Plan>;
+    /// Participant record of the peer once the grant completes.
     fn build_mate_plan(&self, grant: &grant::Model) -> participant::Plan;
     fn build_mate_relation(
         &self,
@@ -49,6 +54,7 @@ pub trait PeerConnectorTrait: Send + Sync + 'static {
         interaction: &interaction::Model,
         resource_req: &resource_req::Model,
     ) -> Outcome<GrantResponse>;
+    /// Updates grant and interaction from the peer's answer and says what to do next.
     fn manage_grant_resp(
         &self,
         response: GrantResponse,

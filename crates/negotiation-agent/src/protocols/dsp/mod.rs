@@ -36,13 +36,13 @@
  */
 
 mod errors;
-pub(crate) mod facades;
-pub(crate) mod http;
-pub(crate) mod orchestrator;
+pub mod facades;
+pub mod http;
+pub mod orchestrator;
 mod persistence;
-pub(crate) mod protocol_types;
-pub(crate) mod setup;
-pub(crate) mod validator;
+pub mod protocol_types;
+pub mod setup;
+pub mod validator;
 
 use crate::data::repo_traits::negotiation_process_repo::NegotiationProcessRepoTrait;
 use crate::protocols::dsp::facades::FacadeService;

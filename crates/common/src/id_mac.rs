@@ -19,8 +19,17 @@
 //!
 //! Paths are fully qualified so the macros expand correctly in any crate,
 //! independent of the caller's imports. Consuming crates must depend on
-//! `urn`, `serde`, and `uuid`. The generated types are `pub(crate)` to the
-//! **caller's** crate.
+//! `urn`, `serde`, and `uuid`. The generated types are `pub`.
+//!
+//! ```rust,ignore
+//! use common::{str_id, urn_id};
+//!
+//! urn_id!(TransferProcessId, gen = "transfer-process");
+//! str_id!(RequestId, CompactString, gen);
+//!
+//! let pid = TransferProcessId::generate(); // urn:transfer-process:<uuid>
+//! let request = RequestId::new("abc");
+//! ```
 
 /// Newtype wrapper around a `Urn` with `new`, `as_urn`, and `Display`.
 /// The `gen = "prefix"` form also adds `generate()`, minting `urn:prefix:<uuid>`.
@@ -29,7 +38,7 @@ macro_rules! urn_id {
     ($name:ident) => {
         #[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
         #[serde(transparent)]
-        pub(crate) struct $name(pub(crate) ::urn::Urn);
+        pub struct $name(pub ::urn::Urn);
 
         #[allow(dead_code)]
         impl $name {
@@ -65,7 +74,7 @@ macro_rules! str_id {
     ($name:ident, $inner:ty) => {
         #[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
         #[serde(transparent)]
-        pub(crate) struct $name(pub(crate) $inner);
+        pub struct $name(pub $inner);
 
         #[allow(dead_code)]
         impl $name {

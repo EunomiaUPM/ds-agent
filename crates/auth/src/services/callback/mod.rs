@@ -15,8 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! GNAP callback handling.
+
 mod callback_trait;
 mod service;
 
-pub use callback_trait::CallbackTrait;
+pub use callback_trait::{CallbackTrait, MockCallbackTrait};
 pub use service::BasicCallbackService;

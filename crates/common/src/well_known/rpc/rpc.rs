@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Implementation over the participant registry.
+
 use std::sync::Arc;
 
 use ymir::errors::{Errors, Outcome};
@@ -25,6 +27,7 @@ use crate::dsp_common::well_known_types::{VersionPath, VersionResponse};
 use crate::facades::mates_facade::MatesFacadeTrait;
 use crate::well_known::rpc::{WellKnownRPCRequest, WellKnownRPCTrait, DSP_CURRENT_VERSION};
 
+/// Looks peers up in the participant registry and fetches their version documents.
 pub struct WellKnownRPCService {
     mates_facade: Arc<dyn MatesFacadeTrait>,
 }

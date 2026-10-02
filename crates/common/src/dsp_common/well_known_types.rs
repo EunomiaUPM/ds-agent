@@ -15,8 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Types of the `.well-known/dspace-version` document.
+
 use serde::{Deserialize, Serialize};
 
+/// Authentication protocol advertised for a DSP version.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum AuthProtocolTypes {
     #[serde(rename = "OAuth")]
@@ -27,6 +30,7 @@ pub enum AuthProtocolTypes {
     Gnap,
 }
 
+/// DSP versions this implementation knows.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum DSPProtocolVersions {
     #[serde(rename = "2024-1")]
@@ -36,9 +40,8 @@ pub enum DSPProtocolVersions {
 }
 
 impl std::fmt::Display for DSPProtocolVersions {
-    /// The version tag as it appears on the wire (DSP 4.3), not the Rust variant
-    /// name — this string is protocol-stable, so it is safe to build identifiers
-    /// out of.
+    /// The version tag as it appears on the wire, not the variant name; it is stable, so
+    /// identifiers can be built from it.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
             Self::V2024_1 => "2024-1",
@@ -47,6 +50,7 @@ impl std::fmt::Display for DSPProtocolVersions {
     }
 }
 
+/// Kind of identifier a participant uses.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DSPIdentifierTypes {
     #[serde(rename = "did:web")]
@@ -59,6 +63,7 @@ pub enum DSPIdentifierTypes {
     DUNS,
 }
 
+/// Transport binding of a DSP endpoint.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DSPBindings {
     #[serde(rename = "HTTPS")]
@@ -67,12 +72,14 @@ pub enum DSPBindings {
     HTTP,
 }
 
+/// Body of `.well-known/dspace-version`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct VersionResponse {
     pub protocol_versions: Vec<Version>,
 }
 
+/// One supported version: where it is served and how to authenticate.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Version {
@@ -84,6 +91,7 @@ pub struct Version {
     pub service_id: Option<String>,
 }
 
+/// Authentication required by a DSP version.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Auth {
@@ -93,6 +101,7 @@ pub struct Auth {
     pub profile: Option<Vec<String>>,
 }
 
+/// Absolute base URL of a peer's current DSP version.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct VersionPath {
     pub path: String,

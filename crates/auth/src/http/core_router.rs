@@ -39,6 +39,7 @@ use crate::http::verifier_router::VerifierRouter;
 use crate::http::{GaiaSelfAttesterRouter, ParticipantRouter, VcRequesterRouter};
 use crate::services::HasConfig;
 
+/// Every auth route, plus health and the OpenAPI document; panics on a bad OpenAPI path.
 pub struct AuthRouter {
     core: Arc<AuthCore>,
     openapi: String,

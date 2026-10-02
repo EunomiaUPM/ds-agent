@@ -21,6 +21,7 @@
 use std::sync::Arc;
 
 use catalog_agent::cache::cache_traits::peer_catalog_cache_trait::MockPeerCatalogCacheTrait;
+use catalog_agent::cache::factory_noop::CatalogAgentCacheNoop;
 use catalog_agent::cache::factory_trait::MockCatalogAgentCacheTrait;
 use catalog_agent::services::peer_catalogs::service::PeerCatalogService;
 use catalog_agent::services::peer_catalogs::PeerCatalogServiceTrait;
@@ -104,4 +105,23 @@ async fn participant_lookup_failure_fails_the_listing() {
         .get_all_peer_catalogs(&TestScopes::owner("tenant-1"))
         .await;
     assert!(result.is_err());
+}
+
+/// Without a cache a stored peer catalog is dropped and never read back.
+#[tokio::test]
+async fn noop_cache_never_keeps_a_peer_catalog() {
+    let svc = PeerCatalogService::new(
+        Arc::new(CatalogAgentCacheNoop),
+        Arc::new(MockMatesFacadeTrait::new()),
+    );
+    let scope = TestScopes::owner("tenant-1");
+
+    svc.set_peer_catalog(&scope, "did:a", &peer_catalog("urn:catalog:a"))
+        .await
+        .unwrap();
+    assert!(svc
+        .get_peer_catalog(&scope, "did:a")
+        .await
+        .unwrap()
+        .is_none());
 }

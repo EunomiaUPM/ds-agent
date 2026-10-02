@@ -21,6 +21,7 @@ use common::auth::OauthTokenValidator;
 use common::boot::seeders::{BootSeeder, RedisCacheFlush};
 use common::boot::BootstrapServiceTrait;
 use common::config::services::CommonConfig;
+use common::config::types::cache::CacheType;
 use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
 use common::config::ApplicationConfig;
 use common::module_loader::root_context::RootContext;
@@ -59,13 +60,21 @@ impl BootstrapServiceTrait for CoreBoot {
     }
 
     /// Infrastructure only, straight to the DB; module seeders come from the composed graph.
+    /// The Redis flush only runs when the cache is Redis.
     async fn seeders(
         config: &ApplicationConfig,
         root: &RootContext,
     ) -> Outcome<Vec<Box<dyn BootSeeder>>> {
-        Ok(vec![
-            Box::new(RedisCacheFlush::new(config.monolith().get_full_cache_url())),
-            Box::new(AdminSeeder::new(root.db.clone(), config.common())),
-        ])
+        let mut seeders: Vec<Box<dyn BootSeeder>> = Vec::new();
+        if matches!(
+            config.monolith().cache_config().cache_type,
+            CacheType::Redis
+        ) {
+            seeders.push(Box::new(RedisCacheFlush::new(
+                config.monolith().get_full_cache_url(),
+            )));
+        }
+        seeders.push(Box::new(AdminSeeder::new(root.db.clone(), config.common())));
+        Ok(seeders)
     }
 }

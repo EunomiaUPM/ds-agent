@@ -15,11 +15,19 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Caches of catalog entities and peer catalogs: Redis, or none with `cache_type: Noop`.
+//! Catalog agent Redis caches against the server `REDIS_URL` points at. Every key a test writes
+//! is new to that run, so the dev data in the same Redis is left alone.
 
-pub mod cache_noop;
-pub mod cache_redis;
-pub mod cache_traits;
-pub mod factory_noop;
-pub mod factory_redis;
-pub mod factory_trait;
+mod catalog_cache;
+mod dataservice_cache;
+
+/// Async connection to the Redis at `REDIS_URL`.
+async fn redis() -> redis::aio::MultiplexedConnection {
+    let url = std::env::var("REDIS_URL")
+        .expect("REDIS_URL must point at a Redis server for integration tests");
+    redis::Client::open(url)
+        .unwrap()
+        .get_multiplexed_async_connection()
+        .await
+        .expect("connect to REDIS_URL")
+}

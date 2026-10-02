@@ -39,3 +39,9 @@ tonic = { workspace = true }
 async-trait = { workspace = true }
 urn = { workspace = true }
 ymir = { workspace = true }
+
+[dev-dependencies]
+chrono = { workspace = true }
+serde = { workspace = true }
+async-trait = { workspace = true }
+redis = { workspace = true }

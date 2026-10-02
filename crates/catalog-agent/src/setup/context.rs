@@ -19,7 +19,9 @@
 
 use std::sync::Arc;
 
+use crate::cache::factory_noop::CatalogAgentCacheNoop;
 use crate::cache::factory_redis::CatalogAgentCacheForRedis;
+use crate::cache::factory_trait::CatalogAgentCacheTrait;
 use crate::data::factory_sql::CatalogAgentRepoForSql;
 use crate::services::catalogs::service::CatalogService;
 use crate::services::catalogs::CatalogServiceTrait;
@@ -45,6 +47,7 @@ use crate::setup::ports::CatalogPorts;
 use common::auth::OauthTokenValidator;
 use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CatalogConfig;
+use common::config::types::cache::CacheType;
 use common::config::types::traits::CacheConfigTrait;
 use common::config::types::traits::MinKnownConfigTrait;
 use common::facades::mates_facade::MatesFacadeTrait;
@@ -79,12 +82,7 @@ impl AppContext {
         event_bus: Option<events::EventBus>,
         ports: &CatalogPorts,
     ) -> Outcome<Self> {
-        let redis = redis::Client::open(config.get_full_cache_url())
-            .map_err(|e| Errors::crazy("Error creating Redis client", Some(Box::new(e))))?
-            .get_multiplexed_async_connection()
-            .await
-            .map_err(|e| Errors::crazy("Redis connection failed", Some(Box::new(e))))?;
-        let cache = Arc::new(CatalogAgentCacheForRedis::create_repo(redis));
+        let cache = Self::cache(config).await?;
         let repo = Arc::new(CatalogAgentRepoForSql::create_repo(root.db.clone()));
 
         // Domain services
@@ -145,5 +143,23 @@ impl AppContext {
             oauth_validator: root.validator.clone(),
             event_bus,
         })
+    }
+    /// Redis, or no cache at all, as `cache_type` says.
+    async fn cache(config: &CatalogConfig) -> Outcome<Arc<dyn CatalogAgentCacheTrait>> {
+        match config.cache_config().cache_type {
+            CacheType::Redis => {
+                let redis = redis::Client::open(config.get_full_cache_url())
+                    .map_err(|e| Errors::crazy("Error creating Redis client", Some(Box::new(e))))?
+                    .get_multiplexed_async_connection()
+                    .await
+                    .map_err(|e| Errors::crazy("Redis connection failed", Some(Box::new(e))))?;
+                Ok(Arc::new(CatalogAgentCacheForRedis::create_repo(redis)))
+            }
+            CacheType::Noop => Ok(Arc::new(CatalogAgentCacheNoop)),
+            ref other => Err(Errors::crazy(
+                format!("cache type {other:?} is not supported by the catalog agent"),
+                None,
+            )),
+        }
     }
 }

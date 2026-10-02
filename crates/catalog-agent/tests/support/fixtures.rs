@@ -15,13 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! URNs and a cache factory whose caches are all no-op, so services run without Redis.
+//! URNs and the no-op cache factory, so services run without Redis.
 
 use std::str::FromStr;
 use std::sync::Arc;
 
-use catalog_agent::cache::factory_trait::MockCatalogAgentCacheTrait;
-use common::cache::NoopCache;
+use catalog_agent::cache::factory_noop::CatalogAgentCacheNoop;
 use urn::Urn;
 
 pub fn test_urn(n: u32) -> Urn {
@@ -33,23 +32,7 @@ pub fn urn(n: u32) -> String {
     test_urn(n).to_string()
 }
 
-/// Cache factory whose entity caches are all [`NoopCache`].
-pub fn noop_cache_factory() -> Arc<MockCatalogAgentCacheTrait> {
-    let mut cache = MockCatalogAgentCacheTrait::new();
-    cache
-        .expect_get_catalog_cache()
-        .returning(|| Arc::new(NoopCache::new()));
-    cache
-        .expect_get_dataservice_cache()
-        .returning(|| Arc::new(NoopCache::new()));
-    cache
-        .expect_get_dataset_cache()
-        .returning(|| Arc::new(NoopCache::new()));
-    cache
-        .expect_get_distribution_cache()
-        .returning(|| Arc::new(NoopCache::new()));
-    cache
-        .expect_get_odrl_offer_cache()
-        .returning(|| Arc::new(NoopCache::new()));
-    Arc::new(cache)
+/// The cache factory of `cache_type: Noop`.
+pub fn noop_cache_factory() -> Arc<CatalogAgentCacheNoop> {
+    Arc::new(CatalogAgentCacheNoop)
 }

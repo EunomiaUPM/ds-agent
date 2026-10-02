@@ -15,11 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Caches of catalog entities and peer catalogs: Redis, or none with `cache_type: Noop`.
+//! Harness for integration tests: participants composed in-process, each over its own database,
+//! talking DSP over real local sockets with stubbed peer authentication.
+#![allow(dead_code)]
 
-pub mod cache_noop;
-pub mod cache_redis;
-pub mod cache_traits;
-pub mod factory_noop;
-pub mod factory_redis;
-pub mod factory_trait;
+pub mod auth_stub;
+pub mod database;
+pub mod dataspace;
+pub mod participant;

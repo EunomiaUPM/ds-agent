@@ -15,11 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Caches of catalog entities and peer catalogs: Redis, or none with `cache_type: Noop`.
+//! DSP flows between a provider and a consumer composed in-process, each over its own Postgres
+//! database. They need `DATABASE_URL`, and cache in Redis when `REDIS_URL` is set; run with
+//! `task test:integration`.
 
-pub mod cache_noop;
-pub mod cache_redis;
-pub mod cache_traits;
-pub mod factory_noop;
-pub mod factory_redis;
-pub mod factory_trait;
+#[path = "../support/mod.rs"]
+mod support;
+
+mod catalog;
+mod negotiation;

@@ -17,3 +17,12 @@ tasks:
     desc: Add license header to all source files
     cmds:
       - bash ./scripts/add_license.sh .
+
+  test:integration:
+    desc: Integration tests in monolith, against the provider dev Postgres and Redis
+    env:
+      DATABASE_URL: '{{.DATABASE_URL | default "postgres://mini_provider:mini_provider@localhost:1400/mini_provider"}}'
+      REDIS_URL: '{{.REDIS_URL | default "redis://:ds_core_provider_redis@localhost:6379"}}'
+    cmds:
+      - docker compose -f deployment/dev/docker-compose.mini.dev.provider.yaml up -d --wait provider-db provider-redis
+      - cargo test -p monolith -- --ignored

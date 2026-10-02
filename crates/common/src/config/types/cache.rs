@@ -40,7 +40,7 @@ impl CacheConfigTrait for CacheConfig {
     }
 }
 
-/// Cache backend; only Redis is implemented, `Noop` disables caching.
+/// Cache backend; Redis is implemented and `Noop` disables caching. Memcached and Memory are not.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum CacheType {
     Redis,

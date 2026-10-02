@@ -30,7 +30,7 @@ pub trait UtilsCacheTrait: Send + Sync {
     /// Prefix scoping every key this cache writes, e.g. "ds_agent_dataplane".
     fn key_namespace(&self) -> &str;
 
-    /// Key for a single entity: <namespace>:entity_name:urn
+    /// Key for a single entity: `<namespace>:<entity>:<urn>`
     fn format_key_name_with_id(&self, entity: &str, id: &Urn) -> String {
         format!("{}:{}:{}", self.key_namespace(), entity, id)
     }
@@ -40,17 +40,17 @@ pub trait UtilsCacheTrait: Send + Sync {
         format!("{}:{}:{}", self.key_namespace(), entity, id)
     }
 
-    /// Key for the main pointer: <namespace>:entity_name:main
+    /// Key for the main pointer: `<namespace>:<entity>:main:<tenant>`
     fn format_key_name_main(&self, entity: &str, tenant_id: &str) -> String {
         format!("{}:{}:main:{}", self.key_namespace(), entity, tenant_id)
     }
 
-    /// Key for the all-entities set: <namespace>:entity_name:all
+    /// Key for the all-entities set: `<namespace>:<entity>:all`
     fn format_key_name_all(&self, entity: &str) -> String {
         format!("{}:{}:all", self.key_namespace(), entity)
     }
 
-    /// Key for relational lookups: <namespace>:child_entity:parent_entity:parent_id
+    /// Key for relational lookups: `<namespace>:<child>:<parent>:<parent_id>`
     fn format_key_name_lookup(
         &self,
         child_entity: &str,

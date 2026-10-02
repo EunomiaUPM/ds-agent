@@ -34,7 +34,7 @@ service NegotiationAgentOffersService {
   rpc DeleteOffer (DeleteOfferRequest) returns (google.protobuf.Empty);
 }
 
-// Auth: authorization Bearer <token> required; x-tenant-id metadata defaults to the token tenant.
+// Auth: `authorization: Bearer <token>` required; `x-tenant-id` metadata defaults to the token tenant.
 // Filter strings: "" = any.
 message ListOffersRequest {
   string process_id = 1;

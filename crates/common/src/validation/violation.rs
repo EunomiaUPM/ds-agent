@@ -18,8 +18,8 @@
 //! What a failed check reports.
 //!
 //! Deliberately protocol-neutral: a [`Violation`] knows nothing about HTTP or
-//! about DSP. Rendering it onto a wire error is the job of whichever protocol is
-//! answering — see [`crate::validation::render`].
+//! about DSP. The protocol that answers turns it into a wire error, usually through
+//! [`Violations::to_reasons`].
 
 use std::borrow::Cow;
 use std::fmt::{self, Display, Formatter};

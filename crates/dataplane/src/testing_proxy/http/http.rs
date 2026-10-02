@@ -233,8 +233,6 @@ impl TestingHTTPProxy {
             .await)
     }
 
-    // --- Validation & lookup ---------------------------------------------
-
     /// Parses the `{data_plane_id}` path segment into a transfer URN.
     fn parse_dataplane_id(raw: &str) -> Result<Urn, ProxyError> {
         get_urn_from_string(&raw.to_string()).map_err(|_| ProxyError::BadDataplaneId)
@@ -272,8 +270,6 @@ impl TestingHTTPProxy {
         serde_json::from_value(dataplane.inner.egress_config.clone())
             .map_err(|_| ProxyError::InvalidEgressConfig)
     }
-
-    // --- Request shaping --------------------------------------------------
 
     /// Extracts the method, headers and size-limited body from the request.
     async fn extract_outbound(mut req: Request) -> Result<OutboundRequest, ProxyError> {
@@ -317,8 +313,6 @@ impl TestingHTTPProxy {
         Ok(url)
     }
 
-    // --- Credentials ------------------------------------------------------
-
     /// Determines the credentials to present upstream.
     ///
     /// Provider-side: credentials live in `flow_control.auth` (resolved from the
@@ -360,8 +354,6 @@ impl TestingHTTPProxy {
             other => other,
         }
     }
-
-    // --- Forwarding & response -------------------------------------------
 
     /// Forwards the request upstream, records a transfer event, and maps the
     /// upstream response back to the caller.
@@ -526,8 +518,6 @@ impl TestingHTTPProxy {
             .body(body)
             .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
     }
-
-    // --- Small labels for logging ----------------------------------------
 
     /// Human-readable label of the configured ingress kind.
     fn ingress_label(dataplane: &DataplaneTransferDto) -> &'static str {

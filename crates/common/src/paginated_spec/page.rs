@@ -223,7 +223,7 @@ where
     deserializer.deserialize_any(U32Visitor)
 }
 
-/// Deserializes Option<u32> from either an integer token, a string, or None.
+/// Deserializes `Option<u32>` from either an integer token, a string, or None.
 pub fn deserialize_opt_u32_from_str_or_int<'de, D>(deserializer: D) -> Result<Option<u32>, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -276,7 +276,7 @@ where
     deserializer.deserialize_any(OptU32Visitor)
 }
 
-/// Deserializes Option<u64> from either an integer token, a string, or None.
+/// Deserializes `Option<u64>` from either an integer token, a string, or None.
 pub fn deserialize_opt_u64_from_str_or_int<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -325,7 +325,7 @@ where
     deserializer.deserialize_any(OptU64Visitor)
 }
 
-/// Deserializes Option<bool> from a boolean token or string ("true"/"false"/"1"/"0").
+/// Deserializes `Option<bool>` from a boolean token or string ("true"/"false"/"1"/"0").
 pub fn deserialize_opt_bool_from_str_or_bool<'de, D>(
     deserializer: D,
 ) -> Result<Option<bool>, D::Error>

@@ -27,6 +27,8 @@
 //! their inner content (e.g. `Plain("{{__TOKEN__}}")`).  The parameter
 //! pipeline walks all [`SecretSource`] variants, so secrets can be supplied
 //! as instance parameters just like any other template field.
+//!
+//! [`SecretSource`]: crate::entities::common::secret_management::SecretSource
 
 pub mod api_key;
 pub mod basic_auth;

@@ -43,10 +43,8 @@ use ymir::errors::Outcome;
 ///
 /// Handles messages arriving on the DSP HTTP endpoints.  All eight operations
 /// (two initial + six lifecycle steps) are driven by the
-/// [`NegotiationProtocolStep`] template; `run_lifecycle` encodes the algorithm
-/// once:
-///
-/// The steps are validate, prepare the context (with an optional early ack) and persist.
+/// `NegotiationProtocolStep` template; `run_lifecycle` encodes the algorithm
+/// once: validate, prepare the context (with an optional early ack) and persist.
 ///
 /// Unlike the transfer orchestrator there is no `post_hook` because negotiation
 /// does not involve a data-plane session.

@@ -161,7 +161,7 @@ message OdrlPolicyListResponse {
 
 // ---------------------------------------------------------
 // List Requests
-// Auth: authorization Bearer <token> required; x-tenant-id metadata defaults to the token tenant.
+// Auth: `authorization: Bearer <token>` required; `x-tenant-id` metadata defaults to the token tenant.
 // Filter strings: "" = any. Pagination: limit 0 = default (20); cursor "" = first page;
 // sort "" = created_at_desc | created_at_asc | updated_at_asc | updated_at_desc.
 // ---------------------------------------------------------

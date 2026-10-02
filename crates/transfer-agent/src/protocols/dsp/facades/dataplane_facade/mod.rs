@@ -111,10 +111,11 @@ impl From<DataplaneAddress> for DataAddressDto {
     }
 }
 
+/// Dataplane side of each DSP transfer message, split into a `_pre` and a `_post` hook.
+/// A hook may return the data address to send to the peer.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DataPlaneFacadeTrait: Send + Sync {
-    // TransferRequest ───
     async fn on_transfer_request_pre(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -124,8 +125,6 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         &self,
         ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>>;
-
-    // TransferStart ───
 
     async fn on_transfer_start_pre(
         &self,
@@ -137,8 +136,6 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>>;
 
-    // TransferSuspension ───
-
     async fn on_transfer_suspension_pre(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -149,8 +146,6 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>>;
 
-    // TransferCompletion ───
-
     async fn on_transfer_completion_pre(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -160,8 +155,6 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         &self,
         ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>>;
-
-    // TransferTermination ───
 
     async fn on_transfer_termination_pre(
         &self,

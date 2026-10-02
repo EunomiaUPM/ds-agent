@@ -60,7 +60,7 @@ message DeleteResponse {}
 
 // Request types ──────────────────────────────────────────────────────────
 
-// Auth: authorization Bearer <token> required; x-tenant-id metadata defaults to the token tenant.
+// Auth: `authorization: Bearer <token>` required; `x-tenant-id` metadata defaults to the token tenant.
 // Filter strings: send "" to omit a filter. Pagination: limit=0 defaults to 20.
 message ListTransferMessagesRequest {
   string direction = 1;          // "" = any; "inbound" | "outbound"

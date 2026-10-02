@@ -26,7 +26,7 @@
 //! Processing of these specs is handled via the [`ConnectorTemplateWalker`]
 //! in the [`parameters`] module.
 //!
-//! [`ConnectorTemplateWalker`]: crate::entities::parameters::template_walker::ConnectorTemplateWalker
+//! [`ConnectorTemplateWalker`]: crate::entities::parameters::connector_template_walker::ConnectorTemplateWalker
 //! [`parameters`]: crate::entities::parameters
 
 pub mod http;

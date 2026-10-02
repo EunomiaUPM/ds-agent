@@ -22,6 +22,8 @@
 //! hash can key it: the wire hash is too strict, the canonical one too blind. The
 //! canonical hash rides along as a guard, and [`TransferProcess::version`] tells a
 //! legitimate restart apart from a replay when the pids alone cannot.
+//!
+//! [`TransferProcess::version`]: crate::entities::transfer_process::TransferProcess::version
 
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -46,10 +48,10 @@ pub struct IdempotencyRecord {
     /// The canonical hash of the message that first claimed this key.
     pub canonical_hash: [u8; 32],
     pub first_seen_at: DateTime<Utc>,
-    /// [`TransferProcess::version`] when the key was claimed. `None` on
+    /// `TransferProcess::version` when the key was claimed. `None` on
     /// `/request`, where the message *creates* the process.
     pub process_version_at_claim: Option<u64>,
-    /// [`TransferProcess::version`] after the message applied — what a retry should
+    /// `TransferProcess::version` after the message applied — what a retry should
     /// still find. `None` while in flight.
     pub process_version_after: Option<u64>,
     /// The ack returned the first time, replayed verbatim on a retry. `None`
@@ -161,7 +163,7 @@ impl<'a> IdempotencyGuard<'a> {
 
     /// Classify a message.
     ///
-    /// `process_version` is [`TransferProcess::version`] as it stands right now,
+    /// `process_version` is `TransferProcess::version` as it stands right now,
     /// or `None` on `/request`, where the message creates the process and there is
     /// nothing yet to compare against. It is what separates a retry from a
     /// restart: both carry the same pids and the same bytes, but a restart arrives

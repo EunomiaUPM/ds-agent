@@ -39,12 +39,12 @@ pub fn deserialize_b64(s: &str, field: &'static str) -> Outcome<Vec<u8>> {
         .map_err(|e| Errors::parse(e.to_string(), None))
 }
 
-/// Serde custom serializer for serializing json data into base64
+/// Serializes bytes as a base64 string.
 pub fn serialize_bytes_b64<S: Serializer>(b: &Bytes, s: S) -> Result<S::Ok, S::Error> {
     s.serialize_str(&base64::engine::general_purpose::STANDARD.encode(b))
 }
 
-/// Serde custom serializer for serializing json data into base64 with Option<T> fields
+/// Serializes optional bytes as a base64 string, or `null`.
 pub fn serialize_opt_bytes_b64<S: Serializer>(b: &Option<Bytes>, s: S) -> Result<S::Ok, S::Error> {
     match b {
         Some(v) => s.serialize_some(&base64::engine::general_purpose::STANDARD.encode(v)),
@@ -52,7 +52,7 @@ pub fn serialize_opt_bytes_b64<S: Serializer>(b: &Option<Bytes>, s: S) -> Result
     }
 }
 
-/// Bytes to hexadecimal conversion util
+/// Lowercase hex encoding of a 32-byte hash.
 pub fn bytes_to_hex(h: &[u8; 32]) -> String {
     use std::fmt::Write;
     let mut buf = String::with_capacity(64);
@@ -62,12 +62,12 @@ pub fn bytes_to_hex(h: &[u8; 32]) -> String {
     buf
 }
 
-/// Serde custom serializer for serializing json data into base64 and hex
+/// Serializes a 32-byte hash as a lowercase hex string.
 pub fn serialize_hash_hex<S: Serializer>(h: &[u8; 32], s: S) -> Result<S::Ok, S::Error> {
     s.serialize_str(&bytes_to_hex(h))
 }
 
-/// Serde custom serializer for serializing json data into base64 with hex with Option<T> fields
+/// Serializes an optional 32-byte hash as a lowercase hex string, or `null`.
 pub fn serialize_opt_hash_hex<S: Serializer>(
     h: &Option<[u8; 32]>,
     s: S,

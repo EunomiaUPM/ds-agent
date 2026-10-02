@@ -51,9 +51,8 @@ use ymir::errors::Outcome;
 /// Translates internal RPC requests into DSP protocol messages, sends them to
 /// the remote peer over HTTP, and persists the resulting state transitions.
 /// All nine operations (two initial + seven lifecycle steps) are driven by the
-/// [`NegotiationRpcStep`] template; `run_lifecycle` encodes the algorithm once:
-///
-/// validate - prepare context - auth - send + persist
+/// `NegotiationRpcStep` template; `run_lifecycle` encodes the algorithm once:
+/// validate, prepare the context, authenticate, then send and persist.
 #[allow(unused)]
 pub struct RPCOrchestratorService {
     validator: Arc<dyn ValidationRpcSteps>,
@@ -145,7 +144,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     /// Sends a `ContractAgreementMessage` to the Consumer.
     ///
     /// The agreement body is enriched with offer policy fields and participant
-    /// IDs in [`RpcAgreementStep::prepare_context`].
+    /// IDs in `RpcAgreementStep::prepare_context`.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_agreement_rpc(
         &self,

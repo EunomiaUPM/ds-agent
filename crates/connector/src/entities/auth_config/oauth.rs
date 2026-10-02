@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 /// OAuth 2.0 grant type, carrying only the fields that are specific to each flow.
 ///
 /// Common fields (`token_url`, `client_id`, `client_secret`, `scopes`) live in
-/// the parent [`AuthenticationConfig::OAuth2`] variant.
+/// the parent [`AuthenticationConfig::OAuth2`](super::AuthenticationConfig::OAuth2) variant.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]

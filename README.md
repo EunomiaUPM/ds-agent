@@ -31,6 +31,9 @@ and is checked against the Eclipse [DSP TCK](https://github.com/eclipse-dataspac
 It is developed by the GING research group (Next Generation Internet Group) at the
 Departamento de Ingeniería de Sistemas Telemáticos, Universidad Politécnica de Madrid.
 
+
+![Dsagent](docs/content/static/img/dsagent.jpeg)
+
 ## The dataspace at a glance
 
 Every participant runs its own agent and keeps its data at home. Agents trust each other

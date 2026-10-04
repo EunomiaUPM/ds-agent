@@ -17,8 +17,8 @@
 
 //! The party acting on a DSP process: a remote peer over the protocol or a local user over RPC.
 
-use crate::auth::AccessScope;
 use urn::Urn;
+use ymir::types::oauth::{RolePath, UserInfo};
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::{Errors, Outcome};
 
@@ -28,11 +28,11 @@ pub enum DspActor {
     /// A remote connector authenticated through the SSI token.
     Peer { participant_id: String },
     /// A local user authenticated through OAuth.
-    User(AccessScope),
+    User(UserInfo),
 }
 
 impl DspActor {
-    /// Peer authenticated by the SSI token, acting in the tenant it onboarded into.
+    /// Peer authenticated by the SSI token.
     pub fn peer(mate: &Mates) -> Self {
         Self::Peer {
             participant_id: mate.participant_id.clone(),
@@ -40,17 +40,23 @@ impl DspActor {
     }
 
     /// Local user authenticated through OAuth.
-    pub fn user(scope: &AccessScope) -> Self {
-        Self::User(scope.clone())
+    pub fn user(user: &UserInfo) -> Self {
+        Self::User(user.clone())
     }
 
     /// A peer may only act on processes where it is the `counterparty` (mates belong to the
-    /// whole connector, not to a tenant); a user only within its tenants. A refusal looks like
-    /// a missing process.
-    pub fn authorize(&self, owner_tenant: &str, counterparty: &str, pid: &Urn) -> Outcome<()> {
+    /// whole connector); a user only on processes it reaches, given who created them
+    /// (`owner_id`) and under which role. A refusal looks like a missing process.
+    pub fn authorize(
+        &self,
+        owner_id: &str,
+        owner_role: &RolePath,
+        counterparty: &str,
+        pid: &Urn,
+    ) -> Outcome<()> {
         let allowed = match self {
             Self::Peer { participant_id } => counterparty == participant_id,
-            Self::User(scope) => scope.permits(owner_tenant),
+            Self::User(user) => user.reaches(owner_id, owner_role),
         };
         if allowed {
             Ok(())

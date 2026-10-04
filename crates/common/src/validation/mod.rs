@@ -40,8 +40,7 @@
 //! }
 //! ```
 //!
-//! Reusable rule catalogs live next to their domain: `crate::auth::AuthRules` and
-//! `crate::dsp_common::DspRules`.
+//! Reusable rule catalogs live next to their domain: `crate::dsp_common::DspRules`.
 //!
 //! ## 2. Building a validator
 //!
@@ -101,8 +100,9 @@
 //! `Display` joins them with `; `. Turning them into an HTTP or DSP error is up to the caller:
 //!
 //! ```rust,ignore
-//! AuthValidators::tenant_id_validator()
-//!     .validate(&raw.to_string())
+//! Validator::new()
+//!     .rule(move |exp: &u64| AuthRules::token_not_expired(*exp, now, "exp"))
+//!     .validate(&claims.exp)
 //!     .map_err(|vs| Errors::format(BadFormat::Received, vs.to_string(), None))?;
 //! ```
 //!

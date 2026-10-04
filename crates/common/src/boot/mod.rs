@@ -72,13 +72,6 @@
 //!             .collect()
 //!     }
 //!
-//!     fn validator(
-//!         common: &CommonConfig,
-//!         db: DatabaseConnection,
-//!     ) -> Arc<dyn OauthTokenValidator> {
-//!         OAuthModule::validator(common, db)
-//!     }
-//!
 //!     async fn compose(config: &TransferConfig, root: &RootContext) -> Outcome<ServiceComposer> {
 //!         let ports = TransferPorts::remote(config, root).await?;
 //!         Ok(ServiceComposer::new()
@@ -175,16 +168,11 @@ pub mod servers;
 pub mod shutdown;
 pub mod workers;
 
-use std::sync::Arc;
-
-use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
 use serde::Serialize;
 use ymir::errors::Outcome;
 
-use crate::auth::OauthTokenValidator;
 use crate::boot::seeders::BootSeeder;
-use crate::config::services::CommonConfig;
 use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use crate::module_loader::root_context::RootContext;
 use crate::module_loader::service_composer::ServiceComposer;
@@ -200,9 +188,6 @@ pub trait BootstrapServiceTrait: Send + Sync + 'static {
 
     /// Every migration the agent owns, in FK order; static because `MigratorTrait` is.
     fn migrations() -> Vec<Box<dyn MigrationTrait>>;
-
-    /// The token validator every module guards its routes with, built once into the root.
-    fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator>;
 
     /// Wires every module the process hosts; workers and planes are read from the result.
     async fn compose(config: &Self::Config, root: &RootContext) -> Outcome<ServiceComposer>;

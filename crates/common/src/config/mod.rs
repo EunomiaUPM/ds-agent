@@ -50,8 +50,8 @@
 //!   is_catalog_datahub: false
 //! ```
 //!
-//! `admin_seed`, `service_client`, `jwt_secret` and the token lifetimes have defaults, so dev
-//! files can leave them out. The cache defaults to `Noop`.
+//! `oauth` defaults to the `static` provider acting as the system user, so dev files can leave
+//! it out. The cache defaults to `Noop`.
 //!
 //! ## 2. Loading
 //!
@@ -123,4 +123,4 @@ pub mod types;
 mod oauth;
 
 pub use config::ApplicationConfig;
-pub use oauth::{OauthConfig, BuiltInOauthConfig};
+pub use oauth::OauthConfig;

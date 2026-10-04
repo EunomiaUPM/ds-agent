@@ -55,7 +55,7 @@ impl<S: BootstrapServiceTrait> Bootstrapper<S> {
     /// Serves the agent until SIGINT/SIGTERM, or fails when a worker stops on its own.
     pub async fn start(env_file: &str) -> Outcome<()> {
         let (config, vault) = Self::load(env_file)?;
-        let root = RootContext::connect(config.common(), vault, S::validator).await?;
+        let root = RootContext::connect(config.common(), vault).await?;
         // Infrastructure seeders (straight to the DB) run before the graph exists; module
         // seeders are built on composed services, so they run right after composing.
         let (before, mut after): (Vec<_>, Vec<_>) = S::seeders(&config, &root)

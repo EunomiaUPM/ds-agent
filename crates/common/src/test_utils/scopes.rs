@@ -15,29 +15,24 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Access scopes per role, as services receive them after authentication.
+//! Users as services receive them after authentication.
 
-use crate::auth::{AccessScope, RbacRole};
+use serde_json::Map;
 
-/// Ready-made scopes for service tests.
-pub struct TestScopes;
+use crate::oauth::{RolePath, UserInfo};
 
-impl TestScopes {
-    /// Unpinned Admin of `admin-tenant`: sees every tenant.
-    pub fn admin() -> AccessScope {
-        AccessScope::from_role(RbacRole::Admin, "admin-tenant")
+/// Ready-made users for service tests.
+pub struct TestUsers;
+
+impl TestUsers {
+    /// Superuser `/admin`: reaches everything.
+    pub fn root() -> UserInfo {
+        UserInfo::new("root", None, RolePath::root(), Map::new())
     }
 
-    /// Unpinned Admin acting on `tenant` by default.
-    pub fn admin_of(tenant: &str) -> AccessScope {
-        AccessScope::from_role(RbacRole::Admin, tenant)
-    }
-
-    pub fn owner(tenant: &str) -> AccessScope {
-        AccessScope::from_role(RbacRole::Owner, tenant)
-    }
-
-    pub fn reader(tenant: &str) -> AccessScope {
-        AccessScope::from_role(RbacRole::Reader, tenant)
+    /// `user_id` acting under `role`; panics if `role` is not a valid path.
+    pub fn user(user_id: &str, role: &str) -> UserInfo {
+        let role = role.parse().expect("test role must be a valid path");
+        UserInfo::new(user_id, None, role, Map::new())
     }
 }

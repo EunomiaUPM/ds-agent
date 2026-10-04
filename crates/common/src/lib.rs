@@ -23,13 +23,12 @@
 //! - Boot and composition: [`boot`], [`module_loader`], [`config`], [`telemetry`], [`info_banner`].
 //! - HTTP and gRPC: [`http_tracing`], [`http_global_404`], [`middleware`], [`grpc`],
 //!   [`well_known`].
-//! - Security: [`auth`], [`facades`], [`vault_utils`].
+//! - Security: [`oauth`], [`facades`], [`vault_utils`].
 //! - Errors and data: [`errors`], [`paginated_spec`], [`query`], [`validation`], [`cache`],
 //!   [`batch_requests`].
 //! - Linked data and DSP: [`rdf`], [`dsp_common`].
 //! - Utilities: [`utils`], [`serde_utils`], [`id_mac`], [`test_utils`].
 
-pub mod auth;
 pub mod batch_requests;
 pub mod boot;
 pub mod cache;
@@ -43,6 +42,7 @@ pub mod http_tracing;
 pub mod id_mac;
 pub mod info_banner;
 pub mod middleware;
+pub mod oauth;
 pub mod module_loader;
 pub mod paginated_spec;
 pub mod query;

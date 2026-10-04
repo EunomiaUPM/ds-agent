@@ -18,54 +18,50 @@
 //! Auth doubles for gRPC adapter tests: a token validator keyed by literal token and requests
 //! carrying auth metadata.
 
+use serde_json::Map;
 use tonic::Request;
 use ymir::errors::{Errors, Outcome};
 
-use crate::auth::{Claims, OauthTokenValidator, RbacRole};
+use crate::oauth::{RolePath, TokenValidatorTrait, UserInfo};
 
-/// Tenant of every token the stub validator accepts.
-pub const TENANT: &str = "tenant-1";
-/// A tenant the stub tokens do not belong to.
-pub const OTHER_TENANT: &str = "tenant-2";
+/// User behind the `user` token.
+pub const USER_ID: &str = "user-1";
+/// Role of [`USER_ID`].
+pub const USER_ROLE: &str = "/admin/company/team";
+/// User behind the `root` token.
+pub const ROOT_ID: &str = "root";
 
-/// Accepts `owner` as the owner of [`TENANT`] and `admin` as an admin; rejects anything else.
+/// Accepts `user` as [`USER_ID`] under [`USER_ROLE`] and `root` as a superuser; rejects
+/// anything else.
 pub struct StubTokenValidator;
 
 #[async_trait::async_trait]
-impl OauthTokenValidator for StubTokenValidator {
-    async fn validate_token(&self, token: &str) -> Outcome<Claims> {
-        let role = match token {
-            "owner" => RbacRole::Owner,
-            "admin" => RbacRole::Admin,
+impl TokenValidatorTrait for StubTokenValidator {
+    async fn validate_token<'a>(&self, token: Option<&'a str>) -> Outcome<UserInfo> {
+        let (user_id, role) = match token.unwrap_or_default() {
+            "user" => (USER_ID, USER_ROLE.parse::<RolePath>()?),
+            "root" => (ROOT_ID, RolePath::root()),
             _ => return Err(Errors::unauthorized("invalid token", None)),
         };
-        Ok(Claims {
-            sub: TENANT.to_string(),
-            role,
-            iat: 1000,
-            exp: 9_999_999_999,
-        })
+        Ok(UserInfo::new(user_id, None, role, Map::new()))
     }
 }
 
-/// Builds gRPC requests with the `authorization` and `x-tenant-id` metadata set.
+/// Builds gRPC requests with the `authorization` metadata set.
 pub struct GrpcRequests;
 
 impl GrpcRequests {
-    pub fn with_auth<T>(body: T, token: Option<&str>, tenant: Option<&str>) -> Request<T> {
+    pub fn with_auth<T>(body: T, token: Option<&str>) -> Request<T> {
         let mut req = Request::new(body);
         if let Some(t) = token {
             req.metadata_mut()
                 .insert("authorization", format!("Bearer {t}").parse().unwrap());
         }
-        if let Some(t) = tenant {
-            req.metadata_mut().insert("x-tenant-id", t.parse().unwrap());
-        }
         req
     }
 
-    /// Request as the owner of [`TENANT`] acting on its own tenant.
-    pub fn owner<T>(body: T) -> Request<T> {
-        Self::with_auth(body, Some("owner"), Some(TENANT))
+    /// Request as [`USER_ID`].
+    pub fn user<T>(body: T) -> Request<T> {
+        Self::with_auth(body, Some("user"))
     }
 }

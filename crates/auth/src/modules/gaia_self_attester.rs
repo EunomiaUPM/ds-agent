@@ -17,11 +17,11 @@
 
 use crate::services::HasGaiaSelfAttester;
 use async_trait::async_trait;
-use common::auth::AccessScope;
 use ymir::data::entities::wallet::vc;
 use ymir::errors::Outcome;
 use ymir::services::{HasIssuer, HasWallet};
 use ymir::types::issuance::VcBody;
+use ymir::types::oauth::UserInfo;
 
 /// Issuing this participant's own Gaia-X credentials.
 #[async_trait]
@@ -29,9 +29,9 @@ pub trait GaiaSelfAttesterModule:
     HasGaiaSelfAttester + HasIssuer + HasWallet + Send + Sync + 'static
 {
     /// Attests the connector's shared identity, hence admin only.
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn generate_gaia_vcs(&self, scope: &AccessScope) -> Outcome<()> {
-        scope.require_admin()?;
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    async fn generate_gaia_vcs(&self, user: &UserInfo) -> Outcome<()> {
+        user.require_root()?;
         let legal_p = self.gaia().generate_legal_person().await?;
         let terms = self.gaia().generate_terms_cons_vc().await?;
         let legal_p = self.issuer().sign_claims(&legal_p).await?;

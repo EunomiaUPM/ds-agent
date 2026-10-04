@@ -26,13 +26,21 @@ use ymir::types::gnap::grant_request::interact::InteractRequest;
 use ymir::types::gnap::grant_request::{GrantRequest, GrantRequestKind};
 use ymir::types::gnap::InteractionFinishResponse;
 use ymir::types::oauth::RolePath;
+use ymir::types::participants::Visibility;
 
 /// Gatekeeper side of GNAP: building and checking what peers send.
 #[mockall::automock]
 #[async_trait]
 pub trait GateKeeperTrait: Send + Sync + 'static {
-    /// New received grant handled under `role`; `class_id` is the class the peer claims.
-    fn build_grant_plan(&self, role: &RolePath, class_id: Option<String>) -> Outcome<grant::Plan>;
+    /// New received grant; `class_id` is the class the peer claims (its nick). Without a `role`
+    /// the root handles it, and without a `visibility` it is public: once stored, a grant always
+    /// has both.
+    fn build_grant_plan(
+        &self,
+        role: Option<RolePath>,
+        visibility: Option<Visibility>,
+        class_id: Option<String>,
+    ) -> Outcome<grant::Plan>;
     fn build_resource_req_plan(
         &self,
         id: &str,

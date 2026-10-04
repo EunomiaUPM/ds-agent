@@ -20,69 +20,40 @@ use crate::services::{HasGateKeeper, HasRepo};
 use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
-use common::auth::AccessScope;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use serde_json::{json, Value};
 use ymir::data::entities::received::grant;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 use ymir::services::HasVerifier;
 use ymir::types::gnap::grant_request::GrantKind;
 use ymir::types::gnap::grant_response::{ErrorResponse, GrantResponse};
 use ymir::types::gnap::GrantStatus;
 use ymir::types::listing::{GrantSort, RecvGrantListFilter};
+use ymir::types::oauth::UserInfo;
 use ymir::utils::{create_opaque_token, errors_to_error_code, require_field};
 
 /// Answering GNAP grant requests from peers: each one is verified with an OID4VP presentation.
+///
+/// A received grant has no author, only the role that handles it and its visibility: users of
+/// that role or above handle it, and anyone sees it if it is public.
 #[async_trait]
 pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync + 'static {
-    /// Starts a grant and answers with the verification URI; failures become a GNAP error body.
-    #[tracing::instrument(level = "info", skip_all)]
-    async fn manage_grant_req(
-        &self,
-        tenant_id: String,
-        payload: Bytes,
-        headers: HeaderMap,
-    ) -> GrantResponse {
-        self.inner_manage_grant_req(tenant_id, payload, headers)
-            .await
-            .unwrap_or_else(|e| {
-                e.log();
-                let code = errors_to_error_code(&e);
-                GrantResponse::Error(ErrorResponse { error: code })
-            })
-    }
+    // ==========================================================================================
+    // Received grants: queries
+    // ==========================================================================================
 
-    /// Continues a verified grant and issues the peer's access token; failures become a GNAP
-    /// error body.
-    #[tracing::instrument(level = "info", skip_all)]
-    async fn manage_continue_req(
-        &self,
-        tenant_id: String,
-        id: String,
-        payload: Bytes,
-        headers: HeaderMap,
-    ) -> GrantResponse {
-        self.inner_manage_continue_req(tenant_id, id, payload, headers)
-            .await
-            .unwrap_or_else(|e| {
-                e.log();
-                let code = errors_to_error_code(&e);
-                GrantResponse::Error(ErrorResponse { error: code })
-            })
-    }
-
-    /// Page of grants received from peers, visible to the caller.
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    /// Page of the received grants `user` sees.
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
     async fn get_all(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filter: &RecvGrantFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<grant::Model>> {
         let list_page = page.list_page(sort, GrantSort::Created, GrantSort::Updated)?;
         let list_filter = RecvGrantListFilter {
-            tenant_id: scope.tenant_filter().map(str::to_string),
+            role: user.role().clone(),
             kind: filter.kind.clone().unwrap_or(GrantKind::AccessToken),
             nick_contains: filter.participant_nick.clone(),
             status: filter.status.clone(),
@@ -109,20 +80,22 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         ))
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn get_by_id(&self, scope: &AccessScope, id: String) -> Outcome<grant::Model> {
-        let grant = self.repo().recv_grant().get_by_id(&id).await?;
-        scope.ensure_visible(&grant.tenant_id, &id)?;
+    /// The received grant `id` if `user` sees it; missing-resource error otherwise.
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    async fn get_by_id(&self, user: &UserInfo, id: &str) -> Outcome<grant::Model> {
+        let grant = self.repo().recv_grant().get_by_id(id).await?;
+        user.ensure_sees_team(&grant.role, &grant.visibility, id)?;
         Ok(grant)
     }
 
-    /// The grant with its resource request, interaction and verification.
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn get_by_id_with_details(&self, scope: &AccessScope, id: String) -> Outcome<Value> {
-        let grant = self.get_by_id(scope, id.clone()).await?;
-        let resource_req = self.repo().resource_req().get_by_id(&id).await?;
-        let interaction = self.repo().recv_interaction().get_by_id(&id).await.ok();
-        let verification = self.repo().recv_verification().get_by_id(&id).await.ok();
+    /// The received grant with its resource request, interaction and verification, if `user`
+    /// sees the grant.
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    async fn get_by_id_with_details(&self, user: &UserInfo, id: &str) -> Outcome<Value> {
+        let grant = self.get_by_id(user, id).await?;
+        let resource_req = self.repo().resource_req().get_by_id(id).await?;
+        let interaction = self.repo().recv_interaction().get_by_id(id).await.ok();
+        let verification = self.repo().recv_verification().get_by_id(id).await.ok();
         Ok(json!({
             "grant": grant,
             "resource_req": resource_req,
@@ -131,55 +104,89 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         }))
     }
 
+    // ==========================================================================================
+    // Flow entry points, called by the routers (peers, authenticated by GNAP)
+    // ==========================================================================================
+
+    /// Starts a grant and answers with the verification URI; failures become a GNAP error body.
+    #[tracing::instrument(level = "info", skip_all)]
+    async fn manage_grant_req(&self, payload: Bytes, headers: HeaderMap) -> GrantResponse {
+        self.inner_manage_grant_req(payload, headers)
+            .await
+            .unwrap_or_else(|e| {
+                e.log();
+                let code = errors_to_error_code(&e);
+                GrantResponse::Error(ErrorResponse { error: code })
+            })
+    }
+
+    /// Continues a verified grant and issues the peer's access token; failures become a GNAP
+    /// error body.
+    #[tracing::instrument(level = "info", skip_all)]
+    async fn manage_continue_req(
+        &self,
+        id: &str,
+        payload: Bytes,
+        headers: HeaderMap,
+    ) -> GrantResponse {
+        self.inner_manage_continue_req(id, payload, headers)
+            .await
+            .unwrap_or_else(|e| {
+                e.log();
+                let code = errors_to_error_code(&e);
+                GrantResponse::Error(ErrorResponse { error: code })
+            })
+    }
+
+    // ==========================================================================================
+    // Internal steps of the flow
+    // ==========================================================================================
+
     /// Validates the request and stores the grant, its interaction, resource request and
-    /// verification.
+    /// verification. The grant's role and visibility would come from rules on what the peer asks
+    /// for; until those exist, the root handles it and it is public.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn inner_manage_grant_req(
         &self,
-        tenant_id: String,
         payload: Bytes,
         headers: HeaderMap,
     ) -> Outcome<GrantResponse> {
-        let grant_request = self
-            .gatekeeper()
-            .validate_grant_req(&tenant_id, &payload, &headers)?;
+        let grant_request = self.gatekeeper().validate_grant_req(&payload, &headers)?;
 
-        let grant = self
-            .gatekeeper()
-            .build_grant_plan(&tenant_id, grant_request.client.class_id.clone())?;
+        let grant =
+            self.gatekeeper()
+                .build_grant_plan(None, None, grant_request.client.class_id.clone())?;
         let interaction = self.gatekeeper().build_interaction_plan(
-            &tenant_id,
             &grant.id,
             grant_request.client,
             grant_request.interact,
         )?;
-        let resource_req =
-            self.gatekeeper()
-                .build_resource_req_plan(&tenant_id, &grant.id, grant_request.kind)?;
+        let resource_req = self
+            .gatekeeper()
+            .build_resource_req_plan(&grant.id, grant_request.kind)?;
 
         let grant = self.repo().recv_grant().create(grant).await?;
         let interaction = self.repo().recv_interaction().create(interaction).await?;
-        let _resource_req = self.repo().resource_req().create(resource_req).await?;
+        self.repo().resource_req().create(resource_req).await?;
 
-        let verification = self.verifier().build_vp_plan(&grant.tenant_id, &grant.id)?;
-        let ver_model = self.repo().recv_verification().create(verification).await?;
-        let uri = self.verifier().generate_verification_uri(&ver_model);
+        let verification = self.verifier().build_vp_plan(&grant.id)?;
+        let verification = self.repo().recv_verification().create(verification).await?;
+        let uri = self.verifier().generate_verification_uri(&verification);
         Ok(GrantResponse::pending(uri, &interaction))
     }
 
-    /// Checks the continuation against its interaction and registers the peer with a new token.
+    /// Checks the continuation against its interaction (the peer proves its key) and, with the
+    /// presentation verified, approves the grant with a new token. Stores the peer (if new; an
+    /// existing one is left as it is), the private relation of the verification with it, and
+    /// which peer the grant belongs to.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn inner_manage_continue_req(
         &self,
-        tenant_id: String,
-        id: String,
+        id: &str,
         payload: Bytes,
         headers: HeaderMap,
     ) -> Outcome<GrantResponse> {
-        let interaction = self.repo().recv_interaction().get_by_cont_id(&id).await?;
-        if interaction.tenant_id != tenant_id {
-            return Err(Errors::missing_resource(id, "interaction not found", None));
-        }
+        let interaction = self.repo().recv_interaction().get_by_cont_id(id).await?;
         self.gatekeeper()
             .validate_cont_req(&interaction, &payload, &headers)?;
 
@@ -189,31 +196,28 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
             .recv_verification()
             .get_by_id(&interaction.id)
             .await?;
-
         let holder = require_field(verification.holder.as_ref(), "holder")?;
-        let token = create_opaque_token();
 
         let mate = self.gatekeeper().build_mate_plan(
-            &grant.tenant_id,
             holder,
             &grant.participant_nick,
             &interaction.callback_uri,
-            &token,
         );
+        self.repo().participant().create_if_absent(mate).await?;
+        let relation = self.gatekeeper().build_mate_rel_plan(&grant.role, holder);
+        self.repo().participant_relation().force_update(relation).await?;
 
-        let _mate = self.repo().participant().force_update(mate).await?;
-
+        let token = create_opaque_token();
         grant.token = Some(token.to_string());
+        grant.participant_id = Some(holder.to_string());
         grant.status = GrantStatus::Approved;
-
-        let _grant = self.repo().recv_grant().update(grant).await?;
+        self.repo().recv_grant().update(grant).await?;
 
         let resource_req = self
             .repo()
             .resource_req()
             .get_by_id(&interaction.id)
             .await?;
-
         Ok(GrantResponse::token_approved(token, &resource_req))
     }
 }

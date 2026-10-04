@@ -26,14 +26,18 @@ use ymir::services::repo::postgres::received::{
 use ymir::services::repo::postgres::sent::{
     SentGrantPostgresRepo, SentInteractionPostgresRepo, SentVerificationPostgresRepo,
 };
-use ymir::services::repo::postgres::shared::{ParticipantPostgresRepo, ResourceReqPostgresRepo};
+use ymir::services::repo::postgres::shared::{
+    ParticipantPostgresRepo, ParticipantRelationPostgresRepo, ResourceReqPostgresRepo,
+};
 use ymir::services::repo::traits::received::{
     RecvGrantRepoTrait, RecvInteractionRepoTrait, RecvVerificationRepoTrait,
 };
 use ymir::services::repo::traits::sent::{
     SentGrantRepoTrait, SentInteractionRepoTrait, SentVerificationRepoTrait,
 };
-use ymir::services::repo::traits::shared::{ParticipantRepoTrait, ResourceReqRepoTrait};
+use ymir::services::repo::traits::shared::{
+    ParticipantRelationRepoTrait, ParticipantRepoTrait, ResourceReqRepoTrait,
+};
 
 use crate::data::factory::AuthRepoTrait;
 
@@ -43,6 +47,7 @@ pub struct AuthRepoForSql {
     sent_interaction_repo: Arc<dyn SentInteractionRepoTrait>,
     sent_verification_repo: Arc<dyn SentVerificationRepoTrait>,
     participant_repo: Arc<dyn ParticipantRepoTrait>,
+    participant_realtion_repo: Arc<dyn ParticipantRelationRepoTrait>,
     resource_req_repo: Arc<dyn ResourceReqRepoTrait>,
     recv_grant_repo: Arc<dyn RecvGrantRepoTrait>,
     recv_interaction_repo: Arc<dyn RecvInteractionRepoTrait>,
@@ -60,6 +65,9 @@ impl AuthRepoForSql {
                 db_connection.clone(),
             )),
             participant_repo: Arc::new(ParticipantPostgresRepo::new(db_connection.clone())),
+            participant_realtion_repo: Arc::new(ParticipantRelationPostgresRepo::new(
+                db_connection.clone(),
+            )),
             resource_req_repo: Arc::new(ResourceReqPostgresRepo::new(db_connection.clone())),
             recv_grant_repo: Arc::new(RecvGrantPostgresRepo::new(db_connection.clone())),
             recv_verification_repo: Arc::new(RecvVerificationPostgresRepo::new(
@@ -87,6 +95,10 @@ impl AuthRepoTrait for AuthRepoForSql {
 
     fn participant(&self) -> Arc<dyn ParticipantRepoTrait> {
         self.participant_repo.clone()
+    }
+
+    fn participant_relation(&self) -> Arc<dyn ParticipantRelationRepoTrait> {
+        self.participant_realtion_repo.clone()
     }
 
     fn resource_req(&self) -> Arc<dyn ResourceReqRepoTrait> {

@@ -17,7 +17,7 @@
 
 use serde::{Deserialize, Serialize};
 use ymir::types::gnap::grant_request::interact::{InteractAction, InteractStart};
-use ymir::types::participants::ParticipantVisibility;
+use ymir::types::participants::Visibility;
 use ymir::types::vcs::VcTypeConfig;
 
 /// Credential request to an authority; `auto` skips the manual steps.
@@ -39,7 +39,8 @@ pub struct ReachProvider {
     pub nick: String,
     pub url: String,
     pub actions: Vec<InteractAction>,
-    pub visibility: ParticipantVisibility,
+    /// Who sees the request and, once it completes, the relation with the peer.
+    pub visibility: Visibility,
     // #[serde(default)] TODO
     pub auto: Option<bool>,
 }

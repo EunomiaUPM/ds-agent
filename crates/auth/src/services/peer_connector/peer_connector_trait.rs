@@ -24,7 +24,6 @@ use ymir::errors::Outcome;
 use ymir::types::gnap::grant_request::interact::InteractAction;
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::oauth::UserInfo;
-use ymir::types::participants::ParticipantVisibility;
 
 /// Client side of GNAP towards a peer: building, sending and reading grant requests.
 #[mockall::automock]
@@ -42,12 +41,9 @@ pub trait PeerConnectorTrait: Send + Sync + 'static {
     fn build_verification_plan(&self, uri: &str, id: &str) -> Outcome<verification::Plan>;
     /// Participant record of the peer once the grant completes.
     fn build_mate_plan(&self, grant: &grant::Model) -> participant::Plan;
-    fn build_mate_relation(
-        &self,
-        user_info: &UserInfo,
-        holder: &str,
-        visibility: &ParticipantVisibility,
-    ) -> participant_relation::Model;
+    /// Relation of the user who sent the grant with the peer, under the role and visibility the
+    /// grant was sent with.
+    fn build_mate_relation(&self, grant: &grant::Model) -> participant_relation::Model;
     async fn send_grant_req(
         &self,
         grant: &grant::Model,

@@ -43,7 +43,7 @@ use ymir::types::gnap::GrantStatus;
 use ymir::types::http::HttpBody;
 use ymir::types::keys::{Certificate, KeySource, PrivateKey};
 use ymir::types::oauth::UserInfo;
-use ymir::types::participants::{ParticipantType, ParticipantVisibility};
+use ymir::types::participants::ParticipantType;
 use ymir::types::secrets::{PemHelper, StringHelper};
 use ymir::utils::{
     expect_from_env, get_query_param, http_client, json_headers, trim_4_base, ResponseExt,
@@ -70,6 +70,7 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
         grant::Plan {
             id: uuid::Uuid::new_v4().to_string(),
             user_id: user_info.user_id().to_string(),
+            username: user_info.username().map(ToString::to_string),
             role: user_info.role().clone(),
             participant_id: payload.id,
             participant_nick: payload.nick,
@@ -164,17 +165,13 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
         }
     }
 
-    fn build_mate_relation(
-        &self,
-        user_info: &UserInfo,
-        holder: &str,
-        visibility: &ParticipantVisibility,
-    ) -> participant_relation::Model {
+    fn build_mate_relation(&self, grant: &grant::Model) -> participant_relation::Model {
         participant_relation::Model {
-            user_id: user_info.user_id().to_string(),
-            participant_id: holder.to_string(),
-            role: user_info.role().clone(),
-            visibility: visibility.clone(),
+            user_id: grant.user_id.clone(),
+            username: grant.username.clone(),
+            participant_id: grant.participant_id.clone(),
+            role: grant.role.clone(),
+            visibility: grant.visibility.clone(),
         }
     }
 

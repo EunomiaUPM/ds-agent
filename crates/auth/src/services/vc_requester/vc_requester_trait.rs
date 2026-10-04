@@ -36,11 +36,9 @@ pub trait VcRequesterTrait: Send + Sync + 'static {
     fn build_verification_plan(&self, uri: &str, id: &str) -> Outcome<verification::Plan>;
     /// Participant record of the authority once the credential is issued.
     fn build_authority_plan(&self, grant: &grant::Model) -> participant::Plan;
-    fn build_auth_relation(
-        &self,
-        user_info: &UserInfo,
-        holder: &str,
-    ) -> participant_relation::Model;
+    /// Relation of the user who requested the credential with the authority, under the role and
+    /// visibility the grant was sent with.
+    fn build_auth_relation(&self, grant: &grant::Model) -> participant_relation::Model;
     async fn send_grant_req(
         &self,
         grant: &grant::Model,

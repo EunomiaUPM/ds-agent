@@ -41,7 +41,7 @@ use ymir::types::gnap::{
 use ymir::types::http::HttpBody;
 use ymir::types::keys::{Certificate, DbKeySource, KeySource, PublicKey};
 use ymir::types::oauth::RolePath;
-use ymir::types::participants::{ParticipantType, ParticipantVisibility};
+use ymir::types::participants::{ParticipantType, Visibility};
 use ymir::utils::{
     create_opaque_token, extract_gnap_token, http_client, json_headers, trim_4_base,
 };
@@ -59,7 +59,12 @@ impl GnapGateKeeperService {
 
 #[async_trait]
 impl GateKeeperTrait for GnapGateKeeperService {
-    fn build_grant_plan(&self, role: &RolePath, class_id: Option<String>) -> Outcome<grant::Plan> {
+    fn build_grant_plan(
+        &self,
+        role: Option<RolePath>,
+        visibility: Option<Visibility>,
+        class_id: Option<String>,
+    ) -> Outcome<grant::Plan> {
         let class_id = class_id.ok_or_else(|| {
             Errors::format(
                 BadFormat::Received,
@@ -72,7 +77,8 @@ impl GateKeeperTrait for GnapGateKeeperService {
 
         Ok(grant::Plan {
             id: id.clone(),
-            role: role.clone(),
+            role: role.unwrap_or_else(RolePath::root),
+            visibility: visibility.unwrap_or(Visibility::Public),
             participant_nick: class_id,
             vc_type_config: None,
             kind: GrantKind::AccessToken,
@@ -224,9 +230,10 @@ impl GateKeeperTrait for GnapGateKeeperService {
     fn build_mate_rel_plan(&self, role: &RolePath, holder: &str) -> participant_relation::Model {
         participant_relation::Model {
             user_id: VERIFICATION_USER_ID.to_string(),
+            username: None,
             participant_id: holder.to_string(),
             role: role.clone(),
-            visibility: ParticipantVisibility::Private,
+            visibility: Visibility::Private,
         }
     }
 

@@ -25,7 +25,9 @@ use ymir::services::repo::traits::received::{
 use ymir::services::repo::traits::sent::{
     SentGrantRepoTrait, SentInteractionRepoTrait, SentVerificationRepoTrait,
 };
-use ymir::services::repo::traits::shared::{ParticipantRepoTrait, ResourceReqRepoTrait};
+use ymir::services::repo::traits::shared::{
+    ParticipantRelationRepoTrait, ParticipantRepoTrait, ResourceReqRepoTrait,
+};
 
 /// Hands out the auth repositories; `sent_*` are flows we start, `recv_*` flows peers start.
 #[mockall::automock]
@@ -34,6 +36,8 @@ pub trait AuthRepoTrait: Send + Sync + 'static {
     fn sent_interaction(&self) -> Arc<dyn SentInteractionRepoTrait>;
     fn sent_verification(&self) -> Arc<dyn SentVerificationRepoTrait>;
     fn participant(&self) -> Arc<dyn ParticipantRepoTrait>;
+    fn participant_relation(&self) -> Arc<dyn ParticipantRelationRepoTrait>;
+
     fn resource_req(&self) -> Arc<dyn ResourceReqRepoTrait>;
     fn recv_grant(&self) -> Arc<dyn RecvGrantRepoTrait>;
     fn recv_interaction(&self) -> Arc<dyn RecvInteractionRepoTrait>;

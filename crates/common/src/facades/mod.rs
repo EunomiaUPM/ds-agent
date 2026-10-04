@@ -76,7 +76,12 @@ use serde::{Deserialize, Serialize};
 
 pub mod mates_facade;
 pub mod ports;
+// Thin wrapper over ymir's `http_client()`, left over from the client-credentials service
+// token; remote facades call `http_client()` directly. Kept as it was, out of the module tree.
+// pub mod service_client;
 pub mod ssi_auth_facade;
+
+// pub use service_client::ServiceHttpClient;
 
 pub use ports::AuthPorts;
 

@@ -22,6 +22,10 @@
 //! [`HttpTracing::grpc_layer`] on the composed planes, so modules get spans for free. The
 //! histograms are `http.server.request.duration` and `rpc.server.call.duration`, in seconds.
 
+mod extracted_headers;
+
+pub use extracted_headers::ExtractedHeaders;
+
 use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 

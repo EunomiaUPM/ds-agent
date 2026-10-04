@@ -24,7 +24,6 @@ use crate::facades::mates_facade::remote::MatesRemoteFacade;
 use crate::facades::mates_facade::MatesFacadeTrait;
 use crate::facades::ssi_auth_facade::remote::SSIAuthRemoteFacade;
 use crate::facades::ssi_auth_facade::SSIAuthFacadeTrait;
-use crate::module_loader::root_context::RootContext;
 
 /// Auth agent ports an agent depends on, local or remote.
 #[derive(Clone)]
@@ -34,15 +33,12 @@ pub struct AuthPorts {
 }
 
 impl AuthPorts {
-    /// Microservices: every port calls the auth agent at `auth` with the service token.
-    pub fn remote(auth: &MinKnownConfig, root: &RootContext) -> Self {
+    /// Microservices: every port calls the auth agent at `auth` over HTTP.
+    pub fn remote(auth: &MinKnownConfig) -> Self {
         let auth = Arc::new(auth.clone());
         Self {
-            mates: Arc::new(MatesRemoteFacade::new(
-                auth.clone(),
-                root.service_client.clone(),
-            )),
-            ssi_auth: Arc::new(SSIAuthRemoteFacade::new(auth, root.service_client.clone())),
+            mates: Arc::new(MatesRemoteFacade::new(auth.clone())),
+            ssi_auth: Arc::new(SSIAuthRemoteFacade::new(auth)),
         }
     }
 }

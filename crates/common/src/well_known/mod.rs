@@ -61,14 +61,14 @@
 //!
 //! ## 3. Finding a peer's DSP endpoint
 //!
-//! [`WellKnownRPCTrait`] looks the participant up in the tenant's registry, fetches
+//! [`WellKnownRPCTrait`] looks the participant up in the registry, fetches
 //! `{base_url}/.well-known/dspace-version` and returns the base URL for 2025-1. Agents call it
 //! before sending the first message of a process.
 //!
 //! ```rust,ignore
 //! use common::well_known::rpc::{WellKnownRPCRequest, WellKnownRPCTrait};
 //!
-//! let input = WellKnownRPCRequest { tenant_id, participant_id };
+//! let input = WellKnownRPCRequest { participant_id };
 //! let dsp_base = self.rpc.fetch_dataspace_current_path(&input).await?.path;
 //! // "https://provider.example.org/dsp/current"
 //! ```
@@ -79,15 +79,12 @@ use std::sync::Arc;
 
 use ymir::errors::Outcome;
 
-use crate::auth::ServiceHttpClient;
 use crate::config::types::min_known_config::MinKnownConfig;
-use crate::config::types::traits::MinKnownConfigTrait;
 use crate::facades::mates_facade::remote::MatesRemoteFacade;
 use crate::facades::mates_facade::MatesFacadeTrait;
 use crate::well_known::dspace_version::dspace_version::WellKnownDSpaceVersionService;
 use crate::well_known::router::WellKnownRouter;
 use crate::well_known::rpc::rpc::WellKnownRPCService;
-use ymir::config::types::HostType;
 
 pub mod dspace_version;
 pub mod router;
@@ -110,11 +107,6 @@ impl WellKnownRoot {
     }
 
     fn remote_mates(config: &MinKnownConfig) -> Arc<dyn MatesFacadeTrait> {
-        let config = Arc::new(config.clone());
-        let service_client = Arc::new(ServiceHttpClient::new(
-            &config.service_client,
-            &config.get_host(HostType::Http),
-        ));
-        Arc::new(MatesRemoteFacade::new(config, service_client))
+        Arc::new(MatesRemoteFacade::new(Arc::new(config.clone())))
     }
 }

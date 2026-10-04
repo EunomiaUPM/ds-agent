@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Participants known by each tenant.
+//! Participants known by the connector.
 
 use async_trait::async_trait;
 use ymir::data::entities::shared::participant::Model as Mates;
@@ -25,12 +25,12 @@ pub mod remote;
 
 #[mockall::automock]
 #[async_trait]
-/// Participants of a tenant, read from ssi-auth with the service token.
+/// Participants of the connector, read from ssi-auth with the service token.
 pub trait MatesFacadeTrait: Send + Sync {
-    /// Participant `mate_id` as known by `tenant_id`.
-    async fn get_mate_by_id(&self, tenant_id: String, mate_id: String) -> Outcome<Mates>;
-    /// The tenant's own participant record.
-    async fn get_me_mate(&self, tenant_id: String) -> Outcome<Mates>;
-    /// Every participant the tenant knows.
-    async fn get_all_mates(&self, tenant_id: String) -> Outcome<Vec<Mates>>;
+    /// Participant `mate_id`.
+    async fn get_mate_by_id(&self, mate_id: String) -> Outcome<Mates>;
+    /// The connector's own participant record.
+    async fn get_me_mate(&self) -> Outcome<Mates>;
+    /// Every participant the connector knows.
+    async fn get_all_mates(&self) -> Outcome<Vec<Mates>>;
 }

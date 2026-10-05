@@ -15,26 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use ymir::modules::WalletModuleTrait;
+//! In-process adapter of `common::facades::grants_facade`.
 
-use crate::modules::{
-    GaiaSelfAttesterModule, GateKeeperModule, ParticipantModule, PeerConnectorModule,
-    VcRequesterModule, VerifierModule,
-};
-use crate::services::HasConfig;
-
-/// Every capability module at once, as one trait object for the routers.
-pub trait AuthOrchestratorTrait:
-    PeerConnectorModule
-    + WalletModuleTrait
-    + ParticipantModule
-    + GaiaSelfAttesterModule
-    + VerifierModule
-    + VcRequesterModule
-    + GateKeeperModule
-    + HasConfig
-    + Send
-    + Sync
-    + 'static
-{
-}
+pub mod local;

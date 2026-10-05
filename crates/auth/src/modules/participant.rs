@@ -103,7 +103,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
 
     /// This connector itself, derived from the wallet; never stored.
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %_user.user_id()))]
-    async fn get_me(&self, _user: &UserInfo) -> Outcome<Model> {
+    async fn get_myself(&self, _user: &UserInfo) -> Outcome<Model> {
         let lock = self.wallet().get_identity();
         let identity = lock.read().await;
         let now = Utc::now();
@@ -132,7 +132,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
     }
 
     /// Merges `extra_fields` into the participant's own. Root only: the participant is shared by
-    /// the whole organisation.
+    /// the whole organization.
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
     async fn update_extra_fields_by_id(
         &self,

@@ -20,16 +20,16 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use common::auth::AccessScope;
 use common::facades::mates_facade::MatesFacadeTrait;
 use common::query::QuerySpec;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
+use ymir::types::oauth::UserInfo;
 
 use crate::entities::filters::ParticipantFilter;
 use crate::modules::ParticipantModule;
 
-/// Participants read straight from the auth services, scoped as the remote service token would be.
+/// Participants read straight from the participant module, as the given user sees them.
 pub struct MatesLocalFacade {
     participants: Arc<dyn ParticipantModule>,
 }
@@ -46,24 +46,16 @@ impl MatesFacadeTrait for MatesLocalFacade {
         level = "info",
         skip_all,
         err,
-        fields(peer.service = "auth", tenant = %tenant_id)
+        fields(peer.service = "auth", user = %user.user_id())
     )]
-    async fn get_mate_by_id(&self, tenant_id: String, mate_id: String) -> Outcome<Mates> {
-        self.participants
-            .get_by_id(&AccessScope::service(&tenant_id), mate_id)
-            .await
+    async fn get_mate_by_id(&self, user: &UserInfo, mate_id: String) -> Outcome<Mates> {
+        self.participants.get_by_id(user, &mate_id).await
     }
 
-    #[tracing::instrument(
-        level = "info",
-        skip_all,
-        err,
-        fields(peer.service = "auth", tenant = %tenant_id)
-    )]
-    async fn get_me_mate(&self, tenant_id: String) -> Outcome<Mates> {
-        self.participants
-            .get_me(&AccessScope::service(&tenant_id))
-            .await
+    /// Read as the system user: the connector itself is the same for everyone.
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth"))]
+    async fn get_me_mate(&self) -> Outcome<Mates> {
+        self.participants.get_myself(&UserInfo::system()).await
     }
 
     /// First page with the default query, as `GET /mates/all` without parameters returns.
@@ -71,18 +63,13 @@ impl MatesFacadeTrait for MatesLocalFacade {
         level = "info",
         skip_all,
         err,
-        fields(peer.service = "auth", tenant = %tenant_id)
+        fields(peer.service = "auth", user = %user.user_id())
     )]
-    async fn get_all_mates(&self, tenant_id: String) -> Outcome<Vec<Mates>> {
+    async fn get_all_mates(&self, user: &UserInfo) -> Outcome<Vec<Mates>> {
         let query = QuerySpec::<ParticipantFilter>::default();
         let page = self
             .participants
-            .get_all(
-                &AccessScope::service(&tenant_id),
-                &query.filter,
-                &query.page,
-                &query.sort,
-            )
+            .get_all(user, &query.filter, &query.page, &query.sort)
             .await?;
         Ok(page.items)
     }

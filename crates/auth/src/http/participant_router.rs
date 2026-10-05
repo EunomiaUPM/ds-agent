@@ -18,18 +18,21 @@
 use std::sync::Arc;
 
 use crate::entities::filters::ParticipantFilter;
+use crate::http::path_id::decode_path_id;
 use crate::modules::ParticipantModule;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
-use axum::routing::{get, post, put};
+use axum::routing::{get, post};
 use axum::{Json, Router};
-use common::auth::AccessScope;
 use common::batch_requests::BatchRequestsAsString;
-use common::facades::VerifyTokenRequest;
 use common::paginated_spec::Paginated;
 use common::query::{QueryFilter, QuerySpec};
+use common::routes::auth::mates;
+use serde::Deserialize;
 use ymir::data::entities::shared::participant::{Model, Plan};
 use ymir::errors::AppResult;
+use ymir::types::oauth::UserInfo;
+use ymir::types::participants::Visibility;
 use ymir::utils::extract_payload;
 
 pub type ParticipantQuery = QuerySpec<ParticipantFilter>;
@@ -40,85 +43,107 @@ pub struct ParticipantRouter {
 }
 
 impl ParticipantRouter {
+    // ==========================================================================================
+    // Sub-routers
+    // ==========================================================================================
+
     pub fn new(mater: Arc<dyn ParticipantModule>) -> ParticipantRouter {
         ParticipantRouter { manager: mater }
     }
 
-    pub fn router(&self) -> Router {
+    /// Participant routes; mounted behind the OAuth guard.
+    pub fn internal(&self) -> Router {
         Router::new()
-            .route("/all", get(Self::get_all))
-            .route("/myself", get(Self::get_myself))
-            .route("/{id}", get(Self::get_by_id))
-            .route("/batch", post(Self::get_batch))
-            .route("/token", post(Self::get_by_token))
-            .route("/{id}", put(Self::update_by_id))
-            .route("/", post(Self::create))
+            .route(mates::ALL, get(Self::get_all))
+            .route(mates::MYSELF, get(Self::get_myself))
+            .route(mates::BY_ID, get(Self::get_by_id).put(Self::update_by_id))
+            .route(mates::BATCH, post(Self::get_batch))
+            .route(mates::ROOT, post(Self::create))
             .with_state(self.manager.clone())
     }
 
+    // ==========================================================================================
+    // Internal requests: users, behind the OAuth guard (queries)
+    // ==========================================================================================
+
     async fn get_all(
         State(manager): State<Arc<dyn ParticipantModule>>,
-        scope: AccessScope,
+        user: UserInfo,
         Query(query): Query<ParticipantQuery>,
     ) -> AppResult<Json<Paginated<Model>>> {
         query.filter.validate()?;
         Ok(Json(
             manager
-                .get_all(&scope, &query.filter, &query.page, &query.sort)
+                .get_all(&user, &query.filter, &query.page, &query.sort)
                 .await?,
         ))
     }
+
+    /// `id` comes in base64url (see `path_id`).
     async fn get_by_id(
         State(manager): State<Arc<dyn ParticipantModule>>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(id): Path<String>,
     ) -> AppResult<Json<Model>> {
-        Ok(Json(manager.get_by_id(&scope, id).await?))
+        let id = decode_path_id(&id)?;
+        Ok(Json(manager.get_by_id(&user, &id).await?))
     }
 
     async fn get_myself(
         State(manager): State<Arc<dyn ParticipantModule>>,
-        scope: AccessScope,
+        user: UserInfo,
     ) -> AppResult<Json<Model>> {
-        Ok(Json(manager.get_me(&scope).await?))
+        Ok(Json(manager.get_myself(&user).await?))
     }
 
     async fn get_batch(
         State(manager): State<Arc<dyn ParticipantModule>>,
-        scope: AccessScope,
+        user: UserInfo,
         payload: Result<Json<BatchRequestsAsString>, JsonRejection>,
     ) -> AppResult<Json<Vec<Model>>> {
         let payload = extract_payload(payload)?;
-        Ok(Json(manager.get_participant_batch(&scope, payload).await?))
+        Ok(Json(manager.get_participant_batch(&user, payload).await?))
     }
 
-    async fn get_by_token(
-        State(manager): State<Arc<dyn ParticipantModule>>,
-        scope: AccessScope,
-        payload: Result<Json<VerifyTokenRequest>, JsonRejection>,
-    ) -> AppResult<Json<Model>> {
-        let payload = extract_payload(payload)?;
-        Ok(Json(manager.get_by_token(&scope, payload).await?))
-    }
+    // ==========================================================================================
+    // Internal requests: users, behind the OAuth guard (actions)
+    // ==========================================================================================
+
+    /// `id` comes in base64url (see `path_id`).
     async fn update_by_id(
         State(manager): State<Arc<dyn ParticipantModule>>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(id): Path<String>,
         payload: Result<Json<serde_json::Value>, JsonRejection>,
+    ) -> AppResult<Json<Model>> {
+        let id = decode_path_id(&id)?;
+        let payload = extract_payload(payload)?;
+        Ok(Json(
+            manager
+                .update_extra_fields_by_id(&user, &id, payload)
+                .await?,
+        ))
+    }
+
+    async fn create(
+        State(manager): State<Arc<dyn ParticipantModule>>,
+        user: UserInfo,
+        payload: Result<Json<PartVis>, JsonRejection>,
     ) -> AppResult<Json<Model>> {
         let payload = extract_payload(payload)?;
         Ok(Json(
             manager
-                .update_extra_fields_by_id(&scope, id, payload)
+                .create_participant(&user, payload.plan, payload.visibility)
                 .await?,
         ))
     }
-    async fn create(
-        State(manager): State<Arc<dyn ParticipantModule>>,
-        scope: AccessScope,
-        payload: Result<Json<Plan>, JsonRejection>,
-    ) -> AppResult<Json<Model>> {
-        let payload = extract_payload(payload)?;
-        Ok(Json(manager.create_participant(&scope, payload).await?))
-    }
+}
+
+/// Body of `POST /mates`: the participant to add, with the visibility of the relation with it
+/// as one more field.
+#[derive(Debug, Deserialize)]
+pub struct PartVis {
+    #[serde(flatten)]
+    plan: Plan,
+    visibility: Visibility,
 }

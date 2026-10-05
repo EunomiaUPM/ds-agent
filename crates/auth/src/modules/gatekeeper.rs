@@ -20,6 +20,7 @@ use crate::services::{HasGateKeeper, HasRepo};
 use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
+use common::facades::grants_facade::VerifiedPeer;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use serde_json::{json, Value};
 use ymir::data::entities::received::grant;
@@ -102,6 +103,23 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
             "interaction": interaction,
             "verification": verification,
         }))
+    }
+
+    // ==========================================================================================
+    // Received grants: for the other agents (grants facade)
+    // ==========================================================================================
+
+    /// The peer behind `token` and the role that handles what it opens, if this connector
+    /// issued the token and the grant is approved; missing-resource error otherwise. No user:
+    /// the caller is a DSP endpoint answering the peer.
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn verify_token(&self, token: &str) -> Outcome<VerifiedPeer> {
+        let grant = self.repo().recv_grant().get_approved_by_token(token).await?;
+        let participant_id = require_field(grant.participant_id.as_ref(), "participant_id")?;
+        Ok(VerifiedPeer {
+            participant_id: participant_id.to_string(),
+            role: grant.role,
+        })
     }
 
     // ==========================================================================================

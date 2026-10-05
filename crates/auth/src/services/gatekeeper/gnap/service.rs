@@ -20,6 +20,7 @@ use super::config::GnapGateKeeperConfig;
 use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
+use common::routes::auth::gate;
 use tracing::info;
 use ymir::capabilities::HttpSig;
 use ymir::config::traits::HostsConfigTrait;
@@ -28,6 +29,7 @@ use ymir::data::entities::received::{grant, interaction};
 use ymir::data::entities::shared::participant_relation::VERIFICATION_USER_ID;
 use ymir::data::entities::shared::{participant, participant_relation, resource_req};
 use ymir::errors::{BadFormat, Errors, Outcome};
+use ymir::http::routes::base;
 use ymir::services::client::ClientTrait;
 use ymir::types::gnap::grant_request::client::{Client, KeyMaterial, KeyProof};
 use ymir::types::gnap::grant_request::interact::{
@@ -190,12 +192,13 @@ impl GateKeeperTrait for GnapGateKeeperService {
         };
 
         let host = format!(
-            "{}{}/gate",
+            "{}{}{}",
             self.config.hosts().get_host(HostType::Http),
             self.config.get_api_path(),
+            gate::PREFIX,
         );
-        let grant_endpoint = format!("{host}/access");
-        let continue_endpoint = format!("{host}/continue");
+        let grant_endpoint = format!("{host}{}", gate::ACCESS);
+        let continue_endpoint = format!("{host}{}", base(gate::CONTINUE));
         let continue_token = create_opaque_token();
 
         let interaction = interaction::Plan {
@@ -263,9 +266,11 @@ impl GateKeeperTrait for GnapGateKeeperService {
         };
 
         let grant_endpoint = format!(
-            "{}{}/gate/access",
+            "{}{}{}{}",
             self.config.get_host(HostType::Http),
             self.config.get_api_path(),
+            gate::PREFIX,
+            gate::ACCESS,
         );
 
         HttpSig::verify(headers, &key_source, "POST", &grant_endpoint, payload)?;

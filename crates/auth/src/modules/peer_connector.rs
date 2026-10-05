@@ -117,6 +117,25 @@ pub trait PeerConnectorModule:
     }
 
     // ==========================================================================================
+    // Sent grants: for the other agents (grants facade)
+    // ==========================================================================================
+
+    /// The token `user` presents to `participant_id`: the one of its own latest approved grant
+    /// with that peer. `None` if it has none, even if a colleague does.
+    ///
+    /// Passive obtaining (tokens plan, §4.4) will go here: without a token, request one from the
+    /// peer on the user's behalf instead of answering `None`.
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    async fn peer_token(&self, user: &UserInfo, participant_id: &str) -> Outcome<Option<String>> {
+        let grant = self
+            .repo()
+            .sent_grant()
+            .get_active_access(user.user_id(), participant_id)
+            .await?;
+        Ok(grant.and_then(|g| g.token))
+    }
+
+    // ==========================================================================================
     // Flow entry points, called by the routers
     // ==========================================================================================
 

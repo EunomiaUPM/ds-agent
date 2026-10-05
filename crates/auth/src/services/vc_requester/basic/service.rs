@@ -19,6 +19,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use common::config::types::traits::EntityClientTrait;
+use common::routes::auth::vc_request;
 use tracing::info;
 use ymir::capabilities::HttpSig;
 use ymir::config::traits::HostsConfigTrait;
@@ -26,6 +27,7 @@ use ymir::config::types::HostType;
 use ymir::data::entities::sent::{grant, interaction, verification};
 use ymir::data::entities::shared::{participant, participant_relation};
 use ymir::errors::{Errors, Outcome};
+use ymir::http::routes::fill;
 use ymir::services::client::ClientTrait;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
@@ -79,10 +81,11 @@ impl VcRequesterTrait for VCReqService {
     }
     fn build_interaction_plan(&self, id: &str, start: InteractStart) -> interaction::Plan {
         let callback_uri = format!(
-            "{}{}/vc-request/callback/{}",
+            "{}{}{}{}",
             self.config.hosts().get_host(HostType::Http),
             self.config.get_api_path(),
-            &id
+            vc_request::PREFIX,
+            fill(vc_request::CALLBACK, id)
         );
 
         let start = match start {

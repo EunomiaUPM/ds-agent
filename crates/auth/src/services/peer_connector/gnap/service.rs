@@ -23,6 +23,7 @@ use crate::types::entities::ReachProvider;
 use crate::types::response::TokenWhatResponse;
 use async_trait::async_trait;
 use common::config::types::traits::EntityClientTrait;
+use common::routes::auth::peer_connection;
 use common::utils::parse_url;
 use tracing::info;
 use ymir::capabilities::HttpSig;
@@ -32,6 +33,7 @@ use ymir::data::entities::sent::{grant, interaction, verification};
 use ymir::data::entities::shared::participant_relation::VERIFICATION_USER_ID;
 use ymir::data::entities::shared::{participant, participant_relation, resource_req};
 use ymir::errors::{Errors, Outcome};
+use ymir::http::routes::fill;
 use ymir::services::client::ClientTrait;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
@@ -83,10 +85,11 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
     }
     fn build_interaction_plan(&self, id: &str) -> interaction::Plan {
         let callback_uri = format!(
-            "{}{}/peer-connection/callback/{}",
+            "{}{}{}{}",
             self.config.hosts().get_host(HostType::Http),
             self.config.get_api_path(),
-            &id
+            peer_connection::PREFIX,
+            fill(peer_connection::CALLBACK, id)
         );
 
         interaction::Plan {

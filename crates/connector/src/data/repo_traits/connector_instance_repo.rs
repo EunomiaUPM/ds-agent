@@ -17,6 +17,7 @@
 
 use crate::data::entities::connector_instances;
 use crate::data::entities::connector_instances::NewConnectorInstanceModel;
+use common::oauth::{Owner, OwnerScope};
 use ymir::errors::Outcome;
 
 /// Persistence of connector instances.
@@ -28,16 +29,15 @@ pub trait ConnectorInstanceRepoTrait: Send + Sync {
         new_instance_model: &NewConnectorInstanceModel,
     ) -> Outcome<connector_instances::Model>;
 
-    /// `tenant_id` of `None` searches every tenant.
     async fn get_instance_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         instance_id: &str,
     ) -> Outcome<Option<connector_instances::Model>>;
 
     async fn get_instance_by_name_and_version(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         name: &str,
         version: &str,
     ) -> Outcome<Option<connector_instances::Model>>;
@@ -45,21 +45,21 @@ pub trait ConnectorInstanceRepoTrait: Send + Sync {
     /// Instance linked to the distribution, if any.
     async fn get_instances_by_distribution(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         distribution_id: &str,
     ) -> Outcome<Option<connector_instances::Model>>;
 
     async fn delete_instance_by_name_and_version(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         name: &str,
         version: &str,
     ) -> Outcome<()>;
 
-    /// Returns the tenant of the removed instance.
+    /// Returns the owner of the removed instance.
     async fn delete_instance_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         instance_id: &str,
-    ) -> Outcome<String>;
+    ) -> Outcome<Owner>;
 }

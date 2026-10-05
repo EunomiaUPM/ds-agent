@@ -21,6 +21,7 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
+use common::oauth::{Owner, RolePath, Visibility};
 use sea_orm::ActiveValue;
 use ymir::errors::{Errors, Outcome};
 
@@ -33,7 +34,9 @@ use crate::entities::topic_pattern::TopicPattern;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub callback_address: String,
     pub topic_pattern: String,
     pub secret: Option<String>,
@@ -70,7 +73,7 @@ impl Model {
 
         Ok(SubscriptionRecord {
             id: self.id,
-            tenant_id: self.tenant_id,
+            owner: Owner::new(self.user_id, self.user_role, self.visibility),
             callback_address: self.callback_address,
             topic_pattern,
             secret: self.secret,
@@ -92,7 +95,9 @@ impl ActiveModel {
     pub fn from_domain(entity: &SubscriptionRecord) -> Self {
         Self {
             id: ActiveValue::Set(entity.id.clone()),
-            tenant_id: ActiveValue::Set(entity.tenant_id.clone()),
+            user_id: ActiveValue::Set(entity.owner.user_id.clone()),
+            user_role: ActiveValue::Set(entity.owner.role.clone()),
+            visibility: ActiveValue::Set(entity.owner.visibility.clone()),
             callback_address: ActiveValue::Set(entity.callback_address.clone()),
             topic_pattern: ActiveValue::Set(entity.topic_pattern.to_string()),
             secret: ActiveValue::Set(entity.secret.clone()),

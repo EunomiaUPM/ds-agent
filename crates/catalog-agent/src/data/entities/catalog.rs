@@ -18,18 +18,21 @@
 //! Catalogs table.
 
 use sea_orm::entity::prelude::*;
+use common::oauth::{Owner, RolePath, Visibility};
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
 
-/// `catalog_catalogs` row: a DCAT catalog of a tenant.
+/// `catalog_catalogs` row: a DCAT catalog, owned by who created it.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
 #[sea_orm(table_name = "catalog_catalogs")]
 #[serde(rename_all = "camelCase")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub foaf_home_page: Option<String>,
     pub dct_conforms_to: Option<String>,
     pub dct_creator: Option<String>,
@@ -71,10 +74,12 @@ impl Related<super::odrl_offer::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+common::impl_owned!(Model);
+
 #[derive(Clone)]
 pub struct NewCatalogModel {
     pub id: Option<Urn>,
-    pub tenant_id: String,
+    pub owner: Owner,
     pub foaf_home_page: Option<String>,
     pub dct_conforms_to: Option<String>,
     pub dct_creator: Option<String>,
@@ -89,7 +94,9 @@ impl From<NewCatalogModel> for ActiveModel {
             .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(dto.id.clone().unwrap_or(new_urn.clone()).to_string()),
-            tenant_id: ActiveValue::Set(dto.tenant_id),
+            user_id: ActiveValue::Set(dto.owner.user_id.clone()),
+            user_role: ActiveValue::Set(dto.owner.role.clone()),
+            visibility: ActiveValue::Set(dto.owner.visibility.clone()),
             foaf_home_page: ActiveValue::Set(dto.foaf_home_page),
             dct_conforms_to: ActiveValue::Set(dto.dct_conforms_to),
             dct_creator: ActiveValue::Set(dto.dct_creator),

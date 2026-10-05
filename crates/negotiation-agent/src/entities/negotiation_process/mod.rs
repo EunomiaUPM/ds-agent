@@ -21,6 +21,7 @@ use crate::data::entities::negotiation_process::{
     EditNegotiationProcessModel, NewNegotiationProcessModel,
 };
 use serde::{Deserialize, Serialize};
+use common::oauth::{Owner, Visibility};
 use std::collections::HashMap;
 use urn::Urn;
 
@@ -30,8 +31,12 @@ use urn::Urn;
 #[serde(deny_unknown_fields)]
 pub struct NewNegotiationProcessDto {
     pub id: Option<Urn>,
+    /// Who else sees it; private by default.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tenant_id: Option<String>,
+    pub visibility: Option<Visibility>,
+    /// Owner an in-process flow asks for; only honoured for the root.
+    #[serde(skip)]
+    pub owner: Option<Owner>,
     pub state: String,
     pub state_attribute: Option<String>,
     pub associated_agent_peer: String,
@@ -55,11 +60,11 @@ pub struct EditNegotiationProcessDto {
 }
 
 impl NewNegotiationProcessDto {
-    /// Row for `tenant_id`.
-    pub fn into_model(self, tenant_id: String) -> NewNegotiationProcessModel {
+    /// Row owned by `owner`.
+    pub fn into_model(self, owner: Owner) -> NewNegotiationProcessModel {
         NewNegotiationProcessModel {
             id: self.id,
-            tenant_id,
+            owner,
             state: self.state,
             state_attribute: self.state_attribute,
             associated_agent_peer: self.associated_agent_peer,

@@ -24,6 +24,7 @@ pub mod views;
 pub mod worker;
 
 use async_trait::async_trait;
+use common::oauth::Owner;
 use tokio::sync::broadcast;
 
 pub use dispatcher::EventDispatcher;
@@ -51,10 +52,10 @@ pub trait EventPublisherTrait: Send + Sync {
     /// Wraps the event in an envelope and publishes it.
     async fn publish_event<E: Event>(&self, event: E) -> Outcome<EventEnvelope>;
 
-    /// Publishes `payload` under `topic` for the tenant.
+    /// Publishes `payload` under `topic` about a record of `owner`.
     async fn emit_payload(
         &self,
-        tenant_id: &str,
+        owner: &Owner,
         topic: &str,
         source: &str,
         payload: &serde_json::Value,

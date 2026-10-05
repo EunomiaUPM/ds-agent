@@ -18,10 +18,11 @@
 //! Delivery repository.
 
 use async_trait::async_trait;
+use common::oauth::OwnerScope;
 use chrono::{DateTime, Utc};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    QuerySelect, QueryTrait,
+    QuerySelect,
 };
 use ymir::errors::{Errors, Outcome};
 
@@ -56,12 +57,16 @@ impl EventDeliveryRepo for SeaOrmDeliveryRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_delivery(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         id: &str,
     ) -> Outcome<Option<EventDeliveryRecord>> {
         let model = delivery::Entity::find()
             .filter(delivery::Column::Id.eq(id))
-            .filter(delivery::Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(
+                delivery::Column::UserId,
+                delivery::Column::UserRole,
+                delivery::Column::Visibility,
+            ))
             .one(&self.db)
             .await
             .map_err(|e| Errors::db("failed to query delivery record", Some(Box::new(e))))?;
@@ -166,12 +171,12 @@ impl EventDeliveryRepo for SeaOrmDeliveryRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn list_by_event(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         event_id: &str,
     ) -> Outcome<Vec<EventDeliveryRecord>> {
         let models = delivery::Entity::find()
             .filter(delivery::Column::EventId.eq(event_id))
-            .apply_if(tenant_id, |q, t| q.filter(delivery::Column::TenantId.eq(t)))
+            .filter(scope.condition(delivery::Column::UserId, delivery::Column::UserRole, delivery::Column::Visibility))
             .all(&self.db)
             .await
             .map_err(|e| Errors::db("failed to list deliveries", Some(Box::new(e))))?;

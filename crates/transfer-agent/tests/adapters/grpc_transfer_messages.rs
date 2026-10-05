@@ -18,7 +18,7 @@
 //! TransferMessagesGrpc: auth, field parsing, envelope building, error mapping and response
 //! shaping.
 
-use common::test_utils::grpc::{GrpcRequests, OTHER_TENANT, StubTokenValidator, TENANT};
+use common::test_utils::grpc::{GrpcRequests, StubTokenValidator, TENANT};
 use std::sync::Arc;
 use transfer_agent::grpc::api::transfer_messages::{
     CreateTransferMessageRequest, ListTransferMessagesByProcessRequest,
@@ -49,7 +49,9 @@ fn view() -> TransferMessageView {
     TransferMessageView {
         id: MessageId::generate(),
         transfer_process_id: TransferProcessId::generate(),
-        tenant_id: TENANT.to_string(),
+        user_id: TENANT.to_string(),
+        user_role: common::oauth::RolePath::root(),
+        visibility: common::oauth::Visibility::Private,
         direction: Direction::Outbound,
         protocol: ProtocolId::Dsp2025_1,
         message_type: ProtocolMessageType("TransferRequestMessage".into()),
@@ -87,25 +89,10 @@ fn valid_create() -> CreateTransferMessageRequest {
 async fn get_without_token_is_unauthenticated() {
     let g = grpc(MockTransferMessageServiceTrait::new());
     let err = g
-        .get_transfer_message(GrpcRequests::with_auth(id_request(), None, Some(TENANT)))
+        .get_transfer_message(GrpcRequests::with_auth(id_request(), None))
         .await
         .unwrap_err();
     assert_eq!(err.code(), Code::Unauthenticated);
-}
-
-/// A non-admin naming another tenant is PermissionDenied.
-#[tokio::test]
-async fn get_foreign_tenant_without_admin_is_permission_denied() {
-    let g = grpc(MockTransferMessageServiceTrait::new());
-    let err = g
-        .get_transfer_message(GrpcRequests::with_auth(
-            id_request(),
-            Some("owner"),
-            Some(OTHER_TENANT),
-        ))
-        .await
-        .unwrap_err();
-    assert_eq!(err.code(), Code::PermissionDenied);
 }
 
 /// Without tenant header the caller acts on its token's tenant.
@@ -113,11 +100,11 @@ async fn get_foreign_tenant_without_admin_is_permission_denied() {
 async fn missing_tenant_header_falls_back_to_token_tenant() {
     let mut svc = MockTransferMessageServiceTrait::new();
     svc.expect_get_one()
-        .withf(|scope, _| scope.acting_tenant() == TENANT)
+        .withf(|scope, _| scope.id() == TENANT)
         .returning(|_, _| Ok(view()));
     let g = grpc(svc);
     assert!(
-        g.get_transfer_message(GrpcRequests::with_auth(id_request(), Some("owner"), None))
+        g.get_transfer_message(GrpcRequests::with_auth(id_request(), Some("user")))
             .await
             .is_ok()
     );

@@ -16,12 +16,12 @@
  */
 
 use crate::data::entities::connector_instances;
+use common::oauth::{OwnedTrait, Owner, OwnerScope};
 use crate::data::entities::connector_instances::NewConnectorInstanceModel;
 use crate::data::repo_traits::connector_instance_repo::ConnectorInstanceRepoTrait;
 use crate::data::repo_traits::connector_repo_errors::{
     ConnectorAgentRepoErrors, ConnectorInstanceRepoErrors,
 };
-use sea_orm::QueryTrait;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, RuntimeErr, SqlxError,
 };
@@ -90,13 +90,11 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_instance_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         instance_id: &str,
     ) -> Outcome<Option<connector_instances::Model>> {
         let result = connector_instances::Entity::find_by_id(instance_id)
-            .apply_if(tenant_id, |q, t| {
-                q.filter(connector_instances::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(connector_instances::Column::UserId, connector_instances::Column::UserRole, connector_instances::Column::Visibility))
             .one(&self.db_connection)
             .await;
         match result {
@@ -111,14 +109,14 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_instance_by_name_and_version(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         name: &str,
         version: &str,
     ) -> Outcome<Option<connector_instances::Model>> {
         let result = connector_instances::Entity::find()
             .filter(connector_instances::Column::TemplateName.eq(name))
             .filter(connector_instances::Column::TemplateVersion.eq(version))
-            .filter(connector_instances::Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(connector_instances::Column::UserId, connector_instances::Column::UserRole, connector_instances::Column::Visibility))
             .one(&self.db_connection)
             .await;
         match result {
@@ -133,12 +131,12 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_instances_by_distribution(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         distribution_id: &str,
     ) -> Outcome<Option<connector_instances::Model>> {
         let result = connector_instances::Entity::find()
             .filter(connector_instances::Column::DistributionId.eq(distribution_id))
-            .filter(connector_instances::Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(connector_instances::Column::UserId, connector_instances::Column::UserRole, connector_instances::Column::Visibility))
             .one(&self.db_connection)
             .await;
         match result {
@@ -153,14 +151,14 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_instance_by_name_and_version(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         name: &str,
         version: &str,
     ) -> Outcome<()> {
         let result = connector_instances::Entity::delete_many()
             .filter(connector_instances::Column::TemplateName.eq(name))
             .filter(connector_instances::Column::TemplateVersion.eq(version))
-            .filter(connector_instances::Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(connector_instances::Column::UserId, connector_instances::Column::UserRole, connector_instances::Column::Visibility))
             .exec(&self.db_connection)
             .await;
 
@@ -182,14 +180,12 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_instance_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         instance_id: &str,
-    ) -> Outcome<String> {
+    ) -> Outcome<Owner> {
         let deleted = connector_instances::Entity::delete_many()
             .filter(connector_instances::Column::Id.eq(instance_id))
-            .apply_if(tenant_id, |q, t| {
-                q.filter(connector_instances::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(connector_instances::Column::UserId, connector_instances::Column::UserRole, connector_instances::Column::Visibility))
             .exec_with_returning(&self.db_connection)
             .await
             .map_err(|err| {
@@ -201,7 +197,7 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         deleted
             .into_iter()
             .next()
-            .map(|instance| instance.tenant_id)
+            .map(|instance| instance.owner())
             .ok_or_else(|| {
                 ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                     ConnectorInstanceRepoErrors::InstanceNotFound,

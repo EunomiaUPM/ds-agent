@@ -25,7 +25,7 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use common::batch_requests::BatchRequests;
 use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
@@ -58,9 +58,9 @@ impl PeerCatalogEntityRouter {
 
     async fn handle_get_all_catalog_by_peer_id(
         State(state): State<PeerCatalogEntityRouter>,
-        scope: AccessScope,
+        user: UserInfo,
     ) -> impl IntoResponse {
-        match state.service.get_all_peer_catalogs(&scope).await {
+        match state.service.get_all_peer_catalogs(&user).await {
             Ok(data) => (StatusCode::OK, Json(data)).into_response(),
             Err(e) => return e.into_response(),
         }
@@ -68,10 +68,10 @@ impl PeerCatalogEntityRouter {
 
     async fn handle_get_catalog_by_peer_id(
         State(state): State<PeerCatalogEntityRouter>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(peer_id): Path<String>,
     ) -> impl IntoResponse {
-        match state.service.get_peer_catalog(&scope, &peer_id).await {
+        match state.service.get_peer_catalog(&user, &peer_id).await {
             Ok(Some(catalog)) => (StatusCode::OK, Json(catalog)).into_response(),
             Ok(None) => {
                 let err =

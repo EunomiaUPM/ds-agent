@@ -16,7 +16,7 @@
  */
 
 //! TenantProvisioningService over mocked catalog and data service services and participant
-//! facade: idempotent creation of a tenant's main catalog and data service.
+//! facade: idempotent creation of the connector's main catalog and data service, by the root.
 
 use std::sync::Arc;
 
@@ -25,7 +25,8 @@ use catalog_agent::services::data_services::MockDataServiceServiceTrait;
 use catalog_agent::services::tenant_provisioning::service::TenantProvisioningService;
 use catalog_agent::services::tenant_provisioning::TenantProvisioningServiceTrait;
 use common::facades::mates_facade::MockMatesFacadeTrait;
-use common::test_utils::scopes::TestScopes;
+use common::oauth::RoleTrait;
+use common::test_utils::scopes::TestUsers;
 
 use crate::support::builders::{catalog_dto, data_service_dto, mate};
 use crate::support::fixtures::{test_urn, urn};
@@ -50,44 +51,31 @@ impl Deps {
     }
 }
 
-/// A reader cannot provision, not even its own tenant.
+/// Only the root provisions the connector's main catalog.
 #[tokio::test]
-async fn reader_cannot_provision() {
+async fn only_the_root_provisions() {
     let result = Deps::default()
         .service()
-        .provision(&TestScopes::reader("tenant-1"), "tenant-1")
+        .provision(&TestUsers::user("tenant-1", "/admin/tenant-1"))
         .await;
     assert!(result.is_err());
 }
 
-/// An owner cannot provision another tenant.
+/// A bare connector gets a main catalog naming its participant, and a main data service on
+/// the DSP endpoint inside that catalog, both created by the root.
 #[tokio::test]
-async fn owner_cannot_provision_another_tenant() {
-    let result = Deps::default()
-        .service()
-        .provision(&TestScopes::owner("tenant-1"), "tenant-2")
-        .await;
-    assert!(result.is_err());
-}
-
-/// A bare tenant gets a main catalog naming this connector's participant, and a main data
-/// service on the DSP endpoint inside that catalog, both created as the tenant's owner.
-#[tokio::test]
-async fn bare_tenant_gets_main_catalog_and_data_service() {
+async fn bare_connector_gets_main_catalog_and_data_service() {
     let mut deps = Deps::default();
     deps.catalogs
         .expect_get_main_catalog()
         .returning(|_| Ok(None));
     deps.mates
         .expect_get_me_mate()
-        .withf(|tenant| tenant == "tenant-9")
-        .returning(|_| Ok(mate("did:web:connector")));
+        .returning(|| Ok(mate("did:web:connector")));
     deps.catalogs
         .expect_create_main_catalog()
-        .withf(|scope, c| {
-            scope.acting_tenant() == "tenant-9"
-                && !scope.is_admin()
-                && c.dspace_participant_id.as_deref() == Some("did:web:connector")
+        .withf(|user, c| {
+            user.is_root() && c.dspace_participant_id.as_deref() == Some("did:web:connector")
         })
         .times(1)
         .returning(|_, _| Ok(catalog_dto(1)));
@@ -96,8 +84,8 @@ async fn bare_tenant_gets_main_catalog_and_data_service() {
         .returning(|_| Ok(None));
     deps.data_services
         .expect_create_main_data_service()
-        .withf(|scope, d| {
-            scope.acting_tenant() == "tenant-9"
+        .withf(|user, d| {
+            user.is_root()
                 && d.dcat_endpoint_url == DSP_URL
                 && d.catalog_id == test_urn(1)
         })
@@ -106,11 +94,10 @@ async fn bare_tenant_gets_main_catalog_and_data_service() {
 
     let provisioned = deps
         .service()
-        .provision(&TestScopes::admin(), "tenant-9")
+        .provision(&TestUsers::user("admin-tenant", "/admin"))
         .await
         .unwrap();
 
-    assert_eq!(provisioned.tenant_id, "tenant-9");
     assert_eq!(provisioned.catalog.inner.id, urn(1));
     assert_eq!(provisioned.data_service.inner.id, urn(200));
 }
@@ -128,7 +115,7 @@ async fn existing_main_entities_are_kept() {
 
     let provisioned = deps
         .service()
-        .provision(&TestScopes::owner("tenant-1"), "tenant-1")
+        .provision(&TestUsers::root())
         .await
         .unwrap();
     assert_eq!(provisioned.catalog.inner.id, urn(1));

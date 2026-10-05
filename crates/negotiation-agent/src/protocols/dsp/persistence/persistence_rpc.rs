@@ -16,6 +16,7 @@
  */
 
 use crate::entities::agreement::{EditAgreementDto, NewAgreementDto};
+use common::oauth::{OwnedTrait, Owner};
 
 use crate::entities::negotiation_message::NewNegotiationMessageDto;
 use crate::entities::negotiation_process::{EditNegotiationProcessDto, NewNegotiationProcessDto};
@@ -92,7 +93,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn fetch_last_offer(&self, process: &NegotiationProcessView) -> Outcome<OfferView> {
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
-        let scope = NegotiationProcessResolver::owner_scope(&process.inner.tenant_id);
+        let scope = NegotiationProcessResolver::actor();
         self.offer_service
             .get_last_by_process(&scope, &process_id)
             .await
@@ -101,13 +102,13 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn create_new(
         &self,
-        tenant_id: &str,
+        owner: &Owner,
         payload: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
         response: &dyn NegotiationProcessMessageTrait,
     ) -> Outcome<NegotiationProcessView> {
         let mut process = self
-            .create_process(tenant_id, payload, request, response)
+            .create_process(owner, payload, request, response)
             .await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
         let message = self
@@ -115,7 +116,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
             .await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
         let offer = self
-            .create_offer(&process_id, &message_id, payload, tenant_id)
+            .create_offer(&process_id, &message_id, payload, owner)
             .await?;
         process.messages.push(message.inner);
         process.offers.push(offer.inner);
@@ -154,7 +155,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
         let message = self.create_message(&process_id, payload, process).await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
         let offer = self
-            .create_offer(&process_id, &message_id, payload, &process.inner.tenant_id)
+            .create_offer(&process_id, &message_id, payload, &process.inner.owner())
             .await?;
         new_process.messages.push(message.inner);
         new_process.offers.push(offer.inner);
@@ -183,7 +184,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
                 &associated_agent_peer,
                 payload,
                 request,
-                &process.inner.tenant_id,
+                &process.inner.owner(),
             )
             .await?;
         new_process.messages.push(message.inner);
@@ -206,7 +207,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
         let message = self.create_message(&process_id, payload, process).await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
         let agreement = self
-            .activate_agreement(&process_id, &message_id, payload, &process.inner.tenant_id)
+            .activate_agreement(&process_id, &message_id, payload, &process.inner.owner())
             .await?;
         new_process.messages.push(message.inner);
         new_process.agreement = Some(agreement.inner);
@@ -217,7 +218,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
 impl NegotiationPersistenceForRpcService {
     async fn create_process(
         &self,
-        tenant_id: &str,
+        owner: &Owner,
         message: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
         response: &dyn NegotiationProcessMessageTrait,
@@ -241,10 +242,11 @@ impl NegotiationPersistenceForRpcService {
         let new_process = self
             .process_service
             .create(
-                &NegotiationProcessResolver::owner_scope(tenant_id),
+                &NegotiationProcessResolver::actor(),
                 &NewNegotiationProcessDto {
                     id: Some(id),
-                    tenant_id: Some(tenant_id.to_string()),
+                    visibility: None,
+                    owner: Some(owner.clone()),
                     state: state.to_string(),
                     state_attribute: None,
                     associated_agent_peer: agent_peer,
@@ -295,14 +297,14 @@ impl NegotiationPersistenceForRpcService {
             );
         }
 
-        let tenant_id = &process.inner.tenant_id;
         let new_message = self
             .message_service
             .create(
-                &NegotiationProcessResolver::owner_scope(tenant_id),
+                &NegotiationProcessResolver::actor(),
                 &NewNegotiationMessageDto {
                     id: Some(id),
-                    tenant_id: Some(tenant_id.clone()),
+                    visibility: None,
+                    owner: Some(process.inner.owner()),
                     negotiation_agent_process_id: process_id.clone(),
                     direction: "OUTBOUND".to_string(),
                     protocol: "DSP".to_string(),
@@ -321,7 +323,7 @@ impl NegotiationPersistenceForRpcService {
         process_id: &Urn,
         message_id: &Urn,
         message: &dyn RpcNegotiationProcessMessageTrait,
-        tenant_id: &str,
+        owner: &Owner,
     ) -> Outcome<OfferView> {
         let id = self.create_entity_urn("offer")?;
         let offer_content = self.get_rpc_offer_safely(message)?;
@@ -334,10 +336,11 @@ impl NegotiationPersistenceForRpcService {
         let new_offer = self
             .offer_service
             .create(
-                &NegotiationProcessResolver::owner_scope(tenant_id),
+                &NegotiationProcessResolver::actor(),
                 &NewOfferDto {
                     id: Some(id),
-                    tenant_id: Some(tenant_id.to_string()),
+                    visibility: None,
+                    owner: Some(owner.clone()),
                     negotiation_agent_process_id: process_id.clone(),
                     negotiation_agent_message_id: message_id.clone(),
                     offer_id,
@@ -355,7 +358,7 @@ impl NegotiationPersistenceForRpcService {
         _peer: &str,
         _message: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
-        tenant_id: &str,
+        owner: &Owner,
     ) -> Outcome<AgreementView> {
         let agreement = self.get_dsp_agreement_safely(request)?;
         let id = agreement.id.clone();
@@ -363,10 +366,11 @@ impl NegotiationPersistenceForRpcService {
         let agr = self
             .agreement_service
             .create(
-                &NegotiationProcessResolver::owner_scope(tenant_id),
+                &NegotiationProcessResolver::actor(),
                 &NewAgreementDto {
                     id: Some(id),
-                    tenant_id: Some(tenant_id.to_string()),
+                    visibility: None,
+                    owner: Some(owner.clone()),
                     negotiation_agent_process_id: pid.clone(),
                     negotiation_agent_message_id: mid.clone(),
                     consumer_participant_id: agreement.assignee.clone(),
@@ -384,9 +388,9 @@ impl NegotiationPersistenceForRpcService {
         pid: &Urn,
         _mid: &Urn,
         _message: &dyn RpcNegotiationProcessMessageTrait,
-        tenant_id: &str,
+        owner: &Owner,
     ) -> Outcome<AgreementView> {
-        let scope = NegotiationProcessResolver::owner_scope(tenant_id);
+        let scope = NegotiationProcessResolver::actor();
         let fetching_agreement = self.agreement_service.get_by_process(&scope, pid).await?;
         let agreement_urn = self.convert_string_to_urn(&fetching_agreement.inner.id)?;
         let agreement = self
@@ -415,7 +419,7 @@ impl NegotiationPersistenceForRpcService {
         let process = self
             .process_service
             .edit(
-                &NegotiationProcessResolver::owner_scope(&process.inner.tenant_id),
+                &NegotiationProcessResolver::actor(),
                 &pid,
                 &EditNegotiationProcessDto {
                     state: Some(state.to_string()),

@@ -29,10 +29,10 @@ pub struct CatalogPorts {
 }
 
 impl CatalogPorts {
-    /// Microservices: the auth agent is reached through its API with the service token.
-    pub fn remote(config: &CatalogConfig, root: &RootContext) -> Self {
+    /// Microservices: the auth agent is reached through its API.
+    pub fn remote(config: &CatalogConfig, _root: &RootContext) -> Self {
         Self {
-            auth: AuthPorts::remote(config.ssi_auth(), root),
+            auth: AuthPorts::remote(config.ssi_auth()),
         }
     }
 

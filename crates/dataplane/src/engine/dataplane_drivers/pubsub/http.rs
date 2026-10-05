@@ -79,7 +79,7 @@ impl DriverPubSubTrait for HttpPubSubscriber {
             .with_ingress(Some(ingress_url));
         if let Some(ks) = &self.keystore {
             resolver =
-                resolver.with_keystore(ks.clone(), &context.dataplane_process().inner.tenant_id);
+                resolver.with_keystore(ks.clone(), &connector.user_id);
         }
         let resolved_connector = resolver.resolve().await?;
         let push_lifecycle = match &resolved_connector.interaction {
@@ -156,7 +156,7 @@ impl DriverPubSubTrait for HttpPubSubscriber {
             RuntimeParametersResolver::new(connector, &runtime_value).with_ingress(ingress_url);
         if let Some(ks) = &self.keystore {
             resolver =
-                resolver.with_keystore(ks.clone(), &context.dataplane_process().inner.tenant_id);
+                resolver.with_keystore(ks.clone(), &connector.user_id);
         }
         let current_instance = resolver.resolve().await?;
 

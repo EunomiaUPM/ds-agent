@@ -31,6 +31,12 @@ pub const USER_ROLE: &str = "/admin/company/team";
 /// User behind the `root` token.
 pub const ROOT_ID: &str = "root";
 
+/// Owner of the `user` token's records as the agents' tables keep it (stage A: the user id).
+/// Provisional, for the agents' tests written against tenants.
+pub const TENANT: &str = USER_ID;
+/// An owner none of the stub tokens is. Provisional, as [`TENANT`].
+pub const OTHER_TENANT: &str = "tenant-2";
+
 /// Accepts `user` as [`USER_ID`] under [`USER_ROLE`] and `root` as a superuser; rejects
 /// anything else.
 pub struct StubTokenValidator;
@@ -63,5 +69,10 @@ impl GrpcRequests {
     /// Request as [`USER_ID`].
     pub fn user<T>(body: T) -> Request<T> {
         Self::with_auth(body, Some("user"))
+    }
+
+    /// Request as the owner of [`TENANT`], i.e. [`USER_ID`]. Provisional, as [`TENANT`].
+    pub fn owner<T>(body: T) -> Request<T> {
+        Self::user(body)
     }
 }

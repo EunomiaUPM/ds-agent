@@ -28,22 +28,20 @@ use axum::{
     routing::post,
     Extension, Json, Router,
 };
-use common::auth::claims::RbacRole;
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use common::config::services::CatalogConfig;
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::normalizer::dsp_namespace_normalizer;
-use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
+use common::facades::grants_facade::{GrantsFacadeTrait, VerifiedPeer};
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
-use ymir::data::entities::shared::participant::Model as Mates;
 
 #[derive(Clone)]
 pub struct DspRouter {
     orchestrator: Arc<dyn OrchestratorTrait>,
     config: Arc<CatalogConfig>,
-    ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
+    grants: Arc<dyn GrantsFacadeTrait>,
 }
 
 impl FromRef<DspRouter> for Arc<dyn OrchestratorTrait> {
@@ -56,18 +54,19 @@ impl DspRouter {
     pub fn new(
         service: Arc<dyn OrchestratorTrait>,
         config: Arc<CatalogConfig>,
-        ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
+        grants: Arc<dyn GrantsFacadeTrait>,
     ) -> Self {
         Self {
             orchestrator: service,
             config,
-            ssi_auth,
+            grants,
         }
     }
 
-    /// Read-only scope bound to the tenant the authenticated peer is associated with.
-    fn peer_scope(mate: &Mates) -> AccessScope {
-        AccessScope::from_role(RbacRole::Reader, &mate.tenant_id)
+    /// The authenticated peer as an actor: its DID under the role of its grant, so it reads
+    /// the catalogs that role reaches (all of them with the default `/admin`).
+    fn peer_user(peer: &VerifiedPeer) -> UserInfo {
+        peer.to_user()
     }
 
     async fn auth_middleware(
@@ -82,9 +81,9 @@ impl DspRouter {
             None => return Err(StatusCode::UNAUTHORIZED),
         };
         let token = token.replace("Bearer ", "");
-        match state.ssi_auth.verify_token(token).await {
-            Ok(mate) => {
-                request.extensions_mut().insert(mate);
+        match state.grants.verify_token(token).await {
+            Ok(peer) => {
+                request.extensions_mut().insert(peer);
                 Ok(next.run(request).await)
             }
             Err(_) => Err(StatusCode::UNAUTHORIZED),
@@ -105,18 +104,18 @@ impl DspRouter {
 
     async fn handle_catalog_request(
         State(state): State<DspRouter>,
-        Extension(mate): Extension<Mates>,
+        Extension(peer): Extension<VerifiedPeer>,
         input: Result<Json<CatalogMessageWrapper<CatalogRequestMessageDto>>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match input {
             Ok(input) => input.0,
             Err(e) => return (StatusCode::BAD_REQUEST, e.body_text()).into_response(),
         };
-        let scope = Self::peer_scope(&mate);
+        let user = Self::peer_user(&peer);
         match state
             .orchestrator
             .get_protocol_service()
-            .on_catalog_request(&scope, &input)
+            .on_catalog_request(&user, &input)
             .await
         {
             Ok(catalog) => (StatusCode::OK, Json(catalog)).into_response(),
@@ -127,9 +126,9 @@ impl DspRouter {
     async fn handle_dataset_request(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(mate): Extension<Mates>,
+        Extension(peer): Extension<VerifiedPeer>,
     ) -> impl IntoResponse {
-        let scope = Self::peer_scope(&mate);
+        let user = Self::peer_user(&peer);
         let dataset_id = match Urn::from_str(&id) {
             Ok(urn) => urn,
             Err(_) => {
@@ -150,7 +149,7 @@ impl DspRouter {
         match state
             .orchestrator
             .get_protocol_service()
-            .on_dataset_request(&scope, &request_msg)
+            .on_dataset_request(&user, &request_msg)
             .await
         {
             Ok(dataset) => (StatusCode::OK, Json(dataset)).into_response(),

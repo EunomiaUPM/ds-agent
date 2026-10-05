@@ -20,12 +20,13 @@
 
 use axum::http::StatusCode;
 use chrono::Utc;
+use common::oauth::OwnerScope;
 use events::data::repo::{DeadLetterRecord, DeadLetterStatus, DeliveryStatus};
 use events::entities::envelope::EventEnvelope;
 use serde_json::json;
 use ymir::errors::Errors;
 
-use crate::support::fixtures::{envelope, subscription, Repos, TENANT};
+use crate::support::fixtures::{envelope, owner, subscription, Repos};
 use crate::support::signals::Signals;
 use crate::support::webhook::Webhook;
 
@@ -40,7 +41,7 @@ fn publishing(subs: Vec<events::data::repo::SubscriptionRecord>) -> Repos {
     repos
         .subscriptions
         .expect_get_matching_subscriptions()
-        .withf(|tenant, topic| tenant == TENANT && topic.as_str() == "transfers:started")
+        .withf(|record_owner, topic| *record_owner == owner() && topic.as_str() == "transfers:started")
         .returning(move |_, _| Ok(subs.clone()));
     repos
 }
@@ -300,7 +301,7 @@ async fn unreachable_webhook_schedules_a_retry() {
 async fn emitting_under_an_invalid_topic_is_rejected() {
     let bus = Repos::default().bus();
     let result = bus
-        .emit_payload_with_tenant(TENANT, "transfers:*", "tests", &json!({}))
+        .emit_payload_for(&owner(), "transfers:*", "tests", &json!({}))
         .await;
     assert!(result.is_err());
 }
@@ -308,7 +309,7 @@ async fn emitting_under_an_invalid_topic_is_rejected() {
 fn dead_letter(event: &EventEnvelope, callback: &str) -> DeadLetterRecord {
     DeadLetterRecord {
         id: "dl-1".to_string(),
-        tenant_id: TENANT.to_string(),
+        owner: owner(),
         delivery_id: Some("delivery-1".to_string()),
         event_id: event.id.to_string(),
         subscription_id: "sub-1".to_string(),
@@ -353,9 +354,9 @@ async fn replay_redelivers_and_marks_replayed() {
     repos
         .dead_letters
         .expect_mark_replayed()
-        .withf(|tenant, id| tenant == TENANT && id == "dl-1")
+        .withf(|id| id == "dl-1")
         .times(1)
-        .returning(|_, _| Ok(()));
+        .returning(|_| Ok(()));
     repos
         .deliveries
         .expect_mark_delivered()
@@ -363,7 +364,7 @@ async fn replay_redelivers_and_marks_replayed() {
         .times(1)
         .returning(|_, _, _| Ok(()));
 
-    let delivery = repos.bus().replay_dead_letter(None, "dl-1").await.unwrap();
+    let delivery = repos.bus().replay_dead_letter(&OwnerScope::All, "dl-1").await.unwrap();
 
     assert_eq!(delivery.status, DeliveryStatus::Delivered);
     assert_eq!(delivery.attempts, 6);
@@ -377,7 +378,7 @@ async fn failed_replay_keeps_the_dead_letter() {
     let event = envelope("transfers:started");
     let repos = replaying(&event, &hook.url);
 
-    assert!(repos.bus().replay_dead_letter(None, "dl-1").await.is_err());
+    assert!(repos.bus().replay_dead_letter(&OwnerScope::All, "dl-1").await.is_err());
 }
 
 /// Replaying an unknown dead letter is not found.
@@ -391,7 +392,7 @@ async fn replaying_an_unknown_dead_letter_is_not_found() {
 
     assert!(repos
         .bus()
-        .replay_dead_letter(None, "missing")
+        .replay_dead_letter(&OwnerScope::All, "missing")
         .await
         .is_err());
 }

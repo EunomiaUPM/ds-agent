@@ -24,6 +24,7 @@ use serde::{Deserialize, Serialize};
 use urn::Urn;
 use uuid::Uuid;
 
+use common::oauth::Owner;
 use common::telemetry::TraceParent;
 
 use crate::entities::topic::Topic;
@@ -32,7 +33,9 @@ use crate::entities::topic::Topic;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventEnvelope {
     pub id: Urn,
-    pub tenant_id: String,
+    /// Owner of the record the event is about; who it reaches follows from it.
+    #[serde(flatten)]
+    pub owner: Owner,
     pub topic: Topic,
     pub source_crate: String,
     pub schema_version: u32,
@@ -48,7 +51,7 @@ pub struct EventEnvelope {
 impl EventEnvelope {
     /// New envelope with a fresh `urn:uuid` id, the current time and the current trace parent.
     pub fn new(
-        tenant_id: impl Into<String>,
+        owner: Owner,
         topic: Topic,
         source_crate: impl Into<String>,
         schema_version: u32,
@@ -59,7 +62,7 @@ impl EventEnvelope {
         let id = Urn::from_str(&id_str).expect("valid URN format");
         Self {
             id,
-            tenant_id: tenant_id.into(),
+            owner,
             topic,
             source_crate: source_crate.into(),
             schema_version,
@@ -73,7 +76,7 @@ impl EventEnvelope {
     /// Envelope rebuilt from storage, keeping its original id and timestamp.
     pub fn with_metadata(
         id: Urn,
-        tenant_id: impl Into<String>,
+        owner: Owner,
         topic: Topic,
         source_crate: impl Into<String>,
         schema_version: u32,
@@ -84,7 +87,7 @@ impl EventEnvelope {
     ) -> Self {
         Self {
             id,
-            tenant_id: tenant_id.into(),
+            owner,
             topic,
             source_crate: source_crate.into(),
             schema_version,

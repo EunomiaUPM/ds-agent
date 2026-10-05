@@ -28,7 +28,7 @@ pub struct NoopPeerCatalogCache;
 impl PeerCatalogCacheTrait for NoopPeerCatalogCache {
     async fn get_catalog(
         &self,
-        _tenant_id: &str,
+        _user_id: &str,
         _participant_id: &str,
     ) -> Outcome<Option<Catalog>> {
         Ok(None)
@@ -36,7 +36,7 @@ impl PeerCatalogCacheTrait for NoopPeerCatalogCache {
 
     async fn set_catalog(
         &self,
-        _tenant_id: &str,
+        _user_id: &str,
         _participant_id: &str,
         _catalog: &Catalog,
     ) -> Outcome<()> {

@@ -20,7 +20,8 @@
 use chrono::Utc;
 use common::batch_requests::BatchRequests;
 use common::query::{Page, Sort};
-use common::test_utils::scopes::TestScopes;
+use common::oauth::OwnerScope;
+use common::test_utils::scopes::TestUsers;
 use negotiation_agent::data::entities::negotiation_message::Model as NegotiationMessageModel;
 use negotiation_agent::data::repo_traits::agreement_repo::MockAgreementRepoTrait;
 use negotiation_agent::data::repo_traits::negotiation_message_repo::{
@@ -46,7 +47,9 @@ fn test_urn(n: u32) -> Urn {
 fn make_message_model(id: &Urn, tenant_id: &str) -> NegotiationMessageModel {
     NegotiationMessageModel {
         id: id.to_string(),
-        tenant_id: tenant_id.to_string(),
+        user_id: tenant_id.to_string(),
+        user_role: common::oauth::RolePath::root(),
+        visibility: common::oauth::Visibility::Private,
         negotiation_agent_process_id: "urn:uuid:process-1".to_string(),
         direction: "SENT".to_string(),
         protocol: "DSP_2025_1".to_string(),
@@ -78,7 +81,7 @@ async fn get_one_foreign_tenant_returns_not_found() {
     let id = test_urn(1);
     message_repo
         .expect_get_negotiation_message_by_id()
-        .withf(move |tenant, mid| tenant.as_deref() == Some("tenant-2") && mid == &test_urn(1))
+        .withf(move |scope, mid| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-2")) && mid == &test_urn(1))
         .returning(|_, _| Ok(None));
 
     let svc = make_service(
@@ -87,35 +90,42 @@ async fn get_one_foreign_tenant_returns_not_found() {
         MockAgreementRepoTrait::new(),
     );
     assert!(
-        svc.get_one(&TestScopes::owner("tenant-2"), &id)
+        svc.get_one(&TestUsers::user("tenant-2", "/admin/tenant-2"), &id)
             .await
             .is_err()
     );
 }
 
-/// A non-admin listing another tenant is rejected before touching the repository.
+/// Narrowing a listing to another user stays within what the caller sees.
 #[tokio::test]
-async fn get_all_foreign_tenant_query_rejected_with_forbidden() {
+async fn get_all_of_another_user_stays_within_what_the_caller_sees() {
+    let mut repo = MockNegotiationMessageRepoTrait::new();
+    repo.expect_get_all_negotiation_messages()
+        .withf(|scope, f, _, _| {
+            *scope == OwnerScope::seeing(&TestUsers::alone("tenant-1"))
+                && f.user_id.as_deref() == Some("tenant-foreign")
+        })
+        .returning(|_, _, _, _| Ok((vec![], Some(0))));
     let svc = make_service(
-        MockNegotiationMessageRepoTrait::new(),
+        repo,
         MockOfferRepoTrait::new(),
         MockAgreementRepoTrait::new(),
     );
 
     let filter = NegotiationMessageFilter {
-        tenant_id: Some("tenant-foreign".to_string()),
+        user_id: Some("tenant-foreign".to_string()),
         ..Default::default()
     };
 
     let result = svc
         .get_all(
-            &TestScopes::owner("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin/tenant-1"),
             &filter,
             &Page::default(),
             &Sort::default(),
         )
         .await;
-    assert!(result.is_err());
+    assert!(result.unwrap().items.is_empty());
 }
 
 /// Deleting a record of another tenant is not found.
@@ -125,7 +135,7 @@ async fn delete_foreign_tenant_returns_not_found() {
     let id = test_urn(1);
     message_repo
         .expect_delete_negotiation_message()
-        .withf(move |tenant, mid| tenant.as_deref() == Some("tenant-2") && mid == &test_urn(1))
+        .withf(move |scope, mid| *scope == OwnerScope::acting(&TestUsers::alone("tenant-2")) && mid == &test_urn(1))
         .returning(|_, _| {
             Err(NegotiationMessageRepoErrors::NegotiationMessageNotFound.into_errors())
         });
@@ -136,7 +146,7 @@ async fn delete_foreign_tenant_returns_not_found() {
         MockAgreementRepoTrait::new(),
     );
     assert!(
-        svc.delete(&TestScopes::owner("tenant-2"), &id)
+        svc.delete(&TestUsers::user("tenant-2", "/admin/tenant-2"), &id)
             .await
             .is_err()
     );
@@ -149,7 +159,7 @@ async fn batch_filters_out_foreign_tenant_records() {
     let id = test_urn(1);
     message_repo
         .expect_get_batch_negotiation_messages()
-        .withf(move |tenant, ids| tenant.as_deref() == Some("tenant-2") && *ids == [test_urn(1)])
+        .withf(move |scope, ids| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-2")) && *ids == [test_urn(1)])
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_service(
@@ -159,7 +169,7 @@ async fn batch_filters_out_foreign_tenant_records() {
     );
     let views = svc
         .batch(
-            &TestScopes::owner("tenant-2"),
+            &TestUsers::user("tenant-2", "/admin/tenant-2"),
             &BatchRequests { ids: vec![id] },
         )
         .await
@@ -175,8 +185,8 @@ async fn create_forces_caller_tenant_for_non_admin() {
     let id_clone = id.clone();
     message_repo
         .expect_create_negotiation_message()
-        .withf(|model| model.tenant_id == "tenant-2")
-        .returning(move |model| Ok(make_message_model(&id_clone, &model.tenant_id)));
+        .withf(|model| model.owner == TestUsers::owner("tenant-2"))
+        .returning(move |model| Ok(make_message_model(&id_clone, &model.owner.user_id)));
 
     let svc = make_service(
         message_repo,
@@ -185,7 +195,8 @@ async fn create_forces_caller_tenant_for_non_admin() {
     );
     let cmd = NewNegotiationMessageDto {
         id: Some(id),
-        tenant_id: Some("tenant-1".to_string()),
+        visibility: None,
+        owner: Some(TestUsers::owner("tenant-1")),
         negotiation_agent_process_id: test_urn(9),
         direction: "SENT".to_string(),
         protocol: "DSP_2025_1".to_string(),
@@ -195,34 +206,8 @@ async fn create_forces_caller_tenant_for_non_admin() {
         payload: serde_json::json!({}),
     };
     let view = svc
-        .create(&TestScopes::owner("tenant-2"), &cmd)
+        .create(&TestUsers::user("tenant-2", "/admin/tenant-2"), &cmd)
         .await
         .unwrap();
-    assert_eq!(view.inner.tenant_id, "tenant-2");
-}
-
-/// A reader cannot create a message.
-#[tokio::test]
-async fn reader_cannot_create_message() {
-    let svc = make_service(
-        MockNegotiationMessageRepoTrait::new(),
-        MockOfferRepoTrait::new(),
-        MockAgreementRepoTrait::new(),
-    );
-    let cmd = NewNegotiationMessageDto {
-        id: Some(test_urn(1)),
-        tenant_id: None,
-        negotiation_agent_process_id: test_urn(9),
-        direction: "SENT".to_string(),
-        protocol: "DSP_2025_1".to_string(),
-        message_type: "ContractRequestMessage".to_string(),
-        state_transition_from: "REQUESTED".to_string(),
-        state_transition_to: "OFFERED".to_string(),
-        payload: serde_json::json!({}),
-    };
-    assert!(
-        svc.create(&TestScopes::reader("tenant-1"), &cmd)
-            .await
-            .is_err()
-    );
+    assert_eq!(view.inner.user_id, "tenant-2");
 }

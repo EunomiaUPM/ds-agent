@@ -16,19 +16,22 @@
  */
 
 use sea_orm::entity::prelude::*;
+use common::oauth::{Owner, RolePath, Visibility};
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as Json;
 use urn::{Urn, UrnBuilder};
 
-/// `connector_instances` row: a template bound to concrete parameters for one tenant.
+/// `connector_instances` row: a template bound to concrete parameters, owned by who set it up.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
 #[sea_orm(table_name = "connector_instances")]
 #[serde(rename_all = "camelCase")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub template_name: String,
     pub template_version: String,
     pub distribution_id: String,
@@ -43,8 +46,8 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::connector_templates::Entity",
-        from = "(Column::TenantId, Column::TemplateName, Column::TemplateVersion)",
-        to = "(super::connector_templates::Column::TenantId, super::connector_templates::Column::Name, super::connector_templates::Column::Version)"
+        from = "(Column::TemplateName, Column::TemplateVersion)",
+        to = "(super::connector_templates::Column::Name, super::connector_templates::Column::Version)"
     )]
     ConnectorTemplate,
 }
@@ -57,10 +60,12 @@ impl Related<super::connector_templates::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+common::impl_owned!(Model);
+
 #[derive(Clone)]
 pub struct NewConnectorInstanceModel {
     pub id: Option<Urn>,
-    pub tenant_id: String,
+    pub owner: Owner,
     pub template_name: String,
     pub template_version: String,
     pub distribution_id: String,
@@ -82,7 +87,9 @@ impl From<NewConnectorInstanceModel> for ActiveModel {
 
         Self {
             id: ActiveValue::Set(dto.id.clone().unwrap_or(new_urn).to_string()),
-            tenant_id: ActiveValue::Set(dto.tenant_id),
+            user_id: ActiveValue::Set(dto.owner.user_id),
+            user_role: ActiveValue::Set(dto.owner.role),
+            visibility: ActiveValue::Set(dto.owner.visibility),
             template_name: ActiveValue::Set(dto.template_name),
             template_version: ActiveValue::Set(dto.template_version),
             distribution_id: ActiveValue::Set(dto.distribution_id),

@@ -26,7 +26,7 @@ use catalog_agent::cache::factory_trait::MockCatalogAgentCacheTrait;
 use catalog_agent::services::peer_catalogs::service::PeerCatalogService;
 use catalog_agent::services::peer_catalogs::PeerCatalogServiceTrait;
 use common::facades::mates_facade::MockMatesFacadeTrait;
-use common::test_utils::scopes::TestScopes;
+use common::test_utils::scopes::TestUsers;
 use ymir::errors::Errors;
 
 use crate::support::builders::{mate, peer_catalog};
@@ -46,7 +46,7 @@ async fn lists_cached_catalogs_of_known_peers() {
     let mut mates = MockMatesFacadeTrait::new();
     mates
         .expect_get_all_mates()
-        .withf(|tenant| tenant == "tenant-1")
+        .withf(|user| user.id() == "tenant-1")
         .returning(|_| Ok(vec![mate("did:a"), mate("did:b"), mate("did:c")]));
     let mut peers = MockPeerCatalogCacheTrait::new();
     peers.expect_get_catalog().returning(|_, peer| match peer {
@@ -56,7 +56,7 @@ async fn lists_cached_catalogs_of_known_peers() {
     });
 
     let listed = service(peers, mates)
-        .get_all_peer_catalogs(&TestScopes::owner("tenant-1"))
+        .get_all_peer_catalogs(&TestUsers::user("tenant-1", "/admin/tenant-1"))
         .await
         .unwrap();
 
@@ -71,25 +71,25 @@ async fn catalogs_are_cached_per_tenant() {
     let mut peers = MockPeerCatalogCacheTrait::new();
     peers
         .expect_get_catalog()
-        .withf(|tenant, peer| tenant == "tenant-2" && peer == "did:a")
+        .withf(|user_id, peer| user_id == "tenant-2" && peer == "did:a")
         .times(1)
         .returning(|_, _| Ok(None));
     peers
         .expect_set_catalog()
-        .withf(|tenant, peer, catalog| {
-            tenant == "tenant-2" && peer == "did:a" && catalog.id.to_string() == "urn:catalog:a"
+        .withf(|user_id, peer, catalog| {
+            user_id == "tenant-2" && peer == "did:a" && catalog.id.to_string() == "urn:catalog:a"
         })
         .times(1)
         .returning(|_, _, _| Ok(()));
     let svc = service(peers, MockMatesFacadeTrait::new());
-    let scope = TestScopes::owner("tenant-2");
+    let user = TestUsers::user("tenant-2", "/admin/tenant-2");
 
     assert!(svc
-        .get_peer_catalog(&scope, "did:a")
+        .get_peer_catalog(&user, "did:a")
         .await
         .unwrap()
         .is_none());
-    svc.set_peer_catalog(&scope, "did:a", &peer_catalog("urn:catalog:a"))
+    svc.set_peer_catalog(&user, "did:a", &peer_catalog("urn:catalog:a"))
         .await
         .unwrap();
 }
@@ -102,7 +102,7 @@ async fn participant_lookup_failure_fails_the_listing() {
         .expect_get_all_mates()
         .returning(|_| Err(Errors::crazy("ssi-auth down", None)));
     let result = service(MockPeerCatalogCacheTrait::new(), mates)
-        .get_all_peer_catalogs(&TestScopes::owner("tenant-1"))
+        .get_all_peer_catalogs(&TestUsers::user("tenant-1", "/admin/tenant-1"))
         .await;
     assert!(result.is_err());
 }
@@ -114,13 +114,13 @@ async fn noop_cache_never_keeps_a_peer_catalog() {
         Arc::new(CatalogAgentCacheNoop),
         Arc::new(MockMatesFacadeTrait::new()),
     );
-    let scope = TestScopes::owner("tenant-1");
+    let user = TestUsers::user("tenant-1", "/admin/tenant-1");
 
-    svc.set_peer_catalog(&scope, "did:a", &peer_catalog("urn:catalog:a"))
+    svc.set_peer_catalog(&user, "did:a", &peer_catalog("urn:catalog:a"))
         .await
         .unwrap();
     assert!(svc
-        .get_peer_catalog(&scope, "did:a")
+        .get_peer_catalog(&user, "did:a")
         .await
         .unwrap()
         .is_none());

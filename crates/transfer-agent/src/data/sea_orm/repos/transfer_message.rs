@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use sea_orm::QueryTrait;
+use common::oauth::{OwnedTrait, Owner, OwnerScope};
 use std::sync::Arc;
 
 use crate::data::repo::transfer_message::{TransferMessageRepoErrors, TransferMessageRepoTrait};
@@ -54,10 +54,16 @@ impl SeaOrmTransferMessageRepo {
 
     fn apply_base_filters(
         mut q: sea_orm::Select<orm::Entity>,
+        scope: &OwnerScope,
         filters: &TransferMessageFilter,
     ) -> sea_orm::Select<orm::Entity> {
-        if let Some(tid) = &filters.tenant_id {
-            q = q.filter(orm::Column::TenantId.eq(tid.as_str()));
+        q = q.filter(scope.condition(
+            orm::Column::UserId,
+            orm::Column::UserRole,
+            orm::Column::Visibility,
+        ));
+        if let Some(user_id) = &filters.user_id {
+            q = q.filter(orm::Column::UserId.eq(user_id.as_str()));
         }
         if let Some(dir) = &filters.direction {
             q = q.filter(orm::Column::Direction.eq(ser_enum(dir)));
@@ -107,11 +113,12 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_transfer_messages(
         &self,
+        scope: &OwnerScope,
         filters: &TransferMessageFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Vec<TransferMessage>> {
-        let q = Self::apply_base_filters(orm::Entity::find(), filters);
+        let q = Self::apply_base_filters(orm::Entity::find(), scope, filters);
         let q = self.apply_page_and_sort(q, page, sort)?;
         q.limit(page.limit as u64)
             .all(self.db.as_ref())
@@ -123,8 +130,8 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn count_transfer_messages(&self, filters: &TransferMessageFilter) -> Outcome<u64> {
-        Self::apply_base_filters(orm::Entity::find(), filters)
+    async fn count_transfer_messages(&self, scope: &OwnerScope, filters: &TransferMessageFilter) -> Outcome<u64> {
+        Self::apply_base_filters(orm::Entity::find(), scope, filters)
             .count(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)
@@ -133,6 +140,7 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_messages_by_process_id(
         &self,
+        scope: &OwnerScope,
         process_id: &Urn,
         filters: &TransferMessageFilter,
         page: &Page,
@@ -140,7 +148,7 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
     ) -> Outcome<Vec<TransferMessage>> {
         let q =
             orm::Entity::find().filter(orm::Column::TransferProcessId.eq(process_id.to_string()));
-        let q = Self::apply_base_filters(q, filters);
+        let q = Self::apply_base_filters(q, scope, filters);
         let q = self.apply_page_and_sort(q, page, sort)?;
         q.limit(page.limit as u64)
             .all(self.db.as_ref())
@@ -154,11 +162,11 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_transfer_message_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<TransferMessage>> {
         let q = orm::Entity::find_by_id(id.to_string())
-            .apply_if(tenant_id, |q, t| q.filter(orm::Column::TenantId.eq(t)));
+            .filter(scope.condition(orm::Column::UserId, orm::Column::UserRole, orm::Column::Visibility));
         q.one(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?
@@ -183,18 +191,18 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_transfer_message(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
-    ) -> Outcome<String> {
+    ) -> Outcome<Owner> {
         let q = orm::Entity::delete_many()
             .filter(orm::Column::Id.eq(id.to_string()))
-            .apply_if(tenant_id, |q, t| q.filter(orm::Column::TenantId.eq(t)));
+            .filter(scope.condition(orm::Column::UserId, orm::Column::UserRole, orm::Column::Visibility));
         let rows = q.exec_with_returning(self.db.as_ref()).await.map_err(|e| {
             TransferMessageRepoErrors::ErrorDeletingTransferMessage(Box::new(e)).into_errors()
         })?;
         rows.into_iter()
             .next()
-            .map(|row| row.tenant_id)
+            .map(|row| row.owner())
             .ok_or_else(|| TransferMessageRepoErrors::TransferMessageNotFound.into_errors())
     }
 }

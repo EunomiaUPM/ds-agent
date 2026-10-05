@@ -17,7 +17,7 @@
 
 use crate::data::repo::config::KeystoreConfigRepo;
 use crate::services::config::ConfigStore;
-use common::auth::AccessScope;
+use common::oauth::{RoleTrait, UserInfo};
 use common::config::ApplicationConfig;
 use std::sync::Arc;
 use ymir::errors::Outcome;
@@ -34,9 +34,9 @@ impl ConfigStoreImpl {
 
 #[async_trait::async_trait]
 impl ConfigStore for ConfigStoreImpl {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn get_application_config(&self, scope: &AccessScope) -> Outcome<ApplicationConfig> {
-        scope.require_admin()?;
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn get_application_config(&self, user: &UserInfo) -> Outcome<ApplicationConfig> {
+        user.require_root()?;
         self.repo.get_config().await
     }
 }

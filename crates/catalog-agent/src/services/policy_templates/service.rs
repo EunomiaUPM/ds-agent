@@ -22,7 +22,7 @@ use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::filters::PolicyTemplateFilter;
 use crate::entities::policy_templates::{NewPolicyTemplateDto, PolicyTemplateDto};
 use crate::services::policy_templates::PolicyTemplateServiceTrait;
-use common::auth::AccessScope;
+use common::oauth::{OwnedTrait, Owner, OwnerScope, UserInfo};
 use common::errors::NotFoundExt;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use common::query::QueryFilter;
@@ -52,24 +52,21 @@ impl PolicyTemplateService {
 
 #[async_trait::async_trait]
 impl PolicyTemplateServiceTrait for PolicyTemplateService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all_policy_templates(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &PolicyTemplateFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<PolicyTemplateDto>> {
-        scope.require_read()?;
         filters.validate()?;
-        let mut filters = filters.clone();
-        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
         let page = page.clamped();
 
         let (policy_templates, total) = self
             .repo
             .get_policy_template_repo()
-            .get_all_policy_templates(&filters, &page, sort)
+            .get_all_policy_templates(&OwnerScope::seeing(user), filters, &page, sort)
             .await?;
 
         let dtos = policy_templates
@@ -82,17 +79,16 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
         }))
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_batch_policy_templates(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         ids: &[String],
     ) -> Outcome<Vec<PolicyTemplateDto>> {
-        scope.require_read()?;
         let policy_templates = self
             .repo
             .get_policy_template_repo()
-            .get_batch_policy_templates(scope.acting_tenant(), ids)
+            .get_batch_policy_templates(&OwnerScope::seeing(user), ids)
             .await?;
         policy_templates
             .into_iter()
@@ -100,17 +96,16 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
             .collect()
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_policies_template_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         template_id: &str,
     ) -> Outcome<Vec<PolicyTemplateDto>> {
-        scope.require_read()?;
         let policy_templates = self
             .repo
             .get_policy_template_repo()
-            .get_policy_templates_by_id(scope.acting_tenant(), template_id)
+            .get_policy_templates_by_id(&OwnerScope::seeing(user), template_id)
             .await?;
         policy_templates
             .into_iter()
@@ -118,34 +113,36 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
             .collect()
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_policies_template_by_version_and_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         template_id: &str,
         version_id: &str,
     ) -> Outcome<PolicyTemplateDto> {
-        scope.require_read()?;
         let policy_template = self
             .repo
             .get_policy_template_repo()
-            .get_policy_template_by_id_and_version(scope.acting_tenant(), template_id, version_id)
+            .get_policy_template_by_id_and_version(&OwnerScope::seeing(user), template_id, version_id)
             .await?
             .or_not_found(format!("{template_id}:{version_id}"), "policy template")?;
         PolicyTemplateDto::try_from(policy_template)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn create_policy_template(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_policy_template: &NewPolicyTemplateDto,
     ) -> Outcome<PolicyTemplateDto> {
         new_policy_template.validate_dto()?;
         let mut new_policy_template = new_policy_template.clone();
-        let tenant_id = scope.resolve_create_tenant(new_policy_template.tenant_id.as_deref())?;
-        new_policy_template.tenant_id = Some(tenant_id.clone());
-        let new_model: NewPolicyTemplateModel = new_policy_template.into_model(tenant_id)?;
+        let owner = Owner::for_new(
+            user,
+            new_policy_template.owner.take(),
+            new_policy_template.visibility.clone(),
+        );
+        let new_model: NewPolicyTemplateModel = new_policy_template.into_model(owner)?;
         let policy_template = self
             .repo
             .get_policy_template_repo()
@@ -154,7 +151,7 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
         let dto: PolicyTemplateDto = PolicyTemplateDto::try_from(policy_template)?;
         events::emit_action!(
             self.event_bus,
-            &dto.tenant_id,
+            &dto.owner(),
             crate::EVENT_PREFIX,
             "policy_template",
             "create",
@@ -163,25 +160,24 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn delete_policy_template_by_version_and_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         template_id: &str,
         version_id: &str,
     ) -> Outcome<()> {
-        scope.require_write()?;
         self.repo
             .get_policy_template_repo()
             .delete_policy_template_by_id_and_version(
-                scope.acting_tenant(),
+                &OwnerScope::acting(user),
                 template_id,
                 version_id,
             )
             .await?;
         events::emit_action!(
             self.event_bus,
-            scope.acting_tenant(),
+            &Owner::private(user),
             crate::EVENT_PREFIX,
             "policy_template",
             "delete",

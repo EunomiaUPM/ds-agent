@@ -28,9 +28,9 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use crate::services::negotiation_process::views::NegotiationProcessView;
 use axum::http::HeaderMap;
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use common::dsp_common::DspActor;
-use common::facades::mates_facade::MatesFacadeTrait;
+use common::facades::AuthPorts;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientExt;
@@ -57,22 +57,22 @@ impl NegotiationRpcStep for RpcOfferStep {
         validator.negotiation_offer_rpc(actor, input).await
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn prepare_context(
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationOfferMessageDto,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
-        _mates_service: &Arc<dyn MatesFacadeTrait>,
+        _auth: &AuthPorts,
     ) -> Outcome<NegotiationRpcContinuationContext> {
         let id = input
             .get_consumer_pid()
             .ok_or_else(|| Errors::parse("RpcOfferStep: missing consumer PID", None))?;
-        NegotiationRpcContinuationContext::resolve(&id, scope, persistence).await
+        NegotiationRpcContinuationContext::resolve(&id, user, persistence).await
     }
 
     fn auth_peer(ctx: &NegotiationRpcContinuationContext) -> (&str, &str) {
         (
-            &ctx.process.inner.tenant_id,
+            &ctx.process.inner.user_id,
             &ctx.process.inner.associated_agent_peer,
         )
     }

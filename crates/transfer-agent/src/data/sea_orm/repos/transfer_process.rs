@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use sea_orm::QueryTrait;
+use common::oauth::{OwnedTrait, Owner, OwnerScope};
 use std::sync::Arc;
 
 use crate::data::repo::transfer_process::{TransferProcessRepoErrors, TransferProcessRepoTrait};
@@ -55,10 +55,16 @@ impl SeaOrmTransferProcessRepo {
 
     fn apply_base_filters(
         mut q: sea_orm::Select<orm::Entity>,
+        scope: &OwnerScope,
         filters: &TransferProcessFilter,
     ) -> sea_orm::Select<orm::Entity> {
-        if let Some(tid) = &filters.tenant_id {
-            q = q.filter(orm::Column::TenantId.eq(tid.as_str()));
+        q = q.filter(scope.condition(
+            orm::Column::UserId,
+            orm::Column::UserRole,
+            orm::Column::Visibility,
+        ));
+        if let Some(user_id) = &filters.user_id {
+            q = q.filter(orm::Column::UserId.eq(user_id.as_str()));
         }
         if let Some(protocol) = &filters.protocol {
             q = q.filter(orm::Column::Protocol.eq(ser_enum(protocol)));
@@ -96,11 +102,12 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_transfer_processes(
         &self,
+        scope: &OwnerScope,
         filters: &TransferProcessFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Vec<TransferProcess>> {
-        let mut q = Self::apply_base_filters(orm::Entity::find(), filters);
+        let mut q = Self::apply_base_filters(orm::Entity::find(), scope, filters);
 
         if let Some(cursor) = &page.cursor {
             let cursor_dt = self.decode_cursor(cursor)?;
@@ -137,8 +144,8 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn count_transfer_processes(&self, filters: &TransferProcessFilter) -> Outcome<u64> {
-        Self::apply_base_filters(orm::Entity::find(), filters)
+    async fn count_transfer_processes(&self, scope: &OwnerScope, filters: &TransferProcessFilter) -> Outcome<u64> {
+        Self::apply_base_filters(orm::Entity::find(), scope, filters)
             .count(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)
@@ -147,7 +154,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_transfer_processes(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<TransferProcess>> {
         if ids.is_empty() {
@@ -156,7 +163,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         let id_strings: Vec<String> = ids.iter().map(|u| u.to_string()).collect();
         let q = orm::Entity::find()
             .filter(orm::Column::Id.is_in(id_strings))
-            .apply_if(tenant_id, |q, t| q.filter(orm::Column::TenantId.eq(t)));
+            .filter(scope.condition(orm::Column::UserId, orm::Column::UserRole, orm::Column::Visibility));
         q.all(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?
@@ -168,11 +175,11 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_transfer_process_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<TransferProcess>> {
         let q = orm::Entity::find_by_id(id.to_string())
-            .apply_if(tenant_id, |q, t| q.filter(orm::Column::TenantId.eq(t)));
+            .filter(scope.condition(orm::Column::UserId, orm::Column::UserRole, orm::Column::Visibility));
         q.one(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?
@@ -183,26 +190,23 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_transfer_process_by_key_value(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<TransferProcess>> {
         use crate::data::sea_orm::orm::transfer_identifier as ident_orm;
 
-        let mut q = ident_orm::Entity::find().filter(ident_orm::Column::Value.eq(id.to_string()));
-        if let Some(tid) = &tenant_id {
-            q = q.filter(ident_orm::Column::TenantId.eq(tid.as_str()));
-        }
-        let ident = q.one(self.db.as_ref()).await.map_err(Self::fetch_err)?;
+        // Pids are global: find the identifier whoever owns it, then the process in `scope`.
+        let ident = ident_orm::Entity::find()
+            .filter(ident_orm::Column::Value.eq(id.to_string()))
+            .one(self.db.as_ref())
+            .await
+            .map_err(Self::fetch_err)?;
 
         match ident {
             None => Ok(None),
             Some(i) => {
-                let tid = tenant_id.as_deref().unwrap_or(&i.tenant_id);
-                self.get_transfer_process_by_id(
-                    Some(tid.to_string()),
-                    &parse_urn(&i.transfer_process_id)?,
-                )
-                .await
+                self.get_transfer_process_by_id(scope, &parse_urn(&i.transfer_process_id)?)
+                    .await
             }
         }
     }
@@ -224,12 +228,12 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_transfer_process(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
         edit_model: &EditTransferProcessCommand,
     ) -> Outcome<TransferProcess> {
         let q = orm::Entity::find_by_id(id.to_string())
-            .apply_if(tenant_id, |q, t| q.filter(orm::Column::TenantId.eq(t)));
+            .filter(scope.condition(orm::Column::UserId, orm::Column::UserRole, orm::Column::Visibility));
         let existing = q
             .one(self.db.as_ref())
             .await
@@ -251,29 +255,28 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_transfer_process(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
-    ) -> Outcome<String> {
+    ) -> Outcome<Owner> {
         let q = orm::Entity::delete_many()
             .filter(orm::Column::Id.eq(id.to_string()))
-            .apply_if(tenant_id.clone(), |q, t| {
-                q.filter(orm::Column::TenantId.eq(t))
-            });
+            .filter(scope.condition(
+                orm::Column::UserId,
+                orm::Column::UserRole,
+                orm::Column::Visibility,
+            ));
         let rows = q.exec_with_returning(self.db.as_ref()).await.map_err(|e| {
             TransferProcessRepoErrors::ErrorDeletingTransferProcess(Box::new(e)).into_errors()
         })?;
         let owner = rows
             .into_iter()
             .next()
-            .map(|row| row.tenant_id)
+            .map(|row| row.owner())
             .ok_or_else(|| TransferProcessRepoErrors::TransferProcessNotFound.into_errors())?;
 
         use crate::data::sea_orm::orm::transfer_identifier as ident_orm;
         ident_orm::Entity::delete_many()
             .filter(ident_orm::Column::TransferProcessId.eq(id.to_string()))
-            .apply_if(tenant_id, |q, t| {
-                q.filter(ident_orm::Column::TenantId.eq(t))
-            })
             .exec(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?;

@@ -39,11 +39,9 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(DataplaneTransfers::TenantId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(DataplaneTransfers::UserId).string().not_null())
+                    .col(ColumnDef::new(DataplaneTransfers::UserRole).string_len(255).not_null())
+                    .col(ColumnDef::new(DataplaneTransfers::Visibility).string_len(16).not_null())
                     .col(
                         ColumnDef::new(DataplaneTransfers::TransferProcessId)
                             .string()
@@ -103,7 +101,9 @@ impl MigrationTrait for Migration {
 pub enum DataplaneTransfers {
     Table,
     Id,
-    TenantId,
+    UserId,
+    UserRole,
+    Visibility,
     TransferProcessId,
     Role,
     InteractionMode,

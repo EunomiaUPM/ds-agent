@@ -33,18 +33,18 @@ use axum::{
 };
 use common::config::services::ContractsConfig;
 use common::dsp_common::normalizer::dsp_namespace_normalizer;
-use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
+use common::facades::grants_facade::GrantsFacadeTrait;
 use serde::Serialize;
 use std::future::Future;
 use std::sync::Arc;
-use ymir::data::entities::shared::participant::Model as Mates;
+use common::facades::grants_facade::VerifiedPeer;
 use ymir::errors::Errors;
 
 #[derive(Clone)]
 pub struct DspRouter {
     orchestrator: Arc<dyn OrchestratorTrait>,
     config: Arc<ContractsConfig>,
-    ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
+    grants: Arc<dyn GrantsFacadeTrait>,
 }
 
 impl FromRef<DspRouter> for Arc<dyn OrchestratorTrait> {
@@ -63,12 +63,12 @@ impl DspRouter {
     pub fn new(
         service: Arc<dyn OrchestratorTrait>,
         config: Arc<ContractsConfig>,
-        ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
+        grants: Arc<dyn GrantsFacadeTrait>,
     ) -> Self {
         Self {
             orchestrator: service,
             config,
-            ssi_auth,
+            grants,
         }
     }
 
@@ -124,9 +124,9 @@ impl DspRouter {
 
         let token = auth_header.trim_start_matches("Bearer ").to_string();
 
-        match state.ssi_auth.verify_token(token).await {
-            Ok(mate) => {
-                request.extensions_mut().insert(mate);
+        match state.grants.verify_token(token).await {
+            Ok(peer) => {
+                request.extensions_mut().insert(peer);
                 Ok(next.run(request).await)
             }
             Err(_) => Err(StatusCode::UNAUTHORIZED),
@@ -186,7 +186,7 @@ impl DspRouter {
     async fn handle_get_negotiation(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(mate): Extension<Mates>,
+        Extension(mate): Extension<VerifiedPeer>,
     ) -> impl IntoResponse {
         Self::map_service_result(
             state
@@ -202,7 +202,7 @@ impl DspRouter {
 
     async fn handle_initial_request(
         State(state): State<DspRouter>,
-        Extension(mate): Extension<Mates>,
+        Extension(mate): Extension<VerifiedPeer>,
         input: Result<
             Json<NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>>,
             JsonRejection,
@@ -238,7 +238,7 @@ impl DspRouter {
     async fn handle_consumer_request(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(mate): Extension<Mates>,
+        Extension(mate): Extension<VerifiedPeer>,
         input: Result<
             Json<NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>>,
             JsonRejection,
@@ -257,7 +257,7 @@ impl DspRouter {
     async fn handle_agreement_verification(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(mate): Extension<Mates>,
+        Extension(mate): Extension<VerifiedPeer>,
         input: Result<
             Json<NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>>,
             JsonRejection,
@@ -277,7 +277,7 @@ impl DspRouter {
 
     async fn handle_initial_offer(
         State(state): State<DspRouter>,
-        Extension(mate): Extension<Mates>,
+        Extension(mate): Extension<VerifiedPeer>,
         input: Result<
             Json<NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto>>,
             JsonRejection,
@@ -313,7 +313,7 @@ impl DspRouter {
     async fn handle_provider_offer(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(mate): Extension<Mates>,
+        Extension(mate): Extension<VerifiedPeer>,
         input: Result<
             Json<NegotiationProcessMessageWrapper<NegotiationOfferMessageDto>>,
             JsonRejection,
@@ -332,7 +332,7 @@ impl DspRouter {
     async fn handle_agreement_reception(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(mate): Extension<Mates>,
+        Extension(mate): Extension<VerifiedPeer>,
         input: Result<
             Json<NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>>,
             JsonRejection,
@@ -353,7 +353,7 @@ impl DspRouter {
     async fn handle_negotiation_events(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(mate): Extension<Mates>,
+        Extension(mate): Extension<VerifiedPeer>,
         input: Result<
             Json<NegotiationProcessMessageWrapper<NegotiationEventMessageDto>>,
             JsonRejection,
@@ -372,7 +372,7 @@ impl DspRouter {
     async fn handle_negotiation_termination(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(mate): Extension<Mates>,
+        Extension(mate): Extension<VerifiedPeer>,
         input: Result<
             Json<NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>>,
             JsonRejection,

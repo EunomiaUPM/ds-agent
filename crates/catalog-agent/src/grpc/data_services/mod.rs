@@ -28,8 +28,8 @@ use crate::grpc::api::catalog_agent::{
     PutDataServiceRequest,
 };
 use crate::services::data_services::DataServiceServiceTrait;
-use common::auth::grpc::GrpcAuth;
-use common::auth::OauthTokenValidator;
+use common::oauth::grpc::GrpcAuth;
+use common::oauth::OauthTokenValidatorTrait;
 use common::grpc::{IntoStatus, ListParams, ProtoField, ProtoFieldList};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
@@ -43,7 +43,7 @@ pub struct DataServiceEntityGrpc {
 impl DataServiceEntityGrpc {
     pub fn new(
         service: Arc<dyn DataServiceServiceTrait>,
-        validator: Arc<dyn OauthTokenValidator>,
+        validator: Arc<dyn OauthTokenValidatorTrait>,
     ) -> Self {
         Self {
             service,
@@ -58,11 +58,11 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         &self,
         request: Request<ListDataServicesRequest>,
     ) -> Result<Response<DataServiceListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let params = ListParams::try_from(request.into_inner())?;
         let result = self
             .service
-            .get_all_data_services(&scope, &params.filter, &params.page, &params.sort)
+            .get_all_data_services(&user, &params.filter, &params.page, &params.sort)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(result.into()))
@@ -72,11 +72,11 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         &self,
         request: Request<GetBatchRequest>,
     ) -> Result<Response<DataServiceListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let ids = request.into_inner().ids.urns("ids")?;
         let dtos = self
             .service
-            .get_batch_data_services(&scope, &ids)
+            .get_batch_data_services(&user, &ids)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dtos.into()))
@@ -86,11 +86,11 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         &self,
         request: Request<GetByParentIdRequest>,
     ) -> Result<Response<DataServiceListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let catalog_id = request.into_inner().parent_id.urn("parent_id")?;
         let dtos = self
             .service
-            .get_data_services_by_catalog_id(&scope, &catalog_id)
+            .get_data_services_by_catalog_id(&user, &catalog_id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dtos.into()))
@@ -100,11 +100,11 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         &self,
         request: Request<GetByIdRequest>,
     ) -> Result<Response<DataServiceResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let id = request.into_inner().id.urn("id")?;
         let dto = self
             .service
-            .get_data_service_by_id(&scope, &id)
+            .get_data_service_by_id(&user, &id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dto.into()))
@@ -114,10 +114,10 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         &self,
         request: Request<()>,
     ) -> Result<Response<DataServiceResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let dto = self
             .service
-            .get_main_data_service(&scope)
+            .get_main_data_service(&user)
             .await
             .map_err(Errors::into_status)?
             .ok_or_else(|| Status::not_found("main data service not configured"))?;
@@ -128,11 +128,11 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         &self,
         request: Request<CreateDataServiceRequest>,
     ) -> Result<Response<DataServiceResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let dto = request.into_inner().try_into()?;
         let created = self
             .service
-            .create_data_service(&scope, &dto)
+            .create_data_service(&user, &dto)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(created.into()))
@@ -142,11 +142,11 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         &self,
         request: Request<CreateDataServiceRequest>,
     ) -> Result<Response<DataServiceResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let dto = request.into_inner().try_into()?;
         let created = self
             .service
-            .create_main_data_service(&scope, &dto)
+            .create_main_data_service(&user, &dto)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(created.into()))
@@ -156,12 +156,12 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         &self,
         request: Request<PutDataServiceRequest>,
     ) -> Result<Response<DataServiceResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let req = request.into_inner();
         let id = req.id.urn("id")?;
         let updated = self
             .service
-            .put_data_service_by_id(&scope, &id, &req.into())
+            .put_data_service_by_id(&user, &id, &req.into())
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(updated.into()))
@@ -171,10 +171,10 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         &self,
         request: Request<DeleteByIdRequest>,
     ) -> Result<Response<()>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let id = request.into_inner().id.urn("id")?;
         self.service
-            .delete_data_service_by_id(&scope, &id)
+            .delete_data_service_by_id(&user, &id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(()))

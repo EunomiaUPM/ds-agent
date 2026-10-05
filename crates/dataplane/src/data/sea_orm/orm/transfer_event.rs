@@ -18,6 +18,7 @@
 //! Diagnostic events table.
 
 use sea_orm::entity::prelude::*;
+use common::oauth::{Owner, RolePath, Visibility};
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::UrnBuilder;
@@ -42,7 +43,9 @@ pub enum LogLevel {
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub transfer_id: String,
     pub level: LogLevel,
     pub component: String,
@@ -72,9 +75,11 @@ impl Related<super::dataplane_transfers::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+common::impl_owned!(Model);
+
 #[derive(Clone)]
 pub struct NewTransferEvent {
-    pub tenant_id: String,
+    pub owner: Owner,
     pub transfer_id: String,
     pub level: LogLevel,
     pub component: String,
@@ -89,7 +94,9 @@ impl From<NewTransferEvent> for ActiveModel {
             .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(new_urn.to_string()),
-            tenant_id: ActiveValue::Set(value.tenant_id),
+            user_id: ActiveValue::Set(value.owner.user_id.clone()),
+            user_role: ActiveValue::Set(value.owner.role.clone()),
+            visibility: ActiveValue::Set(value.owner.visibility.clone()),
             transfer_id: ActiveValue::Set(value.transfer_id),
             level: ActiveValue::Set(value.level),
             component: ActiveValue::Set(value.component),

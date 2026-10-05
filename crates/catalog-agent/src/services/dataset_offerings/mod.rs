@@ -20,7 +20,7 @@
 pub mod service;
 
 use crate::entities::dataset_offerings::{DatasetOfferingDto, NewDatasetOfferingDto};
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use ymir::errors::Outcome;
 
 /// Publishing a dataset together with its distribution and policy.
@@ -30,7 +30,7 @@ pub trait DatasetOfferingServiceTrait: Send + Sync {
     /// Creates dataset, distribution and policy; a failure after the dataset removes it again.
     async fn create_offering(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         offering: &NewDatasetOfferingDto,
     ) -> Outcome<DatasetOfferingDto>;
 }

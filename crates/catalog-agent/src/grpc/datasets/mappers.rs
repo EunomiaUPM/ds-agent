@@ -32,7 +32,7 @@ impl TryFrom<ListDatasetsRequest> for ListParams<DatasetFilter> {
 
     fn try_from(req: ListDatasetsRequest) -> Result<Self, Status> {
         let filter = DatasetFilter {
-            tenant_id: None,
+            user_id: None,
             catalog_id: req.catalog_id.non_empty().map(str::to_owned),
             title: req.title.non_empty().map(str::to_owned),
             creator: req.creator.non_empty().map(str::to_owned),
@@ -50,7 +50,8 @@ impl TryFrom<CreateDatasetRequest> for NewDatasetDto {
     fn try_from(req: CreateDatasetRequest) -> Result<Self, Status> {
         Ok(Self {
             id: req.id.as_deref().unwrap_or_default().opt_urn("id")?,
-            tenant_id: None,
+            visibility: None,
+            owner: None,
             dct_conforms_to: req.dct_conforms_to,
             dct_creator: req.dct_creator,
             dct_title: req.dct_title,

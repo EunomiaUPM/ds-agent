@@ -30,8 +30,8 @@ use crate::data::sea_orm::orm::transfer_event::LogLevel;
 /// Filter for `DataplaneTransfer` related queries.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct DataplaneTransferFilter {
-    /// None implies no tenant filter (allowed only for admins).
-    pub tenant_id: Option<String>,
+    /// Only the records of this user, among those the caller sees.
+    pub user_id: Option<String>,
     pub transfer_process_id: Option<String>,
     pub role: Option<TransferRole>,
     pub interaction_mode: Option<InteractionMode>,
@@ -49,8 +49,8 @@ impl QueryFilter for DataplaneTransferFilter {
 /// Filter for `TransferEvent` related queries.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct TransferEventFilter {
-    /// None implies no tenant filter (allowed only for admins).
-    pub tenant_id: Option<String>,
+    /// Only the records of this user, among those the caller sees.
+    pub user_id: Option<String>,
     pub transfer_id: Option<String>,
     pub level: Option<LogLevel>,
     pub component: Option<String>,

@@ -26,7 +26,7 @@ use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDs
 use crate::services::negotiation_process::views::NegotiationProcessView;
 use common::dsp_common::DspActor;
 use std::sync::Arc;
-use ymir::data::entities::shared::participant::Model as Mates;
+use common::facades::grants_facade::VerifiedPeer;
 use ymir::errors::Outcome;
 
 /// Handles an inbound `ContractNegotiationTerminationMessage` from the peer.
@@ -45,7 +45,7 @@ impl NegotiationProtocolStep for NegotiationTerminationStep {
         validator: &Arc<dyn ValidationDspSteps>,
         id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<()> {
         validator
             .on_contract_termination(&DspActor::peer(mate), &id.to_string(), input)
@@ -55,7 +55,7 @@ impl NegotiationProtocolStep for NegotiationTerminationStep {
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn prepare_context(
         id: &str,
-        mate: &Mates,
+        mate: &VerifiedPeer,
         _input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
     ) -> Outcome<(
@@ -72,7 +72,7 @@ impl NegotiationProtocolStep for NegotiationTerminationStep {
         _id: &str,
         ctx: &NegotiationContinuationContext,
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessView> {
         persistence.update(ctx.id.as_str(), &input.dto, mate).await
     }

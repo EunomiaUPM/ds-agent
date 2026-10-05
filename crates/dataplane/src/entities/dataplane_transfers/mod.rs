@@ -22,6 +22,7 @@ use crate::data::sea_orm::orm::dataplane_transfers;
 pub use crate::data::sea_orm::orm::dataplane_transfers::{
     InteractionMode, NewDataplaneTransfer, TransferRole, TransferState,
 };
+use common::oauth::Owner;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -43,7 +44,9 @@ pub struct DataplaneTransferDto {
 #[serde(deny_unknown_fields)]
 pub struct NewDataplaneTransferDto {
     pub id: Option<Urn>,
-    pub tenant_id: String,
+    /// Owner of the process; only honoured for the root (the engine, for the transfer's owner).
+    #[serde(default)]
+    pub owner: Option<Owner>,
     pub transfer_process_id: String,
     pub role: TransferRole,
     pub interaction_mode: InteractionMode,
@@ -66,11 +69,13 @@ pub struct EditDataplaneTransferDto {
     pub fields: Option<HashMap<String, String>>,
 }
 
-impl From<NewDataplaneTransferDto> for NewDataplaneTransfer {
-    fn from(value: NewDataplaneTransferDto) -> Self {
-        Self {
+impl NewDataplaneTransferDto {
+    /// The row to store, owned by `owner`.
+    pub fn into_model(self, owner: Owner) -> NewDataplaneTransfer {
+        let value = self;
+        NewDataplaneTransfer {
             id: value.id,
-            tenant_id: value.tenant_id,
+            owner,
             transfer_process_id: value.transfer_process_id,
             role: value.role,
             interaction_mode: value.interaction_mode,

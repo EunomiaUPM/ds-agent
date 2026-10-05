@@ -18,7 +18,7 @@
 //! Declarative macros for defining, implementing, and emitting domain events.
 
 /// Declarative macro to define or implement domain events with static topics and source crates.
-/// The event type must carry a `tenant_id: String` field: the tenant of the record it describes.
+/// The event type must carry an `owner: Owner` field: the owner of the record it describes.
 #[macro_export]
 macro_rules! event {
     // Form 1: Inline struct definition with topic and source crate
@@ -68,14 +68,14 @@ macro_rules! event {
                 $version
             }
 
-            fn tenant_id(&self) -> &str {
-                &self.tenant_id
+            fn owner(&self) -> &common::oauth::Owner {
+                &self.owner
             }
 
             fn into_envelope(self) -> $crate::entities::envelope::EventEnvelope {
-                let tenant_id = <Self as $crate::entities::event::Event>::tenant_id(&self).to_string();
+                let owner = <Self as $crate::entities::event::Event>::owner(&self).clone();
                 $crate::entities::envelope::EventEnvelope::new(
-                    tenant_id,
+                    owner,
                     <Self as $crate::entities::event::Event>::topic(),
                     $source_crate,
                     <Self as $crate::entities::event::Event>::schema_version(),
@@ -94,8 +94,8 @@ macro_rules! event {
                 <Self as $crate::entities::event::Event>::schema_version()
             }
 
-            fn tenant_id(&self) -> &str {
-                <Self as $crate::entities::event::Event>::tenant_id(self)
+            fn owner(&self) -> &common::oauth::Owner {
+                <Self as $crate::entities::event::Event>::owner(self)
             }
 
             fn into_envelope(self) -> $crate::entities::envelope::EventEnvelope {
@@ -123,15 +123,16 @@ macro_rules! impl_into_event {
     };
 }
 
-/// Publishes an event about a record of `$tenant` under the topic `<prefix><service>:<action>`.
+/// Publishes an event about a record of `$owner` (an `&Owner`) under the topic
+/// `<prefix><service>:<action>`.
 #[macro_export]
 macro_rules! emit_action {
-    ($bus:expr, $tenant:expr, $prefix:expr, $service:expr, $action:expr, $payload:expr) => {
+    ($bus:expr, $owner:expr, $prefix:expr, $service:expr, $action:expr, $payload:expr) => {
         if let Some(bus) = &$bus {
             let topic = format!("{}{}:{}", $prefix, $service, $action);
             let source = $prefix.trim_end_matches(':');
             if let Err(e) = bus
-                .emit_payload_with_tenant($tenant, &topic, source, $payload)
+                .emit_payload_for($owner, &topic, source, $payload)
                 .await
             {
                 tracing::warn!("Failed to emit event {topic}: {e}");

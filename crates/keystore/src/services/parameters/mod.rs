@@ -25,45 +25,45 @@ use crate::entities::entry::Entry;
 use crate::entities::filters::PrefixFilter;
 use crate::entities::key::{Key, KeyPrefix};
 use crate::entities::version::Version;
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use ymir::errors::Outcome;
 
-/// Tenant-scoped parameters, the non-secret settings connectors and services read.
+/// Per-user parameters, the non-secret settings connectors and services read.
 #[async_trait::async_trait]
 pub trait ParameterStore<T>: Send + Sync
 where
     T: Serialize + DeserializeOwned + Send + Sync + 'static,
 {
-    /// Stores a new parameter in the tenant resolved from the scope.
-    async fn create(&self, scope: &AccessScope, cmd: &NewParameterCommand<T>) -> Outcome<Entry<T>>;
+    /// Stores a new parameter of the caller.
+    async fn create(&self, user: &UserInfo, cmd: &NewParameterCommand<T>) -> Outcome<Entry<T>>;
 
     /// 404 when the key does not exist for the caller.
-    async fn read(&self, scope: &AccessScope, key: &Key) -> Outcome<Entry<T>>;
+    async fn read(&self, user: &UserInfo, key: &Key) -> Outcome<Entry<T>>;
 
     /// Replaces the value; fails when `expected_version` is stale.
     async fn update(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         key: &Key,
         cmd: &EditParameterCommand<T>,
         actor: &str,
     ) -> Outcome<Version>;
 
-    async fn delete(&self, scope: &AccessScope, key: &Key) -> Outcome<()>;
+    async fn delete(&self, user: &UserInfo, key: &Key) -> Outcome<()>;
 
     /// Parameters under the filter's prefix.
-    async fn list(&self, scope: &AccessScope, filter: &PrefixFilter) -> Outcome<Vec<Entry<T>>>;
+    async fn list(&self, user: &UserInfo, filter: &PrefixFilter) -> Outcome<Vec<Entry<T>>>;
 
     /// Parameters found among `keys`; missing ones are left out.
-    async fn batch(&self, scope: &AccessScope, keys: &[Key]) -> Outcome<Vec<Entry<T>>>;
+    async fn batch(&self, user: &UserInfo, keys: &[Key]) -> Outcome<Vec<Entry<T>>>;
 
     async fn list_by_prefix(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         prefix: &KeyPrefix,
     ) -> Outcome<Vec<Entry<T>>> {
-        self.list(scope, &PrefixFilter::from(prefix)).await
+        self.list(user, &PrefixFilter::from(prefix)).await
     }
 }

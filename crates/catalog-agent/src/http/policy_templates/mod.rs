@@ -105,12 +105,12 @@ impl PolicyTemplateEntityRouter {
 
     async fn handle_get_all_policy_templates(
         State(state): State<PolicyTemplateEntityRouter>,
-        scope: common::auth::AccessScope,
+        user: common::oauth::UserInfo,
         Query(query): Query<PolicyTemplateQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_policy_templates(&scope, &query.filter, &query.page, &query.sort)
+            .get_all_policy_templates(&user, &query.filter, &query.page, &query.sort)
             .await
         {
             Ok(templates) => (StatusCode::OK, Json(ToCamelCase(templates))).into_response(),
@@ -119,7 +119,7 @@ impl PolicyTemplateEntityRouter {
     }
     async fn handle_get_batch_policy_templates(
         State(state): State<PolicyTemplateEntityRouter>,
-        scope: common::auth::AccessScope,
+        user: common::oauth::UserInfo,
         input: Result<Json<BatchRequestsAsString>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
@@ -128,7 +128,7 @@ impl PolicyTemplateEntityRouter {
         };
         match state
             .service
-            .get_batch_policy_templates(&scope, &input.ids)
+            .get_batch_policy_templates(&user, &input.ids)
             .await
         {
             Ok(templates) => (StatusCode::OK, Json(ToCamelCase(templates))).into_response(),
@@ -137,22 +137,22 @@ impl PolicyTemplateEntityRouter {
     }
     async fn handle_get_policy_template_by_id(
         State(state): State<PolicyTemplateEntityRouter>,
-        scope: common::auth::AccessScope,
+        user: common::oauth::UserInfo,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
-        match state.service.get_policies_template_by_id(&scope, &id).await {
+        match state.service.get_policies_template_by_id(&user, &id).await {
             Ok(templates) => (StatusCode::OK, Json(ToCamelCase(templates))).into_response(),
             Err(e) => e.into_response(),
         }
     }
     async fn handle_get_policy_template_by_id_and_version(
         State(state): State<PolicyTemplateEntityRouter>,
-        scope: common::auth::AccessScope,
+        user: common::oauth::UserInfo,
         Path((id, version)): Path<(String, String)>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_policies_template_by_version_and_id(&scope, &id, &version)
+            .get_policies_template_by_version_and_id(&user, &id, &version)
             .await
         {
             Ok(template) => (StatusCode::OK, Json(ToCamelCase(template))).into_response(),
@@ -161,7 +161,7 @@ impl PolicyTemplateEntityRouter {
     }
     async fn handle_create_policy_template(
         State(state): State<PolicyTemplateEntityRouter>,
-        scope: common::auth::AccessScope,
+        user: common::oauth::UserInfo,
         Query(params): Query<SilentParams>,
         input: Result<Json<NewPolicyTemplateDto>, JsonRejection>,
     ) -> impl IntoResponse {
@@ -176,7 +176,7 @@ impl PolicyTemplateEntityRouter {
                 return (StatusCode::BAD_REQUEST, format!("Invalid JSON: {e}")).into_response();
             }
         };
-        match state.service.create_policy_template(&scope, &input).await {
+        match state.service.create_policy_template(&user, &input).await {
             Ok(template) => (StatusCode::OK, Json(ToCamelCase(template))).into_response(),
             Err(Errors::DatabaseError { reason, .. })
                 if silent && reason.contains("duplicate key") =>
@@ -193,12 +193,12 @@ impl PolicyTemplateEntityRouter {
     }
     async fn handle_delete_policy_template_by_id_and_version(
         State(state): State<PolicyTemplateEntityRouter>,
-        scope: common::auth::AccessScope,
+        user: common::oauth::UserInfo,
         Path((id, version)): Path<(String, String)>,
     ) -> impl IntoResponse {
         match state
             .service
-            .delete_policy_template_by_version_and_id(&scope, &id, &version)
+            .delete_policy_template_by_version_and_id(&user, &id, &version)
             .await
         {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
@@ -208,14 +208,14 @@ impl PolicyTemplateEntityRouter {
 
     async fn handle_instantiate_offer(
         State(state): State<PolicyTemplateEntityRouter>,
-        scope: common::auth::AccessScope,
+        user: common::oauth::UserInfo,
         input: Result<Json<NewPolicyInstantiationDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.policy_engine.instantiate_policy(&scope, &input).await {
+        match state.policy_engine.instantiate_policy(&user, &input).await {
             Ok(dto) => (StatusCode::ACCEPTED, Json(ToCamelCase(dto))).into_response(),
             Err(e) => e.into_response(),
         }

@@ -33,7 +33,7 @@ use crate::entities::version::Version;
 #[sea_orm(table_name = "keystore_secrets")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub tenant_id: String,
+    pub user_id: String,
     #[sea_orm(primary_key, auto_increment = false)]
     pub key: String,
     pub value: Json,
@@ -52,10 +52,10 @@ pub enum Relation {}
 impl ActiveModelBehavior for ActiveModel {}
 
 impl ActiveModel {
-    pub fn from_new_cmd(tenant_id: &str, cmd: &NewSecretCommand) -> Self {
+    pub fn from_new_cmd(user_id: &str, cmd: &NewSecretCommand) -> Self {
         let now: DateTimeWithTimeZone = Utc::now().into();
         Self {
-            tenant_id: ActiveValue::Set(tenant_id.to_string()),
+            user_id: ActiveValue::Set(user_id.to_string()),
             key: ActiveValue::Set(cmd.key.as_str().to_owned()),
             value: ActiveValue::Set(cmd.value.expose().clone()),
             version: ActiveValue::Set(Version::INITIAL.value() as i64),
@@ -85,7 +85,7 @@ impl Model {
         let key = Key::new(self.key).map_err(|e| e.to_string())?;
         Ok(Entry {
             metadata: Metadata {
-                tenant_id: self.tenant_id,
+                user_id: self.user_id,
                 key,
                 version: Version::new(self.version as u64),
                 created_at: self.created_at.with_timezone(&Utc),

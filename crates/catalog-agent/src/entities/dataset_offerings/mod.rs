@@ -33,7 +33,7 @@ pub struct NewDatasetOfferingDto {
     pub policy: Option<PolicyOfferingInput>,
 }
 
-/// Without `catalog_id` the dataset goes to the tenant's main catalog.
+/// Without `catalog_id` the dataset goes to the connector's main catalog.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DatasetOfferingInput {
@@ -44,7 +44,7 @@ pub struct DatasetOfferingInput {
     pub catalog_id: Option<String>,
 }
 
-/// Without `access_service_id` the distribution is served by the tenant's main data service.
+/// Without `access_service_id` the distribution is served by the connector's main data service.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DistributionOfferingInput {

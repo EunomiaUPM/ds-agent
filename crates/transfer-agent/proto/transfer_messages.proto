@@ -40,7 +40,7 @@ message MessageEnvelope {
 message TransferMessageResponse {
   string id = 1;
   string transfer_process_id = 2;
-  string tenant_id = 3;
+  string user_id = 3;           // owner of the record: who created it
   Direction direction = 4;
   string protocol = 5;
   string message_type = 6;
@@ -48,6 +48,8 @@ message TransferMessageResponse {
   string state_transition_to = 8;
   MessageEnvelope envelope = 9;
   string occurred_at = 10;      // RFC3339
+  string user_role = 11;        // role it was created under
+  string visibility = 12;       // Private | Anonymous | Public
 }
 
 message TransferMessageListResponse {
@@ -60,7 +62,7 @@ message DeleteResponse {}
 
 // Request types ──────────────────────────────────────────────────────────
 
-// Auth: authorization Bearer <token> required; x-tenant-id metadata defaults to the token tenant.
+// Auth: authorization Bearer <token> required; the caller is the user behind the token.
 // Filter strings: send "" to omit a filter. Pagination: limit=0 defaults to 20.
 message ListTransferMessagesRequest {
   string direction = 1;          // "" = any; "inbound" | "outbound"

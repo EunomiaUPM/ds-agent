@@ -37,11 +37,9 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(NegotiationAgentAgreements::TenantId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(NegotiationAgentAgreements::UserId).string().not_null())
+                    .col(ColumnDef::new(NegotiationAgentAgreements::UserRole).string_len(255).not_null())
+                    .col(ColumnDef::new(NegotiationAgentAgreements::Visibility).string_len(16).not_null())
                     .col(
                         ColumnDef::new(NegotiationAgentAgreements::NegotiationAgentProcessId)
                             .string()
@@ -129,7 +127,9 @@ impl MigrationTrait for Migration {
 pub enum NegotiationAgentAgreements {
     Table,
     Id,
-    TenantId,
+    UserId,
+    UserRole,
+    Visibility,
     NegotiationAgentProcessId,
     NegotiationAgentMessageId,
     ConsumerParticipantId,

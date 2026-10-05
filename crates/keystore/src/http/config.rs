@@ -21,7 +21,7 @@ use crate::services::config::ConfigStore;
 use axum::extract::State;
 use axum::routing::get;
 use axum::{Json, Router};
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use common::config::ApplicationConfig;
 use ymir::errors::AppResult;
 
@@ -43,9 +43,9 @@ impl ConfigRouter {
 
     async fn get_application_config(
         State(state): State<ConfigRouter>,
-        scope: AccessScope,
+        user: UserInfo,
     ) -> AppResult<Json<ApplicationConfig>> {
-        let items = state.service.get_application_config(&scope).await?;
+        let items = state.service.get_application_config(&user).await?;
         Ok(Json(items))
     }
 }

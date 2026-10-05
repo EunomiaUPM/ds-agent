@@ -25,7 +25,7 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use crate::services::negotiation_process::views::NegotiationProcessView;
 use std::sync::Arc;
-use ymir::data::entities::shared::participant::Model as Mates;
+use common::facades::grants_facade::VerifiedPeer;
 use ymir::errors::Outcome;
 
 /// Handles an inbound `ContractOfferMessage` that initiates a new negotiation
@@ -49,7 +49,7 @@ impl NegotiationProtocolStep for InitialProviderOfferStep {
         validator: &Arc<dyn ValidationDspSteps>,
         _id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto>,
-        _mate: &Mates,
+        _mate: &VerifiedPeer,
     ) -> Outcome<()> {
         validator.on_contract_offer_init(input).await
     }
@@ -58,7 +58,7 @@ impl NegotiationProtocolStep for InitialProviderOfferStep {
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn prepare_context(
         _id: &str,
-        _mate: &Mates,
+        _mate: &VerifiedPeer,
         _input: &NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto>,
         _persistence: &Arc<OrchestrationPersistenceForProtocol>,
     ) -> Outcome<(
@@ -75,7 +75,7 @@ impl NegotiationProtocolStep for InitialProviderOfferStep {
         _id: &str,
         _ctx: &NegotiationInitialContext,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessView> {
         persistence.create_new(&input.dto, mate).await
     }

@@ -19,7 +19,7 @@
 
 use std::sync::Arc;
 
-use common::test_utils::scopes::TestScopes;
+use common::test_utils::scopes::TestUsers;
 use keystore::data::repo::parameters::{MockParameterRepoTrait, ParameterRepoErrors};
 use keystore::entities::commands::{EditParameterCommand, NewParameterCommand};
 use keystore::entities::entry::Entry;
@@ -47,12 +47,11 @@ fn make_entry(tenant: &str, key: Key, value: serde_json::Value) -> Entry<serde_j
     }
 }
 
-fn make_new_cmd(key: Key, tenant_id: Option<String>) -> NewParameterCommand<serde_json::Value> {
+fn make_new_cmd(key: Key) -> NewParameterCommand<serde_json::Value> {
     NewParameterCommand {
         key,
         value: serde_json::json!({"test": true}),
         description: Some("test description".to_string()),
-        tenant_id,
     }
 }
 
@@ -75,7 +74,7 @@ async fn get_one_foreign_tenant_returns_not_found() {
 
     let svc = make_service(repo);
     assert!(
-        svc.read(&TestScopes::owner("tenant-2"), &key)
+        svc.read(&TestUsers::user("tenant-2", "/admin/tenant-2"), &key)
             .await
             .is_err()
     );
@@ -89,10 +88,10 @@ async fn get_all_foreign_tenant_query_rejected_with_forbidden() {
 
     let filter = PrefixFilter {
         prefix: None,
-        tenant_id: Some("tenant-foreign".to_string()),
+        user_id: Some("tenant-foreign".to_string()),
     };
 
-    let result = svc.list(&TestScopes::owner("tenant-1"), &filter).await;
+    let result = svc.list(&TestUsers::user("tenant-1", "/admin/tenant-1"), &filter).await;
     assert!(result.is_err());
 }
 
@@ -108,7 +107,7 @@ async fn edit_foreign_tenant_returns_not_found_without_mutating() {
     let svc = make_service(repo);
     assert!(
         svc.update(
-            &TestScopes::owner("tenant-2"),
+            &TestUsers::user("tenant-2", "/admin/tenant-2"),
             &key,
             &make_edit_cmd(),
             "tester"
@@ -129,7 +128,7 @@ async fn delete_foreign_tenant_returns_not_found() {
 
     let svc = make_service(repo);
     assert!(
-        svc.delete(&TestScopes::owner("tenant-2"), &key)
+        svc.delete(&TestUsers::user("tenant-2", "/admin/tenant-2"), &key)
             .await
             .is_err()
     );
@@ -146,81 +145,56 @@ async fn batch_filters_out_foreign_tenant_records() {
 
     let svc = make_service(repo);
     let entries = svc
-        .batch(&TestScopes::owner("tenant-2"), &[key])
+        .batch(&TestUsers::user("tenant-2", "/admin/tenant-2"), &[key])
         .await
         .unwrap();
     assert!(entries.is_empty());
 }
 
-/// A non-admin always creates in its own tenant, whatever the command says.
+/// An entry is always created as the caller's.
 #[tokio::test]
-async fn create_forces_caller_tenant_for_non_admin() {
+async fn create_belongs_to_the_caller() {
     let mut repo = MockParameterRepoTrait::new();
     let key = test_key("1");
     repo.expect_create_parameter()
-        .withf(|tenant, cmd| tenant == "tenant-2" && cmd.tenant_id.as_deref() == Some("tenant-2"))
+        .withf(|user_id, _| user_id == "tenant-2")
         .returning(|tenant, cmd| Ok(make_entry(tenant, cmd.key.clone(), cmd.value.clone())));
 
     let svc = make_service(repo);
-    let cmd = make_new_cmd(key.clone(), Some("tenant-1".to_string()));
+    let cmd = make_new_cmd(key.clone());
     let entry = svc
-        .create(&TestScopes::owner("tenant-2"), &cmd)
+        .create(&TestUsers::user("tenant-2", "/admin/tenant-2"), &cmd)
         .await
         .unwrap();
-    assert_eq!(entry.metadata.tenant_id, "tenant-2");
+    assert_eq!(entry.metadata.user_id, "tenant-2");
 }
 
-/// A reader cannot create a parameter.
-#[tokio::test]
-async fn reader_cannot_create_parameter() {
-    let repo = MockParameterRepoTrait::new();
-    let svc = make_service(repo);
-    let cmd = make_new_cmd(test_key("1"), None);
-
-    let result = svc.create(&TestScopes::reader("tenant-1"), &cmd).await;
-    assert!(result.is_err());
-}
-
-/// A reader cannot delete a parameter.
-#[tokio::test]
-async fn reader_cannot_delete_parameter() {
-    let repo = MockParameterRepoTrait::new();
-    let svc = make_service(repo);
-
-    let result = svc
-        .delete(&TestScopes::reader("tenant-1"), &test_key("1"))
-        .await;
-    assert!(result.is_err());
-}
-
-/// An admin lists without a tenant filter.
+/// The root lists without an owner filter.
 #[tokio::test]
 async fn admin_can_query_cross_tenant() {
     let mut repo = MockParameterRepoTrait::new();
     repo.expect_get_all_parameters()
-        .withf(|f| f.tenant_id.is_none())
+        .withf(|f| f.user_id.is_none())
         .returning(|_| Ok(vec![]));
 
     let svc = make_service(repo);
     let result = svc
-        .list(&TestScopes::admin(), &PrefixFilter::default())
+        .list(&TestUsers::user("admin-tenant", "/admin"), &PrefixFilter::default())
         .await;
     assert!(result.is_ok());
 }
 
-/// An admin creates in the tenant named by the command.
+/// The root creates its own entries too.
 #[tokio::test]
-async fn admin_can_create_parameter_for_any_tenant() {
+async fn root_creates_its_own_parameters() {
     let mut repo = MockParameterRepoTrait::new();
     let key = test_key("1");
     repo.expect_create_parameter()
-        .withf(|tenant, cmd| {
-            tenant == "tenant-custom" && cmd.tenant_id.as_deref() == Some("tenant-custom")
-        })
+        .withf(|user_id, _| user_id == "admin-tenant")
         .returning(|tenant, cmd| Ok(make_entry(tenant, cmd.key.clone(), cmd.value.clone())));
 
     let svc = make_service(repo);
-    let cmd = make_new_cmd(key, Some("tenant-custom".to_string()));
-    let entry = svc.create(&TestScopes::admin(), &cmd).await.unwrap();
-    assert_eq!(entry.metadata.tenant_id, "tenant-custom");
+    let cmd = make_new_cmd(key);
+    let entry = svc.create(&TestUsers::user("admin-tenant", "/admin"), &cmd).await.unwrap();
+    assert_eq!(entry.metadata.user_id, "admin-tenant");
 }

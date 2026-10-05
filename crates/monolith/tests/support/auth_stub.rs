@@ -21,71 +21,66 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use common::auth::{Claims, OauthTokenValidator, RbacRole};
+use common::facades::grants_facade::{GrantsFacadeTrait, VerifiedPeer};
 use common::facades::mates_facade::MatesFacadeTrait;
-use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use common::facades::AuthPorts;
+use common::oauth::{OauthTokenValidatorTrait, RolePath, UserInfo, Visibility};
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::{Errors, Outcome};
 use ymir::types::participants::ParticipantType;
 
-/// What one participant knows: itself, its peer and the token that peer must present.
+/// What one participant knows: itself, its peer, the token it presents to that peer and the
+/// token that peer must present.
 pub struct StubAuth {
     me: Mates,
     peer: Mates,
-    /// Token a call from the peer carries; the peer's record holds the one we present.
+    /// Token a call to the peer carries (our grant with it).
+    outbound_token: String,
+    /// Token a call from the peer carries (the grant we gave it).
     inbound_token: String,
 }
 
 impl StubAuth {
     /// Ports where `me` knows `peer`, sends `outbound_token` and accepts `inbound_token`.
     pub fn ports(
-        tenant: &str,
+        _tenant: &str,
         me: (&str, &str),
         peer: (&str, &str),
         outbound_token: &str,
         inbound_token: &str,
     ) -> AuthPorts {
         let stub = Arc::new(Self {
-            me: Self::mate(tenant, me.0, me.1, None),
-            peer: Self::mate(tenant, peer.0, peer.1, Some(outbound_token)),
+            me: Self::mate(me.0, me.1),
+            peer: Self::mate(peer.0, peer.1),
+            outbound_token: outbound_token.to_string(),
             inbound_token: inbound_token.to_string(),
         });
         AuthPorts {
             mates: stub.clone(),
-            ssi_auth: stub,
+            grants: stub,
         }
     }
 
-    fn mate(tenant: &str, did: &str, base_url: &str, token: Option<&str>) -> Mates {
+    fn mate(did: &str, base_url: &str) -> Mates {
         Mates {
-            tenant_id: tenant.to_string(),
             participant_id: did.to_string(),
             participant_nick: did.to_string(),
             participant_type: ParticipantType::Agent,
             base_url: base_url.to_string(),
-            token: token.map(str::to_string),
             saved_at: Utc::now(),
             last_interaction: Utc::now(),
             extra_fields: serde_json::json!({}),
-        }
-    }
-
-    fn for_tenant(&self, mate: &Mates, tenant: &str) -> Mates {
-        Mates {
-            tenant_id: tenant.to_string(),
-            ..mate.clone()
         }
     }
 }
 
 #[async_trait::async_trait]
 impl MatesFacadeTrait for StubAuth {
-    async fn get_mate_by_id(&self, tenant_id: String, mate_id: String) -> Outcome<Mates> {
+    async fn get_mate_by_id(&self, _user: &UserInfo, mate_id: String) -> Outcome<Mates> {
         if mate_id == self.peer.participant_id {
-            Ok(self.for_tenant(&self.peer, &tenant_id))
+            Ok(self.peer.clone())
         } else if mate_id == self.me.participant_id {
-            Ok(self.for_tenant(&self.me, &tenant_id))
+            Ok(self.me.clone())
         } else {
             Err(Errors::missing_resource(
                 mate_id,
@@ -95,42 +90,51 @@ impl MatesFacadeTrait for StubAuth {
         }
     }
 
-    async fn get_me_mate(&self, tenant_id: String) -> Outcome<Mates> {
-        Ok(self.for_tenant(&self.me, &tenant_id))
+    async fn get_me_mate(&self) -> Outcome<Mates> {
+        Ok(self.me.clone())
     }
 
-    async fn get_all_mates(&self, tenant_id: String) -> Outcome<Vec<Mates>> {
-        Ok(vec![self.for_tenant(&self.peer, &tenant_id)])
+    async fn get_all_mates(&self, _user: &UserInfo) -> Outcome<Vec<Mates>> {
+        Ok(vec![self.peer.clone()])
     }
 }
 
 #[async_trait::async_trait]
-impl SSIAuthFacadeTrait for StubAuth {
-    async fn verify_token(&self, token: String) -> Outcome<Mates> {
+impl GrantsFacadeTrait for StubAuth {
+    async fn verify_token(&self, token: String) -> Outcome<VerifiedPeer> {
         if token == self.inbound_token {
-            Ok(self.peer.clone())
+            Ok(VerifiedPeer {
+                participant_id: self.peer.participant_id.clone(),
+                role: RolePath::root(),
+                visibility: Visibility::Public,
+            })
         } else {
             Err(Errors::unauthorized("unknown peer token", None))
         }
     }
+
+    async fn peer_token(&self, _user: &UserInfo, participant_id: String) -> Outcome<Option<String>> {
+        Ok((participant_id == self.peer.participant_id).then(|| self.outbound_token.clone()))
+    }
 }
 
-/// Management API validator: the token `owner` is the owner of the participant's tenant.
+/// Management API validator: the token `owner` is the root of the participant, acting with the
+/// participant's tenant as its id (stage A: processes a peer opens belong to the root).
 pub struct OwnerValidator {
     pub tenant: String,
 }
 
 #[async_trait::async_trait]
-impl OauthTokenValidator for OwnerValidator {
-    async fn validate_token(&self, token: &str) -> Outcome<Claims> {
-        if token != "owner" {
+impl OauthTokenValidatorTrait for OwnerValidator {
+    async fn validate_token<'a>(&self, token: Option<&'a str>) -> Outcome<UserInfo> {
+        if token != Some("owner") {
             return Err(Errors::unauthorized("invalid token", None));
         }
-        Ok(Claims {
-            sub: self.tenant.clone(),
-            role: RbacRole::Owner,
-            iat: 0,
-            exp: 9_999_999_999,
-        })
+        Ok(UserInfo::new(
+            self.tenant.clone(),
+            None,
+            RolePath::root(),
+            serde_json::Map::new(),
+        ))
     }
 }

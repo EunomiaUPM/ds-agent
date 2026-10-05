@@ -25,7 +25,7 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
 use common::query::QuerySpec;
@@ -74,12 +74,12 @@ impl ConnectorTemplateRouter {
 
     async fn handle_get_all_templates(
         State(state): State<ConnectorTemplateRouter>,
-        scope: AccessScope,
+        user: UserInfo,
         Query(query): Query<ConnectorTemplateQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_templates(&scope, &query.filter, &query.page, query.sort)
+            .get_all_templates(&user, &query.filter, &query.page, query.sort)
             .await
         {
             Ok(templates) => (StatusCode::OK, Json(templates)).into_response(),
@@ -89,14 +89,14 @@ impl ConnectorTemplateRouter {
 
     async fn handle_create_template(
         State(state): State<ConnectorTemplateRouter>,
-        scope: AccessScope,
+        user: UserInfo,
         input: Result<Json<ConnectorTemplateDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let mut input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.create_template(&scope, &mut input).await {
+        match state.service.create_template(&user, &mut input).await {
             Ok(template) => (StatusCode::OK, Json(template)).into_response(),
             Err(err) => err.into_response(),
         }
@@ -104,10 +104,10 @@ impl ConnectorTemplateRouter {
 
     async fn handle_get_templates_by_id(
         State(state): State<ConnectorTemplateRouter>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
-        match state.service.get_templates_by_id(&scope, &id).await {
+        match state.service.get_templates_by_id(&user, &id).await {
             Ok(templates) => (StatusCode::OK, Json(templates)).into_response(),
             Err(err) => err.into_response(),
         }
@@ -115,12 +115,12 @@ impl ConnectorTemplateRouter {
 
     async fn handle_get_template_by_name_and_version(
         State(state): State<ConnectorTemplateRouter>,
-        scope: AccessScope,
+        user: UserInfo,
         Path((name, version)): Path<(String, String)>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_template_by_name_and_version(&scope, &name, &version)
+            .get_template_by_name_and_version(&user, &name, &version)
             .await
         {
             Ok(Some(template)) => (StatusCode::OK, Json(template)).into_response(),
@@ -134,12 +134,12 @@ impl ConnectorTemplateRouter {
 
     async fn handle_delete_template_by_name_and_version(
         State(state): State<ConnectorTemplateRouter>,
-        scope: AccessScope,
+        user: UserInfo,
         Path((name, version)): Path<(String, String)>,
     ) -> impl IntoResponse {
         match state
             .service
-            .delete_template_by_name_and_version(&scope, &name, &version)
+            .delete_template_by_name_and_version(&user, &name, &version)
             .await
         {
             Ok(_) => StatusCode::ACCEPTED.into_response(),

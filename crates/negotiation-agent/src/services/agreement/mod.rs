@@ -23,7 +23,7 @@ pub mod views;
 use crate::entities::agreement::{EditAgreementDto, NewAgreementDto};
 use crate::entities::filters::AgreementFilter;
 use crate::services::agreement::views::AgreementView;
-use common::auth::access::AccessScope;
+use common::oauth::UserInfo;
 use common::batch_requests::BatchRequests;
 use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
@@ -36,48 +36,48 @@ pub trait AgreementServiceTrait: Send + Sync + 'static {
     /// Page of agreements visible to the caller.
     async fn get_all(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &AgreementFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<AgreementView>>;
 
     /// 404 when the agreement is not visible to the caller.
-    async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<AgreementView>;
+    async fn get_one(&self, user: &UserInfo, id: &Urn) -> Outcome<AgreementView>;
 
     /// Agreement reached in the process.
-    async fn get_by_process(&self, scope: &AccessScope, process_id: &Urn)
+    async fn get_by_process(&self, user: &UserInfo, process_id: &Urn)
     -> Outcome<AgreementView>;
 
     /// Agreement carried by the message.
-    async fn get_by_message(&self, scope: &AccessScope, message_id: &Urn)
+    async fn get_by_message(&self, user: &UserInfo, message_id: &Urn)
     -> Outcome<AgreementView>;
 
     /// Agreements where `assignee` is the consumer.
     async fn get_by_assignee(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         assignee: &str,
     ) -> Outcome<Vec<AgreementView>>;
 
     /// Agreements where `assigner` is the provider.
     async fn get_by_assigner(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         assigner: &str,
     ) -> Outcome<Vec<AgreementView>>;
 
     /// Agreements found among the requested ids.
-    async fn batch(&self, scope: &AccessScope, req: &BatchRequests) -> Outcome<Vec<AgreementView>>;
+    async fn batch(&self, user: &UserInfo, req: &BatchRequests) -> Outcome<Vec<AgreementView>>;
 
-    async fn create(&self, scope: &AccessScope, cmd: &NewAgreementDto) -> Outcome<AgreementView>;
+    async fn create(&self, user: &UserInfo, cmd: &NewAgreementDto) -> Outcome<AgreementView>;
 
     async fn edit(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         id: &Urn,
         cmd: &EditAgreementDto,
     ) -> Outcome<AgreementView>;
 
-    async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()>;
+    async fn delete(&self, user: &UserInfo, id: &Urn) -> Outcome<()>;
 }

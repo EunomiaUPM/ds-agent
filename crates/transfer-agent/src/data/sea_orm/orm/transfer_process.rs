@@ -16,6 +16,7 @@
  */
 
 use chrono::Utc;
+use common::oauth::{Owner, RolePath, Visibility};
 use compact_str::CompactString;
 use sea_orm::ActiveValue::Set;
 use sea_orm::entity::prelude::*;
@@ -35,7 +36,9 @@ use common::utils::parse_urn;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub role: String,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
@@ -56,7 +59,7 @@ pub struct Model {
 impl Model {
     pub fn into_domain(self) -> Outcome<TransferProcess> {
         let id = TransferProcessId::new(parse_urn(&self.id)?);
-        let tenant_id = self.tenant_id;
+        let owner = Owner::new(self.user_id, self.user_role, self.visibility);
         let role = deser_enum::<TransferRole>(&self.role)?;
         let created_at = self.created_at.with_timezone(&Utc);
         let updated_at = self.updated_at.with_timezone(&Utc);
@@ -70,7 +73,7 @@ impl Model {
 
         Ok(TransferProcess::rehydrate(
             id,
-            tenant_id,
+            owner,
             role,
             created_at,
             updated_at,
@@ -89,8 +92,8 @@ impl Model {
 impl ActiveModel {
     pub fn from_cmd(cmd: &NewTransferProcessCommand) -> Outcome<Self> {
         let id = cmd.id.clone().unwrap_or_else(TransferProcessId::generate);
-        let tenant_id = cmd.tenant_id.clone().ok_or_else(|| {
-            ymir::errors::Errors::crazy("tenant_id must be resolved before reaching the repo", None)
+        let owner = cmd.owner.clone().ok_or_else(|| {
+            ymir::errors::Errors::crazy("owner must be resolved before reaching the repo", None)
         })?;
         let now = chrono::Utc::now();
         let correlation = TransferCorrelation {
@@ -103,7 +106,7 @@ impl ActiveModel {
         };
         let process = TransferProcess::rehydrate(
             id,
-            tenant_id,
+            owner,
             cmd.role,
             now,
             now,
@@ -122,7 +125,9 @@ impl ActiveModel {
         let correlation = process.correlation();
         Self {
             id: Set(process.id().to_string()),
-            tenant_id: Set(process.tenant_id().as_str().to_string()),
+            user_id: Set(process.owner().user_id.clone()),
+            user_role: Set(process.owner().role.clone()),
+            visibility: Set(process.owner().visibility.clone()),
             role: Set(ser_enum(&process.role())),
             created_at: Set(process.created_at().into()),
             updated_at: Set(process.updated_at().into()),
@@ -146,3 +151,5 @@ impl ActiveModel {
 pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
+
+common::impl_owned!(Model);

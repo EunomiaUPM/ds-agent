@@ -25,7 +25,7 @@ use serde::Serialize;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
-/// Cache of one entity type: single entries, a per-tenant main entry and a sorted collection.
+/// Cache of one entity type: single entries, main entries by key and a sorted collection.
 #[async_trait::async_trait]
 pub trait EntityCacheTrait<D>: LookupCacheTrait<D> + Send + Sync {
     /// `None` when the entity is not cached.
@@ -34,10 +34,10 @@ pub trait EntityCacheTrait<D>: LookupCacheTrait<D> + Send + Sync {
     async fn set_single(&self, id: &Urn, model: &D) -> Outcome<()>;
     /// Removes the entity; the collection and relations are left untouched.
     async fn delete_single(&self, id: &Urn) -> Outcome<()>;
-    /// Each tenant has its own main entity.
-    async fn get_main(&self, tenant_id: &str) -> Outcome<Option<D>>;
-    /// Stores the entity and points the tenant's main key at it.
-    async fn set_main(&self, tenant_id: &str, id: &Urn, model: &D) -> Outcome<()>;
+    /// The main entity under `key` (the catalog keeps one per connector).
+    async fn get_main(&self, key: &str) -> Outcome<Option<D>>;
+    /// Stores the entity and points the main `key` at it.
+    async fn set_main(&self, key: &str, id: &Urn, model: &D) -> Outcome<()>;
     /// Page of the collection, highest score first; no limit and no page return everything.
     async fn get_collection(&self, limit: Option<u64>, page: Option<u64>) -> Outcome<Vec<D>>;
     /// Adds the entity to the collection; `score` sets its order.
@@ -97,9 +97,9 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn get_main(&self, tenant_id: &str) -> Outcome<Option<D>> {
+    async fn get_main(&self, key: &str) -> Outcome<Option<D>> {
         tracing::debug!(entity = self.get_entity_name(), "cache: get main");
-        let main_key = self.format_key_name_main(self.get_entity_name(), tenant_id);
+        let main_key = self.format_key_name_main(self.get_entity_name(), key);
         let target_key: Option<String> = redis::cmd("GET")
             .arg(main_key)
             .query_async(&mut self.get_conn())
@@ -112,9 +112,9 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn set_main(&self, tenant_id: &str, id: &Urn, model: &D) -> Outcome<()> {
+    async fn set_main(&self, key: &str, id: &Urn, model: &D) -> Outcome<()> {
         tracing::debug!(entity = self.get_entity_name(), id = %id, "cache: set main");
-        let main_key = self.format_key_name_main(self.get_entity_name(), tenant_id);
+        let main_key = self.format_key_name_main(self.get_entity_name(), key);
         let key = self.format_key_name_with_id(self.get_entity_name(), id);
         self.set_single(id, model).await?;
         let _: () = redis::cmd("SET")
@@ -214,11 +214,11 @@ impl<D: Send + Sync + 'static> EntityCacheTrait<D> for NoopCache<D> {
         Ok(())
     }
 
-    async fn get_main(&self, _tenant_id: &str) -> Outcome<Option<D>> {
+    async fn get_main(&self, _key: &str) -> Outcome<Option<D>> {
         Ok(None)
     }
 
-    async fn set_main(&self, _tenant_id: &str, _id: &Urn, _model: &D) -> Outcome<()> {
+    async fn set_main(&self, _key: &str, _id: &Urn, _model: &D) -> Outcome<()> {
         Ok(())
     }
 

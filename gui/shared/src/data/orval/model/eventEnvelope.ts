@@ -10,10 +10,15 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 import type { EventEnvelopePayload } from './eventEnvelopePayload';
+import type { Visibility } from './visibility';
 
 export interface EventEnvelope {
   id: string;
-  tenant_id: string;
+  /** Owner of the record the event is about ("system" if a peer opened it). */
+  user_id: string;
+  /** Role the record was created under (or that handles it). */
+  role: string;
+  visibility: Visibility;
   topic: string;
   source_crate: string;
   schema_version: number;

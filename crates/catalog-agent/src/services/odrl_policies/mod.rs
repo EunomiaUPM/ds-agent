@@ -21,7 +21,7 @@ pub mod service;
 
 use crate::entities::filters::OdrlPolicyFilter;
 use crate::entities::odrl_policies::{NewOdrlPolicyDto, OdrlPolicyDto};
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -33,7 +33,7 @@ pub trait OdrlPolicyServiceTrait: Sync + Send {
     /// Page of offers visible to the caller.
     async fn get_all_odrl_offers(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &OdrlPolicyFilter,
         page: &Page,
         sort: &Sort,
@@ -41,35 +41,35 @@ pub trait OdrlPolicyServiceTrait: Sync + Send {
     /// Offers found among `ids`.
     async fn get_batch_odrl_offers(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         ids: &[Urn],
     ) -> Outcome<Vec<OdrlPolicyDto>>;
     /// Offers attached to the entity.
     async fn get_all_odrl_offers_by_entity(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         entity: &Urn,
     ) -> Outcome<Vec<OdrlPolicyDto>>;
     /// 404 when the offer is not visible to the caller.
     async fn get_odrl_offer_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         odrl_offer_id: &Urn,
     ) -> Outcome<OdrlPolicyDto>;
     async fn create_odrl_offer(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_odrl_offer_model: &NewOdrlPolicyDto,
     ) -> Outcome<OdrlPolicyDto>;
     async fn delete_odrl_offer_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         odrl_offer_id: &Urn,
     ) -> Outcome<()>;
     /// Deletes every offer attached to the entity.
     async fn delete_odrl_offers_by_entity(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         entity_id: &Urn,
     ) -> Outcome<()>;
 }

@@ -19,7 +19,7 @@
 
 use std::sync::Arc;
 
-use common::auth::access::AccessScope;
+use common::oauth::{OwnedTrait, Owner, OwnerScope, UserInfo};
 use common::batch_requests::BatchRequests;
 use common::errors::NotFoundExt;
 use common::paginated_spec::Cursor;
@@ -57,24 +57,20 @@ impl OfferService {
 
 #[async_trait::async_trait]
 impl OfferServiceTrait for OfferService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &OfferFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<OfferView>> {
-        scope.require_read()?;
         filters.validate()?;
-
-        let mut filters = filters.clone();
-        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
 
         let page = page.clamped();
         let (offers, total) = self
             .offer_repo
-            .get_all_offers(&filters, &page, sort)
+            .get_all_offers(&OwnerScope::seeing(user), filters, &page, sort)
             .await?;
 
         let items: Vec<OfferView> = offers.into_iter().map(OfferView::assemble).collect();
@@ -88,13 +84,12 @@ impl OfferServiceTrait for OfferService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), id = %id)
+        fields(user = %user.id(), id = %id)
     )]
-    async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<OfferView> {
-        scope.require_read()?;
+    async fn get_one(&self, user: &UserInfo, id: &Urn) -> Outcome<OfferView> {
         let offer = self
             .offer_repo
-            .get_offer_by_id(scope.tenant_filter().map(str::to_string), id)
+            .get_offer_by_id(&OwnerScope::seeing(user), id)
             .await?
             .or_not_found(id, "offer")?;
 
@@ -105,17 +100,16 @@ impl OfferServiceTrait for OfferService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), message_id = %message_id)
+        fields(user = %user.id(), message_id = %message_id)
     )]
     async fn get_by_negotiation_message(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         message_id: &Urn,
     ) -> Outcome<OfferView> {
-        scope.require_read()?;
         let offer = self
             .offer_repo
-            .get_offer_by_negotiation_message(scope.tenant_filter().map(str::to_string), message_id)
+            .get_offer_by_negotiation_message(&OwnerScope::seeing(user), message_id)
             .await?
             .or_not_found(message_id, "offer")?;
 
@@ -126,13 +120,12 @@ impl OfferServiceTrait for OfferService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), offer_id = %offer_id)
+        fields(user = %user.id(), offer_id = %offer_id)
     )]
-    async fn get_by_offer_id(&self, scope: &AccessScope, offer_id: &Urn) -> Outcome<OfferView> {
-        scope.require_read()?;
+    async fn get_by_offer_id(&self, user: &UserInfo, offer_id: &Urn) -> Outcome<OfferView> {
         let offer = self
             .offer_repo
-            .get_offer_by_offer_id(scope.tenant_filter().map(str::to_string), offer_id)
+            .get_offer_by_offer_id(&OwnerScope::seeing(user), offer_id)
             .await?
             .or_not_found(offer_id, "offer")?;
 
@@ -143,18 +136,17 @@ impl OfferServiceTrait for OfferService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), process_id = %process_id)
+        fields(user = %user.id(), process_id = %process_id)
     )]
     async fn get_by_process(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         process_id: &Urn,
     ) -> Outcome<Vec<OfferView>> {
-        scope.require_read()?;
         let offers = self
             .offer_repo
             .get_offers_by_negotiation_process(
-                scope.tenant_filter().map(str::to_string),
+                &OwnerScope::seeing(user),
                 process_id,
             )
             .await?;
@@ -166,18 +158,17 @@ impl OfferServiceTrait for OfferService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), process_id = %process_id)
+        fields(user = %user.id(), process_id = %process_id)
     )]
     async fn get_last_by_process(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         process_id: &Urn,
     ) -> Outcome<OfferView> {
-        scope.require_read()?;
         let offer = self
             .offer_repo
             .get_last_offer_by_negotiation_process(
-                scope.tenant_filter().map(str::to_string),
+                &OwnerScope::seeing(user),
                 process_id,
             )
             .await?
@@ -185,9 +176,8 @@ impl OfferServiceTrait for OfferService {
         Ok(OfferView::assemble(offer))
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn batch(&self, scope: &AccessScope, req: &BatchRequests) -> Outcome<Vec<OfferView>> {
-        scope.require_read()?;
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn batch(&self, user: &UserInfo, req: &BatchRequests) -> Outcome<Vec<OfferView>> {
         if req.ids.len() > MAX_BATCH_IDS {
             return Err(Errors::format(
                 BadFormat::Received,
@@ -201,22 +191,22 @@ impl OfferServiceTrait for OfferService {
 
         let offers = self
             .offer_repo
-            .get_batch_offers(scope.tenant_filter().map(str::to_string), &req.ids)
+            .get_batch_offers(&OwnerScope::seeing(user), &req.ids)
             .await?;
 
         Ok(offers.into_iter().map(OfferView::assemble).collect())
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn create(&self, scope: &AccessScope, cmd: &NewOfferDto) -> Outcome<OfferView> {
-        let tenant_id = scope.resolve_create_tenant(cmd.tenant_id.as_deref())?;
-        let new_model: NewOfferModel = cmd.clone().into_model(tenant_id);
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn create(&self, user: &UserInfo, cmd: &NewOfferDto) -> Outcome<OfferView> {
+        let owner = Owner::for_new(user, cmd.owner.clone(), cmd.visibility.clone());
+        let new_model: NewOfferModel = cmd.clone().into_model(owner);
         let created = self.offer_repo.create_offer(&new_model).await?;
 
         let view = OfferView::assemble(created);
         events::emit_action!(
             self.event_bus,
-            &view.inner.tenant_id,
+            &view.inner.owner(),
             crate::EVENT_PREFIX,
             "offer",
             "create",
@@ -229,13 +219,12 @@ impl OfferServiceTrait for OfferService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), id = %id)
+        fields(user = %user.id(), id = %id)
     )]
-    async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
-        scope.require_write()?;
+    async fn delete(&self, user: &UserInfo, id: &Urn) -> Outcome<()> {
         let owner = self
             .offer_repo
-            .delete_offer(scope.tenant_filter().map(str::to_string), id)
+            .delete_offer(&OwnerScope::acting(user), id)
             .await?;
         events::emit_action!(
             self.event_bus,

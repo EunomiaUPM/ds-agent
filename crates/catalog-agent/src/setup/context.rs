@@ -44,14 +44,14 @@ use crate::services::policy_templates::PolicyTemplateServiceTrait;
 use crate::services::tenant_provisioning::service::TenantProvisioningService;
 use crate::services::tenant_provisioning::TenantProvisioningServiceTrait;
 use crate::setup::ports::CatalogPorts;
-use common::auth::OauthTokenValidator;
+use common::oauth::OauthTokenValidatorTrait;
 use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CatalogConfig;
 use common::config::types::cache::CacheType;
 use common::config::types::traits::CacheConfigTrait;
 use common::config::types::traits::MinKnownConfigTrait;
 use common::facades::mates_facade::MatesFacadeTrait;
-use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
+use common::facades::grants_facade::GrantsFacadeTrait;
 use common::module_loader::root_context::RootContext;
 use ymir::config::types::HostType;
 use ymir::errors::{Errors, Outcome};
@@ -70,8 +70,8 @@ pub struct AppContext {
     pub peer_catalog_svc: Arc<dyn PeerCatalogServiceTrait>,
     pub tenant_provisioning_svc: Arc<dyn TenantProvisioningServiceTrait>,
     pub mates_facade: Arc<dyn MatesFacadeTrait>,
-    pub ssi_auth_facade: Arc<dyn SSIAuthFacadeTrait>,
-    pub oauth_validator: Arc<dyn OauthTokenValidator>,
+    pub grants_facade: Arc<dyn GrantsFacadeTrait>,
+    pub oauth_validator: Arc<dyn OauthTokenValidatorTrait>,
     pub event_bus: Option<events::EventBus>,
 }
 
@@ -139,7 +139,7 @@ impl AppContext {
             peer_catalog_svc,
             tenant_provisioning_svc,
             mates_facade,
-            ssi_auth_facade: ports.auth.ssi_auth.clone(),
+            grants_facade: ports.auth.grants.clone(),
             oauth_validator: root.validator.clone(),
             event_bus,
         })

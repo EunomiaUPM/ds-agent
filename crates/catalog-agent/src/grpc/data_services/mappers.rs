@@ -32,7 +32,7 @@ impl TryFrom<ListDataServicesRequest> for ListParams<DataServiceFilter> {
 
     fn try_from(req: ListDataServicesRequest) -> Result<Self, Status> {
         let filter = DataServiceFilter {
-            tenant_id: None,
+            user_id: None,
             catalog_id: req.catalog_id.non_empty().map(str::to_owned),
             endpoint_url: req.endpoint_url.non_empty().map(str::to_owned),
             title: req.title.non_empty().map(str::to_owned),
@@ -51,7 +51,8 @@ impl TryFrom<CreateDataServiceRequest> for NewDataServiceDto {
     fn try_from(req: CreateDataServiceRequest) -> Result<Self, Status> {
         Ok(Self {
             id: req.id.as_deref().unwrap_or_default().opt_urn("id")?,
-            tenant_id: None,
+            visibility: None,
+            owner: None,
             dcat_endpoint_description: req.dcat_endpoint_description,
             dcat_endpoint_url: req.dcat_endpoint_url,
             dct_conforms_to: req.dct_conforms_to,

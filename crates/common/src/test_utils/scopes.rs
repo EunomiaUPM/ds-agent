@@ -19,7 +19,7 @@
 
 use serde_json::Map;
 
-use crate::oauth::{RolePath, UserInfo};
+use crate::oauth::{Owner, RolePath, UserInfo};
 
 /// Ready-made users for service tests.
 pub struct TestUsers;
@@ -34,5 +34,15 @@ impl TestUsers {
     pub fn user(user_id: &str, role: &str) -> UserInfo {
         let role = role.parse().expect("test role must be a valid path");
         UserInfo::new(user_id, None, role, Map::new())
+    }
+
+    /// `user_id` alone under `/admin/<user_id>`, like the former one-user tenants.
+    pub fn alone(user_id: &str) -> UserInfo {
+        Self::user(user_id, &format!("/admin/{user_id}"))
+    }
+
+    /// Owner of what [`alone`](Self::alone) `user_id` creates: theirs, private.
+    pub fn owner(user_id: &str) -> Owner {
+        Owner::private(&Self::alone(user_id))
     }
 }

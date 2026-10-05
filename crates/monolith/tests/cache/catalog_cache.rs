@@ -36,7 +36,9 @@ fn catalog(title: &str) -> (Urn, CatalogDto) {
     let dto = CatalogDto {
         inner: Model {
             id: id.to_string(),
-            tenant_id: "default".to_string(),
+            user_id: "default".to_string(),
+            user_role: common::oauth::RolePath::root(),
+            visibility: common::oauth::Visibility::Private,
             foaf_home_page: None,
             dct_conforms_to: None,
             dct_title: Some(title.to_string()),

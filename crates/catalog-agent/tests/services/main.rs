@@ -30,4 +30,5 @@ mod peer_catalogs;
 mod policy_instantiation;
 mod policy_templates;
 mod tenant_provisioning;
-mod tenant_provisioning_listener;
+// The per-tenant listener is out of the tree (one main catalog per connector).
+// mod tenant_provisioning_listener;

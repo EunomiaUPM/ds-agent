@@ -32,7 +32,7 @@ use axum::{
     response::IntoResponse,
     routing::post,
 };
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use common::config::services::ContractsConfig;
 use serde::Serialize;
 use std::sync::Arc;
@@ -138,14 +138,14 @@ impl BffRpcRouter {
 
     async fn negotiation_request_init_bff_rpc(
         State(state): State<BffRpcRouter>,
-        scope: AccessScope,
+        user: UserInfo,
         input: Result<Json<RpcNegotiationRequestInitMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
             state
                 .orchestrator
                 .get_bff_rpc_service()
-                .setup_negotiation_request_init_bff_rpc(&scope, &data)
+                .setup_negotiation_request_init_bff_rpc(&user, &data)
                 .await
         })
         .await
@@ -153,56 +153,56 @@ impl BffRpcRouter {
 
     async fn negotiation_offer_init_bff_rpc(
         State(state): State<BffRpcRouter>,
-        scope: AccessScope,
+        user: UserInfo,
         input: Result<Json<RpcNegotiationOfferInitMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
             state
                 .orchestrator
                 .get_bff_rpc_service()
-                .setup_negotiation_offer_init_bff_rpc(&scope, &data)
+                .setup_negotiation_offer_init_bff_rpc(&user, &data)
                 .await
         })
         .await
     }
     async fn negotiation_event_accepted_bff_rpc(
         State(state): State<BffRpcRouter>,
-        scope: AccessScope,
+        user: UserInfo,
         input: Result<Json<RpcNegotiationEventAcceptedMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
             state
                 .orchestrator
                 .get_bff_rpc_service()
-                .setup_negotiation_event_accepted_bff_rpc(&scope, &data)
+                .setup_negotiation_event_accepted_bff_rpc(&user, &data)
                 .await
         })
         .await
     }
     async fn negotiation_agreement_bff_rpc(
         State(state): State<BffRpcRouter>,
-        scope: AccessScope,
+        user: UserInfo,
         input: Result<Json<RpcNegotiationAgreementMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
             state
                 .orchestrator
                 .get_bff_rpc_service()
-                .setup_negotiation_agreement_bff_rpc(&scope, &data)
+                .setup_negotiation_agreement_bff_rpc(&user, &data)
                 .await
         })
         .await
     }
     async fn negotiation_termination_bff_rpc(
         State(state): State<BffRpcRouter>,
-        scope: AccessScope,
+        user: UserInfo,
         input: Result<Json<RpcNegotiationTerminationMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
             state
                 .orchestrator
                 .get_bff_rpc_service()
-                .setup_negotiation_termination_bff_rpc(&scope, &data)
+                .setup_negotiation_termination_bff_rpc(&user, &data)
                 .await
         })
         .await

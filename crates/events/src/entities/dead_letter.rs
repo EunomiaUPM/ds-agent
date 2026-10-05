@@ -18,13 +18,16 @@
 //! Dead letters.
 
 use chrono::{DateTime, Utc};
+use common::oauth::Owner;
 use serde::{Deserialize, Serialize};
 
 /// Delivery that failed for good, kept until replayed or purged.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeadLetterRecord {
     pub id: String,
-    pub tenant_id: String,
+    /// Who the record belongs to: the subscriber.
+    #[serde(flatten)]
+    pub owner: Owner,
     pub delivery_id: Option<String>,
     pub event_id: String,
     pub subscription_id: String,

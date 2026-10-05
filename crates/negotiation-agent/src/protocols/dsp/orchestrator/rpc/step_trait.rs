@@ -23,10 +23,10 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use crate::services::negotiation_process::views::NegotiationProcessView;
 use axum::http::HeaderMap;
-use common::auth::AccessScope;
+use common::oauth::{Owner, UserInfo};
 use common::dsp_common::DspActor;
 use common::dsp_common::odrl::OdrlMessageOffer;
-use common::facades::mates_facade::MatesFacadeTrait;
+use common::facades::AuthPorts;
 use std::fmt::Debug;
 use std::sync::Arc;
 use urn::Urn;
@@ -45,26 +45,35 @@ pub(super) struct NegotiationRpcInitialContext {
     /// Remote peer identifier; used for auth-token lookup.
     pub associated_peer: String,
     /// Tenant owning the target peer; the new process belongs to it.
-    pub tenant_id: String,
+    /// Owner of the process the step opens: the user, private.
+    pub owner: Owner,
 }
 
 impl NegotiationRpcInitialContext {
-    /// Checks that the user may negotiate with `associated_peer`, which must be registered in the
-    /// user's acting tenant; any other peer answers as not found.
+    /// Checks that the user may negotiate with `associated_peer`: it needs a grant of its own
+    /// with it, or the messages would go out without a token. Any other peer answers as not
+    /// found. The process will belong to the user.
     pub(super) async fn resolve(
-        scope: &AccessScope,
+        user: &UserInfo,
         provider_address: String,
         associated_peer: String,
-        mates_service: &Arc<dyn MatesFacadeTrait>,
+        auth: &AuthPorts,
     ) -> Outcome<Self> {
-        scope.require_write()?;
-        let peer = mates_service
-            .get_mate_by_id(scope.acting_tenant().clone(), associated_peer.clone())
+        let token = auth
+            .grants
+            .peer_token(user, associated_peer.clone())
             .await?;
+        if token.is_none() {
+            return Err(Errors::missing_resource(
+                associated_peer,
+                "no grant of the user with this peer",
+                None,
+            ));
+        }
         Ok(Self {
             provider_address,
             associated_peer,
-            tenant_id: peer.tenant_id,
+            owner: Owner::private(user),
         })
     }
 }
@@ -144,15 +153,16 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
     /// Continuation steps fetch an existing process from `persistence`.
     /// Initial steps read routing info directly from the input.
     /// The agreement step additionally fetches the last offer and participant
-    /// IDs from `mates_service`.
+    /// IDs from the mates facade.
     async fn prepare_context(
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &Self::Input,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
-        mates_service: &Arc<dyn MatesFacadeTrait>,
+        auth: &AuthPorts,
     ) -> Outcome<Self::Context>;
 
-    /// Return the tenant and peer identifier used for auth-token lookup.
+    /// Return the owner and peer identifier of the process; the peer is used for the token
+    /// lookup.
     fn auth_peer(ctx: &Self::Context) -> (&str, &str);
 
     /// Build the DSP message, POST it to the peer, and persist the resulting
@@ -171,18 +181,17 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
         NegotiationProcessView,
     )>;
 
-    /// Bearer headers carrying the peer's stored token, sent with this request only.
+    /// Bearer headers with the token `user` presents to `peer` (its own grant with it), sent
+    /// with this request only.
     ///
-    /// `None` when the peer has no token; the request proceeds unauthenticated.
+    /// `None` when the user has no token; the request proceeds unauthenticated.
     async fn peer_headers(
-        mates_service: &Arc<dyn MatesFacadeTrait>,
-        (tenant_id, peer): (&str, &str),
+        auth: &AuthPorts,
+        user: &UserInfo,
+        peer: &str,
     ) -> Outcome<Option<HeaderMap>> {
-        match mates_service
-            .get_mate_by_id(tenant_id.to_string(), peer.to_string())
-            .await
-        {
-            Ok(mate) => mate.token.as_deref().map(bearer_headers).transpose(),
+        match auth.grants.peer_token(user, peer.to_string()).await {
+            Ok(token) => token.as_deref().map(bearer_headers).transpose(),
             Err(_) => Ok(None),
         }
     }
@@ -191,16 +200,15 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
 impl NegotiationRpcContinuationContext {
     /// Fetch the process on behalf of the user and derive the peer routing fields.
     ///
-    /// The `consumer_pid` is the local agent's identifier; a process outside the user's
-    /// tenants answers as not found.
+    /// The `consumer_pid` is the local agent's identifier; a process the user does not act on
+    /// answers as not found.
     pub(super) async fn resolve(
         consumer_pid: &Urn,
-        scope: &AccessScope,
+        user: &UserInfo,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
     ) -> Outcome<Self> {
-        scope.require_write()?;
         let process = persistence
-            .fetch_process(consumer_pid.to_string().as_str(), &DspActor::user(scope))
+            .fetch_process(consumer_pid.to_string().as_str(), &DspActor::user(user))
             .await?;
 
         // The outgoing URL uses the *peer's* identifier (opposite of the local role).

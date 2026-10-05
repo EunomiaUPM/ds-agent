@@ -18,6 +18,7 @@
 //! Agreements.
 
 use crate::data::entities::agreement::{EditAgreementModel, NewAgreementModel};
+use common::oauth::{Owner, Visibility};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 
@@ -27,8 +28,12 @@ use urn::Urn;
 #[serde(deny_unknown_fields)]
 pub struct NewAgreementDto {
     pub id: Option<Urn>,
+    /// Who else sees it; private by default.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tenant_id: Option<String>,
+    pub visibility: Option<Visibility>,
+    /// Owner an in-process flow asks for; only honoured for the root.
+    #[serde(skip)]
+    pub owner: Option<Owner>,
     pub negotiation_agent_process_id: Urn,
     pub negotiation_agent_message_id: Urn,
     pub consumer_participant_id: String,
@@ -46,11 +51,11 @@ pub struct EditAgreementDto {
 }
 
 impl NewAgreementDto {
-    /// Row for `tenant_id`.
-    pub fn into_model(self, tenant_id: String) -> NewAgreementModel {
+    /// Row owned by `owner`.
+    pub fn into_model(self, owner: Owner) -> NewAgreementModel {
         NewAgreementModel {
             id: self.id,
-            tenant_id,
+            owner,
             negotiation_agent_process_id: self.negotiation_agent_process_id,
             negotiation_agent_message_id: self.negotiation_agent_message_id,
             consumer_participant_id: self.consumer_participant_id,

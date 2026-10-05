@@ -16,6 +16,7 @@
  */
 
 use crate::data::entities::negotiation_message;
+use common::oauth::{OwnedTrait, Owner, OwnerScope};
 use crate::data::entities::negotiation_message::{Model, NewNegotiationMessageModel};
 use crate::data::repo_traits::negotiation_message_repo::{
     NegotiationMessageRepoErrors, NegotiationMessageRepoTrait,
@@ -23,7 +24,6 @@ use crate::data::repo_traits::negotiation_message_repo::{
 use crate::entities::filters::NegotiationMessageFilter;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use common::query::FilterApplier;
-use sea_orm::QueryTrait;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Select,
 };
@@ -38,8 +38,8 @@ impl FilterApplier<Select<negotiation_message::Entity>> for NegotiationMessageFi
         if let Some(ref id) = self.id {
             q = q.filter(negotiation_message::Column::Id.eq(id));
         }
-        if let Some(ref tenant_id) = self.tenant_id {
-            q = q.filter(negotiation_message::Column::TenantId.eq(tenant_id));
+        if let Some(ref user_id) = self.user_id {
+            q = q.filter(negotiation_message::Column::UserId.eq(user_id));
         }
         if let Some(ref process_id) = self.process_id {
             q = q.filter(negotiation_message::Column::NegotiationAgentProcessId.eq(process_id));
@@ -78,11 +78,16 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_negotiation_messages(
         &self,
+        scope: &OwnerScope,
         filters: &NegotiationMessageFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<Model>, Option<u64>)> {
-        let mut q = negotiation_message::Entity::find();
+        let mut q = negotiation_message::Entity::find().filter(scope.condition(
+            negotiation_message::Column::UserId,
+            negotiation_message::Column::UserRole,
+            negotiation_message::Column::Visibility,
+        ));
         q = filters.apply_to(q);
 
         let total = q.clone().count(&self.db_connection).await.map_err(|e| {
@@ -109,14 +114,12 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_negotiation_messages(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<Model>> {
         let message_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let messages = negotiation_message::Entity::find()
-            .apply_if(tenant_id, |q, t| {
-                q.filter(negotiation_message::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(negotiation_message::Column::UserId, negotiation_message::Column::UserRole, negotiation_message::Column::Visibility))
             .filter(negotiation_message::Column::Id.is_in(message_ids))
             .all(&self.db_connection)
             .await;
@@ -133,14 +136,12 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_messages_by_process_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         process_id: &Urn,
     ) -> Outcome<Vec<Model>> {
         let pid = process_id.to_string();
         let messages = negotiation_message::Entity::find()
-            .apply_if(tenant_id, |q, t| {
-                q.filter(negotiation_message::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(negotiation_message::Column::UserId, negotiation_message::Column::UserRole, negotiation_message::Column::Visibility))
             .filter(negotiation_message::Column::NegotiationAgentProcessId.eq(pid))
             .order_by_asc(negotiation_message::Column::CreatedAt)
             .all(&self.db_connection)
@@ -158,14 +159,12 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_negotiation_message_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<Model>> {
         let mid = id.to_string();
         let message = negotiation_message::Entity::find_by_id(mid)
-            .apply_if(tenant_id, |q, t| {
-                q.filter(negotiation_message::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(negotiation_message::Column::UserId, negotiation_message::Column::UserRole, negotiation_message::Column::Visibility))
             .one(&self.db_connection)
             .await;
         match message {
@@ -198,15 +197,13 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_negotiation_message(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
-    ) -> Outcome<String> {
+    ) -> Outcome<Owner> {
         let mid = id.to_string();
         let result = negotiation_message::Entity::delete_many()
             .filter(negotiation_message::Column::Id.eq(&mid))
-            .apply_if(tenant_id, |q, t| {
-                q.filter(negotiation_message::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(negotiation_message::Column::UserId, negotiation_message::Column::UserRole, negotiation_message::Column::Visibility))
             .exec_with_returning(&self.db_connection)
             .await;
 
@@ -214,7 +211,7 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
             Ok(rows) => rows
                 .into_iter()
                 .next()
-                .map(|row| row.tenant_id)
+                .map(|row| row.owner())
                 .ok_or_else(|| {
                     NegotiationMessageRepoErrors::NegotiationMessageNotFound.into_errors()
                 }),

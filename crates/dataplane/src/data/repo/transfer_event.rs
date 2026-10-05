@@ -18,6 +18,7 @@
 //! Diagnostic events.
 
 use crate::data::sea_orm::orm::transfer_event;
+use common::oauth::OwnerScope;
 use crate::data::sea_orm::orm::transfer_event::NewTransferEvent;
 use crate::entities::filters::TransferEventFilter;
 use common::query::{Page, Sort};
@@ -32,30 +33,31 @@ pub trait TransferEventRepo: Send + Sync + 'static {
     /// Page of events matching the filters.
     async fn get_all_transfer_events(
         &self,
+        scope: &OwnerScope,
         filters: &TransferEventFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Vec<transfer_event::Model>>;
 
-    async fn count_transfer_events(&self, filters: &TransferEventFilter) -> Outcome<u64>;
+    async fn count_transfer_events(&self, scope: &OwnerScope, filters: &TransferEventFilter) -> Outcome<u64>;
 
-    /// Events found among `ids`; `tenant_id` of `None` searches every tenant.
+    /// Events found among `ids`, within `scope`.
     async fn get_batch_transfer_events(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<transfer_event::Model>>;
 
     /// Every event of the process.
     async fn get_all_transfer_events_by_process_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         process_id: &Urn,
     ) -> Outcome<Vec<transfer_event::Model>>;
 
     async fn get_transfer_event_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         transfer_event: &Urn,
     ) -> Outcome<Option<transfer_event::Model>>;
 

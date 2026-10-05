@@ -38,6 +38,7 @@ use crate::data::entities::connector_templates::NewConnectorTemplateModel;
 use crate::entities::auth_config::AuthenticationConfig;
 use crate::entities::interaction::InteractionConfig;
 use crate::entities::parameters::ParameterDefinition;
+use common::oauth::Owner;
 use sea_orm::prelude::DateTimeWithTimeZone;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -67,13 +68,13 @@ pub struct ConnectorTemplateDto {
 }
 
 impl ConnectorTemplateDto {
-    /// Serializes the auth, interaction and parameter sections into a row for `tenant_id`.
-    pub fn into_model(self, tenant_id: String) -> Outcome<NewConnectorTemplateModel> {
+    /// Serializes the auth, interaction and parameter sections into a row of `owner`.
+    pub fn into_model(self, owner: Owner) -> Outcome<NewConnectorTemplateModel> {
         let authentication = serde_json::to_value(self.authentication)?;
         let interaction = serde_json::to_value(self.interaction)?;
         let parameters = serde_json::to_value(self.parameters)?;
         Ok(NewConnectorTemplateModel {
-            tenant_id,
+            owner,
             name: self.metadata.name,
             version: self.metadata.version,
             author: self.metadata.author,

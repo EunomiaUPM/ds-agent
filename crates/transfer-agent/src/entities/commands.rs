@@ -16,6 +16,7 @@
  */
 
 use crate::entities::ids::{MessageId, ParticipantId, TenantId, TransferProcessId};
+use common::oauth::{Owner, Visibility};
 use crate::entities::message_envelope::MessageEnvelope;
 use crate::entities::protocol::{
     ProtocolId, ProtocolMessageType, ProtocolState, StateMetadata, TransferRole,
@@ -32,7 +33,12 @@ use urn::Urn;
 #[serde(rename_all = "camelCase")]
 pub struct NewTransferProcessCommand {
     pub id: Option<TransferProcessId>,
-    pub tenant_id: Option<String>,
+    /// Who else sees it; private by default.
+    #[serde(default)]
+    pub visibility: Option<Visibility>,
+    /// Owner an in-process flow asks for; only honoured for the root.
+    #[serde(skip)]
+    pub owner: Option<Owner>,
     pub role: TransferRole,
     pub protocol: ProtocolId,
     pub initial_state: ProtocolState,
@@ -63,7 +69,12 @@ pub struct EditTransferProcessCommand {
 pub struct NewTransferMessageCommand {
     pub id: Option<MessageId>,
     pub transfer_process_id: TransferProcessId,
-    pub tenant_id: Option<String>,
+    /// Who else sees it; private by default.
+    #[serde(default)]
+    pub visibility: Option<Visibility>,
+    /// Owner an in-process flow asks for; only honoured for the root.
+    #[serde(skip)]
+    pub owner: Option<Owner>,
     pub direction: Direction,
     pub protocol: ProtocolId,
     pub message_type: ProtocolMessageType,

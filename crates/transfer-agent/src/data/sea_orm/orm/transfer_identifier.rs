@@ -16,6 +16,7 @@
  */
 
 use sea_orm::ActiveValue::Set;
+use common::oauth::{Owner, RolePath, Visibility};
 use sea_orm::entity::prelude::*;
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -27,12 +28,13 @@ use common::utils::parse_urn;
 #[sea_orm(table_name = "transfer_identifiers")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub tenant_id: String,
-    #[sea_orm(primary_key, auto_increment = false)]
     pub transfer_process_id: String,
     #[sea_orm(primary_key, auto_increment = false)]
     pub key: String,
     pub value: Option<String>,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
 }
 
 #[allow(clippy::result_large_err)]
@@ -40,7 +42,7 @@ impl Model {
     pub fn into_domain(self) -> Outcome<TransferProcessIdentifier> {
         let process_id = parse_urn(&self.transfer_process_id)?;
         Ok(TransferProcessIdentifier {
-            tenant_id: self.tenant_id,
+            owner: Owner::new(self.user_id, self.user_role, self.visibility),
             transfer_process_id: process_id,
             key: self.key,
             value: self.value,
@@ -51,7 +53,9 @@ impl Model {
 impl ActiveModel {
     pub fn from_domain(process_id: &Urn, ident: &TransferProcessIdentifier) -> Self {
         Self {
-            tenant_id: Set(ident.tenant_id.clone()),
+            user_id: Set(ident.owner.user_id.clone()),
+            user_role: Set(ident.owner.role.clone()),
+            visibility: Set(ident.owner.visibility.clone()),
             transfer_process_id: Set(process_id.to_string()),
             key: Set(ident.key.clone()),
             value: Set(ident.value.clone()),

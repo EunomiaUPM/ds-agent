@@ -28,7 +28,7 @@ use catalog_agent::grpc::distributions::DistributionEntityGrpc;
 use catalog_agent::services::distributions::MockDistributionServiceTrait;
 use common::errors::ResourceError;
 use common::paginated_spec::Paginated;
-use common::test_utils::grpc::{GrpcRequests, StubTokenValidator, OTHER_TENANT, TENANT};
+use common::test_utils::grpc::{GrpcRequests, StubTokenValidator};
 use tonic::Code;
 
 use crate::support::builders::distribution_dto;
@@ -47,25 +47,10 @@ fn by_id(id: &str) -> GetByIdRequest {
 async fn get_without_token_is_unauthenticated() {
     let g = grpc(MockDistributionServiceTrait::new());
     let err = g
-        .get_distribution_by_id(GrpcRequests::with_auth(by_id(&urn(1)), None, Some(TENANT)))
+        .get_distribution_by_id(GrpcRequests::with_auth(by_id(&urn(1)), None))
         .await
         .unwrap_err();
     assert_eq!(err.code(), Code::Unauthenticated);
-}
-
-/// A non-admin naming another tenant is PermissionDenied.
-#[tokio::test]
-async fn get_foreign_tenant_without_admin_is_permission_denied() {
-    let g = grpc(MockDistributionServiceTrait::new());
-    let err = g
-        .get_distribution_by_id(GrpcRequests::with_auth(
-            by_id(&urn(1)),
-            Some("owner"),
-            Some(OTHER_TENANT),
-        ))
-        .await
-        .unwrap_err();
-    assert_eq!(err.code(), Code::PermissionDenied);
 }
 
 /// A malformed URN is InvalidArgument and the message names the field.

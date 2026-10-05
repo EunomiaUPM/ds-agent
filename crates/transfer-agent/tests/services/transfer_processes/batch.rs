@@ -34,7 +34,7 @@ async fn batch_empty_ids_returns_empty_vec() {
     let svc = make_svc(proc_repo, id_repo);
     let views = svc
         .batch(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &BatchRequests { ids: vec![] },
         )
         .await
@@ -61,7 +61,7 @@ async fn batch_returns_one_view_per_process() {
     let svc = make_svc(proc_repo, id_repo);
     let views = svc
         .batch(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &BatchRequests {
                 ids: vec![p_urn(1), p_urn(2)],
             },
@@ -93,7 +93,7 @@ async fn batch_groups_identifiers_per_process() {
     let svc = make_svc(proc_repo, id_repo);
     let views = svc
         .batch(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &BatchRequests {
                 ids: vec![p_urn(1), p_urn(2)],
             },
@@ -132,7 +132,7 @@ async fn batch_propagates_process_repo_error() {
     let svc = make_svc(proc_repo, id_repo);
     assert!(
         svc.batch(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &BatchRequests {
                 ids: vec![p_urn(1)]
             }
@@ -164,7 +164,7 @@ async fn batch_propagates_identifier_repo_error() {
     let svc = make_svc(proc_repo, id_repo);
     assert!(
         svc.batch(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &BatchRequests {
                 ids: vec![p_urn(1)]
             }

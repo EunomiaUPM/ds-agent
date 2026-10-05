@@ -20,7 +20,7 @@
 use crate::cache::factory_trait::CatalogAgentCacheTrait;
 use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::services::peer_catalogs::PeerCatalogServiceTrait;
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use common::facades::mates_facade::MatesFacadeTrait;
 use std::sync::Arc;
 use tracing::warn;
@@ -46,16 +46,16 @@ impl PeerCatalogService {
 
 #[async_trait::async_trait]
 impl PeerCatalogServiceTrait for PeerCatalogService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn get_all_peer_catalogs(&self, scope: &AccessScope) -> Outcome<Vec<(Mates, Catalog)>> {
-        let tenant_id = scope.acting_tenant();
-        let mates = self.mates_facade.get_all_mates(tenant_id.clone()).await?;
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn get_all_peer_catalogs(&self, user: &UserInfo) -> Outcome<Vec<(Mates, Catalog)>> {
+        let user_id = user.id();
+        let mates = self.mates_facade.get_all_mates(user).await?;
         let peer_catalog_cache = self.cache.get_peer_catalog_cache();
 
         let mut result = Vec::new();
         for mate in mates {
             match peer_catalog_cache
-                .get_catalog(tenant_id, &mate.participant_id)
+                .get_catalog(user_id, &mate.participant_id)
                 .await
             {
                 Ok(Some(catalog)) => {
@@ -77,28 +77,28 @@ impl PeerCatalogServiceTrait for PeerCatalogService {
         Ok(result)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_peer_catalog(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         peer_id: &str,
     ) -> Outcome<Option<Catalog>> {
         self.cache
             .get_peer_catalog_cache()
-            .get_catalog(scope.acting_tenant(), peer_id)
+            .get_catalog(user.id(), peer_id)
             .await
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn set_peer_catalog(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         peer_id: &str,
         catalog: &Catalog,
     ) -> Outcome<()> {
         self.cache
             .get_peer_catalog_cache()
-            .set_catalog(scope.acting_tenant(), peer_id, catalog)
+            .set_catalog(user.id(), peer_id, catalog)
             .await
     }
 }

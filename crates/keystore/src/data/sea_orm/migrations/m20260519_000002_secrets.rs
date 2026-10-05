@@ -34,7 +34,7 @@ impl MigrationTrait for Migration {
                     .table(KeystoreSecrets::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(KeystoreSecrets::TenantId)
+                        ColumnDef::new(KeystoreSecrets::UserId)
                             .string()
                             .not_null(),
                     )
@@ -42,7 +42,7 @@ impl MigrationTrait for Migration {
                     .primary_key(
                         Index::create()
                             .name("pk_keystore_secrets")
-                            .col(KeystoreSecrets::TenantId)
+                            .col(KeystoreSecrets::UserId)
                             .col(KeystoreSecrets::Key),
                     )
                     .col(
@@ -95,7 +95,7 @@ impl MigrationTrait for Migration {
 #[derive(Iden)]
 pub enum KeystoreSecrets {
     Table,
-    TenantId,
+    UserId,
     Key,
     Value,
     Version,

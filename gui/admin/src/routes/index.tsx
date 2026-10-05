@@ -25,10 +25,8 @@ import {
   ShieldCheck,
   Users,
   Radio,
-  Lock,
   KeyRound,
   ArrowRight,
-  Zap,
   Activity,
   CheckCircle2,
 } from "lucide-react";
@@ -53,16 +51,17 @@ const coreModules = [
     link: "/events/feed",
     action: "View Event Stream",
   },
-  {
-    icon: Lock,
-    title: "OAuth 2.0 & Access Security",
-    tag: "Identity & M2M",
-    tagColor: "text-sky-700 dark:text-sky-400 bg-sky-500/10 border-sky-500/20",
-    description:
-      "Modern OAuth 2.0 authorization server supporting RFC 7523 JWT Profile, PKCE, Client Credentials, and Personal Access Tokens.",
-    link: "/oauth/clients",
-    action: "Manage Clients & PATs",
-  },
+  // The former built-in OAuth module is disabled; identities live in the identity provider.
+  // {
+  //   icon: Lock,
+  //   title: "OAuth 2.0 & Access Security",
+  //   tag: "Identity & M2M",
+  //   tagColor: "text-sky-700 dark:text-sky-400 bg-sky-500/10 border-sky-500/20",
+  //   description:
+  //     "Modern OAuth 2.0 authorization server supporting RFC 7523 JWT Profile, PKCE, Client Credentials, and Personal Access Tokens.",
+  //   link: "/oauth/clients",
+  //   action: "Manage Clients & PATs",
+  // },
   {
     icon: BookOpen,
     title: "Dataspace Catalog",
@@ -145,12 +144,7 @@ const Index = () => {
                 Live Event Bus
               </Button>
             </Link>
-            <Link to="/oauth/clients">
-              <Button variant="outline" className="gap-2">
-                <Zap className="h-4 w-4 text-sky-700 dark:text-sky-400" />
-                OAuth Applications
-              </Button>
-            </Link>
+            {/* OAuth applications belonged to the former built-in OAuth module. */}
           </div>
         </div>
       </div>

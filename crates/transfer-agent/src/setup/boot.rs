@@ -15,24 +15,18 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
-
-use common::auth::OauthTokenValidator;
 use common::boot::BootstrapServiceTrait;
-use common::boot::seeders::BootSeeder;
-use common::config::services::{CommonConfig, TransferConfig};
-use common::config::types::traits::CommonConfigTrait;
+use common::config::services::TransferConfig;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
-use oauth::setup::AdminSeeder;
-use oauth::setup::OAuthModule;
-use sea_orm::DatabaseConnection;
+// The built-in OAuth crate is disabled (identity from Keycloak or the static user).
+// use oauth::setup::{AdminSeeder, OAuthModule};
 use sea_orm_migration::MigrationTrait;
 use ymir::errors::Outcome;
 
 use crate::setup::{TransferAgentModule, TransferPorts};
 
-/// Standalone transfer agent: its own module plus the OAuth root it authenticates against.
+/// Standalone transfer agent: its own module; identity comes from the root context.
 pub struct TransferBoot;
 
 #[async_trait::async_trait]
@@ -40,31 +34,29 @@ impl BootstrapServiceTrait for TransferBoot {
     type Config = TransferConfig;
 
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        [OAuthModule::migrations(), TransferAgentModule::migrations()]
-            .into_iter()
-            .flatten()
-            .collect()
-    }
-
-    fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator> {
-        OAuthModule::validator(common, db)
+        // [OAuthModule::migrations(), TransferAgentModule::migrations()]
+        //     .into_iter()
+        //     .flatten()
+        //     .collect()
+        TransferAgentModule::migrations()
     }
 
     async fn compose(config: &TransferConfig, root: &RootContext) -> Outcome<ServiceComposer> {
         let ports = TransferPorts::remote(config, root).await?;
         Ok(ServiceComposer::new()
-            .register(OAuthModule::compose(config.common(), root, None))
+            // .register(OAuthModule::compose(config.common(), root, None))
             .register(TransferAgentModule::compose(config, root, None, &ports))
             .with_auth_ports(ports.auth.clone()))
     }
 
-    async fn seeders(
-        config: &TransferConfig,
-        root: &RootContext,
-    ) -> Outcome<Vec<Box<dyn BootSeeder>>> {
-        Ok(vec![Box::new(AdminSeeder::new(
-            root.db.clone(),
-            config.common(),
-        ))])
-    }
+    // The OAuth admin seeder went with the built-in OAuth crate.
+    // async fn seeders(
+    //     config: &TransferConfig,
+    //     root: &RootContext,
+    // ) -> Outcome<Vec<Box<dyn BootSeeder>>> {
+    //     Ok(vec![Box::new(AdminSeeder::new(
+    //         root.db.clone(),
+    //         config.common(),
+    //     ))])
+    // }
 }

@@ -18,24 +18,26 @@
 //! The party acting on a DSP process: a remote peer over the protocol or a local user over RPC.
 
 use urn::Urn;
-use ymir::types::oauth::{RolePath, UserInfo, UserTrait};
-use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::{Errors, Outcome};
+use ymir::types::oauth::UserInfo;
+
+use crate::facades::grants_facade::VerifiedPeer;
+use crate::oauth::{Owner, OwnershipTrait};
 
 /// Who is acting on a DSP process, as established by authentication.
 #[derive(Debug, Clone)]
 pub enum DspActor {
-    /// A remote connector authenticated through the SSI token.
+    /// A remote connector authenticated through its GNAP token.
     Peer { participant_id: String },
     /// A local user authenticated through OAuth.
     User(UserInfo),
 }
 
 impl DspActor {
-    /// Peer authenticated by the SSI token.
-    pub fn peer(mate: &Mates) -> Self {
+    /// Peer whose token the grants facade verified.
+    pub fn peer(peer: &VerifiedPeer) -> Self {
         Self::Peer {
-            participant_id: mate.participant_id.clone(),
+            participant_id: peer.participant_id.clone(),
         }
     }
 
@@ -44,19 +46,13 @@ impl DspActor {
         Self::User(user.clone())
     }
 
-    /// A peer may only act on processes where it is the `counterparty` (mates belong to the
-    /// whole connector); a user only on processes it reaches, given who created them
-    /// (`owner_id`) and under which role. A refusal looks like a missing process.
-    pub fn authorize(
-        &self,
-        owner_id: &str,
-        owner_role: &RolePath,
-        counterparty: &str,
-        pid: &Urn,
-    ) -> Outcome<()> {
+    /// A peer may only act on processes where it is the `counterparty`; a user only on processes
+    /// it [acts on](OwnershipTrait::acts_on): its own, those below its role, and those a peer
+    /// opened for its very role. A refusal looks like a missing process.
+    pub fn authorize(&self, owner: &Owner, counterparty: &str, pid: &Urn) -> Outcome<()> {
         let allowed = match self {
             Self::Peer { participant_id } => counterparty == participant_id,
-            Self::User(user) => user.reaches(owner_id, owner_role),
+            Self::User(user) => user.acts_on_owner(owner),
         };
         if allowed {
             Ok(())

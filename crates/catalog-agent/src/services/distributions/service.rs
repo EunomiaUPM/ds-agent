@@ -23,7 +23,7 @@ use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::distributions::{DistributionDto, EditDistributionDto, NewDistributionDto};
 use crate::entities::filters::DistributionFilter;
 use crate::services::distributions::DistributionServiceTrait;
-use common::auth::AccessScope;
+use common::oauth::{OwnedTrait, Owner, OwnerScope, UserInfo};
 use common::errors::NotFoundExt;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use common::query::QueryFilter;
@@ -60,24 +60,21 @@ impl DistributionService {
 
 #[async_trait::async_trait]
 impl DistributionServiceTrait for DistributionService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all_distributions(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &DistributionFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<DistributionDto>> {
-        scope.require_read()?;
         filters.validate()?;
-        let mut filters = filters.clone();
-        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
         let page = page.clamped();
 
         let (distributions, total) = self
             .repo
             .get_distribution_repo()
-            .get_all_distributions(&filters, &page, sort)
+            .get_all_distributions(&OwnerScope::seeing(user), filters, &page, sort)
             .await?;
 
         let dtos: Vec<DistributionDto> = distributions.into_iter().map(Into::into).collect();
@@ -87,17 +84,16 @@ impl DistributionServiceTrait for DistributionService {
         }))
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_batch_distributions(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         ids: &[Urn],
     ) -> Outcome<Vec<DistributionDto>> {
-        scope.require_read()?;
         let distributions = self
             .repo
             .get_distribution_repo()
-            .get_batch_distributions(scope.tenant_filter().map(str::to_string), ids)
+            .get_batch_distributions(&OwnerScope::seeing(user), ids)
             .await?;
 
         let mut dtos: Vec<DistributionDto> = Vec::new();
@@ -115,17 +111,16 @@ impl DistributionServiceTrait for DistributionService {
         Ok(dtos)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_distributions_by_dataset_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         dataset_id: &Urn,
     ) -> Outcome<Vec<DistributionDto>> {
-        scope.require_read()?;
         let distributions = self
             .repo
             .get_distribution_repo()
-            .get_distributions_by_dataset_id(scope.tenant_filter().map(str::to_string), dataset_id)
+            .get_distributions_by_dataset_id(&OwnerScope::seeing(user), dataset_id)
             .await?;
 
         let mut dtos: Vec<DistributionDto> = Vec::new();
@@ -145,19 +140,18 @@ impl DistributionServiceTrait for DistributionService {
         Ok(dtos)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         dataset_id: &Urn,
         dct_formats: &str,
     ) -> Outcome<DistributionDto> {
-        scope.require_read()?;
         let distribution = self
             .repo
             .get_distribution_repo()
             .get_distribution_by_dataset_id_and_dct_format(
-                scope.tenant_filter().map(str::to_string),
+                &OwnerScope::seeing(user),
                 dataset_id,
                 dct_formats,
             )
@@ -177,17 +171,16 @@ impl DistributionServiceTrait for DistributionService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_distribution_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         distribution_id: &Urn,
     ) -> Outcome<DistributionDto> {
-        scope.require_read()?;
         let distribution = self
             .repo
             .get_distribution_repo()
-            .get_distribution_by_id(scope.tenant_filter().map(str::to_string), distribution_id)
+            .get_distribution_by_id(&OwnerScope::seeing(user), distribution_id)
             .await?
             .or_not_found(distribution_id, "distribution")?;
 
@@ -201,20 +194,19 @@ impl DistributionServiceTrait for DistributionService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn put_distribution_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         distribution_id: &Urn,
         edit_distribution_model: &EditDistributionDto,
     ) -> Outcome<DistributionDto> {
-        scope.require_write()?;
         let edit_model = edit_distribution_model.clone().into();
         let distribution = self
             .repo
             .get_distribution_repo()
             .put_distribution_by_id(
-                scope.tenant_filter().map(str::to_string),
+                &OwnerScope::acting(user),
                 distribution_id,
                 &edit_model,
             )
@@ -231,7 +223,7 @@ impl DistributionServiceTrait for DistributionService {
 
         events::emit_action!(
             self.event_bus,
-            &dto.inner.tenant_id,
+            &dto.inner.owner(),
             crate::EVENT_PREFIX,
             "distribution",
             "edit",
@@ -240,16 +232,16 @@ impl DistributionServiceTrait for DistributionService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn create_distribution(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_distribution_model: &NewDistributionDto,
     ) -> Outcome<DistributionDto> {
         let mut new_distribution_model = new_distribution_model.clone();
-        let tenant_id = scope.resolve_create_tenant(new_distribution_model.tenant_id.as_deref())?;
-        new_distribution_model.tenant_id = Some(tenant_id.clone());
-        let new_model: NewDistributionModel = new_distribution_model.into_model(tenant_id);
+        let owner =
+            Owner::for_new(user, new_distribution_model.owner.take(), new_distribution_model.visibility.clone());
+        let new_model: NewDistributionModel = new_distribution_model.into_model(owner);
         let distribution = self
             .repo
             .get_distribution_repo()
@@ -272,7 +264,7 @@ impl DistributionServiceTrait for DistributionService {
 
         events::emit_action!(
             self.event_bus,
-            &dto.inner.tenant_id,
+            &dto.inner.owner(),
             crate::EVENT_PREFIX,
             "distribution",
             "create",
@@ -281,17 +273,16 @@ impl DistributionServiceTrait for DistributionService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn delete_distribution_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         distribution_id: &Urn,
     ) -> Outcome<()> {
-        scope.require_write()?;
         let deleted = self
             .repo
             .get_distribution_repo()
-            .delete_distribution_by_id(scope.tenant_filter().map(str::to_string), distribution_id)
+            .delete_distribution_by_id(&OwnerScope::acting(user), distribution_id)
             .await?;
 
         let cache = self.cache.get_distribution_cache();
@@ -305,7 +296,7 @@ impl DistributionServiceTrait for DistributionService {
 
         events::emit_action!(
             self.event_bus,
-            &deleted.tenant_id,
+            &deleted.owner(),
             crate::EVENT_PREFIX,
             "distribution",
             "delete",

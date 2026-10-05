@@ -173,3 +173,15 @@ export const getFriendlyVCType = (type: string): string => {
 
   return friendly;
 };
+
+/**
+ * A path segment for ids that hold `:` or `/` (DIDs such as `did:web:host%3A3000`), as the auth
+ * agent expects them in `/mates/{id}` and `/peer-connection/token/{id}`: base64url (RFC 4648 §5)
+ * without padding, which survives any number of URL decodings on the way.
+ */
+export const encodePathId = (id: string): string => {
+  const bytes = new TextEncoder().encode(id);
+  let binary = "";
+  bytes.forEach((b) => (binary += String.fromCharCode(b)));
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+};

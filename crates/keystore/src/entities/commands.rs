@@ -22,14 +22,12 @@ use crate::entities::secret_value::SecretValue;
 use crate::entities::version::Version;
 use serde::{Deserialize, Serialize};
 
-/// New parameter; `tenant_id` is only honoured for admins.
+/// New parameter of the caller.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewParameterCommand<T> {
     pub key: Key,
     pub value: T,
     pub description: Option<String>,
-    #[serde(default)]
-    pub tenant_id: Option<String>,
 }
 
 /// Parameter update, rejected unless `expected_version` is the current one.
@@ -41,14 +39,12 @@ pub struct EditParameterCommand<T> {
     pub description: Option<String>,
 }
 
-/// New secret; `tenant_id` is only honoured for admins.
+/// New secret of the caller.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewSecretCommand {
     pub key: Key,
     pub value: SecretValue,
     pub description: Option<String>,
-    #[serde(default)]
-    pub tenant_id: Option<String>,
 }
 
 /// Secret update, rejected unless `expected_version` is the current one.

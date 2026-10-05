@@ -18,6 +18,7 @@
 //! Datasets table.
 
 use sea_orm::entity::prelude::*;
+use common::oauth::{Owner, RolePath, Visibility};
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
@@ -29,7 +30,9 @@ use urn::{Urn, UrnBuilder};
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub dct_conforms_to: Option<String>,
     pub dct_creator: Option<String>,
     pub dct_identifier: Option<String>,
@@ -74,10 +77,12 @@ impl Related<super::odrl_offer::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+common::impl_owned!(Model);
+
 #[derive(Clone)]
 pub struct NewDatasetModel {
     pub id: Option<Urn>,
-    pub tenant_id: String,
+    pub owner: Owner,
     pub dct_conforms_to: Option<String>,
     pub dct_creator: Option<String>,
     pub dct_title: Option<String>,
@@ -92,7 +97,9 @@ impl From<NewDatasetModel> for ActiveModel {
             .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(dto.id.clone().unwrap_or(new_urn.clone()).to_string()),
-            tenant_id: ActiveValue::Set(dto.tenant_id),
+            user_id: ActiveValue::Set(dto.owner.user_id.clone()),
+            user_role: ActiveValue::Set(dto.owner.role.clone()),
+            visibility: ActiveValue::Set(dto.owner.visibility.clone()),
             dct_conforms_to: ActiveValue::Set(dto.dct_conforms_to),
             dct_creator: ActiveValue::Set(dto.dct_creator),
             dct_identifier: ActiveValue::Set(Some(

@@ -18,6 +18,7 @@
 //! Distributions.
 
 use crate::data::entities::distribution;
+use common::oauth::{Owner, Visibility};
 use crate::data::entities::distribution::{EditDistributionModel, Model, NewDistributionModel};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
@@ -36,8 +37,12 @@ pub struct DistributionDto {
 #[serde(deny_unknown_fields)]
 pub struct NewDistributionDto {
     pub id: Option<Urn>,
+    /// Who else sees it; private by default.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tenant_id: Option<String>,
+    pub visibility: Option<Visibility>,
+    /// Owner an in-process flow asks for; only honoured for the root.
+    #[serde(skip)]
+    pub owner: Option<Owner>,
     pub dct_title: Option<String>,
     pub dct_description: Option<String>,
     pub dct_formats: Option<String>,
@@ -56,11 +61,11 @@ pub struct EditDistributionDto {
 }
 
 impl NewDistributionDto {
-    /// Row for `tenant_id`.
-    pub fn into_model(self, tenant_id: String) -> NewDistributionModel {
+    /// Row owned by `owner`.
+    pub fn into_model(self, owner: Owner) -> NewDistributionModel {
         NewDistributionModel {
             id: self.id,
-            tenant_id,
+            owner,
             dct_title: self.dct_title,
             dct_description: self.dct_description,
             dct_formats: self.dct_formats,

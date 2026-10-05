@@ -24,7 +24,7 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::protocols::dsp::types::dataset_definition::Dataset;
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
@@ -50,25 +50,25 @@ impl ProtocolOrchestratorService {
 
 #[async_trait::async_trait]
 impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn on_catalog_request(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         _input: &CatalogMessageWrapper<CatalogRequestMessageDto>,
     ) -> Outcome<Catalog> {
-        let catalog = self.persistence.get_catalog(scope).await?;
+        let catalog = self.persistence.get_catalog(user).await?;
         Ok(catalog)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn on_dataset_request(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &CatalogMessageWrapper<DatasetRequestMessage>,
     ) -> Outcome<Dataset> {
         let dataset = self
             .persistence
-            .get_dataset(scope, &input.dto.dataset)
+            .get_dataset(user, &input.dto.dataset)
             .await?;
         Ok(dataset)
     }

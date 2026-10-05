@@ -25,8 +25,8 @@ use axum::extract::{FromRef, Path, State};
 use axum::http::HeaderMap;
 use axum::routing::get;
 use axum::{Json, Router};
-use common::auth::access::AccessScope;
-use common::auth::http::ExtractedHeaders;
+use common::oauth::UserInfo;
+use common::http_tracing::ExtractedHeaders;
 use ymir::errors::AppResult;
 use ymir::utils::extract_path_urn;
 
@@ -58,14 +58,14 @@ impl DataplaneTransferLogsRouter {
 
     async fn handle_get_logs_by_dataplane_process_id(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Path(dataplane_process_id): Path<String>,
     ) -> AppResult<(HeaderMap, Json<Vec<DataplaneTransferLogDto>>)> {
         let process_urn = extract_path_urn(&dataplane_process_id)?;
         let logs = state
             .service
-            .get_transfer_logs_by_dataplane_process_id(&scope, &process_urn)
+            .get_transfer_logs_by_dataplane_process_id(&user, &process_urn)
             .await?;
 
         Ok((headers.response_headers(), Json(logs)))

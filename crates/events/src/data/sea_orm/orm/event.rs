@@ -21,6 +21,7 @@ use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
+use common::oauth::{Owner, RolePath, Visibility};
 use sea_orm::ActiveValue;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
@@ -34,7 +35,9 @@ use crate::entities::topic::Topic;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub topic: String,
     pub source_crate: String,
     pub schema_version: i32,
@@ -69,7 +72,7 @@ impl Model {
 
         Ok(EventEnvelope {
             id,
-            tenant_id: self.tenant_id,
+            owner: Owner::new(self.user_id, self.user_role, self.visibility),
             topic,
             source_crate: self.source_crate,
             schema_version: self.schema_version as u32,
@@ -85,7 +88,9 @@ impl ActiveModel {
     pub fn from_domain(entity: &EventEnvelope) -> Self {
         Self {
             id: ActiveValue::Set(entity.id.to_string()),
-            tenant_id: ActiveValue::Set(entity.tenant_id.clone()),
+            user_id: ActiveValue::Set(entity.owner.user_id.clone()),
+            user_role: ActiveValue::Set(entity.owner.role.clone()),
+            visibility: ActiveValue::Set(entity.owner.visibility.clone()),
             topic: ActiveValue::Set(entity.topic.to_string()),
             source_crate: ActiveValue::Set(entity.source_crate.clone()),
             schema_version: ActiveValue::Set(entity.schema_version as i32),

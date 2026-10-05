@@ -38,7 +38,9 @@ async fn data_service_is_found_by_its_catalog() {
     let dto = DataServiceDto {
         inner: Model {
             id: ds_id.to_string(),
-            tenant_id: "default".to_string(),
+            user_id: "default".to_string(),
+            user_role: common::oauth::RolePath::root(),
+            visibility: common::oauth::Visibility::Private,
             dcat_endpoint_description: None,
             dcat_endpoint_url: "https://svc.example".to_string(),
             dct_conforms_to: None,

@@ -46,7 +46,7 @@ async fn set_started_provider_pull() {
     mock_connector
         .expect_get_instance_by_id()
         .times(1)
-        .returning(move |_, _| Ok(Some(dummy_pull_connector(&connector_urn))));
+        .returning(move |_| Ok(Some(dummy_pull_connector(&connector_urn))));
 
     // mock_factory is used by from_continuation; set_configuring uses the real
     // DataplaneDriverFactory
@@ -78,7 +78,6 @@ async fn set_started_provider_pull() {
     .with_driver_factory(Arc::new(mock_factory))
     .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
         transfer_dto_urn: tp_id,
-        tenant_id: "tenant-1".to_string(),
     }))
     .await;
 
@@ -112,7 +111,7 @@ async fn set_stopped_provider_pull() {
     mock_connector
         .expect_get_instance_by_id()
         .times(1)
-        .returning(move |_, _| Ok(Some(dummy_pull_connector(&connector_urn))));
+        .returning(move |_| Ok(Some(dummy_pull_connector(&connector_urn))));
 
     mock_factory
         .expect_get_or_create_driver()
@@ -142,7 +141,6 @@ async fn set_stopped_provider_pull() {
     .with_driver_factory(Arc::new(mock_factory))
     .execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
         transfer_dto_urn: tp_id,
-        tenant_id: "tenant-1".to_string(),
     }))
     .await;
 
@@ -176,7 +174,7 @@ async fn set_terminating_provider_pull() {
     mock_connector
         .expect_get_instance_by_id()
         .times(1)
-        .returning(move |_, _| Ok(Some(dummy_pull_connector(&connector_urn))));
+        .returning(move |_| Ok(Some(dummy_pull_connector(&connector_urn))));
 
     mock_factory
         .expect_get_or_create_driver()
@@ -206,7 +204,6 @@ async fn set_terminating_provider_pull() {
     .with_driver_factory(Arc::new(mock_factory))
     .execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
         transfer_dto_urn: tp_id,
-        tenant_id: "tenant-1".to_string(),
     }))
     .await;
 
@@ -241,7 +238,7 @@ async fn set_subscribing_noop_provider_pull() {
     mock_connector
         .expect_get_instance_by_id()
         .times(1)
-        .returning(move |_, _| Ok(Some(dummy_pull_connector(&connector_urn))));
+        .returning(move |_| Ok(Some(dummy_pull_connector(&connector_urn))));
 
     mock_factory
         .expect_get_or_create_driver()
@@ -256,7 +253,6 @@ async fn set_subscribing_noop_provider_pull() {
     .with_driver_factory(Arc::new(mock_factory))
     .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
         transfer_dto_urn: tp_id,
-        tenant_id: "tenant-1".to_string(),
     }))
     .await;
 
@@ -291,7 +287,7 @@ async fn set_unsubscribing_noop_provider_pull() {
     mock_connector
         .expect_get_instance_by_id()
         .times(1)
-        .returning(move |_, _| Ok(Some(dummy_pull_connector(&connector_urn))));
+        .returning(move |_| Ok(Some(dummy_pull_connector(&connector_urn))));
 
     mock_factory
         .expect_get_or_create_driver()
@@ -306,7 +302,6 @@ async fn set_unsubscribing_noop_provider_pull() {
     .with_driver_factory(Arc::new(mock_factory))
     .execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
         transfer_dto_urn: tp_id,
-        tenant_id: "tenant-1".to_string(),
     }))
     .await;
 

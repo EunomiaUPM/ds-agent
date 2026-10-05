@@ -18,6 +18,7 @@
 //! Dataplane processes table.
 
 use common::config::types::roles::RoleConfig;
+use common::oauth::{Owner, RolePath, Visibility};
 use sea_orm::entity::prelude::*;
 use sea_orm::prelude::StringLen::N;
 use sea_orm::ActiveValue;
@@ -130,7 +131,9 @@ pub enum TransferState {
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     #[sea_orm(unique)]
     pub transfer_process_id: String,
     pub role: TransferRole,
@@ -158,11 +161,13 @@ impl Related<super::dataplane_transfer_logs::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+common::impl_owned!(Model);
+
 /// New process; without `id` a `urn:dataplane-process:<uuid>` is minted.
 #[derive(Clone)]
 pub struct NewDataplaneTransfer {
     pub id: Option<Urn>,
-    pub tenant_id: String,
+    pub owner: Owner,
     pub transfer_process_id: String,
     pub role: TransferRole,
     pub interaction_mode: InteractionMode,
@@ -182,7 +187,9 @@ impl From<NewDataplaneTransfer> for ActiveModel {
         .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(value.id.unwrap_or(new_urn.clone()).to_string()),
-            tenant_id: ActiveValue::Set(value.tenant_id),
+            user_id: ActiveValue::Set(value.owner.user_id.clone()),
+            user_role: ActiveValue::Set(value.owner.role.clone()),
+            visibility: ActiveValue::Set(value.owner.visibility.clone()),
             transfer_process_id: ActiveValue::Set(value.transfer_process_id),
             role: ActiveValue::Set(value.role),
             interaction_mode: ActiveValue::Set(value.interaction_mode),

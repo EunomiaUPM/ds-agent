@@ -18,6 +18,7 @@
 //! Delivery attempt repository.
 
 use async_trait::async_trait;
+use common::oauth::OwnerScope;
 use chrono::{DateTime, Utc};
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -42,7 +43,7 @@ impl RepoIntoErrors for DeliveryRepoError {}
 pub trait EventDeliveryRepo: Send + Sync + 'static {
     async fn create_delivery(&self, delivery: &EventDeliveryRecord)
         -> Outcome<EventDeliveryRecord>;
-    async fn get_delivery(&self, tenant_id: &str, id: &str)
+    async fn get_delivery(&self, scope: &OwnerScope, id: &str)
         -> Outcome<Option<EventDeliveryRecord>>;
     /// Pending deliveries whose next retry is due by `now`, at most `limit`.
     async fn get_due_retries(
@@ -61,10 +62,10 @@ pub trait EventDeliveryRepo: Send + Sync + 'static {
         status_code: Option<u16>,
     ) -> Outcome<()>;
     async fn mark_dead_letter(&self, id: &str) -> Outcome<()>;
-    /// Every delivery of the event; `tenant_id` of `None` reaches every tenant.
+    /// Every delivery of the event in `scope`.
     async fn list_by_event(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         event_id: &str,
     ) -> Outcome<Vec<EventDeliveryRecord>>;
 }

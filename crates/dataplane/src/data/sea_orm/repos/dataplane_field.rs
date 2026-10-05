@@ -18,6 +18,7 @@
 //! Field repository.
 
 use std::sync::Arc;
+use common::oauth::{Owner, OwnerScope};
 
 use crate::data::repo::dataplane_field::{DataplaneFieldRepoErrors, DataplaneFieldRepoTrait};
 use crate::data::sea_orm::orm::dataplane_field::{
@@ -49,12 +50,12 @@ impl DataplaneFieldRepoTrait for DataplaneFieldRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_dataplane_fields_by_process_id(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         process_id: &Urn,
     ) -> Outcome<Vec<dataplane_field::Model>> {
         let result = DataplaneFieldEntity::find()
             .filter(Column::DataplaneProcessId.eq(process_id.to_string()))
-            .filter(Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(Column::UserId, Column::UserRole, Column::Visibility))
             .all(self.db.as_ref())
             .await
             .map_err(|e| {
@@ -66,11 +67,11 @@ impl DataplaneFieldRepoTrait for DataplaneFieldRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_dataplane_field_by_id(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         field_id: &Urn,
     ) -> Outcome<Option<dataplane_field::Model>> {
         let result = DataplaneFieldEntity::find_by_id(field_id.to_string())
-            .filter(Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(Column::UserId, Column::UserRole, Column::Visibility))
             .one(self.db.as_ref())
             .await
             .map_err(|e| {
@@ -82,14 +83,16 @@ impl DataplaneFieldRepoTrait for DataplaneFieldRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_dataplane_field(
         &self,
-        tenant_id: &str,
+        owner: &Owner,
         process_id: &Urn,
         new_dataplane_field: &NewDataPlaneFieldModel,
     ) -> Outcome<dataplane_field::Model> {
         let id = format!("urn:dataplane-field:{}", uuid::Uuid::new_v4());
         let new_model = dataplane_field::ActiveModel {
             id: ActiveValue::Set(id),
-            tenant_id: ActiveValue::Set(tenant_id.to_string()),
+            user_id: ActiveValue::Set(owner.user_id.clone()),
+            user_role: ActiveValue::Set(owner.role.clone()),
+            visibility: ActiveValue::Set(owner.visibility.clone()),
             key: ActiveValue::Set(new_dataplane_field.key.clone()),
             value: ActiveValue::Set(new_dataplane_field.value.clone()),
             dataplane_process_id: ActiveValue::Set(process_id.to_string()),
@@ -104,13 +107,13 @@ impl DataplaneFieldRepoTrait for DataplaneFieldRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_dataplane_field(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         field_id: &Urn,
         edit_field: &EditDataPlaneFieldModel,
     ) -> Outcome<dataplane_field::Model> {
         let mut model: dataplane_field::ActiveModel =
             DataplaneFieldEntity::find_by_id(field_id.to_string())
-                .filter(Column::TenantId.eq(tenant_id))
+                .filter(scope.condition(Column::UserId, Column::UserRole, Column::Visibility))
                 .one(self.db.as_ref())
                 .await
                 .map_err(|e| {
@@ -130,10 +133,10 @@ impl DataplaneFieldRepoTrait for DataplaneFieldRepoForSql {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn delete_dataplane_field(&self, tenant_id: &str, field_id: &Urn) -> Outcome<()> {
+    async fn delete_dataplane_field(&self, scope: &OwnerScope, field_id: &Urn) -> Outcome<()> {
         let result = DataplaneFieldEntity::delete_many()
             .filter(Column::Id.eq(field_id.to_string()))
-            .filter(Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(Column::UserId, Column::UserRole, Column::Visibility))
             .exec(self.db.as_ref())
             .await
             .map_err(|e| {
@@ -149,12 +152,12 @@ impl DataplaneFieldRepoTrait for DataplaneFieldRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_all_dataplane_fields_by_process_id(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         process_id: &Urn,
     ) -> Outcome<()> {
         DataplaneFieldEntity::delete_many()
             .filter(Column::DataplaneProcessId.eq(process_id.to_string()))
-            .filter(Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(Column::UserId, Column::UserRole, Column::Visibility))
             .exec(self.db.as_ref())
             .await
             .map_err(|e| {

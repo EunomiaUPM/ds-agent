@@ -97,30 +97,27 @@ impl ConnectorTemplateService {
 }
 
 use crate::entities::filters::ConnectorTemplateFilter;
-use common::auth::AccessScope;
+use common::oauth::{OwnedTrait, Owner, OwnerScope, UserInfo};
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use common::query::QueryFilter;
 
 #[async_trait::async_trait]
 impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all_templates(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &ConnectorTemplateFilter,
         page: &Page,
         sort: Sort,
     ) -> Outcome<Paginated<ConnectorTemplateDto>> {
-        scope.require_read()?;
         filters.validate()?;
-        let mut filters = filters.clone();
-        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
         let page = page.clamped();
 
         let (models, total) = self
             .repo
             .get_templates_repo()
-            .get_all_templates(&filters, &page, sort)
+            .get_all_templates(&OwnerScope::seeing(user), filters, &page, sort)
             .await
             .map_err(|e| {
                 error!("{}", e);
@@ -142,17 +139,16 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
         }))
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_templates_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         template_id: &str,
     ) -> Outcome<Vec<ConnectorTemplateDto>> {
-        scope.require_read()?;
         let models = self
             .repo
             .get_templates_repo()
-            .get_templates_by_name(scope.acting_tenant(), template_id)
+            .get_templates_by_name(&OwnerScope::seeing(user), template_id)
             .await
             .map_err(|e| {
                 error!("{}", e);
@@ -162,18 +158,17 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
         models.into_iter().map(Self::map_model_to_dto).collect()
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_template_by_name_and_version(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         name: &str,
         version: &str,
     ) -> Outcome<Option<ConnectorTemplateDto>> {
-        scope.require_read()?;
         let result = self
             .repo
             .get_templates_repo()
-            .get_template_by_name_and_version(scope.acting_tenant(), name, version)
+            .get_template_by_name_and_version(&OwnerScope::seeing(user), name, version)
             .await
             .map_err(|e| {
                 error!("{}", e);
@@ -183,14 +178,12 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
         result.map(Self::map_model_to_dto).transpose()
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn create_template(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_template: &mut ConnectorTemplateDto,
     ) -> Outcome<ConnectorTemplateDto> {
-        let target_tenant = scope.resolve_create_tenant(None)?;
-
         // extract parameters and validate
         let mut extractor = TemplateParametersExtractor::new();
         extractor.walk(new_template)?;
@@ -204,7 +197,7 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
         // persist
         let new_model = new_template
             .clone()
-            .into_model(target_tenant)
+            .into_model(Owner::private(user))
             .map_err(|e: Errors| {
                 error!("{}", e);
                 Errors::parse(&format!("Error preparing template model: {}", e), None)
@@ -219,11 +212,11 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
                 Errors::db(&e.to_string(), None)
             })?;
         // create output
-        let tenant_id = saved_model.tenant_id.clone();
+        let owner = saved_model.owner();
         let result = Self::map_model_to_dto(saved_model)?;
         events::emit_action!(
             self.event_bus,
-            &tenant_id,
+            &owner,
             crate::EVENT_PREFIX,
             "template",
             "create",
@@ -232,18 +225,17 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
         Ok(result)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn delete_template_by_name_and_version(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         name: &str,
         version: &str,
     ) -> Outcome<()> {
-        scope.require_write()?;
 
         self.repo
             .get_templates_repo()
-            .delete_template_by_name_and_version(scope.acting_tenant(), name, version)
+            .delete_template_by_name_and_version(&OwnerScope::acting(user), name, version)
             .await
             .map_err(|e| {
                 error!("{}", e);
@@ -253,7 +245,7 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
         let deleted = events::EntityDeletedDto::new(format!("{}:{}", name, version));
         events::emit_action!(
             self.event_bus,
-            scope.acting_tenant(),
+            &Owner::private(user),
             crate::EVENT_PREFIX,
             "template",
             "delete",

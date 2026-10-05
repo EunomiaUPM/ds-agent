@@ -15,7 +15,7 @@ path = "src/main.rs"
 common = { version = "0.4.0", path = "../common", default-features = false }
 events = { version = "0.4.0", path = "../events", default-features = false }
 catalog_agent = { version = "0.4.0", path = "../catalog-agent", default-features = false }
-oauth = { version = "0.4.0", path = "../oauth" }
+# oauth = { version = "0.4.0", path = "../oauth" }  # disabled, see the workspace Cargo.toml
 
 serde = { workspace = true }
 serde_json = { workspace = true }

@@ -18,6 +18,7 @@
 //! Offer repository.
 
 use crate::data::entities::offer;
+use common::oauth::{Owner, OwnerScope};
 use crate::data::entities::offer::NewOfferModel;
 use crate::entities::filters::OfferFilter;
 use common::paginated_spec::{Page, Sort};
@@ -26,54 +27,55 @@ use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
-/// Persistence of offers; `tenant_id` of `None` reaches every tenant.
+/// Persistence of offers, within the owner scope each call gives.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait OfferRepoTrait: Send + Sync {
     /// Page of offers matching the filters.
     async fn get_all_offers(
         &self,
+        scope: &OwnerScope,
         filters: &OfferFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<offer::Model>, Option<u64>)>;
     async fn get_batch_offers(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<offer::Model>>;
     /// Every offer made in the process.
     async fn get_offers_by_negotiation_process(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Vec<offer::Model>>;
     /// Most recent offer of the process.
     async fn get_last_offer_by_negotiation_process(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<offer::Model>>;
     async fn get_offer_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<offer::Model>>;
     /// Offer carried by the message.
     async fn get_offer_by_negotiation_message(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<offer::Model>>;
     /// Offer by its ODRL `@id`, not the row id.
     async fn get_offer_by_offer_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<offer::Model>>;
     async fn create_offer(&self, new_model: &NewOfferModel) -> Outcome<offer::Model>;
-    /// Returns the tenant of the removed record.
-    async fn delete_offer(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<String>;
+    /// Returns the owner of the removed record.
+    async fn delete_offer(&self, scope: &OwnerScope, id: &Urn) -> Outcome<Owner>;
 }
 
 /// Failures of the offer repository, mapped onto `Errors`.

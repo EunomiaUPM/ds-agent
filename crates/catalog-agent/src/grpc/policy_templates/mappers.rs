@@ -34,7 +34,7 @@ impl TryFrom<ListPolicyTemplatesRequest> for ListParams<PolicyTemplateFilter> {
 
     fn try_from(req: ListPolicyTemplatesRequest) -> Result<Self, Status> {
         let filter = PolicyTemplateFilter {
-            tenant_id: None,
+            user_id: None,
             id: req.id.non_empty().map(str::to_owned),
             version: req.version.non_empty().map(str::to_owned),
             author: req.author.non_empty().map(str::to_owned),
@@ -55,7 +55,8 @@ impl TryFrom<CreatePolicyTemplateRequest> for NewPolicyTemplateDto {
             .into_typed::<OdrlPolicyInfo>("content")?;
         Ok(Self {
             id: req.id,
-            tenant_id: None,
+            visibility: None,
+            owner: None,
             version: req.version,
             date: req
                 .date

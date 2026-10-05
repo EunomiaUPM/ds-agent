@@ -34,7 +34,9 @@ pub fn catalog_dto(n: u32) -> CatalogDto {
     CatalogDto {
         inner: catalog::Model {
             id: urn(n),
-            tenant_id: TENANT.to_string(),
+            user_id: TENANT.to_string(),
+            user_role: common::oauth::RolePath::root(),
+            visibility: common::oauth::Visibility::Private,
             foaf_home_page: None,
             dct_conforms_to: None,
             dct_creator: Some("creator".into()),
@@ -53,7 +55,9 @@ pub fn data_service_dto(n: u32) -> DataServiceDto {
     DataServiceDto {
         inner: dataservice::Model {
             id: urn(n),
-            tenant_id: TENANT.to_string(),
+            user_id: TENANT.to_string(),
+            user_role: common::oauth::RolePath::root(),
+            visibility: common::oauth::Visibility::Private,
             dcat_endpoint_description: None,
             dcat_endpoint_url: "https://svc.example".into(),
             dct_conforms_to: None,
@@ -74,7 +78,9 @@ pub fn dataset_dto(n: u32) -> DatasetDto {
     DatasetDto {
         inner: dataset::Model {
             id: urn(n),
-            tenant_id: TENANT.to_string(),
+            user_id: TENANT.to_string(),
+            user_role: common::oauth::RolePath::root(),
+            visibility: common::oauth::Visibility::Private,
             dct_conforms_to: None,
             dct_creator: None,
             dct_identifier: None,
@@ -92,7 +98,9 @@ pub fn distribution_dto(n: u32) -> DistributionDto {
     DistributionDto {
         inner: distribution::Model {
             id: urn(n),
-            tenant_id: TENANT.to_string(),
+            user_id: TENANT.to_string(),
+            user_role: common::oauth::RolePath::root(),
+            visibility: common::oauth::Visibility::Private,
             dct_issued: Utc::now().into(),
             dct_modified: None,
             dct_title: None,
@@ -109,7 +117,9 @@ pub fn odrl_policy_dto(n: u32, entity_type: &str) -> OdrlPolicyDto {
     OdrlPolicyDto {
         inner: odrl_offer::Model {
             id: urn(n),
-            tenant_id: TENANT.to_string(),
+            user_id: TENANT.to_string(),
+            user_role: common::oauth::RolePath::root(),
+            visibility: common::oauth::Visibility::Private,
             odrl_offer: json!({"permission": [{"action": "use"}]}),
             entity: urn(100),
             entity_type: entity_type.to_string(),
@@ -122,14 +132,16 @@ pub fn odrl_policy_dto(n: u32, entity_type: &str) -> OdrlPolicyDto {
     }
 }
 
-/// Template `tpl-1` v1 of the stub tenant, built from its JSON `parameters` and ODRL `content`.
+/// Template `tpl-1` v1 of the stub user, public, built from its JSON `parameters` and ODRL `content`.
 pub fn policy_template(
     parameters: serde_json::Value,
     content: serde_json::Value,
 ) -> catalog_agent::entities::policy_templates::PolicyTemplateDto {
     serde_json::from_value(json!({
         "id": "tpl-1",
-        "tenantId": TENANT,
+        "userId": TENANT,
+        "userRole": "/admin",
+        "visibility": "Public",
         "version": "1",
         "date": "2026-01-01T00:00:00Z",
         "author": "tests",
@@ -155,15 +167,13 @@ pub fn peer_catalog(id: &str) -> catalog_agent::protocols::dsp::types::catalog_d
     .expect("valid catalog")
 }
 
-/// Participant `participant_id` known by the stub tenant.
+/// Participant `participant_id`, global to the connector.
 pub fn mate(participant_id: &str) -> ymir::data::entities::shared::participant::Model {
     ymir::data::entities::shared::participant::Model {
-        tenant_id: TENANT.to_string(),
         participant_id: participant_id.to_string(),
         participant_nick: participant_id.to_string(),
         participant_type: ymir::types::participants::ParticipantType::Agent,
         base_url: format!("https://{participant_id}.example"),
-        token: None,
         saved_at: Utc::now(),
         last_interaction: Utc::now(),
         extra_fields: json!({}),

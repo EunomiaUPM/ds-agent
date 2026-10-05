@@ -19,7 +19,7 @@ use std::sync::Arc;
 
 use catalog_agent::OdrlPolicyDto;
 use catalog_agent::services::odrl_policies::OdrlPolicyServiceTrait;
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
@@ -42,17 +42,17 @@ impl CatalogFacadeTrait for CatalogLocalFacade {
         level = "info",
         skip_all,
         err,
-        fields(peer.service = "catalog", tenant = %tenant_id)
+        fields(peer.service = "catalog")
     )]
-    async fn get_offer(&self, tenant_id: &str, offer_id: &Urn) -> Outcome<OdrlPolicyDto> {
+    async fn get_offer(&self, offer_id: &Urn) -> Outcome<OdrlPolicyDto> {
         match self
             .offers
-            .get_odrl_offer_by_id(&AccessScope::service(tenant_id), offer_id)
+            .get_odrl_offer_by_id(&UserInfo::system(), offer_id)
             .await
         {
             Err(Errors::MissingResourceError { .. }) => Err(Errors::missing_resource(
                 offer_id.to_string(),
-                "Offer not found in the tenant catalog",
+                "Offer not found in the catalog",
                 None,
             )),
             other => other,

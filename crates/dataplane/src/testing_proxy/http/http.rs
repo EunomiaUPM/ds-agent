@@ -36,7 +36,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::any;
 use axum::{Json, Router};
-use common::auth::{AccessScope, RbacRole};
+use common::oauth::{OwnedTrait, UserInfo};
 use common::utils::get_urn_from_string;
 use connector::KeystoreLookup;
 use hyper::Method;
@@ -243,18 +243,10 @@ impl TestingHTTPProxy {
     /// Loads the transfer and enforces that it is `Started` — the proxy only
     /// relays traffic for active transfers.
     async fn load_started_dataplane(&self, urn: &Urn) -> Result<DataplaneTransferDto, ProxyError> {
-        // The dataplane id in the URL is the capability; its record names the owning tenant.
-        let record = self
-            .repo
-            .get_dataplane_transfers_repo()
-            .find_dataplane_transfer_by_id(urn)
-            .await
-            .map_err(|_| ProxyError::DataplaneLookupFailed)?
-            .ok_or(ProxyError::DataplaneNotFound)?;
-        let scope = AccessScope::from_role(RbacRole::Owner, &record.tenant_id);
+        // The dataplane id in the URL is the capability: the proxy reads it whoever owns it.
         let dataplane = self
             .dataplane_service
-            .get_one(&scope, urn)
+            .get_one(&UserInfo::system(), urn)
             .await
             .map_err(|e| match e {
                 Errors::MissingResourceError { .. } => ProxyError::DataplaneNotFound,
@@ -339,7 +331,7 @@ impl TestingHTTPProxy {
         // Resolve vaulted placeholders when a keystore is configured.
         let runtime = match (runtime, &self.keystore) {
             (Some(rt), Some(lookup)) => Some(
-                RuntimeSecretVault::resolve_with_lookup(rt, lookup, &dataplane.inner.tenant_id)
+                RuntimeSecretVault::resolve_with_lookup(rt, lookup, &dataplane.inner.user_id)
                     .await,
             ),
             (rt, _) => rt,
@@ -442,7 +434,7 @@ impl TestingHTTPProxy {
         let status = response.as_ref().map(|r| r.status().as_u16()).unwrap_or(0);
 
         let event = NewTransferEvent {
-            tenant_id: dataplane.inner.tenant_id.clone(),
+            owner: dataplane.inner.owner(),
             transfer_id: dataplane.inner.id.clone(),
             level: LogLevel::Info,
             component: "DataProxy".to_string(),

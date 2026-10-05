@@ -14,7 +14,6 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as WalletRouteImport } from './routes/wallet/route'
 import { Route as TransferProcessRouteImport } from './routes/transfer-process/route'
 import { Route as ParticipantsRouteImport } from './routes/participants/route'
-import { Route as OauthRouteImport } from './routes/oauth/route'
 import { Route as MyCatalogRouteImport } from './routes/my-catalog/route'
 import { Route as KeystoreRouteImport } from './routes/keystore/route'
 import { Route as EventsRouteImport } from './routes/events/route'
@@ -27,9 +26,7 @@ import { Route as IndexImport } from './routes/index'
 import { Route as WalletIndexImport } from './routes/wallet/index'
 import { Route as TransferProcessIndexImport } from './routes/transfer-process/index'
 import { Route as ParticipantsIndexImport } from './routes/participants/index'
-import { Route as OauthIndexImport } from './routes/oauth/index'
 import { Route as MyCatalogIndexImport } from './routes/my-catalog/index'
-import { Route as LoginIndexImport } from './routes/login/index'
 import { Route as KeystoreIndexImport } from './routes/keystore/index'
 import { Route as EventsIndexImport } from './routes/events/index'
 import { Route as ContractNegotiationIndexImport } from './routes/contract-negotiation/index'
@@ -43,8 +40,6 @@ import { Route as WalletKeysImport } from './routes/wallet/keys'
 import { Route as WalletInfoImport } from './routes/wallet/info'
 import { Route as WalletDidImport } from './routes/wallet/did'
 import { Route as WalletCredentialsImport } from './routes/wallet/credentials'
-import { Route as OauthPatsImport } from './routes/oauth/pats'
-import { Route as OauthClientsImport } from './routes/oauth/clients'
 import { Route as MyCatalogNewImport } from './routes/my-catalog/new'
 import { Route as KeystoreSecretsImport } from './routes/keystore/secrets'
 import { Route as KeystoreParametersImport } from './routes/keystore/parameters'
@@ -95,12 +90,6 @@ const TransferProcessRouteRoute = TransferProcessRouteImport.update({
 const ParticipantsRouteRoute = ParticipantsRouteImport.update({
   id: '/participants',
   path: '/participants',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const OauthRouteRoute = OauthRouteImport.update({
-  id: '/oauth',
-  path: '/oauth',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -176,22 +165,10 @@ const ParticipantsIndexRoute = ParticipantsIndexImport.update({
   getParentRoute: () => ParticipantsRouteRoute,
 } as any)
 
-const OauthIndexRoute = OauthIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => OauthRouteRoute,
-} as any)
-
 const MyCatalogIndexRoute = MyCatalogIndexImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => MyCatalogRouteRoute,
-} as any)
-
-const LoginIndexRoute = LoginIndexImport.update({
-  id: '/login/',
-  path: '/login/',
-  getParentRoute: () => rootRoute,
 } as any)
 
 const KeystoreIndexRoute = KeystoreIndexImport.update({
@@ -270,18 +247,6 @@ const WalletCredentialsRoute = WalletCredentialsImport.update({
   id: '/credentials',
   path: '/credentials',
   getParentRoute: () => WalletRouteRoute,
-} as any)
-
-const OauthPatsRoute = OauthPatsImport.update({
-  id: '/pats',
-  path: '/pats',
-  getParentRoute: () => OauthRouteRoute,
-} as any)
-
-const OauthClientsRoute = OauthClientsImport.update({
-  id: '/clients',
-  path: '/clients',
-  getParentRoute: () => OauthRouteRoute,
 } as any)
 
 const MyCatalogNewRoute = MyCatalogNewImport.update({
@@ -559,13 +524,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyCatalogRouteImport
       parentRoute: typeof rootRoute
     }
-    '/oauth': {
-      id: '/oauth'
-      path: '/oauth'
-      fullPath: '/oauth'
-      preLoaderRoute: typeof OauthRouteImport
-      parentRoute: typeof rootRoute
-    }
     '/participants': {
       id: '/participants'
       path: '/participants'
@@ -706,20 +664,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyCatalogNewImport
       parentRoute: typeof MyCatalogRouteImport
     }
-    '/oauth/clients': {
-      id: '/oauth/clients'
-      path: '/clients'
-      fullPath: '/oauth/clients'
-      preLoaderRoute: typeof OauthClientsImport
-      parentRoute: typeof OauthRouteImport
-    }
-    '/oauth/pats': {
-      id: '/oauth/pats'
-      path: '/pats'
-      fullPath: '/oauth/pats'
-      preLoaderRoute: typeof OauthPatsImport
-      parentRoute: typeof OauthRouteImport
-    }
     '/wallet/credentials': {
       id: '/wallet/credentials'
       path: '/credentials'
@@ -811,26 +755,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KeystoreIndexImport
       parentRoute: typeof KeystoreRouteImport
     }
-    '/login/': {
-      id: '/login/'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginIndexImport
-      parentRoute: typeof rootRoute
-    }
     '/my-catalog/': {
       id: '/my-catalog/'
       path: '/'
       fullPath: '/my-catalog/'
       preLoaderRoute: typeof MyCatalogIndexImport
       parentRoute: typeof MyCatalogRouteImport
-    }
-    '/oauth/': {
-      id: '/oauth/'
-      path: '/'
-      fullPath: '/oauth/'
-      preLoaderRoute: typeof OauthIndexImport
-      parentRoute: typeof OauthRouteImport
     }
     '/participants/': {
       id: '/participants/'
@@ -1177,22 +1107,6 @@ const MyCatalogRouteRouteWithChildren = MyCatalogRouteRoute._addFileChildren(
   MyCatalogRouteRouteChildren,
 )
 
-interface OauthRouteRouteChildren {
-  OauthClientsRoute: typeof OauthClientsRoute
-  OauthPatsRoute: typeof OauthPatsRoute
-  OauthIndexRoute: typeof OauthIndexRoute
-}
-
-const OauthRouteRouteChildren: OauthRouteRouteChildren = {
-  OauthClientsRoute: OauthClientsRoute,
-  OauthPatsRoute: OauthPatsRoute,
-  OauthIndexRoute: OauthIndexRoute,
-}
-
-const OauthRouteRouteWithChildren = OauthRouteRoute._addFileChildren(
-  OauthRouteRouteChildren,
-)
-
 interface ParticipantsParticipantIdRouteRouteChildren {
   ParticipantsParticipantIdIndexRoute: typeof ParticipantsParticipantIdIndexRoute
 }
@@ -1287,7 +1201,6 @@ export interface FileRoutesByFullPath {
   '/events': typeof EventsRouteRouteWithChildren
   '/keystore': typeof KeystoreRouteRouteWithChildren
   '/my-catalog': typeof MyCatalogRouteRouteWithChildren
-  '/oauth': typeof OauthRouteRouteWithChildren
   '/participants': typeof ParticipantsRouteRouteWithChildren
   '/transfer-process': typeof TransferProcessRouteRouteWithChildren
   '/wallet': typeof WalletRouteRouteWithChildren
@@ -1308,8 +1221,6 @@ export interface FileRoutesByFullPath {
   '/keystore/parameters': typeof KeystoreParametersRoute
   '/keystore/secrets': typeof KeystoreSecretsRoute
   '/my-catalog/new': typeof MyCatalogNewRoute
-  '/oauth/clients': typeof OauthClientsRoute
-  '/oauth/pats': typeof OauthPatsRoute
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
   '/wallet/info': typeof WalletInfoRoute
@@ -1323,9 +1234,7 @@ export interface FileRoutesByFullPath {
   '/contract-negotiation/': typeof ContractNegotiationIndexRoute
   '/events/': typeof EventsIndexRoute
   '/keystore/': typeof KeystoreIndexRoute
-  '/login': typeof LoginIndexRoute
   '/my-catalog/': typeof MyCatalogIndexRoute
-  '/oauth/': typeof OauthIndexRoute
   '/participants/': typeof ParticipantsIndexRoute
   '/transfer-process/': typeof TransferProcessIndexRoute
   '/wallet/': typeof WalletIndexRoute
@@ -1359,8 +1268,6 @@ export interface FileRoutesByTo {
   '/keystore/parameters': typeof KeystoreParametersRoute
   '/keystore/secrets': typeof KeystoreSecretsRoute
   '/my-catalog/new': typeof MyCatalogNewRoute
-  '/oauth/clients': typeof OauthClientsRoute
-  '/oauth/pats': typeof OauthPatsRoute
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
   '/wallet/info': typeof WalletInfoRoute
@@ -1374,9 +1281,7 @@ export interface FileRoutesByTo {
   '/contract-negotiation': typeof ContractNegotiationIndexRoute
   '/events': typeof EventsIndexRoute
   '/keystore': typeof KeystoreIndexRoute
-  '/login': typeof LoginIndexRoute
   '/my-catalog': typeof MyCatalogIndexRoute
-  '/oauth': typeof OauthIndexRoute
   '/participants': typeof ParticipantsIndexRoute
   '/transfer-process': typeof TransferProcessIndexRoute
   '/wallet': typeof WalletIndexRoute
@@ -1408,7 +1313,6 @@ export interface FileRoutesById {
   '/events': typeof EventsRouteRouteWithChildren
   '/keystore': typeof KeystoreRouteRouteWithChildren
   '/my-catalog': typeof MyCatalogRouteRouteWithChildren
-  '/oauth': typeof OauthRouteRouteWithChildren
   '/participants': typeof ParticipantsRouteRouteWithChildren
   '/transfer-process': typeof TransferProcessRouteRouteWithChildren
   '/wallet': typeof WalletRouteRouteWithChildren
@@ -1429,8 +1333,6 @@ export interface FileRoutesById {
   '/keystore/parameters': typeof KeystoreParametersRoute
   '/keystore/secrets': typeof KeystoreSecretsRoute
   '/my-catalog/new': typeof MyCatalogNewRoute
-  '/oauth/clients': typeof OauthClientsRoute
-  '/oauth/pats': typeof OauthPatsRoute
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
   '/wallet/info': typeof WalletInfoRoute
@@ -1444,9 +1346,7 @@ export interface FileRoutesById {
   '/contract-negotiation/': typeof ContractNegotiationIndexRoute
   '/events/': typeof EventsIndexRoute
   '/keystore/': typeof KeystoreIndexRoute
-  '/login/': typeof LoginIndexRoute
   '/my-catalog/': typeof MyCatalogIndexRoute
-  '/oauth/': typeof OauthIndexRoute
   '/participants/': typeof ParticipantsIndexRoute
   '/transfer-process/': typeof TransferProcessIndexRoute
   '/wallet/': typeof WalletIndexRoute
@@ -1479,7 +1379,6 @@ export interface FileRouteTypes {
     | '/events'
     | '/keystore'
     | '/my-catalog'
-    | '/oauth'
     | '/participants'
     | '/transfer-process'
     | '/wallet'
@@ -1500,8 +1399,6 @@ export interface FileRouteTypes {
     | '/keystore/parameters'
     | '/keystore/secrets'
     | '/my-catalog/new'
-    | '/oauth/clients'
-    | '/oauth/pats'
     | '/wallet/credentials'
     | '/wallet/did'
     | '/wallet/info'
@@ -1515,9 +1412,7 @@ export interface FileRouteTypes {
     | '/contract-negotiation/'
     | '/events/'
     | '/keystore/'
-    | '/login'
     | '/my-catalog/'
-    | '/oauth/'
     | '/participants/'
     | '/transfer-process/'
     | '/wallet/'
@@ -1550,8 +1445,6 @@ export interface FileRouteTypes {
     | '/keystore/parameters'
     | '/keystore/secrets'
     | '/my-catalog/new'
-    | '/oauth/clients'
-    | '/oauth/pats'
     | '/wallet/credentials'
     | '/wallet/did'
     | '/wallet/info'
@@ -1565,9 +1458,7 @@ export interface FileRouteTypes {
     | '/contract-negotiation'
     | '/events'
     | '/keystore'
-    | '/login'
     | '/my-catalog'
-    | '/oauth'
     | '/participants'
     | '/transfer-process'
     | '/wallet'
@@ -1597,7 +1488,6 @@ export interface FileRouteTypes {
     | '/events'
     | '/keystore'
     | '/my-catalog'
-    | '/oauth'
     | '/participants'
     | '/transfer-process'
     | '/wallet'
@@ -1618,8 +1508,6 @@ export interface FileRouteTypes {
     | '/keystore/parameters'
     | '/keystore/secrets'
     | '/my-catalog/new'
-    | '/oauth/clients'
-    | '/oauth/pats'
     | '/wallet/credentials'
     | '/wallet/did'
     | '/wallet/info'
@@ -1633,9 +1521,7 @@ export interface FileRouteTypes {
     | '/contract-negotiation/'
     | '/events/'
     | '/keystore/'
-    | '/login/'
     | '/my-catalog/'
-    | '/oauth/'
     | '/participants/'
     | '/transfer-process/'
     | '/wallet/'
@@ -1667,11 +1553,9 @@ export interface RootRouteChildren {
   EventsRouteRoute: typeof EventsRouteRouteWithChildren
   KeystoreRouteRoute: typeof KeystoreRouteRouteWithChildren
   MyCatalogRouteRoute: typeof MyCatalogRouteRouteWithChildren
-  OauthRouteRoute: typeof OauthRouteRouteWithChildren
   ParticipantsRouteRoute: typeof ParticipantsRouteRouteWithChildren
   TransferProcessRouteRoute: typeof TransferProcessRouteRouteWithChildren
   WalletRouteRoute: typeof WalletRouteRouteWithChildren
-  LoginIndexRoute: typeof LoginIndexRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -1684,11 +1568,9 @@ const rootRouteChildren: RootRouteChildren = {
   EventsRouteRoute: EventsRouteRouteWithChildren,
   KeystoreRouteRoute: KeystoreRouteRouteWithChildren,
   MyCatalogRouteRoute: MyCatalogRouteRouteWithChildren,
-  OauthRouteRoute: OauthRouteRouteWithChildren,
   ParticipantsRouteRoute: ParticipantsRouteRouteWithChildren,
   TransferProcessRouteRoute: TransferProcessRouteRouteWithChildren,
   WalletRouteRoute: WalletRouteRouteWithChildren,
-  LoginIndexRoute: LoginIndexRoute,
 }
 
 export const routeTree = rootRoute
@@ -1710,11 +1592,9 @@ export const routeTree = rootRoute
         "/events",
         "/keystore",
         "/my-catalog",
-        "/oauth",
         "/participants",
         "/transfer-process",
-        "/wallet",
-        "/login/"
+        "/wallet"
       ]
     },
     "/": {
@@ -1781,14 +1661,6 @@ export const routeTree = rootRoute
       "children": [
         "/my-catalog/new",
         "/my-catalog/"
-      ]
-    },
-    "/oauth": {
-      "filePath": "oauth/route.tsx",
-      "children": [
-        "/oauth/clients",
-        "/oauth/pats",
-        "/oauth/"
       ]
     },
     "/participants": {
@@ -1914,14 +1786,6 @@ export const routeTree = rootRoute
       "filePath": "my-catalog/new.tsx",
       "parent": "/my-catalog"
     },
-    "/oauth/clients": {
-      "filePath": "oauth/clients.tsx",
-      "parent": "/oauth"
-    },
-    "/oauth/pats": {
-      "filePath": "oauth/pats.tsx",
-      "parent": "/oauth"
-    },
     "/wallet/credentials": {
       "filePath": "wallet/credentials.tsx",
       "parent": "/wallet"
@@ -1974,16 +1838,9 @@ export const routeTree = rootRoute
       "filePath": "keystore/index.tsx",
       "parent": "/keystore"
     },
-    "/login/": {
-      "filePath": "login/index.tsx"
-    },
     "/my-catalog/": {
       "filePath": "my-catalog/index.tsx",
       "parent": "/my-catalog"
-    },
-    "/oauth/": {
-      "filePath": "oauth/index.tsx",
-      "parent": "/oauth"
     },
     "/participants/": {
       "filePath": "participants/index.tsx",

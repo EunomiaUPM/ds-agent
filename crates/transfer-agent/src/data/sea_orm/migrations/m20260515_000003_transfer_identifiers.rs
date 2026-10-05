@@ -34,11 +34,9 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(TransferIdentifiers::Table)
                     .if_not_exists()
-                    .col(
-                        ColumnDef::new(TransferIdentifiers::TenantId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(TransferIdentifiers::UserId).string().not_null())
+                    .col(ColumnDef::new(TransferIdentifiers::UserRole).string_len(255).not_null())
+                    .col(ColumnDef::new(TransferIdentifiers::Visibility).string_len(16).not_null())
                     .col(
                         ColumnDef::new(TransferIdentifiers::TransferProcessId)
                             .string()
@@ -48,7 +46,6 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(TransferIdentifiers::Value).string().null())
                     .primary_key(
                         Index::create()
-                            .col(TransferIdentifiers::TenantId)
                             .col(TransferIdentifiers::TransferProcessId)
                             .col(TransferIdentifiers::Key),
                     )
@@ -77,7 +74,9 @@ impl MigrationTrait for Migration {
 #[derive(Iden)]
 pub enum TransferIdentifiers {
     Table,
-    TenantId,
+    UserId,
+    UserRole,
+    Visibility,
     TransferProcessId,
     Key,
     Value,

@@ -69,17 +69,17 @@ pub enum ResolvedAuthCredentials {
 ///   termination.
 pub struct RuntimeSecretVault<'a> {
     store: &'a dyn SecretStore,
-    /// Tenant owning the transfer; runtime secrets live in its keystore.
-    tenant_id: &'a str,
+    /// Owner of the dataplane process; runtime secrets live in its keystore.
+    user_id: &'a str,
 }
 
 impl<'a> RuntimeSecretVault<'a> {
-    pub fn new(store: &'a dyn SecretStore, tenant_id: &'a str) -> Self {
-        Self { store, tenant_id }
+    pub fn new(store: &'a dyn SecretStore, user_id: &'a str) -> Self {
+        Self { store, user_id }
     }
 
-    fn owner_scope(&self) -> common::auth::AccessScope {
-        common::auth::AccessScope::from_role(common::auth::RbacRole::Owner, self.tenant_id)
+    fn owner_scope(&self) -> common::oauth::UserInfo {
+        common::oauth::acting_as(self.user_id)
     }
 
     /// Vaults ephemeral credentials in `runtime` that are not owned by the connector config.
@@ -207,7 +207,7 @@ impl<'a> RuntimeSecretVault<'a> {
     pub async fn resolve_with_lookup(
         runtime: DataplaneRuntime,
         lookup: &Arc<dyn KeystoreLookup>,
-        tenant_id: &str,
+        user_id: &str,
     ) -> DataplaneRuntime {
         let mut value = match serde_json::to_value(&runtime) {
             Ok(v) => v,
@@ -229,8 +229,8 @@ impl<'a> RuntimeSecretVault<'a> {
             .map(|k| {
                 let k = k.clone();
                 let lookup = lookup.clone();
-                let tenant_id = tenant_id.to_string();
-                async move { (k.clone(), lookup.get_secret(&tenant_id, &k).await) }
+                let user_id = user_id.to_string();
+                async move { (k.clone(), lookup.get_secret(&user_id, &k).await) }
             })
             .collect();
         let results = futures_util::future::join_all(fetches).await;
@@ -248,11 +248,11 @@ impl<'a> RuntimeSecretVault<'a> {
     pub async fn cleanup(&self, transfer_id: &str) -> Outcome<()> {
         let prefix = Self::path_prefix(transfer_id);
         let key_prefix = KeyPrefix::new(prefix);
-        let scope = self.owner_scope();
-        let entries = self.store.list_by_prefix(&scope, &key_prefix).await?;
+        let user = self.owner_scope();
+        let entries = self.store.list_by_prefix(&user, &key_prefix).await?;
         let deletes: Vec<_> = entries
             .iter()
-            .map(|entry| self.store.delete(&scope, &entry.metadata.key))
+            .map(|entry| self.store.delete(&user, &entry.metadata.key))
             .collect();
         for result in futures_util::future::join_all(deletes).await {
             if let Err(e) = result {
@@ -264,15 +264,15 @@ impl<'a> RuntimeSecretVault<'a> {
 
     async fn upsert(&self, path: &str, value: serde_json::Value) -> Outcome<()> {
         let k = Key::new(path)?;
-        let scope = self.owner_scope();
-        self.store.upsert(&scope, &k, SecretValue::new(value)).await
+        let user = self.owner_scope();
+        self.store.upsert(&user, &k, SecretValue::new(value)).await
     }
 
     async fn fetch(&self, path: &str) -> Option<serde_json::Value> {
         let k = Key::new(path).ok()?;
-        let scope = self.owner_scope();
+        let user = self.owner_scope();
         self.store
-            .read(&scope, &k)
+            .read(&user, &k)
             .await
             .ok()
             .map(|e| e.value.expose().clone())

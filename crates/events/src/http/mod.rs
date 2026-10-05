@@ -29,15 +29,15 @@ pub use events::EventsRouter;
 pub use subscriptions::SubscriptionsRouter;
 
 use crate::services::event_bus::EventBus;
-use common::auth::http::AuthHttpMiddleware;
-use common::auth::OauthTokenValidator;
+use ymir::http::OauthHttpMiddleware;
+use common::oauth::OauthTokenValidatorTrait;
 
 /// Events API: the feed and its live stream at the root, plus subscriptions and the DLQ.
 pub struct EventsHttpRouter;
 
 impl EventsHttpRouter {
     /// All event routes behind the OAuth middleware.
-    pub fn build(bus: Arc<EventBus>, validator: Arc<dyn OauthTokenValidator>) -> Router {
+    pub fn build(bus: Arc<EventBus>, validator: Arc<dyn OauthTokenValidatorTrait>) -> Router {
         Router::new()
             .merge(EventsRouter::new(bus.clone()).router())
             .nest(
@@ -47,7 +47,7 @@ impl EventsHttpRouter {
             .nest("/dlq", DeadLetterRouter::new(bus).router())
             .route_layer(axum::middleware::from_fn_with_state(
                 validator,
-                AuthHttpMiddleware::run,
+                OauthHttpMiddleware::run,
             ))
     }
 }

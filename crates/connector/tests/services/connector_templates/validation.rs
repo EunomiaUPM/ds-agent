@@ -58,7 +58,7 @@ async fn oauth2_password_grant_template_round_trips() {
     });
     let mut dto: ConnectorTemplateDto = serde_json::from_value(json_dto).unwrap();
     let result = mock_entities()
-        .create_template(&TestScopes::owner("tenant-1"), &mut dto)
+        .create_template(&TestUsers::user("tenant-1", "/admin/tenant-1"), &mut dto)
         .await;
     assert!(
         result.is_ok(),
@@ -100,7 +100,7 @@ async fn template_whose_parameters_match_is_created() {
     let mut dto: ConnectorTemplateDto = serde_json::from_value(json_dto).unwrap();
 
     let result = mock_entities()
-        .create_template(&TestScopes::owner("tenant-1"), &mut dto)
+        .create_template(&TestUsers::user("tenant-1", "/admin/tenant-1"), &mut dto)
         .await;
     assert!(result.is_ok());
 }
@@ -135,7 +135,7 @@ async fn declared_but_unused_parameter_is_rejected() {
     let mut dto: ConnectorTemplateDto = serde_json::from_value(json_dto).unwrap();
 
     let err = mock_entities()
-        .create_template(&TestScopes::owner("tenant-1"), &mut dto)
+        .create_template(&TestUsers::user("tenant-1", "/admin/tenant-1"), &mut dto)
         .await
         .unwrap_err();
 
@@ -190,7 +190,7 @@ async fn used_but_undeclared_parameter_is_rejected() {
     let mut dto: ConnectorTemplateDto = serde_json::from_value(json_dto).unwrap();
 
     let err = mock_entities()
-        .create_template(&TestScopes::owner("tenant-1"), &mut dto)
+        .create_template(&TestUsers::user("tenant-1", "/admin/tenant-1"), &mut dto)
         .await
         .unwrap_err();
 
@@ -247,7 +247,7 @@ async fn declaring_sys_or_runtime_parameters_is_rejected() {
     let mut dto: ConnectorTemplateDto = serde_json::from_value(json_dto).unwrap();
 
     let err = mock_entities()
-        .create_template(&TestScopes::owner("tenant-1"), &mut dto)
+        .create_template(&TestUsers::user("tenant-1", "/admin/tenant-1"), &mut dto)
         .await
         .unwrap_err();
 
@@ -302,7 +302,7 @@ async fn undeclared_unused_and_mistyped_parameters_are_reported_together() {
     let mut dto: ConnectorTemplateDto = serde_json::from_value(json_dto).unwrap();
 
     let err = mock_entities()
-        .create_template(&TestScopes::owner("tenant-1"), &mut dto)
+        .create_template(&TestUsers::user("tenant-1", "/admin/tenant-1"), &mut dto)
         .await
         .unwrap_err();
 

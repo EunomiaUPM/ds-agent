@@ -28,8 +28,8 @@ use crate::grpc::api::negotiation_agent::{
     ListNegotiationMessagesRequest, NegotiationMessageListResponse, NegotiationMessageResponse,
 };
 use crate::services::negotiation_message::NegotiationMessageServiceTrait;
-use common::auth::OauthTokenValidator;
-use common::auth::grpc::GrpcAuth;
+use common::oauth::OauthTokenValidatorTrait;
+use common::oauth::grpc::GrpcAuth;
 use common::grpc::{IntoStatus, ListParams, ProtoField};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
@@ -43,7 +43,7 @@ pub struct NegotiationAgentMessagesGrpc {
 impl NegotiationAgentMessagesGrpc {
     pub fn new(
         service: Arc<dyn NegotiationMessageServiceTrait>,
-        validator: Arc<dyn OauthTokenValidator>,
+        validator: Arc<dyn OauthTokenValidatorTrait>,
     ) -> Self {
         Self {
             service,
@@ -58,11 +58,11 @@ impl NegotiationAgentMessagesService for NegotiationAgentMessagesGrpc {
         &self,
         request: Request<ListNegotiationMessagesRequest>,
     ) -> Result<Response<NegotiationMessageListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let params = ListParams::try_from(request.into_inner())?;
         let result = self
             .service
-            .get_all(&scope, &params.filter, &params.page, &params.sort)
+            .get_all(&user, &params.filter, &params.page, &params.sort)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(result.into()))
@@ -72,11 +72,11 @@ impl NegotiationAgentMessagesService for NegotiationAgentMessagesGrpc {
         &self,
         request: Request<GetMessagesByProcessIdRequest>,
     ) -> Result<Response<NegotiationMessageListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let params = ListParams::try_from(request.into_inner())?;
         let result = self
             .service
-            .get_all(&scope, &params.filter, &params.page, &params.sort)
+            .get_all(&user, &params.filter, &params.page, &params.sort)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(result.into()))
@@ -86,11 +86,11 @@ impl NegotiationAgentMessagesService for NegotiationAgentMessagesGrpc {
         &self,
         request: Request<GetNegotiationMessageByIdRequest>,
     ) -> Result<Response<NegotiationMessageResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let id = request.into_inner().id.urn("id")?;
         let view = self
             .service
-            .get_one(&scope, &id)
+            .get_one(&user, &id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(view.into()))
@@ -100,11 +100,11 @@ impl NegotiationAgentMessagesService for NegotiationAgentMessagesGrpc {
         &self,
         request: Request<CreateNegotiationMessageRequest>,
     ) -> Result<Response<NegotiationMessageResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let dto = request.into_inner().try_into()?;
         let view = self
             .service
-            .create(&scope, &dto)
+            .create(&user, &dto)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(view.into()))
@@ -114,10 +114,10 @@ impl NegotiationAgentMessagesService for NegotiationAgentMessagesGrpc {
         &self,
         request: Request<DeleteNegotiationMessageRequest>,
     ) -> Result<Response<()>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let id = request.into_inner().id.urn("id")?;
         self.service
-            .delete(&scope, &id)
+            .delete(&user, &id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(()))

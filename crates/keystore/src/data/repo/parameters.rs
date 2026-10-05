@@ -26,7 +26,7 @@ use serde::{Serialize, de::DeserializeOwned};
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
-/// Persistence of parameters, keyed by tenant and path.
+/// Persistence of parameters, keyed by user and path.
 #[allow(dead_code)]
 #[mockall::automock(type Value = serde_json::Value;)]
 #[async_trait::async_trait]
@@ -37,32 +37,32 @@ pub trait ParameterRepoTrait: Send + Sync {
     /// Parameters whose key starts with the filter's prefix.
     async fn get_all_parameters(&self, filter: &PrefixFilter) -> Outcome<Vec<Entry<Self::Value>>>;
     async fn count_parameters(&self, filter: &PrefixFilter) -> Outcome<u64>;
-    /// Parameters of the tenant found among `keys`; missing ones are left out.
+    /// Parameters of the user found among `keys`; missing ones are left out.
     async fn get_batch_parameters(
         &self,
-        tenant_id: &str,
+        user_id: &str,
         keys: &[Key],
     ) -> Outcome<Vec<Entry<Self::Value>>>;
     async fn get_parameter_by_key(
         &self,
-        tenant_id: &str,
+        user_id: &str,
         key: &Key,
     ) -> Outcome<Option<Entry<Self::Value>>>;
-    /// Fails when the key already exists for the tenant.
+    /// Fails when the key already exists for the user.
     async fn create_parameter(
         &self,
-        tenant_id: &str,
+        user_id: &str,
         new_model: &NewParameterCommand<Self::Value>,
     ) -> Outcome<Entry<Self::Value>>;
     /// Replaces the value if `expected_version` matches, and bumps the version.
     async fn put_parameter(
         &self,
-        tenant_id: &str,
+        user_id: &str,
         key: &Key,
         edit_model: &EditParameterCommand<Self::Value>,
     ) -> Outcome<Entry<Self::Value>>;
     /// Fails when the key does not exist.
-    async fn delete_parameter(&self, tenant_id: &str, key: &Key) -> Outcome<()>;
+    async fn delete_parameter(&self, user_id: &str, key: &Key) -> Outcome<()>;
 }
 
 /// Failures of the parameter repository, mapped onto `Errors`.

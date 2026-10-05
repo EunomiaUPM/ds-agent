@@ -23,9 +23,9 @@ use axum::extract::Request;
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::get;
 use axum::Router;
-use common::auth::claims::Claims;
-use common::auth::http::AuthHttpMiddleware;
-use common::auth::OauthTokenValidator;
+use common::oauth::UserInfo;
+use ymir::http::OauthHttpMiddleware;
+use common::oauth::OauthTokenValidatorTrait;
 use ymir::services::client::ClientTrait;
 use ymir::utils::http_client;
 
@@ -36,8 +36,8 @@ use crate::support::mocks::StubTokenValidator;
 /// send it, both pass.
 #[tokio::test]
 async fn accepts_bearer_header_or_query_token() {
-    let validator: Arc<dyn OauthTokenValidator> = Arc::new(StubTokenValidator);
-    let auth = AuthHttpMiddleware::new(Some(validator), true);
+    let validator: Arc<dyn OauthTokenValidatorTrait> = Arc::new(StubTokenValidator);
+    let auth = OauthHttpMiddleware::new(Some(validator), true);
 
     let app = Router::new()
         .route(
@@ -45,8 +45,8 @@ async fn accepts_bearer_header_or_query_token() {
             get(|req: Request| async move {
                 let user_sub = req
                     .extensions()
-                    .get::<Claims>()
-                    .map(|c| c.sub.clone())
+                    .get::<UserInfo>()
+                    .map(|user| user.id().to_string())
                     .unwrap_or_default();
                 (StatusCode::OK, user_sub)
             }),

@@ -28,17 +28,16 @@ pub mod remote;
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait ConnectorInstanceFacadeTrait: Send + Sync {
-    /// Instance `id` of the tenant, or `None`.
+    /// Instance `id`, or `None`. In-process flows that already know which instance they want:
+    /// no owner is checked.
     async fn get_instance_by_id(
         &self,
-        tenant_id: &str,
         id: &Urn,
     ) -> Outcome<Option<ConnectorInstanceDto>>;
 
-    /// Instance linked to the distribution, or `None`.
+    /// Instance linked to the distribution, or `None`; no owner is checked either.
     async fn get_instance_by_distribution(
         &self,
-        tenant_id: &str,
         distribution_id: &Urn,
     ) -> Outcome<Option<ConnectorInstanceDto>>;
 }

@@ -94,7 +94,7 @@ impl DataplaneModule {
             .nest("/transfer-events", events_router.events_sub_router())
             .route_layer(axum::middleware::from_fn_with_state(
                 ctx.oauth_validator.clone(),
-                common::auth::http::AuthHttpMiddleware::run,
+                ymir::http::OauthHttpMiddleware::run,
             ))
     }
 

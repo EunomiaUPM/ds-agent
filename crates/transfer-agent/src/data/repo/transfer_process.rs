@@ -16,6 +16,7 @@
  */
 
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
+use common::oauth::{Owner, OwnerScope};
 use crate::entities::filters::TransferProcessFilter;
 use crate::entities::transfer_process::TransferProcess;
 use common::query::{Page, Sort};
@@ -29,24 +30,25 @@ use ymir::errors::{Outcome, RepoIntoErrors};
 pub trait TransferProcessRepoTrait: Send + Sync {
     async fn get_all_transfer_processes(
         &self,
+        scope: &OwnerScope,
         filters: &TransferProcessFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Vec<TransferProcess>>;
-    async fn count_transfer_processes(&self, filters: &TransferProcessFilter) -> Outcome<u64>;
+    async fn count_transfer_processes(&self, scope: &OwnerScope, filters: &TransferProcessFilter) -> Outcome<u64>;
     async fn get_batch_transfer_processes(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<TransferProcess>>;
     async fn get_transfer_process_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<TransferProcess>>;
     async fn get_transfer_process_by_key_value(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<TransferProcess>>;
     async fn create_transfer_process(
@@ -55,13 +57,13 @@ pub trait TransferProcessRepoTrait: Send + Sync {
     ) -> Outcome<TransferProcess>;
     async fn put_transfer_process(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
         edit_model: &EditTransferProcessCommand,
     ) -> Outcome<TransferProcess>;
-    /// Returns the tenant of the removed record.
-    async fn delete_transfer_process(&self, tenant_id: Option<String>, id: &Urn)
-    -> Outcome<String>;
+    /// Returns the owner of the removed record.
+    async fn delete_transfer_process(&self, scope: &OwnerScope, id: &Urn)
+    -> Outcome<Owner>;
 }
 
 #[derive(Debug, Error)]

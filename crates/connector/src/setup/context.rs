@@ -25,7 +25,7 @@ use crate::services::connector_instance::ConnectorInstanceServiceTrait;
 use crate::services::connector_template::service::ConnectorTemplateService;
 use crate::services::connector_template::ConnectorTemplateServiceTrait;
 use crate::setup::ports::ConnectorPorts;
-use common::auth::OauthTokenValidator;
+use common::oauth::OauthTokenValidatorTrait;
 use common::config::services::CatalogConfig;
 use common::config::types::traits::CommonConfigTrait;
 use common::module_loader::root_context::RootContext;
@@ -37,7 +37,7 @@ pub struct AppContext {
     pub config: Arc<CatalogConfig>,
     pub template_svc: Arc<dyn ConnectorTemplateServiceTrait>,
     pub instance_svc: Arc<dyn ConnectorInstanceServiceTrait>,
-    pub oauth_validator: Arc<dyn OauthTokenValidator>,
+    pub oauth_validator: Arc<dyn OauthTokenValidatorTrait>,
 }
 
 impl AppContext {

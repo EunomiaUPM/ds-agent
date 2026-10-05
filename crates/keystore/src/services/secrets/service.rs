@@ -19,7 +19,7 @@
 
 use std::sync::Arc;
 
-use common::auth::AccessScope;
+use common::oauth::{Owner, UserInfo};
 use common::errors::NotFoundExt;
 use common::query::QueryFilter;
 use ymir::errors::Outcome;
@@ -56,15 +56,12 @@ impl SecretStoreImpl {
 
 #[async_trait::async_trait]
 impl SecretStore for SecretStoreImpl {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn create(&self, scope: &AccessScope, cmd: &NewSecretCommand) -> Outcome<SecretEntry> {
-        let mut cmd = cmd.clone();
-        let target_tenant = scope.resolve_create_tenant(cmd.tenant_id.as_deref())?;
-        cmd.tenant_id = Some(target_tenant.clone());
-        let entry = self.repo.create_secret(&target_tenant, &cmd).await?;
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn create(&self, user: &UserInfo, cmd: &NewSecretCommand) -> Outcome<SecretEntry> {
+        let entry = self.repo.create_secret(user.id(), cmd).await?;
         events::emit_action!(
             self.event_bus,
-            &target_tenant,
+            &Owner::private(user),
             crate::EVENT_PREFIX,
             "secret",
             "create",
@@ -77,12 +74,11 @@ impl SecretStore for SecretStoreImpl {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), key = %key)
+        fields(user = %user.id(), key = %key)
     )]
-    async fn read(&self, scope: &AccessScope, key: &Key) -> Outcome<SecretEntry> {
-        scope.require_read()?;
+    async fn read(&self, user: &UserInfo, key: &Key) -> Outcome<SecretEntry> {
         self.repo
-            .get_secret_by_key(scope.acting_tenant(), key)
+            .get_secret_by_key(user.id(), key)
             .await?
             .or_not_found(key, "secret")
     }
@@ -91,22 +87,21 @@ impl SecretStore for SecretStoreImpl {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), key = %key)
+        fields(user = %user.id(), key = %key)
     )]
     async fn update(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         key: &Key,
         cmd: &EditSecretCommand,
     ) -> Outcome<Version> {
-        scope.require_write()?;
         let entry = self
             .repo
-            .put_secret(scope.acting_tenant(), key, cmd)
+            .put_secret(user.id(), key, cmd)
             .await?;
         events::emit_action!(
             self.event_bus,
-            scope.acting_tenant(),
+            &Owner::private(user),
             crate::EVENT_PREFIX,
             "secret",
             "edit",
@@ -119,14 +114,13 @@ impl SecretStore for SecretStoreImpl {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), key = %key)
+        fields(user = %user.id(), key = %key)
     )]
-    async fn delete(&self, scope: &AccessScope, key: &Key) -> Outcome<()> {
-        scope.require_write()?;
-        self.repo.delete_secret(scope.acting_tenant(), key).await?;
+    async fn delete(&self, user: &UserInfo, key: &Key) -> Outcome<()> {
+        self.repo.delete_secret(user.id(), key).await?;
         events::emit_action!(
             self.event_bus,
-            scope.acting_tenant(),
+            &Owner::private(user),
             crate::EVENT_PREFIX,
             "secret",
             "delete",
@@ -135,23 +129,21 @@ impl SecretStore for SecretStoreImpl {
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn list(&self, scope: &AccessScope, filter: &PrefixFilter) -> Outcome<Vec<SecretEntry>> {
-        scope.require_read()?;
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn list(&self, user: &UserInfo, filter: &PrefixFilter) -> Outcome<Vec<SecretEntry>> {
         filter.validate()?;
         let mut filter = filter.clone();
-        filter.tenant_id = scope.resolve_query_tenant(filter.tenant_id.as_deref())?;
+        filter.user_id = crate::services::owner_for_list(user, filter.user_id.as_deref())?;
         self.repo.get_all_secrets(&filter).await
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn batch(&self, scope: &AccessScope, keys: &[Key]) -> Outcome<Vec<SecretEntry>> {
-        scope.require_read()?;
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn batch(&self, user: &UserInfo, keys: &[Key]) -> Outcome<Vec<SecretEntry>> {
         if keys.is_empty() {
             return Ok(vec![]);
         }
         self.repo
-            .get_batch_secrets(scope.acting_tenant(), keys)
+            .get_batch_secrets(user.id(), keys)
             .await
     }
 
@@ -159,13 +151,12 @@ impl SecretStore for SecretStoreImpl {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), key = %key)
+        fields(user = %user.id(), key = %key)
     )]
-    async fn upsert(&self, scope: &AccessScope, key: &Key, value: SecretValue) -> Outcome<()> {
-        scope.require_write()?;
+    async fn upsert(&self, user: &UserInfo, key: &Key, value: SecretValue) -> Outcome<()> {
         match self
             .repo
-            .get_secret_by_key(scope.acting_tenant(), key)
+            .get_secret_by_key(user.id(), key)
             .await?
         {
             None => {
@@ -173,14 +164,13 @@ impl SecretStore for SecretStoreImpl {
                     key: key.clone(),
                     value,
                     description: None,
-                    tenant_id: Some(scope.acting_tenant().to_string()),
                 };
-                self.create(scope, &cmd).await?;
+                self.create(user, &cmd).await?;
             }
             Some(existing) => {
                 self.repo
                     .put_secret(
-                        scope.acting_tenant(),
+                        user.id(),
                         key,
                         &EditSecretCommand {
                             value,

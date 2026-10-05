@@ -57,7 +57,9 @@ fn push_endpoint_fixture() -> DataplaneAddress {
 fn dto(state: TransferState) -> DataplaneTransferDto {
     DataplaneTransferDto {
         inner: dataplane_transfers::Model {
-            tenant_id: "tenant-1".to_string(),
+            user_id: "tenant-1".to_string(),
+            user_role: common::oauth::RolePath::root(),
+            visibility: common::oauth::Visibility::Private,
             id: DP_URN.to_string(),
             transfer_process_id: TP_URN.to_string(),
             role: TransferRole::Consumer,
@@ -94,7 +96,7 @@ async fn init_context(
         Arc::new(MockConnectorMock::new()),
         transfer_config_fixture(),
         DataplaneInitCommandTypes::AsConsumer {
-            tenant_id: "tenant-1".to_string(),
+            owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
             transfer_process_id: Urn::from_str(TP_URN).unwrap(),
             direction: DataplaneInitCommandDirection::Push {
                 data_address: Some(push_endpoint_fixture()),

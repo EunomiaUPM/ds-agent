@@ -40,7 +40,9 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(TransferEvents::TenantId).string().not_null())
+                    .col(ColumnDef::new(TransferEvents::UserId).string().not_null())
+                    .col(ColumnDef::new(TransferEvents::UserRole).string_len(255).not_null())
+                    .col(ColumnDef::new(TransferEvents::Visibility).string_len(16).not_null())
                     .col(
                         ColumnDef::new(TransferEvents::TransferId)
                             .string()
@@ -82,7 +84,9 @@ impl MigrationTrait for Migration {
 pub enum TransferEvents {
     Table,
     Id,
-    TenantId,
+    UserId,
+    UserRole,
+    Visibility,
     TransferId,
     Level,
     Component,

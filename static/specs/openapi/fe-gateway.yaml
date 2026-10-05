@@ -76,6 +76,30 @@ tags:
   - name: Events
     description: "Real-time pub/sub event stream, audit feed, webhook subscriptions, and Dead Letter Queue (→ events / bff)"
 paths:
+  /me:
+    get:
+      operationId: getSessionUser
+      summary: Who the browser's session is
+      description: >-
+        The user the gateway's identity provider gives for this session (with Keycloak, the one
+        oauth2-proxy signed in; in `static` mode, the configured user). 401 when there is no
+        session: the console then sends the browser to the proxy's sign-in (`/oauth2/start`).
+      tags:
+        - Gateway
+      responses:
+        "200":
+          description: The session's user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUser"
+        "401":
+          description: No session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInfo"
+
   /fe-config:
     get:
       operationId: getFeConfig
@@ -5756,19 +5780,11 @@ paths:
         - Events
       summary: Stream events via Server-Sent Events
       operationId: streamEventsSse
-      description: EventSource cannot send headers, so the bearer token and the acting tenant go in the query.
+      description: >-
+        Events about the records the session's user sees. The session travels as the proxy's
+        cookie, like any other request.
       parameters:
         - name: topic
-          in: query
-          required: false
-          schema:
-            type: string
-        - name: token
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: tenant
           in: query
           required: false
           schema:
@@ -6193,6 +6209,36 @@ components:
           type: object
         policy:
           type: object
+    SessionUser:
+      type: object
+      required:
+        - userId
+        - role
+        - root
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        role:
+          type: string
+          description: Role path in the tree under /admin.
+          example: /admin/upm
+        root:
+          type: boolean
+          description: Whether it is the root (/admin), who sees and acts on everything.
+
+    Visibility:
+      type: string
+      description: >-
+        Who else sees a record beyond those its role lets in: nobody (Private), everyone without
+        its author (Anonymous), or everyone (Public).
+      enum: [Private, Anonymous, Public]
+
     FeConfig:
       type: object
       properties:
@@ -10018,7 +10064,9 @@ components:
       type: object
       required:
         - id
-        - tenant_id
+        - user_id
+        - role
+        - visibility
         - topic
         - source_crate
         - schema_version
@@ -10028,8 +10076,15 @@ components:
         id:
           type: string
           example: urn:uuid:f47ac10b-58cc-4372-a567-0e02b2c3d479
-        tenant_id:
+        user_id:
           type: string
+          description: Owner of the record the event is about ("system" if a peer opened it).
+        role:
+          type: string
+          description: Role the record was created under (or that handles it).
+          example: /admin/upm
+        visibility:
+          $ref: "#/components/schemas/Visibility"
         topic:
           type: string
           example: transfers.process.completed

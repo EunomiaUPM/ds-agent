@@ -22,7 +22,7 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use crate::services::negotiation_process::views::NegotiationProcessView;
 use std::sync::Arc;
-use ymir::data::entities::shared::participant::Model as Mates;
+use common::facades::grants_facade::VerifiedPeer;
 use ymir::errors::Outcome;
 
 /// Context for steps that create a new negotiation process (initial request and
@@ -75,7 +75,7 @@ pub(super) trait NegotiationProtocolStep: Send + Sync + 'static {
         validator: &Arc<dyn ValidationDspSteps>,
         id: &str,
         input: &NegotiationProcessMessageWrapper<Self::Dto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<()>;
 
     /// Resolve or build the routing context for this step.
@@ -87,7 +87,7 @@ pub(super) trait NegotiationProtocolStep: Send + Sync + 'static {
     /// `id` is the peer-facing PID (continuation steps; pass `""` for initial).
     async fn prepare_context(
         id: &str,
-        mate: &Mates,
+        mate: &VerifiedPeer,
         input: &NegotiationProcessMessageWrapper<Self::Dto>,
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
     ) -> Outcome<(
@@ -108,7 +108,7 @@ pub(super) trait NegotiationProtocolStep: Send + Sync + 'static {
         id: &str,
         ctx: &Self::Context,
         input: &NegotiationProcessMessageWrapper<Self::Dto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessView>;
 }
 
@@ -120,7 +120,7 @@ pub(super) trait NegotiationProtocolStep: Send + Sync + 'static {
 /// terminates the request before any state mutation occurs.
 pub(super) async fn continuation_prepare_context(
     id: &str,
-    mate: &Mates,
+    mate: &VerifiedPeer,
     persistence: &Arc<OrchestrationPersistenceForProtocol>,
 ) -> Outcome<(
     NegotiationContinuationContext,

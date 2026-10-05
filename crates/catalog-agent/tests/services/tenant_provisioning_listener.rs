@@ -23,6 +23,7 @@ use std::time::Duration;
 
 use catalog_agent::services::tenant_provisioning::listener::TenantProvisioningListener;
 use catalog_agent::services::tenant_provisioning::MockTenantProvisioningServiceTrait;
+use common::oauth::RoleTrait;
 use common::boot::workers::BackgroundWorker;
 use events::data::repo::{
     MockEventDeadLetterRepo, MockEventDeliveryRepo, MockEventStoreRepo, MockEventSubscriptionRepo,
@@ -70,7 +71,7 @@ async fn provisions_the_tenant_of_each_user_creation() {
     let mut service = MockTenantProvisioningServiceTrait::new();
     service
         .expect_provision()
-        .withf(|scope, tenant| scope.acting_tenant() == tenant && !scope.is_admin())
+        .withf(|scope, tenant| scope.id() == tenant && !scope.is_root())
         .returning(move |_, tenant| {
             tx.send(tenant.to_string()).unwrap();
             Err(Errors::crazy("first attempt fails", None))

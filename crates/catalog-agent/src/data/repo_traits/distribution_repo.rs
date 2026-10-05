@@ -18,6 +18,7 @@
 //! Distribution repository.
 
 use crate::data::entities::distribution;
+use common::oauth::OwnerScope;
 use crate::data::entities::distribution::{EditDistributionModel, NewDistributionModel};
 use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
 use urn::Urn;
@@ -26,44 +27,45 @@ use ymir::errors::Outcome;
 use crate::entities::filters::DistributionFilter;
 use common::paginated_spec::{Page, Sort};
 
-/// Persistence of distributions; `tenant_id` of `None` reaches every tenant.
+/// Persistence of distributions, within the owner scope each call gives.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DistributionRepositoryTrait: Send + Sync {
     /// Page of distributions matching the filters, with the total.
     async fn get_all_distributions(
         &self,
+        scope: &OwnerScope,
         filters: &DistributionFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<distribution::Model>, Option<u64>)>;
     async fn get_batch_distributions(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<distribution::Model>>;
 
     /// Distributions of the dataset.
     async fn get_distributions_by_dataset_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         dataset_id: &Urn,
     ) -> Outcome<Vec<distribution::Model>>;
     /// Distribution of the dataset in the given `dct:format`.
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         dataset_id: &Urn,
         dct_formats: &str,
     ) -> Outcome<Option<distribution::Model>>;
     async fn get_distribution_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         distribution_id: &Urn,
     ) -> Outcome<Option<distribution::Model>>;
     async fn put_distribution_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         distribution_id: &Urn,
         edit_distribution_model: &EditDistributionModel,
     ) -> Outcome<distribution::Model>;
@@ -74,7 +76,7 @@ pub trait DistributionRepositoryTrait: Send + Sync {
     /// Deletes and returns the removed row so callers can evict derived caches.
     async fn delete_distribution_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         distribution_id: &Urn,
     ) -> Outcome<distribution::Model>;
 }

@@ -49,6 +49,7 @@ const CONNECTOR_URN: &str = "urn:connector-instance:1";
 fn connector_fixture() -> ConnectorInstanceDto {
     ConnectorInstanceDto {
         id: Urn::from_str(CONNECTOR_URN).unwrap(),
+        user_id: "user-1".to_string(),
         metadata: ConnectorMetadata {
             name: None,
             author: None,
@@ -82,7 +83,9 @@ fn proxy_address_fixture() -> DataplaneAddress {
 fn dto(state: TransferState) -> DataplaneTransferDto {
     DataplaneTransferDto {
         inner: dataplane_transfers::Model {
-            tenant_id: "tenant-1".to_string(),
+            user_id: "tenant-1".to_string(),
+            user_role: common::oauth::RolePath::root(),
+            visibility: common::oauth::Visibility::Private,
             id: DP_URN.to_string(),
             transfer_process_id: TP_URN.to_string(),
             role: TransferRole::Provider,
@@ -119,7 +122,7 @@ async fn init_context(
         Arc::new(MockConnectorMock::new()),
         transfer_config_fixture(),
         DataplaneInitCommandTypes::AsProvider {
-            tenant_id: "tenant-1".to_string(),
+            owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
             transfer_process_id: Urn::from_str(TP_URN).unwrap(),
             connector_instance: connector_fixture(),
             direction: DataplaneInitCommandDirection::Pull {

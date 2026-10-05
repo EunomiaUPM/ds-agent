@@ -22,11 +22,12 @@ use ymir::errors::Outcome;
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait PeerCatalogCacheTrait: Sync + Send {
-    /// Catalogs are cached per tenant: a peer may expose a different catalog to each tenant.
-    async fn get_catalog(&self, tenant_id: &str, participant_id: &str) -> Outcome<Option<Catalog>>;
+    /// Catalogs are cached per user: a peer may expose a different catalog to each (each one
+    /// calls it with its own token).
+    async fn get_catalog(&self, user_id: &str, participant_id: &str) -> Outcome<Option<Catalog>>;
     async fn set_catalog(
         &self,
-        tenant_id: &str,
+        user_id: &str,
         participant_id: &str,
         catalog: &Catalog,
     ) -> Outcome<()>;

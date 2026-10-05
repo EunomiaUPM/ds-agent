@@ -86,7 +86,7 @@ impl ServiceModuleTrait for NegotiationAdminModule {
             )
             .route_layer(axum::middleware::from_fn_with_state(
                 ctx.oauth_validator.clone(),
-                common::auth::http::AuthHttpMiddleware::run,
+                ymir::http::OauthHttpMiddleware::run,
             ));
         Some((self.base_path(), router))
     }

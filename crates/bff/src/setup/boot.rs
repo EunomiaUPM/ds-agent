@@ -15,15 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
-
-use common::auth::OauthTokenValidator;
 use common::boot::BootstrapServiceTrait;
-use common::config::services::{CommonConfig, GatewayConfig};
+use common::config::services::GatewayConfig;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
-use oauth::setup::OAuthModule;
-use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
 use ymir::errors::Outcome;
 
@@ -40,9 +35,6 @@ impl BootstrapServiceTrait for GatewayBoot {
         vec![]
     }
 
-    fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator> {
-        OAuthModule::validator(common, db)
-    }
 
     async fn compose(config: &GatewayConfig, root: &RootContext) -> Outcome<ServiceComposer> {
         Ok(ServiceComposer::new().register(BffModule::compose(config, root)))

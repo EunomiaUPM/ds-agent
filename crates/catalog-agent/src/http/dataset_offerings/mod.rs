@@ -23,7 +23,7 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::post;
 use axum::{Json, Router};
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use ymir::utils::extract_payload;
 
 use crate::entities::dataset_offerings::NewDatasetOfferingDto;
@@ -48,14 +48,14 @@ impl DatasetOfferingRouter {
 
     async fn handle_create(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         input: Result<Json<NewDatasetOfferingDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(input) => input,
             Err(e) => return e.into_response(),
         };
-        match state.service.create_offering(&scope, &input).await {
+        match state.service.create_offering(&user, &input).await {
             Ok(offering) => (StatusCode::CREATED, Json(ToCamelCase(offering))).into_response(),
             Err(e) => e.into_response(),
         }

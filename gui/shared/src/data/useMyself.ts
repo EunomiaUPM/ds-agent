@@ -18,7 +18,7 @@
 import { useGetMyself } from "shared/src/data/orval/participants/participants";
 import { ParticipantDto } from "shared/src/data/orval/model";
 
-/** This connector as seen by the acting tenant; it is not listed among the participants. */
+/** This connector as seen by the session's user; it is not listed among the participants. */
 export const useMyself = (): ParticipantDto | undefined => {
   const { data } = useGetMyself();
   return data?.status === 200 ? data.data : undefined;

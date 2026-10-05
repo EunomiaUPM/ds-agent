@@ -18,6 +18,7 @@
 //! Subscription repository.
 
 use async_trait::async_trait;
+use common::oauth::{Owner, OwnerScope};
 use chrono::Utc;
 use common::paginated_spec::{Page, Sort};
 use sea_orm::{
@@ -52,7 +53,7 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_subscription(
         &self,
-        tenant_id: &str,
+        owner: Owner,
         dto: CreateSubscriptionDto,
     ) -> Outcome<SubscriptionRecord> {
         let id = format!("urn:uuid:{}", Uuid::new_v4());
@@ -66,7 +67,9 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
 
         let active = subscription::ActiveModel {
             id: ActiveValue::Set(id.clone()),
-            tenant_id: ActiveValue::Set(tenant_id.to_string()),
+            user_id: ActiveValue::Set(owner.user_id.clone()),
+            user_role: ActiveValue::Set(owner.role.clone()),
+            visibility: ActiveValue::Set(owner.visibility.clone()),
             callback_address: ActiveValue::Set(dto.callback_address.clone()),
             topic_pattern: ActiveValue::Set(dto.topic_pattern),
             secret: ActiveValue::Set(dto.secret.clone()),
@@ -85,7 +88,7 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
 
         Ok(SubscriptionRecord {
             id,
-            tenant_id: tenant_id.to_string(),
+            owner,
             callback_address: dto.callback_address,
             topic_pattern: pattern,
             secret: dto.secret,
@@ -101,14 +104,12 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_subscription(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &str,
     ) -> Outcome<Option<SubscriptionRecord>> {
         let model = subscription::Entity::find()
             .filter(subscription::Column::Id.eq(id))
-            .apply_if(tenant_id, |q, t| {
-                q.filter(subscription::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(subscription::Column::UserId, subscription::Column::UserRole, subscription::Column::Visibility))
             .one(&self.db)
             .await
             .map_err(|e| Errors::db("failed to query subscription", Some(Box::new(e))))?;
@@ -122,15 +123,13 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn list_subscriptions(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         filter: &SubscriptionFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<SubscriptionRecord>, u64)> {
         let query = subscription::Entity::find()
-            .apply_if(tenant_id, |q, t| {
-                q.filter(subscription::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(subscription::Column::UserId, subscription::Column::UserRole, subscription::Column::Visibility))
             .apply_if(filter.active, |q, a| {
                 q.filter(subscription::Column::Active.eq(a))
             });
@@ -161,15 +160,13 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn update_subscription(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &str,
         dto: UpdateSubscriptionDto,
     ) -> Outcome<SubscriptionRecord> {
         let model = subscription::Entity::find()
             .filter(subscription::Column::Id.eq(id))
-            .apply_if(tenant_id, |q, t| {
-                q.filter(subscription::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(subscription::Column::UserId, subscription::Column::UserRole, subscription::Column::Visibility))
             .one(&self.db)
             .await
             .map_err(|e| Errors::db("failed to find subscription", Some(Box::new(e))))?
@@ -210,12 +207,10 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn delete_subscription(&self, tenant_id: Option<String>, id: &str) -> Outcome<()> {
+    async fn delete_subscription(&self, scope: &OwnerScope, id: &str) -> Outcome<()> {
         subscription::Entity::delete_many()
             .filter(subscription::Column::Id.eq(id))
-            .apply_if(tenant_id, |q, t| {
-                q.filter(subscription::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(subscription::Column::UserId, subscription::Column::UserRole, subscription::Column::Visibility))
             .exec(&self.db)
             .await
             .map_err(|e| Errors::db("failed to delete subscription", Some(Box::new(e))))?;
@@ -225,12 +220,12 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_matching_subscriptions(
         &self,
-        tenant_id: &str,
+        owner: &Owner,
         topic: &Topic,
     ) -> Outcome<Vec<SubscriptionRecord>> {
-        // Patterns live in the rows, so the topic is matched against each active one here.
+        // Patterns and subscribers live in the rows, so both are matched against each active
+        // one here.
         let models = subscription::Entity::find()
-            .filter(subscription::Column::TenantId.eq(tenant_id))
             .filter(subscription::Column::Active.eq(true))
             .all(&self.db)
             .await
@@ -238,7 +233,7 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
         let mut matching = Vec::new();
         for model in models {
             let record = model.into_domain()?;
-            if record.matches(topic) {
+            if record.matches(topic) && OwnerScope::seeing(&record.owner).admits_owner(owner) {
                 matching.push(record);
             }
         }

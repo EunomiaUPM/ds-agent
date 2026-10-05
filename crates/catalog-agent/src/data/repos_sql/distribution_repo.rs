@@ -16,6 +16,7 @@
  */
 
 use crate::data::entities::distribution::{EditDistributionModel, NewDistributionModel};
+use common::oauth::{OwnedTrait, OwnerScope};
 use crate::data::entities::{dataservice, dataset, distribution};
 use crate::data::repo_traits::catalog_db_errors::{
     CatalogAgentRepoErrors, DataServiceRepoErrors, DatasetRepoErrors, DistributionRepoErrors,
@@ -37,8 +38,8 @@ impl FilterApplier<sea_orm::Select<distribution::Entity>> for DistributionFilter
         &self,
         mut q: sea_orm::Select<distribution::Entity>,
     ) -> sea_orm::Select<distribution::Entity> {
-        if let Some(ref tenant_id) = self.tenant_id {
-            q = q.filter(distribution::Column::TenantId.eq(tenant_id));
+        if let Some(ref user_id) = self.user_id {
+            q = q.filter(distribution::Column::UserId.eq(user_id));
         }
         if let Some(dataset_id) = &self.dataset_id {
             q = q.filter(distribution::Column::DatasetId.eq(dataset_id));
@@ -77,11 +78,18 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_distributions(
         &self,
+        scope: &OwnerScope,
         filters: &DistributionFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<distribution::Model>, Option<u64>)> {
-        let mut q = filters.apply_to(distribution::Entity::find());
+        let mut q = filters
+            .apply_to(distribution::Entity::find())
+            .filter(scope.condition(
+                distribution::Column::UserId,
+                distribution::Column::UserRole,
+                distribution::Column::Visibility,
+            ));
         let total = q.clone().count(&self.db_connection).await.map_err(|err| {
             CatalogAgentRepoErrors::DistributionRepoErrors(
                 DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
@@ -111,14 +119,12 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_distributions(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<distribution::Model>> {
         let distribution_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let distribution_process = distribution::Entity::find()
-            .apply_if(tenant_id, |q, t| {
-                q.filter(distribution::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(distribution::Column::UserId, distribution::Column::UserRole, distribution::Column::Visibility))
             .filter(distribution::Column::Id.is_in(distribution_ids))
             .all(&self.db_connection)
             .await;
@@ -134,14 +140,12 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_distributions_by_dataset_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         dataset_id: &Urn,
     ) -> Outcome<Vec<distribution::Model>> {
         let dataset_id = dataset_id.to_string();
         let distributions = distribution::Entity::find()
-            .apply_if(tenant_id, |q, t| {
-                q.filter(distribution::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(distribution::Column::UserId, distribution::Column::UserRole, distribution::Column::Visibility))
             .filter(distribution::Column::DatasetId.eq(dataset_id))
             .all(&self.db_connection)
             .await;
@@ -157,15 +161,13 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         dataset_id: &Urn,
         dct_formats: &str,
     ) -> Outcome<Option<distribution::Model>> {
         let dataset_id = dataset_id.to_string();
         let distribution = distribution::Entity::find()
-            .apply_if(tenant_id, |q, t| {
-                q.filter(distribution::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(distribution::Column::UserId, distribution::Column::UserRole, distribution::Column::Visibility))
             .filter(distribution::Column::DatasetId.eq(dataset_id))
             .filter(distribution::Column::DctFormat.eq(dct_formats))
             .one(&self.db_connection)
@@ -182,14 +184,12 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_distribution_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         distribution_id: &Urn,
     ) -> Outcome<Option<distribution::Model>> {
         let distribution_id = distribution_id.to_string();
         let distribution = distribution::Entity::find_by_id(distribution_id)
-            .apply_if(tenant_id, |q, t| {
-                q.filter(distribution::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(distribution::Column::UserId, distribution::Column::UserRole, distribution::Column::Visibility))
             .one(&self.db_connection)
             .await;
         match distribution {
@@ -204,16 +204,14 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_distribution_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         distribution_id: &Urn,
         edit_distribution_model: &EditDistributionModel,
     ) -> Outcome<distribution::Model> {
         let distribution_id = distribution_id.to_string();
 
         let old_model = distribution::Entity::find_by_id(distribution_id)
-            .apply_if(tenant_id, |q, t| {
-                q.filter(distribution::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(distribution::Column::UserId, distribution::Column::UserRole, distribution::Column::Visibility))
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -234,10 +232,14 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
             }
         };
 
-        // The linked data service must live in the distribution's own tenant.
+        // The linked data service must be one the distribution's owner sees.
         if let Some(ds) = edit_distribution_model.dcat_access_service.clone() {
             let data_service = dataservice::Entity::find_by_id(ds)
-                .filter(dataservice::Column::TenantId.eq(old_model.tenant_id.as_str()))
+                .filter(OwnerScope::seeing(&old_model.owner()).condition(
+                    dataservice::Column::UserId,
+                    dataservice::Column::UserRole,
+                    dataservice::Column::Visibility,
+                ))
                 .one(&self.db_connection)
                 .await
                 .map_err(|e| {
@@ -282,7 +284,11 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
     ) -> Outcome<distribution::Model> {
         let dataset =
             dataset::Entity::find_by_id(new_distribution_model.dataset_id.clone().to_string())
-                .filter(dataset::Column::TenantId.eq(&new_distribution_model.tenant_id))
+                .filter(OwnerScope::acting(&new_distribution_model.owner).condition(
+                    dataset::Column::UserId,
+                    dataset::Column::UserRole,
+                    dataset::Column::Visibility,
+                ))
                 .one(&self.db_connection)
                 .await
                 .map_err(|err| {
@@ -300,7 +306,11 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
 
         let data_service =
             dataservice::Entity::find_by_id(new_distribution_model.dcat_access_service.clone())
-                .filter(dataservice::Column::TenantId.eq(&new_distribution_model.tenant_id))
+                .filter(OwnerScope::seeing(&new_distribution_model.owner).condition(
+                    dataservice::Column::UserId,
+                    dataservice::Column::UserRole,
+                    dataservice::Column::Visibility,
+                ))
                 .one(&self.db_connection)
                 .await
                 .map_err(|err| {
@@ -332,15 +342,13 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_distribution_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         distribution_id: &Urn,
     ) -> Outcome<distribution::Model> {
-        // Single round-trip: DELETE ... RETURNING, tenant-scoped; empty result means not found.
+        // Single round-trip: DELETE ... RETURNING, owner-scoped; empty result means not found.
         let deleted = distribution::Entity::delete_many()
             .filter(distribution::Column::Id.eq(distribution_id.to_string()))
-            .apply_if(tenant_id, |q, t| {
-                q.filter(distribution::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(distribution::Column::UserId, distribution::Column::UserRole, distribution::Column::Visibility))
             .exec_with_returning(&self.db_connection)
             .await
             .map_err(|err| {

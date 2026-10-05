@@ -353,3 +353,5 @@ export * from './versionPath';
 export * from './versionResponse';
 export * from './versionVersion';
 export * from './wellKnownRPCRequest';
+export * from './sessionUser';
+export * from './visibility';

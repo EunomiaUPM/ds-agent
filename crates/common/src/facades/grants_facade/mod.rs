@@ -25,6 +25,9 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use ymir::errors::Outcome;
 use ymir::types::oauth::{RolePath, UserInfo};
+use ymir::types::participants::Visibility;
+
+use crate::oauth::Owner;
 
 pub mod remote;
 
@@ -35,6 +38,32 @@ pub struct VerifiedPeer {
     pub participant_id: String,
     /// Role that handles what the peer opens with this token (e.g. an inbound negotiation).
     pub role: RolePath,
+    /// Who else sees what the peer opens, as its grant says.
+    #[serde(default = "public")]
+    pub visibility: Visibility,
+}
+
+fn public() -> Visibility {
+    Visibility::Public
+}
+
+impl VerifiedPeer {
+    /// Owner of what the peer opens: nobody, handled by the role of its grant and seen as the
+    /// grant says.
+    pub fn owner(&self) -> Owner {
+        Owner::team(self.role.clone(), self.visibility.clone())
+    }
+
+    /// The peer as an actor of the agents: its DID as user id, under the role of its grant. It
+    /// then reads and acts with the same rules as a local user of that role.
+    pub fn to_user(&self) -> UserInfo {
+        UserInfo::new(
+            self.participant_id.clone(),
+            None,
+            self.role.clone(),
+            serde_json::Map::new(),
+        )
+    }
 }
 
 #[mockall::automock]

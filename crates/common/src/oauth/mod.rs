@@ -55,9 +55,11 @@
 //!
 //! ## 3. Authorizing in the service layer
 //!
-//! Records are stamped with the user's id and role when created. Lists filter in the database
-//! by "own or below the caller's role"; single reads and writes check
-//! [`UserInfo::ensure_reaches`], which hides unreachable records as a 404.
+//! Records keep their [`Owner`] (`user_id`, `user_role`, `visibility`), stamped when created:
+//! the user's own, or the role of a peer's grant for what a peer opens. Repositories take an
+//! [`OwnerScope`]: reads with [`OwnerScope::seeing`], writes with [`OwnerScope::acting`], and
+//! in-process flows that already hold the record's id with [`OwnerScope::All`]. A record out of
+//! scope looks like a missing one (404). See [`ownership`].
 //!
 //! ## 4. gRPC
 //!
@@ -71,18 +73,21 @@
 //! root.
 
 pub mod grpc;
+pub mod ownership;
 pub mod provider;
 // Atomic checks on the claims of the former built-in tokens; unused since identity comes from
 // `UserInfo`. Kept as it was, out of the module tree.
 // pub mod rules;
 
+pub use ownership::{acting_as, OwnedTrait, Owner, OwnerScope, OwnershipTrait};
+pub use ymir::types::participants::Visibility;
 pub use provider::token_validator;
 // pub use rules::AuthRules;
 pub use ymir::http::OauthHttpMiddleware;
 pub use ymir::services::token_validator::{
     FixedUserValidator, ProxiedTokenValidator, OauthTokenValidatorTrait,
 };
-pub use ymir::types::oauth::{RolePath, RoleTrait, UserInfo, UserTrait};
+pub use ymir::types::oauth::{RolePath, RoleTrait, UserInfo, UserTrait, SYSTEM_USER_ID};
 
 /// Header / metadata key carrying the bearer token.
 pub const AUTHORIZATION_HEADER: &str = "authorization";

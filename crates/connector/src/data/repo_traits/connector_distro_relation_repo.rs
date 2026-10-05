@@ -16,42 +16,44 @@
  */
 
 use crate::data::entities::connector_distro_relation;
+use common::oauth::{Owner, OwnerScope};
 use ymir::errors::Outcome;
 
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait ConnectorDistroRelationRepoTrait: Send + Sync {
+    /// Links the distribution to the instance; the link belongs to `owner`, the instance's.
     async fn create_relation(
         &self,
-        tenant_id: &str,
+        owner: &Owner,
         distro: &str,
         instance: &str,
     ) -> Outcome<connector_distro_relation::Model>;
 
     async fn update_relation(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         distro: &str,
         instance: &str,
     ) -> Outcome<connector_distro_relation::Model>;
 
     async fn get_relation_by_distribution(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         distro: &str,
     ) -> Outcome<Option<connector_distro_relation::Model>>;
 
     async fn get_relation_by_instance(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         instance: &str,
     ) -> Outcome<Option<connector_distro_relation::Model>>;
 
-    async fn delete_relation_by_distribution(&self, tenant_id: &str, distro: &str) -> Outcome<()>;
+    async fn delete_relation_by_distribution(&self, scope: &OwnerScope, distro: &str) -> Outcome<()>;
 
     async fn delete_relation_by_instance(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         instance: &str,
     ) -> Outcome<()>;
 }

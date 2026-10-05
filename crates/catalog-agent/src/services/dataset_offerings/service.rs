@@ -20,7 +20,7 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use common::auth::AccessScope;
+use common::oauth::{OwnedTrait, Owner, UserInfo};
 use serde_json::json;
 use tracing::warn;
 use urn::Urn;
@@ -69,23 +69,23 @@ impl DatasetOfferingService {
         }
     }
 
-    async fn resolve_catalog(&self, scope: &AccessScope, requested: Option<&str>) -> Outcome<Urn> {
+    async fn resolve_catalog(&self, user: &UserInfo, requested: Option<&str>) -> Outcome<Urn> {
         if let Some(id) = requested.filter(|id| !id.trim().is_empty()) {
             return Self::parse_urn(id);
         }
         let main = self
             .catalogs
-            .get_main_catalog(scope)
+            .get_main_catalog(user)
             .await?
             .ok_or_else(|| {
-                Errors::missing_resource("main", "the tenant has no main catalog", None)
+                Errors::missing_resource("main", "the connector has no main catalog", None)
             })?;
         Self::parse_urn(&main.inner.id)
     }
 
     async fn resolve_access_service(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         requested: Option<&str>,
     ) -> Outcome<String> {
         if let Some(id) = requested.filter(|id| !id.trim().is_empty()) {
@@ -93,32 +93,33 @@ impl DatasetOfferingService {
         }
         let main = self
             .data_services
-            .get_main_data_service(scope)
+            .get_main_data_service(user)
             .await?
             .ok_or_else(|| {
-                Errors::missing_resource("main", "the tenant has no main data service", None)
+                Errors::missing_resource("main", "the connector has no main data service", None)
             })?;
         Ok(main.inner.id)
     }
 
     async fn create_rest(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         offering: &NewDatasetOfferingDto,
         dataset: &DatasetDto,
     ) -> Outcome<(DistributionDto, Option<OdrlPolicyDto>)> {
         let dataset_id = Self::parse_urn(&dataset.inner.id)?;
         let input = &offering.distribution;
         let access_service = self
-            .resolve_access_service(scope, input.access_service_id.as_deref())
+            .resolve_access_service(user, input.access_service_id.as_deref())
             .await?;
         let distribution = self
             .distributions
             .create_distribution(
-                scope,
+                user,
                 &NewDistributionDto {
                     id: None,
-                    tenant_id: Some(dataset.inner.tenant_id.clone()),
+                    visibility: Some(dataset.inner.visibility.clone()),
+                    owner: Some(dataset.inner.owner()),
                     dct_title: Some(input.title.clone()),
                     dct_description: input.description.clone(),
                     dct_formats: Some(
@@ -137,8 +138,8 @@ impl DatasetOfferingService {
             Some(policy) => Some(
                 self.policies
                     .create_odrl_offer(
-                        scope,
-                        &Self::policy_command(policy, &dataset.inner.tenant_id, dataset_id)?,
+                        user,
+                        &Self::policy_command(policy, &dataset.inner.owner(), dataset_id)?,
                     )
                     .await?,
             ),
@@ -149,7 +150,7 @@ impl DatasetOfferingService {
 
     fn policy_command(
         policy: &PolicyOfferingInput,
-        tenant_id: &str,
+        owner: &Owner,
         dataset_id: Urn,
     ) -> Outcome<NewOdrlPolicyDto> {
         let offer = json!({
@@ -161,7 +162,8 @@ impl DatasetOfferingService {
         });
         Ok(NewOdrlPolicyDto {
             id: None,
-            tenant_id: Some(tenant_id.to_string()),
+            visibility: Some(owner.visibility.clone()),
+            owner: Some(owner.clone()),
             odrl_offer: serde_json::from_value(offer)
                 .map_err(|e| Errors::format(BadFormat::Received, e.to_string(), None))?,
             entity_id: dataset_id,
@@ -186,24 +188,24 @@ impl DatasetOfferingService {
 
 #[async_trait::async_trait]
 impl DatasetOfferingServiceTrait for DatasetOfferingService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn create_offering(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         offering: &NewDatasetOfferingDto,
     ) -> Outcome<DatasetOfferingDto> {
-        scope.require_write()?;
         let input = &offering.dataset;
         let catalog_id = self
-            .resolve_catalog(scope, input.catalog_id.as_deref())
+            .resolve_catalog(user, input.catalog_id.as_deref())
             .await?;
         let dataset = self
             .datasets
             .create_dataset(
-                scope,
+                user,
                 &NewDatasetDto {
                     id: None,
-                    tenant_id: None,
+                    visibility: None,
+                    owner: None,
                     dct_conforms_to: Some(
                         input
                             .conforms_to
@@ -218,7 +220,7 @@ impl DatasetOfferingServiceTrait for DatasetOfferingService {
             )
             .await?;
 
-        match self.create_rest(scope, offering, &dataset).await {
+        match self.create_rest(user, offering, &dataset).await {
             Ok((distribution, policy)) => Ok(DatasetOfferingDto {
                 dataset,
                 distribution,
@@ -226,7 +228,7 @@ impl DatasetOfferingServiceTrait for DatasetOfferingService {
             }),
             Err(e) => {
                 let dataset_id = Self::parse_urn(&dataset.inner.id)?;
-                if let Err(cleanup) = self.datasets.delete_dataset_by_id(scope, &dataset_id).await {
+                if let Err(cleanup) = self.datasets.delete_dataset_by_id(user, &dataset_id).await {
                     warn!(dataset = %dataset_id, error = %cleanup, "Could not remove partial offering");
                 }
                 Err(e)

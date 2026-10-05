@@ -91,8 +91,9 @@ pub mod ports;
 // Thin wrapper over ymir's `http_client()`, left over from the client-credentials service
 // token; remote facades call `http_client()` directly. Kept as it was, out of the module tree.
 // pub mod service_client;
-// Replaced by `grants_facade`; kept compiling until the agents move over (phase 3).
-pub mod ssi_auth_facade;
+// Replaced by `grants_facade`, which every agent uses now. Kept as it was, out of the module
+// tree.
+// pub mod ssi_auth_facade;
 
 // pub use service_client::ServiceHttpClient;
 

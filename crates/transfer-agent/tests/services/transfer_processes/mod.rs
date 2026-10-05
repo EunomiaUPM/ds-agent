@@ -27,7 +27,7 @@ mod list_paging;
 
 use common::batch_requests::BatchRequests;
 use common::query::{Page, Sort};
-use common::test_utils::scopes::TestScopes;
+use common::test_utils::scopes::TestUsers;
 use transfer_agent::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
 use transfer_agent::entities::filters::TransferProcessFilter;
 use urn::Urn;
@@ -70,7 +70,7 @@ fn make_process(n: u32) -> TransferProcess {
     let now = Utc::now();
     TransferProcess::rehydrate(
         TransferProcessId::new(p_urn(n)),
-        "tenant-1".to_string(),
+        common::test_utils::scopes::TestUsers::owner("tenant-1"),
         TransferRole::Provider,
         now - Duration::seconds(n as i64 * 10),
         now - Duration::seconds(n as i64 * 5),
@@ -90,7 +90,7 @@ fn make_identifier(process_urn: Urn, key: &str, val: &str) -> TransferProcessIde
 
 fn empty_filter() -> TransferProcessFilter {
     TransferProcessFilter {
-        tenant_id: None,
+        user_id: None,
         protocol: None,
         state: None,
         role: None,
@@ -108,7 +108,8 @@ fn default_page() -> Page {
 fn make_new_cmd(identifiers: Option<HashMap<String, String>>) -> NewTransferProcessCommand {
     NewTransferProcessCommand {
         id: None,
-        tenant_id: Some("tenant-1".to_string()),
+        visibility: None,
+        owner: Some(common::test_utils::scopes::TestUsers::owner("tenant-1")),
         role: TransferRole::Consumer,
         protocol: ProtocolId::Dsp2024,
         initial_state: ProtocolState(CompactString::from("INITIATED")),

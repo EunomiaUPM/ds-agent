@@ -21,7 +21,6 @@
 use std::sync::{Arc, Once};
 
 use catalog_agent::setup::{CatalogAgentModule, CatalogPorts};
-use common::auth::ServiceHttpClient;
 use common::boot::seeders::BootPhase;
 use common::boot::workers::WorkerSet;
 use common::config::services::{CommonConfig, ContractsConfig};
@@ -68,7 +67,6 @@ impl Participant {
             validator: Arc::new(OwnerValidator {
                 tenant: tenant.to_string(),
             }),
-            service_client: Arc::new(ServiceHttpClient::from_common(&common)),
         };
 
         let events = EventsModule::compose(&root);
@@ -206,8 +204,7 @@ impl Participant {
             "db": {"db_type": "Postgres", "url": "localhost", "port": "5432"},
             "api": {"version": "v1", "openapi_path": "/openapi.json"},
             "connection": {"is_local": true, "is_prod": false, "is_vault_real": false, "has_tls_proxy": false},
-            "jwt_secret": "integration-tests",
-            "admin_seed": {"tenant_id": tenant, "email": "admin@test.local", "password": "admin"}
+            "jwt_secret": "integration-tests"
         }))
         .expect("valid common config")
     }

@@ -21,7 +21,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use serde::Deserialize;
 use ymir::errors::AppResult;
 
@@ -56,50 +56,50 @@ impl ParameterRouter {
 
     async fn list(
         State(state): State<ParameterRouter>,
-        scope: AccessScope,
+        user: UserInfo,
         Query(params): Query<PrefixQuery>,
     ) -> AppResult<Json<Vec<ParameterView>>> {
-        let items = state.service.list(&scope, &params.filter).await?;
+        let items = state.service.list(&user, &params.filter).await?;
         Ok(Json(items.into_iter().map(ParameterView::from).collect()))
     }
 
     async fn create(
         State(state): State<ParameterRouter>,
-        scope: AccessScope,
+        user: UserInfo,
         Json(cmd): Json<NewParameterCommand<serde_json::Value>>,
     ) -> AppResult<(StatusCode, Json<ParameterView>)> {
-        let entry = state.service.create(&scope, &cmd).await?;
+        let entry = state.service.create(&user, &cmd).await?;
         Ok((StatusCode::CREATED, Json(ParameterView::from(entry))))
     }
 
     async fn read(
         State(state): State<ParameterRouter>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(key): Path<String>,
     ) -> AppResult<Json<ParameterView>> {
         let key = Key::new(format!("/{}", key))?;
-        let entry = state.service.read(&scope, &key).await?;
+        let entry = state.service.read(&user, &key).await?;
         Ok(Json(ParameterView::from(entry)))
     }
 
     async fn update(
         State(state): State<ParameterRouter>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(key): Path<String>,
         Json(cmd): Json<EditParameterCommand<serde_json::Value>>,
     ) -> AppResult<Json<VersionResponse>> {
         let key = Key::new(format!("/{}", key))?;
-        let version = state.service.update(&scope, &key, &cmd, "").await?;
+        let version = state.service.update(&user, &key, &cmd, "").await?;
         Ok(Json(VersionResponse::from(version)))
     }
 
     async fn delete(
         State(state): State<ParameterRouter>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(key): Path<String>,
     ) -> AppResult<StatusCode> {
         let key = Key::new(format!("/{}", key))?;
-        state.service.delete(&scope, &key).await?;
+        state.service.delete(&user, &key).await?;
         Ok(StatusCode::NO_CONTENT)
     }
 }

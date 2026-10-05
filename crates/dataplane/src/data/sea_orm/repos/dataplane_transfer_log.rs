@@ -17,7 +17,7 @@
 
 //! Transition log repository.
 
-use sea_orm::QueryTrait;
+use common::oauth::OwnerScope;
 use std::sync::Arc;
 
 use crate::data::repo::dataplane_transfer_log::{
@@ -63,12 +63,12 @@ impl DataplaneTransferLogsRepo for DataplaneTransferLogsRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_transfer_logs_by_dataplane_process_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         dataplane_process_id: &Urn,
     ) -> Outcome<Vec<dataplane_transfer_logs::Model>> {
         let logs = DataplaneTransferLogsEntity::find()
             .filter(Column::DataplaneProcessId.eq(dataplane_process_id.to_string()))
-            .apply_if(tenant_id, |q, t| q.filter(Column::TenantId.eq(t)))
+            .filter(scope.condition(Column::UserId, Column::UserRole, Column::Visibility))
             .all(self.db.as_ref())
             .await
             .map_err(|e| {
@@ -82,11 +82,11 @@ impl DataplaneTransferLogsRepo for DataplaneTransferLogsRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_transfer_log_by_id(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         log_id: &Urn,
     ) -> Outcome<Option<dataplane_transfer_logs::Model>> {
         let log = DataplaneTransferLogsEntity::find_by_id(log_id.to_string())
-            .filter(Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(Column::UserId, Column::UserRole, Column::Visibility))
             .one(self.db.as_ref())
             .await
             .map_err(|e| {

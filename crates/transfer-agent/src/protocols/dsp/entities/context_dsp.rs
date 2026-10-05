@@ -29,6 +29,7 @@ use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
 use crate::protocols::dsp::entities::protocol_fields::TransferProtocolFields;
 use crate::protocols::dsp::entities::rdf_extractor_dsp::{DspTransfer, ExtractProtocolFields};
 use common::dsp_common::data_address::DataAddress;
+use common::oauth::Owner;
 use common::dsp_common::odrl::OdrlAgreement;
 use common::dsp_common::rdf::DspProfile;
 use common::dsp_common::well_known_types::DSPProtocolVersions;
@@ -37,14 +38,14 @@ use http::request::Parts;
 use sha2::{Digest, Sha256};
 use std::str::FromStr;
 use urn::Urn;
-use ymir::data::entities::shared::participant::Model as Mates;
+use common::facades::grants_facade::VerifiedPeer;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
 impl BuildAuthn for TransferDSPAuthn {
     fn from_request_parts(parts: &Parts) -> Outcome<Self> {
-        let associated_participant = parts.extensions.get::<Mates>().cloned().ok_or_else(|| {
+        let associated_participant = parts.extensions.get::<VerifiedPeer>().cloned().ok_or_else(|| {
             Errors::crazy(
-                "auth middleware did not resolve participant (Mates missing)",
+                "auth middleware did not resolve the peer (VerifiedPeer missing)",
                 None,
             )
         })?;
@@ -204,19 +205,13 @@ impl TransferDSPContextDomain {
         })
     }
 
-    /// Tenant of the existing process, or of the peer for a new one.
-    pub fn tenant_id(&self) -> &str {
+    /// Owner of the existing process, or of a new one a peer opens: nobody, handled by the role
+    /// of the peer's grant and seen as the grant says.
+    pub fn owner(&self) -> Owner {
         match &self.process {
-            TransferContextProcessSlot::Existing(p) => p.tenant_id(),
+            TransferContextProcessSlot::Existing(p) => p.owner().clone(),
             TransferContextProcessSlot::New { .. } => {
-                &self
-                    .typed
-                    .rdf
-                    .parsed
-                    .raw
-                    .authn
-                    .associated_participant
-                    .tenant_id
+                self.typed.rdf.parsed.raw.authn.associated_participant.owner()
             }
         }
     }

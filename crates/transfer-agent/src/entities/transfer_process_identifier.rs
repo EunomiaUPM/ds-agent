@@ -16,12 +16,13 @@
  */
 
 use urn::Urn;
+use common::oauth::{Owner, RolePath, Visibility};
 
 /// Extra Identifiers for TransferProcess in case there is some dependence of
 /// protocol-dependant identifiers
 #[derive(Clone)]
 pub struct TransferProcessIdentifier {
-    pub tenant_id: String,
+    pub owner: Owner,
     pub transfer_process_id: Urn,
     pub key: String,
     pub value: Option<String>,
@@ -34,21 +35,22 @@ impl TransferProcessIdentifier {
         value: impl Into<Option<String>>,
     ) -> Self {
         Self {
-            tenant_id: String::new(),
+            // Placeholder; the service stamps the process's owner before storing it.
+            owner: Owner::team(RolePath::root(), Visibility::Private),
             transfer_process_id,
             key: key.into(),
             value: value.into(),
         }
     }
 
-    pub fn with_tenant(
-        tenant_id: impl Into<String>,
+    pub fn with_owner(
+        owner: Owner,
         transfer_process_id: Urn,
         key: impl Into<String>,
         value: impl Into<Option<String>>,
     ) -> Self {
         Self {
-            tenant_id: tenant_id.into(),
+            owner,
             transfer_process_id,
             key: key.into(),
             value: value.into(),

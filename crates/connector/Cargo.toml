@@ -10,7 +10,7 @@ path = "src/lib.rs"
 [dependencies]
 common = { version = "0.4.0", path = "../common", default-features = false }
 events = { version = "0.4.0", path = "../events" }
-oauth = { version = "0.4.0", path = "../oauth", default-features = false }
+# oauth = { version = "0.4.0", path = "../oauth", default-features = false }  # disabled, see the workspace Cargo.toml
 
 serde = { workspace = true }
 serde_json = { workspace = true }

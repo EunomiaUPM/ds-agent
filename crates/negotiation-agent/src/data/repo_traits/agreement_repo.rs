@@ -18,6 +18,7 @@
 //! Agreement repository.
 
 use crate::data::entities::agreement;
+use common::oauth::{Owner, OwnerScope};
 use crate::data::entities::agreement::{EditAgreementModel, NewAgreementModel};
 use crate::entities::filters::AgreementFilter;
 use common::paginated_spec::{Page, Sort};
@@ -26,62 +27,63 @@ use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
-/// Persistence of agreements; `tenant_id` of `None` reaches every tenant.
+/// Persistence of agreements, within the owner scope each call gives.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait AgreementRepoTrait: Send + Sync {
     /// Page of agreements matching the filters.
     async fn get_all_agreements(
         &self,
+        scope: &OwnerScope,
         filters: &AgreementFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<agreement::Model>, Option<u64>)>;
     async fn get_batch_agreements(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<agreement::Model>>;
     async fn get_agreement_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<agreement::Model>>;
     /// Agreement reached in the process.
     async fn get_agreement_by_negotiation_process(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<agreement::Model>>;
     /// Agreements where `id` is the consumer.
     async fn get_agreements_by_assignee(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &str,
     ) -> Outcome<Vec<agreement::Model>>;
 
     /// Agreements where `id` is the provider.
     async fn get_agreements_by_assigner(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &str,
     ) -> Outcome<Vec<agreement::Model>>;
 
     /// Agreement carried by the message.
     async fn get_agreement_by_negotiation_message(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<agreement::Model>>;
     async fn create_agreement(&self, new_model: &NewAgreementModel) -> Outcome<agreement::Model>;
     async fn put_agreement(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
         edit_model: &EditAgreementModel,
     ) -> Outcome<agreement::Model>;
-    /// Returns the tenant of the removed record.
-    async fn delete_agreement(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<String>;
+    /// Returns the owner of the removed record.
+    async fn delete_agreement(&self, scope: &OwnerScope, id: &Urn) -> Outcome<Owner>;
 }
 
 /// Failures of the agreement repository, mapped onto `Errors`.

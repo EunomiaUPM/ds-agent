@@ -17,16 +17,17 @@
 
 //! Distributions read from the catalog that hosts the connector.
 
+use common::oauth::UserInfo;
 use ymir::errors::Outcome;
 
 /// Served in-process by the catalog agent, which always hosts the connector.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait CatalogFacadeTrait: Send + Sync {
-    /// Fails unless the catalog holds the distribution within `tenant_id`.
+    /// Fails unless the catalog holds a distribution `id` that `user` sees.
     async fn resolve_distribution_by_id(
         &self,
-        tenant_id: &str,
+        user: &UserInfo,
         distribution_id: &str,
     ) -> Outcome<()>;
 }

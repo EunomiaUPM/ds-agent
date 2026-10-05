@@ -19,7 +19,7 @@
 
 use std::sync::Arc;
 
-use common::auth::access::AccessScope;
+use common::oauth::{OwnedTrait, Owner, OwnerScope, UserInfo};
 use common::batch_requests::BatchRequests;
 use common::errors::NotFoundExt;
 use common::paginated_spec::Cursor;
@@ -57,24 +57,20 @@ impl AgreementService {
 
 #[async_trait::async_trait]
 impl AgreementServiceTrait for AgreementService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &AgreementFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<AgreementView>> {
-        scope.require_read()?;
         filters.validate()?;
-
-        let mut filters = filters.clone();
-        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
 
         let page = page.clamped();
         let (agreements, total) = self
             .agreement_repo
-            .get_all_agreements(&filters, &page, sort)
+            .get_all_agreements(&OwnerScope::seeing(user), filters, &page, sort)
             .await?;
 
         let items: Vec<AgreementView> = agreements
@@ -91,13 +87,12 @@ impl AgreementServiceTrait for AgreementService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), id = %id)
+        fields(user = %user.id(), id = %id)
     )]
-    async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<AgreementView> {
-        scope.require_read()?;
+    async fn get_one(&self, user: &UserInfo, id: &Urn) -> Outcome<AgreementView> {
         let agreement = self
             .agreement_repo
-            .get_agreement_by_id(scope.tenant_filter().map(str::to_string), id)
+            .get_agreement_by_id(&OwnerScope::seeing(user), id)
             .await?
             .or_not_found(id, "agreement")?;
 
@@ -108,18 +103,17 @@ impl AgreementServiceTrait for AgreementService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), process_id = %process_id)
+        fields(user = %user.id(), process_id = %process_id)
     )]
     async fn get_by_process(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         process_id: &Urn,
     ) -> Outcome<AgreementView> {
-        scope.require_read()?;
         let agreement = self
             .agreement_repo
             .get_agreement_by_negotiation_process(
-                scope.tenant_filter().map(str::to_string),
+                &OwnerScope::seeing(user),
                 process_id,
             )
             .await?
@@ -132,18 +126,17 @@ impl AgreementServiceTrait for AgreementService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), message_id = %message_id)
+        fields(user = %user.id(), message_id = %message_id)
     )]
     async fn get_by_message(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         message_id: &Urn,
     ) -> Outcome<AgreementView> {
-        scope.require_read()?;
         let agreement = self
             .agreement_repo
             .get_agreement_by_negotiation_message(
-                scope.tenant_filter().map(str::to_string),
+                &OwnerScope::seeing(user),
                 message_id,
             )
             .await?
@@ -156,17 +149,16 @@ impl AgreementServiceTrait for AgreementService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), assignee = %assignee)
+        fields(user = %user.id(), assignee = %assignee)
     )]
     async fn get_by_assignee(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         assignee: &str,
     ) -> Outcome<Vec<AgreementView>> {
-        scope.require_read()?;
         let agreements = self
             .agreement_repo
-            .get_agreements_by_assignee(scope.tenant_filter().map(str::to_string), assignee)
+            .get_agreements_by_assignee(&OwnerScope::seeing(user), assignee)
             .await?;
 
         Ok(agreements
@@ -179,17 +171,16 @@ impl AgreementServiceTrait for AgreementService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), assigner = %assigner)
+        fields(user = %user.id(), assigner = %assigner)
     )]
     async fn get_by_assigner(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         assigner: &str,
     ) -> Outcome<Vec<AgreementView>> {
-        scope.require_read()?;
         let agreements = self
             .agreement_repo
-            .get_agreements_by_assigner(scope.tenant_filter().map(str::to_string), assigner)
+            .get_agreements_by_assigner(&OwnerScope::seeing(user), assigner)
             .await?;
 
         Ok(agreements
@@ -198,9 +189,8 @@ impl AgreementServiceTrait for AgreementService {
             .collect())
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn batch(&self, scope: &AccessScope, req: &BatchRequests) -> Outcome<Vec<AgreementView>> {
-        scope.require_read()?;
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn batch(&self, user: &UserInfo, req: &BatchRequests) -> Outcome<Vec<AgreementView>> {
         if req.ids.len() > MAX_BATCH_IDS {
             return Err(Errors::format(
                 BadFormat::Received,
@@ -214,7 +204,7 @@ impl AgreementServiceTrait for AgreementService {
 
         let agreements = self
             .agreement_repo
-            .get_batch_agreements(scope.tenant_filter().map(str::to_string), &req.ids)
+            .get_batch_agreements(&OwnerScope::seeing(user), &req.ids)
             .await?;
 
         Ok(agreements
@@ -223,16 +213,16 @@ impl AgreementServiceTrait for AgreementService {
             .collect())
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn create(&self, scope: &AccessScope, cmd: &NewAgreementDto) -> Outcome<AgreementView> {
-        let tenant_id = scope.resolve_create_tenant(cmd.tenant_id.as_deref())?;
-        let new_model: NewAgreementModel = cmd.clone().into_model(tenant_id);
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn create(&self, user: &UserInfo, cmd: &NewAgreementDto) -> Outcome<AgreementView> {
+        let owner = Owner::for_new(user, cmd.owner.clone(), cmd.visibility.clone());
+        let new_model: NewAgreementModel = cmd.clone().into_model(owner);
         let created = self.agreement_repo.create_agreement(&new_model).await?;
 
         let view = AgreementView::assemble(created);
         events::emit_action!(
             self.event_bus,
-            &view.inner.tenant_id,
+            &view.inner.owner(),
             crate::EVENT_PREFIX,
             "agreement",
             "create",
@@ -241,25 +231,24 @@ impl AgreementServiceTrait for AgreementService {
         Ok(view)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn edit(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         id: &Urn,
         cmd: &EditAgreementDto,
     ) -> Outcome<AgreementView> {
-        scope.require_write()?;
 
         let edit_model: EditAgreementModel = cmd.clone().into();
         let updated = self
             .agreement_repo
-            .put_agreement(scope.tenant_filter().map(str::to_string), id, &edit_model)
+            .put_agreement(&OwnerScope::acting(user), id, &edit_model)
             .await?;
 
         let view = AgreementView::assemble(updated);
         events::emit_action!(
             self.event_bus,
-            &view.inner.tenant_id,
+            &view.inner.owner(),
             crate::EVENT_PREFIX,
             "agreement",
             "edit",
@@ -272,13 +261,12 @@ impl AgreementServiceTrait for AgreementService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), id = %id)
+        fields(user = %user.id(), id = %id)
     )]
-    async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
-        scope.require_write()?;
+    async fn delete(&self, user: &UserInfo, id: &Urn) -> Outcome<()> {
         let owner = self
             .agreement_repo
-            .delete_agreement(scope.tenant_filter().map(str::to_string), id)
+            .delete_agreement(&OwnerScope::acting(user), id)
             .await?;
         events::emit_action!(
             self.event_bus,

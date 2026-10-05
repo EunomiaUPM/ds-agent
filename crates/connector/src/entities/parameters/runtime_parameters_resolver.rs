@@ -33,8 +33,8 @@ pub struct RuntimeParametersResolver<'a> {
     runtime_params: &'a serde_json::Value,
     ingress_url: Option<String>,
     keystore: Option<Arc<dyn KeystoreLookup>>,
-    /// Tenant whose keystore resolves the placeholders; set together with `keystore`.
-    keystore_tenant: String,
+    /// User whose keystore resolves the placeholders; set together with `keystore`.
+    keystore_user: String,
 }
 
 impl<'a> RuntimeParametersResolver<'a> {
@@ -48,7 +48,7 @@ impl<'a> RuntimeParametersResolver<'a> {
             runtime_params,
             ingress_url: None,
             keystore: None,
-            keystore_tenant: String::new(),
+            keystore_user: String::new(),
         }
     }
 
@@ -58,10 +58,11 @@ impl<'a> RuntimeParametersResolver<'a> {
         self
     }
 
-    /// Resolves keystore placeholders against `tenant_id`'s parameters and secrets.
-    pub fn with_keystore(mut self, lookup: Arc<dyn KeystoreLookup>, tenant_id: &str) -> Self {
+    /// Resolves keystore placeholders against `user_id`'s parameters and secrets (the keystore
+    /// is per user: the instance owner's).
+    pub fn with_keystore(mut self, lookup: Arc<dyn KeystoreLookup>, user_id: &str) -> Self {
         self.keystore = Some(lookup);
-        self.keystore_tenant = tenant_id.to_string();
+        self.keystore_user = user_id.to_string();
         self
     }
 
@@ -107,12 +108,12 @@ impl<'a> RuntimeParametersResolver<'a> {
             .into_iter()
             .map(|key| {
                 let ks = ks.clone();
-                let tenant = self.keystore_tenant.clone();
+                let user = self.keystore_user.clone();
                 async move {
                     let val = if is_param {
-                        ks.get_parameter(&tenant, &key).await
+                        ks.get_parameter(&user, &key).await
                     } else {
-                        ks.get_secret(&tenant, &key).await
+                        ks.get_secret(&user, &key).await
                     };
                     (key, val)
                 }

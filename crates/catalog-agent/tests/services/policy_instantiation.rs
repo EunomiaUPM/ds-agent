@@ -30,7 +30,8 @@ use catalog_agent::services::odrl_policies::MockOdrlPolicyServiceTrait;
 use catalog_agent::services::policy_instantiation::service::PolicyInstantiationService;
 use catalog_agent::services::policy_instantiation::PolicyInstantiationServiceTrait;
 use catalog_agent::services::policy_templates::MockPolicyTemplateServiceTrait;
-use common::test_utils::scopes::TestScopes;
+use common::test_utils::grpc::TENANT;
+use common::test_utils::scopes::TestUsers;
 use serde_json::json;
 use urn::Urn;
 use ymir::errors::Errors;
@@ -88,7 +89,7 @@ async fn parameters_fill_the_template_and_provenance_is_kept() {
             let constraints = &offer["permission"][0]["constraint"];
             constraints[0]["rightOperand"] == "eu"
                 && constraints[1]["rightOperand"]["@value"] == 3.0
-                && p.tenant_id.as_deref() == Some("tenant-1")
+                && p.owner.is_none()
                 && p.entity_id.to_string() == ENTITY
                 && p.source_template_id.as_deref() == Some("tpl-1")
                 && p.source_template_version.as_deref() == Some("1")
@@ -101,7 +102,7 @@ async fn parameters_fill_the_template_and_provenance_is_kept() {
 
     let created = svc
         .instantiate_policy(
-            &TestScopes::owner("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin/tenant-1"),
             &request(&[("$region", Stringable("eu".into()))]),
         )
         .await
@@ -118,7 +119,7 @@ async fn invalid_request_creates_nothing() {
     );
     let result = svc
         .instantiate_policy(
-            &TestScopes::owner("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin/tenant-1"),
             &request(&[("$region", Stringable("asia".into()))]),
         )
         .await;
@@ -138,7 +139,7 @@ async fn missing_template_fails_the_instantiation() {
     );
 
     let result = svc
-        .instantiate_policy(&TestScopes::owner("tenant-1"), &request(&[]))
+        .instantiate_policy(&TestUsers::user("tenant-1", "/admin/tenant-1"), &request(&[]))
         .await;
     assert!(result.is_err());
 }
@@ -164,7 +165,7 @@ async fn numeric_parameter_as_bare_right_operand() {
     let svc = PolicyInstantiationService::new(Arc::new(offers), Arc::new(templates));
 
     let result = svc
-        .instantiate_policy(&TestScopes::owner("tenant-1"), &request(&[]))
+        .instantiate_policy(&TestUsers::user("tenant-1", "/admin/tenant-1"), &request(&[]))
         .await;
     assert!(result.is_ok(), "{result:?}");
 }

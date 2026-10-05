@@ -119,6 +119,7 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         Ok(VerifiedPeer {
             participant_id: participant_id.to_string(),
             role: grant.role,
+            visibility: grant.visibility,
         })
     }
 

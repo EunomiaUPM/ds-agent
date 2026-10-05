@@ -127,8 +127,8 @@ impl DataplaneManager {
         // Resolve runtime secret placeholders before dispatch.
         if let (Some(runtime), Some(store)) = (context.runtime().cloned(), &self.secret_store) {
             use crate::engine::dataplane_manager::dataplane_runtime::RuntimeSecretVault;
-            let tenant_id = context.dataplane_process().inner.tenant_id.clone();
-            let resolved = RuntimeSecretVault::new(store.as_ref(), &tenant_id)
+            let user_id = context.dataplane_process().inner.user_id.clone();
+            let resolved = RuntimeSecretVault::new(store.as_ref(), &user_id)
                 .resolve(runtime)
                 .await;
             context.set_runtime(resolved);

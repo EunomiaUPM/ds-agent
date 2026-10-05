@@ -37,11 +37,9 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(CatalogCatalogs::TenantId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(CatalogCatalogs::UserId).string().not_null())
+                    .col(ColumnDef::new(CatalogCatalogs::UserRole).string_len(255).not_null())
+                    .col(ColumnDef::new(CatalogCatalogs::Visibility).string_len(16).not_null())
                     .col(ColumnDef::new(CatalogCatalogs::FoafHomePage).string())
                     .col(ColumnDef::new(CatalogCatalogs::DctConformsTo).string())
                     .col(ColumnDef::new(CatalogCatalogs::DctCreator).string())
@@ -76,7 +74,9 @@ impl MigrationTrait for Migration {
 pub enum CatalogCatalogs {
     Table,
     Id,
-    TenantId,
+    UserId,
+    UserRole,
+    Visibility,
     FoafHomePage,
     DctConformsTo,
     DctCreator,

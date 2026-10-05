@@ -66,7 +66,7 @@ impl FrontendHandlers {
     }
 
     pub async fn fe_config(State(ctx): State<Arc<AppContext>>) -> impl IntoResponse {
-        let gateway_base = ctx.config.common().hosts.get_host(HostType::Http);
+        let gateway_base = ctx.config.common().get_host(HostType::Http);
         Json(json!({ "gateway_base": gateway_base }))
     }
 }

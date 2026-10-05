@@ -21,7 +21,7 @@ pub mod service;
 
 use crate::entities::catalogs::{CatalogDto, EditCatalogDto, NewCatalogDto};
 use crate::entities::filters::CatalogFilter;
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -33,7 +33,7 @@ pub trait CatalogServiceTrait: Send + Sync {
     /// Page of catalogs visible to the caller.
     async fn get_all_catalogs(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &CatalogFilter,
         page: &Page,
         sort: &Sort,
@@ -41,33 +41,33 @@ pub trait CatalogServiceTrait: Send + Sync {
     /// Catalogs found among `ids`.
     async fn get_batch_catalogs(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         ids: &[Urn],
     ) -> Outcome<Vec<CatalogDto>>;
     /// 404 when the catalog is not visible to the caller.
-    async fn get_catalog_by_id(&self, scope: &AccessScope, catalog_id: &Urn)
+    async fn get_catalog_by_id(&self, user: &UserInfo, catalog_id: &Urn)
         -> Outcome<CatalogDto>;
-    /// The acting tenant's main catalog, if it has one.
-    async fn get_main_catalog(&self, scope: &AccessScope) -> Outcome<Option<CatalogDto>>;
+    /// The connector's main catalog, if it has one (whoever asks).
+    async fn get_main_catalog(&self, user: &UserInfo) -> Outcome<Option<CatalogDto>>;
 
     async fn put_catalog_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         catalog_id: &Urn,
         edit_catalog_model: &EditCatalogDto,
     ) -> Outcome<CatalogDto>;
     async fn create_catalog(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_catalog_model: &NewCatalogDto,
     ) -> Outcome<CatalogDto>;
 
-    /// Creates the acting tenant's main catalog.
+    /// Creates the connector's main catalog (the root only), unless there is one already.
     async fn create_main_catalog(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_catalog_model: &NewCatalogDto,
     ) -> Outcome<CatalogDto>;
 
-    async fn delete_catalog_by_id(&self, scope: &AccessScope, catalog_id: &Urn) -> Outcome<()>;
+    async fn delete_catalog_by_id(&self, user: &UserInfo, catalog_id: &Urn) -> Outcome<()>;
 }

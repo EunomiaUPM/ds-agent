@@ -15,20 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
-
-use common::auth::OauthTokenValidator;
 use common::boot::seeders::{BootSeeder, RedisCacheFlush};
 use common::boot::BootstrapServiceTrait;
-use common::config::services::CommonConfig;
 use common::config::types::cache::CacheType;
-use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
+use common::config::types::traits::CacheConfigTrait;
 use common::config::ApplicationConfig;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
-use oauth::setup::AdminSeeder;
-use oauth::setup::OAuthModule;
-use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
 use ymir::errors::Outcome;
 
@@ -47,10 +40,6 @@ impl BootstrapServiceTrait for CoreBoot {
         MonolithModule::migrations()
     }
 
-    fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator> {
-        OAuthModule::validator(common, db)
-    }
-
     async fn compose(config: &ApplicationConfig, root: &RootContext) -> Outcome<ServiceComposer> {
         let monolith = MonolithModule::compose(config, root).await?;
         let ports = monolith.auth_ports();
@@ -63,7 +52,7 @@ impl BootstrapServiceTrait for CoreBoot {
     /// The Redis flush only runs when the cache is Redis.
     async fn seeders(
         config: &ApplicationConfig,
-        root: &RootContext,
+        _root: &RootContext,
     ) -> Outcome<Vec<Box<dyn BootSeeder>>> {
         let mut seeders: Vec<Box<dyn BootSeeder>> = Vec::new();
         if matches!(
@@ -74,7 +63,7 @@ impl BootstrapServiceTrait for CoreBoot {
                 config.monolith().get_full_cache_url(),
             )));
         }
-        seeders.push(Box::new(AdminSeeder::new(root.db.clone(), config.common())));
+        // seeders.push(Box::new(AdminSeeder::new(root.db.clone(), config.common())));
         Ok(seeders)
     }
 }

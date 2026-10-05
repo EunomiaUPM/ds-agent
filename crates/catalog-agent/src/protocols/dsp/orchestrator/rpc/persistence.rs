@@ -17,7 +17,7 @@
 
 use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::services::peer_catalogs::PeerCatalogServiceTrait;
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use common::errors::{CommonErrors, ErrorLog};
 use std::sync::Arc;
 use tracing::error;
@@ -34,29 +34,29 @@ impl OrchestrationPersistenceForProtocolForRPC {
         }
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     pub async fn get_catalog(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         peer_id: &str,
     ) -> Outcome<Option<Catalog>> {
         let catalog = self
             .peer_catalog_entity_service
-            .get_peer_catalog(scope, peer_id)
+            .get_peer_catalog(user, peer_id)
             .await?;
         Ok(catalog)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     pub async fn set_catalog(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         peer_id: &str,
         catalog: &Catalog,
     ) -> Outcome<()> {
         let _ = self
             .peer_catalog_entity_service
-            .set_peer_catalog(scope, peer_id, catalog)
+            .set_peer_catalog(user, peer_id, catalog)
             .await?;
         Ok(())
     }

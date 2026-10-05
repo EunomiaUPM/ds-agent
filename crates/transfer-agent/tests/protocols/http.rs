@@ -20,14 +20,14 @@
 use axum::Router;
 use axum::extract::Request;
 use axum::response::Response;
-use common::facades::ssi_auth_facade::MockSSIAuthFacadeTrait;
+use common::facades::grants_facade::MockGrantsFacadeTrait;
 use http::StatusCode;
 use std::sync::Arc;
 use tower::ServiceExt;
 use transfer_agent::protocols::dsp::http::dsp::DspRouter;
-use ymir::data::entities::shared::participant::Model as Mates;
+use common::facades::grants_facade::VerifiedPeer;
+use common::oauth::RolePath;
 use ymir::errors::Errors;
-use ymir::types::participants::ParticipantType;
 
 const REQUEST_BODY: &str = r#"{
         "@context": ["https://w3id.org/dspace/2025/1/context.jsonld"],
@@ -38,24 +38,17 @@ const REQUEST_BODY: &str = r#"{
         "callbackAddress": "https://example.com/callback"
     }"#;
 
-fn mate() -> Mates {
-    let t = chrono::Utc::now();
-    Mates {
-        tenant_id: "default".to_string(),
+fn mate() -> VerifiedPeer {
+    VerifiedPeer {
         participant_id: "did:example:consumer".into(),
-        participant_type: ParticipantType::Agent,
-        participant_nick: "Consumer".to_string(),
-        base_url: "http://127.0.0.1:1100".to_string(),
-        token: None,
-        saved_at: t,
-        last_interaction: t,
-        extra_fields: serde_json::Value::Null,
+        role: RolePath::root(),
+        visibility: common::oauth::Visibility::Public,
     }
 }
 
 /// A router whose auth facade accepts every token, or rejects every token.
 fn router(authorized: bool) -> Router {
-    let mut ssi = MockSSIAuthFacadeTrait::new();
+    let mut ssi = MockGrantsFacadeTrait::new();
     if authorized {
         ssi.expect_verify_token().returning(|_| Ok(mate()));
     } else {

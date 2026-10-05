@@ -18,6 +18,7 @@
 //! State transition log.
 
 use crate::data::sea_orm::orm::dataplane_transfer_logs;
+use common::oauth::OwnerScope;
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -29,13 +30,13 @@ pub trait DataplaneTransferLogsRepo: Send + Sync + 'static {
     /// Every transition of the process.
     async fn get_transfer_logs_by_dataplane_process_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         dataplane_process_id: &Urn,
     ) -> Outcome<Vec<dataplane_transfer_logs::Model>>;
 
     async fn get_transfer_log_by_id(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         log_id: &Urn,
     ) -> Outcome<Option<dataplane_transfer_logs::Model>>;
 

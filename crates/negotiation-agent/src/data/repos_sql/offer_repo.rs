@@ -16,12 +16,12 @@
  */
 
 use crate::data::entities::offer;
+use common::oauth::{OwnedTrait, Owner, OwnerScope};
 use crate::data::entities::offer::{Model, NewOfferModel};
 use crate::data::repo_traits::offer_repo::{OfferRepoErrors, OfferRepoTrait};
 use crate::entities::filters::OfferFilter;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use common::query::FilterApplier;
-use sea_orm::QueryTrait;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Select,
 };
@@ -33,8 +33,8 @@ impl FilterApplier<Select<offer::Entity>> for OfferFilter {
         if let Some(ref id) = self.id {
             q = q.filter(offer::Column::Id.eq(id));
         }
-        if let Some(ref tenant_id) = self.tenant_id {
-            q = q.filter(offer::Column::TenantId.eq(tenant_id));
+        if let Some(ref user_id) = self.user_id {
+            q = q.filter(offer::Column::UserId.eq(user_id));
         }
         if let Some(ref process_id) = self.process_id {
             q = q.filter(offer::Column::NegotiationAgentProcessId.eq(process_id));
@@ -67,11 +67,18 @@ impl OfferRepoTrait for OfferRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_offers(
         &self,
+        scope: &OwnerScope,
         filters: &OfferFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<Model>, Option<u64>)> {
-        let q = filters.apply_to(offer::Entity::find());
+        let q = filters
+            .apply_to(offer::Entity::find())
+            .filter(scope.condition(
+                offer::Column::UserId,
+                offer::Column::UserRole,
+                offer::Column::Visibility,
+            ));
 
         let total = q
             .clone()
@@ -96,12 +103,12 @@ impl OfferRepoTrait for OfferRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_offers(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<Model>> {
         let offer_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let offers = offer::Entity::find()
-            .apply_if(tenant_id, |q, t| q.filter(offer::Column::TenantId.eq(t)))
+            .filter(scope.condition(offer::Column::UserId, offer::Column::UserRole, offer::Column::Visibility))
             .filter(offer::Column::Id.is_in(offer_ids))
             .all(&self.db_connection)
             .await;
@@ -115,12 +122,12 @@ impl OfferRepoTrait for OfferRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_offers_by_negotiation_process(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Vec<Model>> {
         let pid = id.to_string();
         let offers = offer::Entity::find()
-            .apply_if(tenant_id, |q, t| q.filter(offer::Column::TenantId.eq(t)))
+            .filter(scope.condition(offer::Column::UserId, offer::Column::UserRole, offer::Column::Visibility))
             .filter(offer::Column::NegotiationAgentProcessId.eq(pid))
             .order_by_asc(offer::Column::CreatedAt)
             .all(&self.db_connection)
@@ -135,12 +142,12 @@ impl OfferRepoTrait for OfferRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_last_offer_by_negotiation_process(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<Model>> {
         let pid = id.to_string();
         let offers = offer::Entity::find()
-            .apply_if(tenant_id, |q, t| q.filter(offer::Column::TenantId.eq(t)))
+            .filter(scope.condition(offer::Column::UserId, offer::Column::UserRole, offer::Column::Visibility))
             .filter(offer::Column::NegotiationAgentProcessId.eq(pid))
             .order_by_desc(offer::Column::CreatedAt)
             .one(&self.db_connection)
@@ -153,10 +160,10 @@ impl OfferRepoTrait for OfferRepoForSql {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn get_offer_by_id(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<Option<Model>> {
+    async fn get_offer_by_id(&self, scope: &OwnerScope, id: &Urn) -> Outcome<Option<Model>> {
         let oid = id.to_string();
         let offer = offer::Entity::find_by_id(oid)
-            .apply_if(tenant_id, |q, t| q.filter(offer::Column::TenantId.eq(t)))
+            .filter(scope.condition(offer::Column::UserId, offer::Column::UserRole, offer::Column::Visibility))
             .one(&self.db_connection)
             .await;
 
@@ -169,12 +176,12 @@ impl OfferRepoTrait for OfferRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_offer_by_negotiation_message(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<Model>> {
         let mid = id.to_string();
         let offer = offer::Entity::find()
-            .apply_if(tenant_id, |q, t| q.filter(offer::Column::TenantId.eq(t)))
+            .filter(scope.condition(offer::Column::UserId, offer::Column::UserRole, offer::Column::Visibility))
             .filter(offer::Column::NegotiationAgentMessageId.eq(mid))
             .one(&self.db_connection)
             .await;
@@ -188,12 +195,12 @@ impl OfferRepoTrait for OfferRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_offer_by_offer_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<Model>> {
         let external_offer_id = id.to_string();
         let offer = offer::Entity::find()
-            .apply_if(tenant_id, |q, t| q.filter(offer::Column::TenantId.eq(t)))
+            .filter(scope.condition(offer::Column::UserId, offer::Column::UserRole, offer::Column::Visibility))
             .filter(offer::Column::OfferId.eq(external_offer_id))
             .one(&self.db_connection)
             .await;
@@ -218,11 +225,11 @@ impl OfferRepoTrait for OfferRepoForSql {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn delete_offer(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<String> {
+    async fn delete_offer(&self, scope: &OwnerScope, id: &Urn) -> Outcome<Owner> {
         let oid = id.to_string();
         let result = offer::Entity::delete_many()
             .filter(offer::Column::Id.eq(&oid))
-            .apply_if(tenant_id, |q, t| q.filter(offer::Column::TenantId.eq(t)))
+            .filter(scope.condition(offer::Column::UserId, offer::Column::UserRole, offer::Column::Visibility))
             .exec_with_returning(&self.db_connection)
             .await;
 
@@ -230,7 +237,7 @@ impl OfferRepoTrait for OfferRepoForSql {
             Ok(rows) => rows
                 .into_iter()
                 .next()
-                .map(|row| row.tenant_id)
+                .map(|row| row.owner())
                 .ok_or_else(|| OfferRepoErrors::OfferNotFound.into_errors()),
             Err(e) => Err(OfferRepoErrors::ErrorDeletingOffer(e.into()).into_errors()),
         }

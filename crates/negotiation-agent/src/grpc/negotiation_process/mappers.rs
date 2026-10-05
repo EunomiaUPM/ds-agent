@@ -40,7 +40,7 @@ impl TryFrom<ListNegotiationProcessesRequest> for ListParams<NegotiationProcessF
     fn try_from(req: ListNegotiationProcessesRequest) -> Result<Self, Status> {
         let filter = NegotiationProcessFilter {
             id: None,
-            tenant_id: None,
+            user_id: None,
             state: req.state.non_empty().map(str::to_owned),
             role: req.role.non_empty().map(str::to_owned),
             protocol: req.protocol.non_empty().map(str::to_owned),
@@ -68,7 +68,8 @@ impl TryFrom<CreateNegotiationProcessRequest> for NewNegotiationProcessDto {
     fn try_from(req: CreateNegotiationProcessRequest) -> Result<Self, Status> {
         Ok(Self {
             id: req.id.as_deref().unwrap_or_default().opt_urn("id")?,
-            tenant_id: None,
+            visibility: None,
+            owner: None,
             state: req.state,
             state_attribute: req.state_attribute,
             associated_agent_peer: req.associated_agent_peer,

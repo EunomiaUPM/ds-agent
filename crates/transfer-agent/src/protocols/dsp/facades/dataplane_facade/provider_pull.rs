@@ -55,7 +55,7 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         };
         let cmd = DataplaneCommand::SetInit(DataplaneInitCommandTypes::AsProvider {
             transfer_process_id: id,
-            tenant_id: ctx.tenant_id().to_string(),
+            owner: ctx.owner(),
             connector_instance: connector_instance.clone(),
             direction: DataplaneInitCommandDirection::Pull { data_address: None },
         });
@@ -75,7 +75,6 @@ impl DataPlaneStrategy for ProviderPullStrategy {
             let res = mgr
                 .execute_command(DataplaneCommand::GetAssociated(DataplaneContinuation {
                     transfer_dto_urn: id,
-                    tenant_id: ctx.tenant_id().to_string(),
                 }))
                 .await?;
 
@@ -104,7 +103,6 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         if !ctx.is_restart {
             let continuation = DataplaneContinuation {
                 transfer_dto_urn: id,
-                tenant_id: ctx.tenant_id().to_string(),
             };
             let dataplane: DataplaneAddress = ctx
                 .resolved_data_address
@@ -123,7 +121,6 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         if ctx.is_restart {
             mgr.execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
                 transfer_dto_urn: id,
-                tenant_id: ctx.tenant_id().to_string(),
             }))
             .await?;
             return Ok(None);
@@ -148,7 +145,6 @@ impl DataPlaneStrategy for ProviderPullStrategy {
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
             transfer_dto_urn: ctx.process_urn("provider pull suspend_post")?,
-            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(())
@@ -171,7 +167,6 @@ impl DataPlaneStrategy for ProviderPullStrategy {
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
             transfer_dto_urn: ctx.process_urn("provider pull complete_post")?,
-            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(())
@@ -194,7 +189,6 @@ impl DataPlaneStrategy for ProviderPullStrategy {
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
             transfer_dto_urn: ctx.process_urn("provider pull terminate_post")?,
-            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(())

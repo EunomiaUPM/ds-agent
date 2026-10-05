@@ -38,14 +38,11 @@ pub struct NegotiationPorts {
 }
 
 impl NegotiationPorts {
-    /// Microservices: auth and catalog are reached through their APIs with the service token.
-    pub fn remote(config: &ContractsConfig, root: &RootContext) -> Self {
+    /// Microservices: auth and catalog are reached through their APIs.
+    pub fn remote(config: &ContractsConfig, _root: &RootContext) -> Self {
         Self {
-            auth: AuthPorts::remote(config.ssi_auth(), root),
-            catalog: Arc::new(CatalogRemoteFacade::new(
-                config.catalog(),
-                root.service_client.clone(),
-            )),
+            auth: AuthPorts::remote(config.ssi_auth()),
+            catalog: Arc::new(CatalogRemoteFacade::new(config.catalog())),
         }
     }
 

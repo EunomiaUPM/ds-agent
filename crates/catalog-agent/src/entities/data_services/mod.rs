@@ -18,6 +18,7 @@
 //! Data services.
 
 use crate::data::entities::dataservice;
+use common::oauth::{Owner, Visibility};
 use crate::data::entities::dataservice::{EditDataServiceModel, Model, NewDataServiceModel};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
@@ -36,8 +37,12 @@ pub struct DataServiceDto {
 #[serde(deny_unknown_fields)]
 pub struct NewDataServiceDto {
     pub id: Option<Urn>,
+    /// Who else sees it; private by default.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tenant_id: Option<String>,
+    pub visibility: Option<Visibility>,
+    /// Owner an in-process flow asks for; only honoured for the root.
+    #[serde(skip)]
+    pub owner: Option<Owner>,
     pub dcat_endpoint_description: Option<String>,
     pub dcat_endpoint_url: String,
     pub dct_conforms_to: Option<String>,
@@ -51,7 +56,8 @@ impl Default for NewDataServiceDto {
     fn default() -> Self {
         Self {
             id: None,
-            tenant_id: None,
+            visibility: None,
+            owner: None,
             dcat_endpoint_description: None,
             dcat_endpoint_url: "".to_string(),
             dct_conforms_to: None,
@@ -77,11 +83,11 @@ pub struct EditDataServiceDto {
 }
 
 impl NewDataServiceDto {
-    /// Row for `tenant_id`.
-    pub fn into_model(self, tenant_id: String) -> NewDataServiceModel {
+    /// Row owned by `owner`.
+    pub fn into_model(self, owner: Owner) -> NewDataServiceModel {
         NewDataServiceModel {
             id: self.id,
-            tenant_id,
+            owner,
             dcat_endpoint_description: self.dcat_endpoint_description,
             dcat_endpoint_url: self.dcat_endpoint_url,
             dct_conforms_to: self.dct_conforms_to,

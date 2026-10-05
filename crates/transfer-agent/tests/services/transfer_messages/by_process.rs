@@ -27,13 +27,13 @@ async fn get_all_by_process_happy_path() {
     let mc = msg.clone();
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_messages_by_process_id()
-        .returning(move |_, _, _, _| Ok(vec![mc.clone()]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(1));
+        .returning(move |_, _, _, _, _| Ok(vec![mc.clone()]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(1));
 
     let svc = make_svc(repo);
     let result = svc
         .get_all_by_process(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &process_urn,
             &empty_filter(),
             &default_page(),
@@ -52,13 +52,13 @@ async fn get_all_by_process_empty() {
     let process_urn = p_urn(1);
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_messages_by_process_id()
-        .returning(|_, _, _, _| Ok(vec![]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(0));
+        .returning(|_, _, _, _, _| Ok(vec![]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(0));
 
     let svc = make_svc(repo);
     let result = svc
         .get_all_by_process(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &process_urn,
             &empty_filter(),
             &default_page(),
@@ -81,13 +81,13 @@ async fn get_all_by_process_full_page_produces_cursor() {
     let mc = msg.clone();
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_messages_by_process_id()
-        .returning(move |_, _, _, _| Ok(vec![mc.clone()]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(1));
+        .returning(move |_, _, _, _, _| Ok(vec![mc.clone()]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(1));
 
     let svc = make_svc(repo);
     let result = svc
         .get_all_by_process(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &process_urn,
             &empty_filter(),
             &Page::new(1, None),
@@ -107,13 +107,13 @@ async fn get_all_by_process_partial_page_no_cursor() {
     let mcc = mc.clone();
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_messages_by_process_id()
-        .returning(move |_, _, _, _| Ok(vec![mcc.clone()]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(1));
+        .returning(move |_, _, _, _, _| Ok(vec![mcc.clone()]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(1));
 
     let svc = make_svc(repo);
     let result = svc
         .get_all_by_process(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &process_urn,
             &empty_filter(),
             &Page::new(5, None),
@@ -132,13 +132,13 @@ async fn get_all_by_process_process_id_passed_through() {
     let puc = process_urn.clone();
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_messages_by_process_id()
-        .withf(move |id, _, _, _| *id == puc)
-        .returning(|_, _, _, _| Ok(vec![]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(0));
+        .withf(move |_, id, _, _, _| *id == puc)
+        .returning(|_, _, _, _, _| Ok(vec![]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(0));
 
     let svc = make_svc(repo);
     svc.get_all_by_process(
-        &TestScopes::admin_of("tenant-1"),
+        &TestUsers::user("tenant-1", "/admin"),
         &process_urn,
         &empty_filter(),
         &default_page(),
@@ -154,9 +154,9 @@ async fn get_all_by_process_filter_direction_passed_through() {
     let process_urn = p_urn(1);
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_messages_by_process_id()
-        .withf(|_, f, _, _| f.direction == Some(Direction::Inbound))
-        .returning(|_, _, _, _| Ok(vec![]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(0));
+        .withf(|_, _, f, _, _| f.direction == Some(Direction::Inbound))
+        .returning(|_, _, _, _, _| Ok(vec![]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(0));
 
     let filter = TransferMessageFilter {
         direction: Some(Direction::Inbound),
@@ -164,7 +164,7 @@ async fn get_all_by_process_filter_direction_passed_through() {
     };
     let svc = make_svc(repo);
     svc.get_all_by_process(
-        &TestScopes::admin_of("tenant-1"),
+        &TestUsers::user("tenant-1", "/admin"),
         &process_urn,
         &filter,
         &default_page(),
@@ -180,15 +180,15 @@ async fn get_all_by_process_propagates_repo_error() {
     let process_urn = p_urn(1);
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_messages_by_process_id()
-        .returning(|_, _, _, _| {
+        .returning(|_, _, _, _, _| {
             Err(TransferMessageRepoErrors::ErrorFetchingTransferMessage(io_err()).into_errors())
         });
-    repo.expect_count_transfer_messages().returning(|_| Ok(0));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(0));
 
     let svc = make_svc(repo);
     assert!(
         svc.get_all_by_process(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &process_urn,
             &empty_filter(),
             &default_page(),

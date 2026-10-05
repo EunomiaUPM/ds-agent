@@ -21,8 +21,9 @@
 mod isolation;
 mod validation;
 
+use common::oauth::{Owner, OwnerScope, UserInfo};
 use common::paginated_spec::{Page, Sort};
-use common::test_utils::scopes::TestScopes;
+use common::test_utils::scopes::TestUsers;
 use connector::data::entities::connector_templates;
 use connector::data::factory_trait::MockConnectorRepoTrait;
 use connector::data::repo_traits::connector_repo_errors::ConnectorTemplateRepoErrors;
@@ -61,7 +62,9 @@ fn echo_model(
     connector_templates::Model {
         name: m.name.clone().unwrap_or_default(),
         version: m.version.clone().unwrap_or_default(),
-        tenant_id: m.tenant_id.clone(),
+        user_id: m.owner.user_id.clone(),
+        user_role: m.owner.role.clone(),
+        visibility: m.owner.visibility.clone(),
         author: m.author.clone().unwrap_or_default(),
         created_at: chrono::Utc::now().into(),
         spec: m.spec.clone(),

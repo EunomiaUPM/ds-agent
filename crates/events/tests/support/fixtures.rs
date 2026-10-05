@@ -20,6 +20,7 @@
 use std::sync::Arc;
 
 use chrono::Utc;
+use common::oauth::{Owner, Visibility};
 use events::data::repo::{
     MockEventDeadLetterRepo, MockEventDeliveryRepo, MockEventStoreRepo, MockEventSubscriptionRepo,
 };
@@ -28,11 +29,16 @@ use events::entities::subscription::SubscriptionRecord;
 use events::{EventBus, EventEnvelope, RetryPolicy, Topic, TopicPattern};
 use serde_json::json;
 
-pub const TENANT: &str = "tenant-1";
+pub const USER: &str = "user-1";
+
+/// Owner of every record in these tests: [`USER`], private.
+pub fn owner() -> Owner {
+    Owner::new(USER, "/admin/upm".parse().unwrap(), Visibility::Private)
+}
 
 pub fn envelope(topic: &str) -> EventEnvelope {
     EventEnvelope::new(
-        TENANT,
+        owner(),
         Topic::new(topic).unwrap(),
         "tests",
         1,
@@ -41,7 +47,7 @@ pub fn envelope(topic: &str) -> EventEnvelope {
     )
 }
 
-/// Active subscription of [`TENANT`] to every topic.
+/// Active subscription of [`USER`] to every topic.
 pub fn subscription(
     id: &str,
     callback_address: &str,
@@ -50,7 +56,7 @@ pub fn subscription(
 ) -> SubscriptionRecord {
     SubscriptionRecord {
         id: id.to_string(),
-        tenant_id: TENANT.to_string(),
+        owner: owner(),
         callback_address: callback_address.to_string(),
         topic_pattern: TopicPattern::match_all(),
         secret: secret.map(str::to_string),
@@ -72,7 +78,7 @@ pub fn delivery(
 ) -> EventDeliveryRecord {
     EventDeliveryRecord {
         id: id.to_string(),
-        tenant_id: TENANT.to_string(),
+        owner: owner(),
         event_id: event.id.to_string(),
         subscription_id: subscription_id.to_string(),
         status: DeliveryStatus::Failed,

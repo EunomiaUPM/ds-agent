@@ -23,7 +23,7 @@ use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::datasets::{DatasetDto, EditDatasetDto, NewDatasetDto};
 use crate::entities::filters::DatasetFilter;
 use crate::services::datasets::DatasetServiceTrait;
-use common::auth::AccessScope;
+use common::oauth::{OwnedTrait, Owner, OwnerScope, UserInfo};
 use common::errors::NotFoundExt;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use common::query::QueryFilter;
@@ -60,24 +60,21 @@ impl DatasetService {
 
 #[async_trait::async_trait]
 impl DatasetServiceTrait for DatasetService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all_datasets(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &DatasetFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<DatasetDto>> {
-        scope.require_read()?;
         filters.validate()?;
-        let mut filters = filters.clone();
-        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
         let page = page.clamped();
 
         let (datasets, total) = self
             .repo
             .get_dataset_repo()
-            .get_all_datasets(&filters, &page, sort)
+            .get_all_datasets(&OwnerScope::seeing(user), filters, &page, sort)
             .await?;
 
         let dtos: Vec<DatasetDto> = datasets.into_iter().map(Into::into).collect();
@@ -87,17 +84,16 @@ impl DatasetServiceTrait for DatasetService {
         }))
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_batch_datasets(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         ids: &[Urn],
     ) -> Outcome<Vec<DatasetDto>> {
-        scope.require_read()?;
         let datasets = self
             .repo
             .get_dataset_repo()
-            .get_batch_datasets(scope.tenant_filter().map(str::to_string), ids)
+            .get_batch_datasets(&OwnerScope::seeing(user), ids)
             .await?;
 
         let mut dtos: Vec<DatasetDto> = Vec::new();
@@ -115,17 +111,16 @@ impl DatasetServiceTrait for DatasetService {
         Ok(dtos)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_datasets_by_catalog_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         catalog_id: &Urn,
     ) -> Outcome<Vec<DatasetDto>> {
-        scope.require_read()?;
         let datasets = self
             .repo
             .get_dataset_repo()
-            .get_datasets_by_catalog_id(scope.tenant_filter().map(str::to_string), catalog_id)
+            .get_datasets_by_catalog_id(&OwnerScope::seeing(user), catalog_id)
             .await?;
 
         let mut dtos: Vec<DatasetDto> = Vec::new();
@@ -145,17 +140,16 @@ impl DatasetServiceTrait for DatasetService {
         Ok(dtos)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_dataset_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         dataset_id: &Urn,
     ) -> Outcome<DatasetDto> {
-        scope.require_read()?;
         let dataset = self
             .repo
             .get_dataset_repo()
-            .get_dataset_by_id(scope.tenant_filter().map(str::to_string), dataset_id)
+            .get_dataset_by_id(&OwnerScope::seeing(user), dataset_id)
             .await?
             .or_not_found(dataset_id, "dataset")?;
 
@@ -169,20 +163,19 @@ impl DatasetServiceTrait for DatasetService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn put_dataset_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         dataset_id: &Urn,
         edit_dataset_model: &EditDatasetDto,
     ) -> Outcome<DatasetDto> {
-        scope.require_write()?;
         let edit_model = edit_dataset_model.clone().into();
         let dataset = self
             .repo
             .get_dataset_repo()
             .put_dataset_by_id(
-                scope.tenant_filter().map(str::to_string),
+                &OwnerScope::acting(user),
                 dataset_id,
                 &edit_model,
             )
@@ -199,7 +192,7 @@ impl DatasetServiceTrait for DatasetService {
 
         events::emit_action!(
             self.event_bus,
-            &dto.inner.tenant_id,
+            &dto.inner.owner(),
             crate::EVENT_PREFIX,
             "dataset",
             "edit",
@@ -208,16 +201,16 @@ impl DatasetServiceTrait for DatasetService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn create_dataset(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_dataset_model: &NewDatasetDto,
     ) -> Outcome<DatasetDto> {
         let mut new_dataset_model = new_dataset_model.clone();
-        let tenant_id = scope.resolve_create_tenant(new_dataset_model.tenant_id.as_deref())?;
-        new_dataset_model.tenant_id = Some(tenant_id.clone());
-        let new_model: NewDatasetModel = new_dataset_model.into_model(tenant_id);
+        let owner =
+            Owner::for_new(user, new_dataset_model.owner.take(), new_dataset_model.visibility.clone());
+        let new_model: NewDatasetModel = new_dataset_model.into_model(owner);
         let dataset = self
             .repo
             .get_dataset_repo()
@@ -240,7 +233,7 @@ impl DatasetServiceTrait for DatasetService {
 
         events::emit_action!(
             self.event_bus,
-            &dto.inner.tenant_id,
+            &dto.inner.owner(),
             crate::EVENT_PREFIX,
             "dataset",
             "create",
@@ -249,13 +242,12 @@ impl DatasetServiceTrait for DatasetService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn delete_dataset_by_id(&self, scope: &AccessScope, dataset_id: &Urn) -> Outcome<()> {
-        scope.require_write()?;
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn delete_dataset_by_id(&self, user: &UserInfo, dataset_id: &Urn) -> Outcome<()> {
         let deleted = self
             .repo
             .get_dataset_repo()
-            .delete_dataset_by_id(scope.tenant_filter().map(str::to_string), dataset_id)
+            .delete_dataset_by_id(&OwnerScope::acting(user), dataset_id)
             .await?;
 
         let cache = self.cache.get_dataset_cache();
@@ -269,7 +261,7 @@ impl DatasetServiceTrait for DatasetService {
 
         events::emit_action!(
             self.event_bus,
-            &deleted.tenant_id,
+            &deleted.owner(),
             crate::EVENT_PREFIX,
             "dataset",
             "delete",

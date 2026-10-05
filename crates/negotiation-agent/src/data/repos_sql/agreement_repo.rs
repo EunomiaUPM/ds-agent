@@ -16,12 +16,12 @@
  */
 
 use crate::data::entities::agreement;
+use common::oauth::{OwnedTrait, Owner, OwnerScope};
 use crate::data::entities::agreement::{EditAgreementModel, Model, NewAgreementModel};
 use crate::data::repo_traits::agreement_repo::{AgreementRepoErrors, AgreementRepoTrait};
 use crate::entities::filters::AgreementFilter;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use common::query::FilterApplier;
-use sea_orm::QueryTrait;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
     QueryFilter, Select,
@@ -34,8 +34,8 @@ impl FilterApplier<Select<agreement::Entity>> for AgreementFilter {
         if let Some(ref id) = self.id {
             q = q.filter(agreement::Column::Id.eq(id));
         }
-        if let Some(ref tenant_id) = self.tenant_id {
-            q = q.filter(agreement::Column::TenantId.eq(tenant_id));
+        if let Some(ref user_id) = self.user_id {
+            q = q.filter(agreement::Column::UserId.eq(user_id));
         }
         if let Some(ref process_id) = self.process_id {
             q = q.filter(agreement::Column::NegotiationAgentProcessId.eq(process_id));
@@ -82,11 +82,16 @@ impl AgreementRepoTrait for AgreementRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_agreements(
         &self,
+        scope: &OwnerScope,
         filters: &AgreementFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<Model>, Option<u64>)> {
-        let mut q = agreement::Entity::find();
+        let mut q = agreement::Entity::find().filter(scope.condition(
+            agreement::Column::UserId,
+            agreement::Column::UserRole,
+            agreement::Column::Visibility,
+        ));
         q = filters.apply_to(q);
 
         let total = q
@@ -112,14 +117,12 @@ impl AgreementRepoTrait for AgreementRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_agreements(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<Model>> {
         let agreement_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let agreements = agreement::Entity::find()
-            .apply_if(tenant_id, |q, t| {
-                q.filter(agreement::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(agreement::Column::UserId, agreement::Column::UserRole, agreement::Column::Visibility))
             .filter(agreement::Column::Id.is_in(agreement_ids))
             .all(&self.db_connection)
             .await;
@@ -133,14 +136,12 @@ impl AgreementRepoTrait for AgreementRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_agreement_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<Model>> {
         let aid = id.to_string();
         let agreement = agreement::Entity::find_by_id(aid)
-            .apply_if(tenant_id, |q, t| {
-                q.filter(agreement::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(agreement::Column::UserId, agreement::Column::UserRole, agreement::Column::Visibility))
             .one(&self.db_connection)
             .await;
 
@@ -153,14 +154,12 @@ impl AgreementRepoTrait for AgreementRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_agreement_by_negotiation_process(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<Model>> {
         let pid = id.to_string();
         let agreement = agreement::Entity::find()
-            .apply_if(tenant_id, |q, t| {
-                q.filter(agreement::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(agreement::Column::UserId, agreement::Column::UserRole, agreement::Column::Visibility))
             .filter(agreement::Column::NegotiationAgentProcessId.eq(pid))
             .one(&self.db_connection)
             .await;
@@ -174,13 +173,11 @@ impl AgreementRepoTrait for AgreementRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_agreements_by_assignee(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &str,
     ) -> Outcome<Vec<Model>> {
         let agreement = agreement::Entity::find()
-            .apply_if(tenant_id, |q, t| {
-                q.filter(agreement::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(agreement::Column::UserId, agreement::Column::UserRole, agreement::Column::Visibility))
             .filter(agreement::Column::ConsumerParticipantId.eq(id))
             .all(&self.db_connection)
             .await;
@@ -194,13 +191,11 @@ impl AgreementRepoTrait for AgreementRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_agreements_by_assigner(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &str,
     ) -> Outcome<Vec<Model>> {
         let agreement = agreement::Entity::find()
-            .apply_if(tenant_id, |q, t| {
-                q.filter(agreement::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(agreement::Column::UserId, agreement::Column::UserRole, agreement::Column::Visibility))
             .filter(agreement::Column::ProviderParticipantId.eq(id))
             .all(&self.db_connection)
             .await;
@@ -214,14 +209,12 @@ impl AgreementRepoTrait for AgreementRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_agreement_by_negotiation_message(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<Model>> {
         let mid = id.to_string();
         let agreement = agreement::Entity::find()
-            .apply_if(tenant_id, |q, t| {
-                q.filter(agreement::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(agreement::Column::UserId, agreement::Column::UserRole, agreement::Column::Visibility))
             .filter(agreement::Column::NegotiationAgentMessageId.eq(mid))
             .one(&self.db_connection)
             .await;
@@ -248,15 +241,13 @@ impl AgreementRepoTrait for AgreementRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_agreement(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
         edit_model: &EditAgreementModel,
     ) -> Outcome<Model> {
         let aid = id.to_string();
         let old_model = agreement::Entity::find_by_id(&aid)
-            .apply_if(tenant_id, |q, t| {
-                q.filter(agreement::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(agreement::Column::UserId, agreement::Column::UserRole, agreement::Column::Visibility))
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -281,13 +272,11 @@ impl AgreementRepoTrait for AgreementRepoForSql {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn delete_agreement(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<String> {
+    async fn delete_agreement(&self, scope: &OwnerScope, id: &Urn) -> Outcome<Owner> {
         let aid = id.to_string();
         let result = agreement::Entity::delete_many()
             .filter(agreement::Column::Id.eq(&aid))
-            .apply_if(tenant_id, |q, t| {
-                q.filter(agreement::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(agreement::Column::UserId, agreement::Column::UserRole, agreement::Column::Visibility))
             .exec_with_returning(&self.db_connection)
             .await;
 
@@ -295,7 +284,7 @@ impl AgreementRepoTrait for AgreementRepoForSql {
             Ok(rows) => rows
                 .into_iter()
                 .next()
-                .map(|row| row.tenant_id)
+                .map(|row| row.owner())
                 .ok_or_else(|| AgreementRepoErrors::AgreementNotFound.into_errors()),
             Err(e) => Err(AgreementRepoErrors::ErrorDeletingAgreement(e.into()).into_errors()),
         }

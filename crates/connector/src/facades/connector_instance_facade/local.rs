@@ -19,7 +19,7 @@
 
 use std::sync::Arc;
 
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use urn::Urn;
 use ymir::errors::Outcome;
 
@@ -44,15 +44,11 @@ impl ConnectorInstanceFacadeTrait for ConnectorInstanceLocalFacade {
         level = "info",
         skip_all,
         err,
-        fields(peer.service = "connector", tenant = %tenant_id)
+        fields(peer.service = "connector")
     )]
-    async fn get_instance_by_id(
-        &self,
-        tenant_id: &str,
-        id: &Urn,
-    ) -> Outcome<Option<ConnectorInstanceDto>> {
+    async fn get_instance_by_id(&self, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>> {
         self.service
-            .get_instance_by_id(&AccessScope::service(tenant_id), id)
+            .get_instance_by_id(&UserInfo::system(), id)
             .await
     }
 
@@ -60,15 +56,14 @@ impl ConnectorInstanceFacadeTrait for ConnectorInstanceLocalFacade {
         level = "info",
         skip_all,
         err,
-        fields(peer.service = "connector", tenant = %tenant_id)
+        fields(peer.service = "connector")
     )]
     async fn get_instance_by_distribution(
         &self,
-        tenant_id: &str,
         distribution_id: &Urn,
     ) -> Outcome<Option<ConnectorInstanceDto>> {
         self.service
-            .get_instance_by_distribution(&AccessScope::service(tenant_id), distribution_id)
+            .get_instance_by_distribution(&UserInfo::system(), distribution_id)
             .await
     }
 }

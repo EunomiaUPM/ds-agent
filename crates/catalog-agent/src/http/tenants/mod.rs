@@ -17,12 +17,12 @@
 
 use std::sync::Arc;
 
-use axum::extract::{Path, State};
+use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::post;
 use axum::{Json, Router};
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 
 use crate::http::common::to_camel_case::ToCamelCase;
 use crate::services::tenant_provisioning::TenantProvisioningServiceTrait;
@@ -39,16 +39,15 @@ impl TenantRouter {
 
     pub fn router(self) -> Router {
         Router::new()
-            .route("/{tenant_id}/provision", post(Self::handle_provision))
+            .route("/provision", post(Self::handle_provision))
             .with_state(self)
     }
 
     async fn handle_provision(
         State(state): State<Self>,
-        scope: AccessScope,
-        Path(tenant_id): Path<String>,
+        user: UserInfo,
     ) -> impl IntoResponse {
-        match state.service.provision(&scope, &tenant_id).await {
+        match state.service.provision(&user).await {
             Ok(provisioned) => (StatusCode::OK, Json(ToCamelCase(provisioned))).into_response(),
             Err(e) => e.into_response(),
         }

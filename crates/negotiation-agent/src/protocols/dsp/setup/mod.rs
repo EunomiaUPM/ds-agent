@@ -39,7 +39,7 @@ impl DspModule {
             ctx.offer_svc.clone(),
             ctx.agreement_svc.clone(),
             ctx.config.clone(),
-            ctx.ssi_auth_facade.clone(),
+            ctx.grants_facade.clone(),
             ctx.mates_facade.clone(),
             ctx.oauth_validator.clone(),
         )

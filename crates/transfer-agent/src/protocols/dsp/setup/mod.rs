@@ -42,7 +42,7 @@ impl ServiceModuleTrait for DspModule {
     fn http(&self) -> Option<(String, Router)> {
         Some((
             DSP_BASE_PATH.to_string(),
-            DspRouter::new(self.ctx.ssi_auth_facade.clone()).router(),
+            DspRouter::new(self.ctx.grants_facade.clone()).router(),
         ))
     }
 }

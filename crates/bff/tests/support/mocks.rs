@@ -17,23 +17,19 @@
 
 //! Hand-written stubs.
 
-use common::auth::claims::{Claims, RbacRole};
-use common::auth::OauthTokenValidator;
+use common::oauth::{OauthTokenValidatorTrait, RolePath, UserInfo};
+use serde_json::Map;
 use ymir::errors::{Errors, Outcome};
 
-/// Accepts `valid-jwt-token` and any `pat_` token as the admin `user-admin-123`.
+/// Accepts `valid-jwt-token` and any `pat_` token as the root `user-admin-123`.
 pub struct StubTokenValidator;
 
 #[async_trait::async_trait]
-impl OauthTokenValidator for StubTokenValidator {
-    async fn validate_token(&self, token: &str) -> Outcome<Claims> {
+impl OauthTokenValidatorTrait for StubTokenValidator {
+    async fn validate_token<'a>(&self, token: Option<&'a str>) -> Outcome<UserInfo> {
+        let token = token.unwrap_or_default();
         if token == "valid-jwt-token" || token.starts_with("pat_") {
-            Ok(Claims {
-                sub: "user-admin-123".to_string(),
-                role: RbacRole::Admin,
-                iat: 1000,
-                exp: 9999999999,
-            })
+            Ok(UserInfo::new("user-admin-123", None, RolePath::root(), Map::new()))
         } else {
             Err(Errors::unauthorized("invalid token", None))
         }

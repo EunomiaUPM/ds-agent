@@ -18,6 +18,7 @@
 //! Distributions table.
 
 use sea_orm::entity::prelude::*;
+use common::oauth::{Owner, RolePath, Visibility};
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
@@ -29,7 +30,9 @@ use urn::{Urn, UrnBuilder};
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub dct_issued: DateTimeWithTimeZone,
     pub dct_modified: Option<DateTimeWithTimeZone>,
     pub dct_title: Option<String>,
@@ -77,10 +80,12 @@ impl Related<super::odrl_offer::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+common::impl_owned!(Model);
+
 #[derive(Debug, Clone)]
 pub struct NewDistributionModel {
     pub id: Option<Urn>,
-    pub tenant_id: String,
+    pub owner: Owner,
     pub dct_title: Option<String>,
     pub dct_description: Option<String>,
     pub dct_formats: Option<String>,
@@ -95,7 +100,9 @@ impl From<NewDistributionModel> for ActiveModel {
             .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(dto.id.clone().unwrap_or(new_urn.clone()).to_string()),
-            tenant_id: ActiveValue::Set(dto.tenant_id),
+            user_id: ActiveValue::Set(dto.owner.user_id.clone()),
+            user_role: ActiveValue::Set(dto.owner.role.clone()),
+            visibility: ActiveValue::Set(dto.owner.visibility.clone()),
             dct_issued: ActiveValue::Set(chrono::Utc::now().into()),
             dct_modified: ActiveValue::Set(None),
             dct_title: ActiveValue::Set(dto.dct_title),

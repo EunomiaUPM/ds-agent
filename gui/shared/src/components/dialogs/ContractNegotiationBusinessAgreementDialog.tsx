@@ -46,13 +46,16 @@ export const ContractNegotiationBusinessAgreementDialog = ({
       onSubmit={handleSubmit}
       scrollable={true}
       afterInfoContent={
-        <div className="pt-4">
-          <PolicyWrapperShow
-            policy={process.offers!.at(-1)!.offerContent}
-            datasetId={process.identifiers!.datasetId}
-            catalogId={process.identifiers!.catalogId}
-          />
-        </div>
+        // Process lists come without their offers: the policy only shows where they are loaded.
+        process.offers?.at(-1)?.offerContent ? (
+          <div className="pt-4">
+            <PolicyWrapperShow
+              policy={process.offers!.at(-1)!.offerContent}
+              datasetId={process.identifiers!.datasetId}
+              catalogId={process.identifiers!.catalogId}
+            />
+          </div>
+        ) : undefined
       }
     />
   );

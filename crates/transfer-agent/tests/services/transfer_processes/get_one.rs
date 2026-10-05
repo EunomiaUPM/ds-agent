@@ -36,7 +36,7 @@ async fn get_one_returns_view_with_identifiers() {
 
     let svc = make_svc(proc_repo, id_repo);
     let view = svc
-        .get_one(&TestScopes::admin_of("tenant-1"), p.id().as_urn())
+        .get_one(&TestUsers::user("tenant-1", "/admin"), p.id().as_urn())
         .await
         .unwrap();
 
@@ -67,7 +67,7 @@ async fn get_one_promotes_consumer_pid_and_provider_pid_from_identifiers() {
 
     let svc = make_svc(proc_repo, id_repo);
     let view = svc
-        .get_one(&TestScopes::admin_of("tenant-1"), p.id().as_urn())
+        .get_one(&TestUsers::user("tenant-1", "/admin"), p.id().as_urn())
         .await
         .unwrap();
 
@@ -91,7 +91,7 @@ async fn get_one_without_identifiers_returns_empty_map() {
 
     let svc = make_svc(proc_repo, id_repo);
     let view = svc
-        .get_one(&TestScopes::admin_of("tenant-1"), p.id().as_urn())
+        .get_one(&TestUsers::user("tenant-1", "/admin"), p.id().as_urn())
         .await
         .unwrap();
 
@@ -111,7 +111,7 @@ async fn get_one_not_found_returns_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.get_one(&TestScopes::admin_of("tenant-1"), &p_urn(999))
+        svc.get_one(&TestUsers::user("tenant-1", "/admin"), &p_urn(999))
             .await
             .is_err()
     );
@@ -130,7 +130,7 @@ async fn get_one_propagates_process_repo_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.get_one(&TestScopes::admin_of("tenant-1"), &p_urn(1))
+        svc.get_one(&TestUsers::user("tenant-1", "/admin"), &p_urn(1))
             .await
             .is_err()
     );
@@ -157,7 +157,7 @@ async fn get_one_propagates_identifier_repo_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.get_one(&TestScopes::admin_of("tenant-1"), p.id().as_urn())
+        svc.get_one(&TestUsers::user("tenant-1", "/admin"), p.id().as_urn())
             .await
             .is_err()
     );

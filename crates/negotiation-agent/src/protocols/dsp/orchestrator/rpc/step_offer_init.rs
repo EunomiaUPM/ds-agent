@@ -28,9 +28,9 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use crate::services::negotiation_process::views::NegotiationProcessView;
 use axum::http::HeaderMap;
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use common::dsp_common::DspActor;
-use common::facades::mates_facade::MatesFacadeTrait;
+use common::facades::AuthPorts;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 use ymir::services::client::ClientExt;
@@ -62,26 +62,26 @@ impl NegotiationRpcStep for RpcOfferInitStep {
         validator.negotiation_offer_init_rpc(input).await
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn prepare_context(
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationOfferInitMessageDto,
         _persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
-        mates_service: &Arc<dyn MatesFacadeTrait>,
+        auth: &AuthPorts,
     ) -> Outcome<NegotiationRpcInitialContext> {
         let provider_address = input.get_provider_address().unwrap_or_default();
         let associated_peer = input.get_associated_agent_peer().unwrap_or_default();
         NegotiationRpcInitialContext::resolve(
-            scope,
+            user,
             provider_address,
             associated_peer,
-            mates_service,
+            auth,
         )
         .await
     }
 
     fn auth_peer(ctx: &NegotiationRpcInitialContext) -> (&str, &str) {
-        (&ctx.tenant_id, &ctx.associated_peer)
+        (&ctx.owner.user_id, &ctx.associated_peer)
     }
 
     /// POSTs the offer message to `{provider_address}/negotiations/offers`
@@ -105,7 +105,7 @@ impl NegotiationRpcStep for RpcOfferInitStep {
             .await?;
 
         let process = persistence
-            .create_new(&ctx.tenant_id, input, &request_body.dto, &response.dto)
+            .create_new(&ctx.owner, input, &request_body.dto, &response.dto)
             .await?;
 
         Ok((response, process))

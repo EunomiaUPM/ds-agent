@@ -18,6 +18,7 @@
 //! Process fields.
 
 use crate::data::sea_orm::orm::dataplane_field;
+use common::oauth::{Owner, OwnerScope};
 use crate::data::sea_orm::orm::dataplane_field::{EditDataPlaneFieldModel, NewDataPlaneFieldModel};
 use thiserror::Error;
 use urn::Urn;
@@ -29,35 +30,36 @@ use ymir::errors::{Outcome, RepoIntoErrors};
 pub trait DataplaneFieldRepoTrait: Send + Sync + 'static {
     async fn get_all_dataplane_fields_by_process_id(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         process_id: &Urn,
     ) -> Outcome<Vec<dataplane_field::Model>>;
 
     async fn get_dataplane_field_by_id(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         field_id: &Urn,
     ) -> Outcome<Option<dataplane_field::Model>>;
 
+    /// Stores a field of the process; it belongs to `owner`, the process's.
     async fn create_dataplane_field(
         &self,
-        tenant_id: &str,
+        owner: &Owner,
         process_id: &Urn,
         new_dataplane_field: &NewDataPlaneFieldModel,
     ) -> Outcome<dataplane_field::Model>;
 
     async fn put_dataplane_field(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         field_id: &Urn,
         edit_field: &EditDataPlaneFieldModel,
     ) -> Outcome<dataplane_field::Model>;
 
-    async fn delete_dataplane_field(&self, tenant_id: &str, field_id: &Urn) -> Outcome<()>;
+    async fn delete_dataplane_field(&self, scope: &OwnerScope, field_id: &Urn) -> Outcome<()>;
 
     async fn delete_all_dataplane_fields_by_process_id(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         process_id: &Urn,
     ) -> Outcome<()>;
 }

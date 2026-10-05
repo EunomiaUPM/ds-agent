@@ -16,6 +16,7 @@
  */
 
 use crate::data::entities::dataservice::{EditDataServiceModel, NewDataServiceModel};
+use common::oauth::OwnerScope;
 use crate::data::entities::{catalog, dataservice};
 use crate::data::repo_traits::catalog_db_errors::{
     CatalogAgentRepoErrors, CatalogRepoErrors, DataServiceRepoErrors, DistributionRepoErrors,
@@ -34,8 +35,8 @@ use ymir::errors::{Outcome, RepoIntoErrors};
 
 impl FilterApplier<Select<dataservice::Entity>> for DataServiceFilter {
     fn apply_to(&self, mut q: Select<dataservice::Entity>) -> Select<dataservice::Entity> {
-        if let Some(ref tenant_id) = self.tenant_id {
-            q = q.filter(dataservice::Column::TenantId.eq(tenant_id));
+        if let Some(ref user_id) = self.user_id {
+            q = q.filter(dataservice::Column::UserId.eq(user_id));
         }
         if let Some(ref catalog_id) = self.catalog_id {
             q = q.filter(dataservice::Column::CatalogId.eq(catalog_id));
@@ -77,11 +78,16 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_data_services(
         &self,
+        scope: &OwnerScope,
         filters: &DataServiceFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<dataservice::Model>, Option<u64>)> {
-        let mut q = dataservice::Entity::find();
+        let mut q = dataservice::Entity::find().filter(scope.condition(
+            dataservice::Column::UserId,
+            dataservice::Column::UserRole,
+            dataservice::Column::Visibility,
+        ));
         q = filters.apply_to(q);
 
         let total = q.clone().count(&self.db_connection).await.map_err(|err| {
@@ -113,14 +119,12 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_data_services(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<dataservice::Model>> {
         let dataset_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let dataset_process = dataservice::Entity::find()
-            .apply_if(tenant_id, |q, t| {
-                q.filter(dataservice::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(dataservice::Column::UserId, dataservice::Column::UserRole, dataservice::Column::Visibility))
             .filter(dataservice::Column::Id.is_in(dataset_ids))
             .all(&self.db_connection)
             .await;
@@ -136,14 +140,12 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_data_services_by_catalog_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         catalog_id: &Urn,
     ) -> Outcome<Vec<dataservice::Model>> {
         let catalog_id = catalog_id.to_string();
         let data_services = dataservice::Entity::find()
-            .apply_if(tenant_id, |q, t| {
-                q.filter(dataservice::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(dataservice::Column::UserId, dataservice::Column::UserRole, dataservice::Column::Visibility))
             .filter(dataservice::Column::CatalogId.eq(catalog_id))
             .all(&self.db_connection)
             .await;
@@ -157,9 +159,8 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn get_main_data_service(&self, tenant_id: &str) -> Outcome<Option<dataservice::Model>> {
+    async fn get_main_data_service(&self) -> Outcome<Option<dataservice::Model>> {
         let data_service = dataservice::Entity::find()
-            .filter(dataservice::Column::TenantId.eq(tenant_id))
             .filter(dataservice::Column::DspaceMainDataService.eq(true))
             .one(&self.db_connection)
             .await
@@ -175,14 +176,12 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_data_service_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         data_service_id: &Urn,
     ) -> Outcome<Option<dataservice::Model>> {
         let data_service_id = data_service_id.to_string();
         let data_service = dataservice::Entity::find_by_id(data_service_id)
-            .apply_if(tenant_id, |q, t| {
-                q.filter(dataservice::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(dataservice::Column::UserId, dataservice::Column::UserRole, dataservice::Column::Visibility))
             .one(&self.db_connection)
             .await;
         match data_service {
@@ -197,15 +196,13 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_data_service_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         data_service_id: &Urn,
         edit_data_service_model: &EditDataServiceModel,
     ) -> Outcome<dataservice::Model> {
         let data_service_id = data_service_id.to_string();
         let old_model = dataservice::Entity::find_by_id(data_service_id)
-            .apply_if(tenant_id, |q, t| {
-                q.filter(dataservice::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(dataservice::Column::UserId, dataservice::Column::UserRole, dataservice::Column::Visibility))
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -265,7 +262,11 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
     ) -> Outcome<dataservice::Model> {
         let catalog =
             catalog::Entity::find_by_id(new_data_service_model.catalog_id.clone().to_string())
-                .filter(catalog::Column::TenantId.eq(&new_data_service_model.tenant_id))
+                .filter(OwnerScope::seeing(&new_data_service_model.owner).condition(
+                    catalog::Column::UserId,
+                    catalog::Column::UserRole,
+                    catalog::Column::Visibility,
+                ))
                 .one(&self.db_connection)
                 .await
                 .map_err(|err| {
@@ -300,7 +301,11 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
     ) -> Outcome<dataservice::Model> {
         let catalog =
             catalog::Entity::find_by_id(new_data_service_model.catalog_id.clone().to_string())
-                .filter(catalog::Column::TenantId.eq(&new_data_service_model.tenant_id))
+                .filter(OwnerScope::seeing(&new_data_service_model.owner).condition(
+                    catalog::Column::UserId,
+                    catalog::Column::UserRole,
+                    catalog::Column::Visibility,
+                ))
                 .one(&self.db_connection)
                 .await
                 .map_err(|err| {
@@ -317,7 +322,7 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         }
 
         let main_dataservice = self
-            .get_main_data_service(&new_data_service_model.tenant_id)
+            .get_main_data_service()
             .await?;
         if main_dataservice.is_some() {
             return Ok(main_dataservice.unwrap());
@@ -340,15 +345,13 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_data_service_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         data_service_id: &Urn,
     ) -> Outcome<dataservice::Model> {
-        // Single round-trip: DELETE ... RETURNING, tenant-scoped; empty result means not found.
+        // Single round-trip: DELETE ... RETURNING, owner-scoped; empty result means not found.
         let deleted = dataservice::Entity::delete_many()
             .filter(dataservice::Column::Id.eq(data_service_id.to_string()))
-            .apply_if(tenant_id, |q, t| {
-                q.filter(dataservice::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(dataservice::Column::UserId, dataservice::Column::UserRole, dataservice::Column::Visibility))
             .exec_with_returning(&self.db_connection)
             .await
             .map_err(|err| {

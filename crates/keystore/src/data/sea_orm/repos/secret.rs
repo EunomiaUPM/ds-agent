@@ -40,8 +40,8 @@ impl SecretRepoTrait for SeaOrmSecretRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_secrets(&self, filter: &PrefixFilter) -> Outcome<Vec<SecretEntry>> {
         let mut query = secret::Entity::find().filter(secret::Column::DeletedAt.is_null());
-        if let Some(tenant_id) = &filter.tenant_id {
-            query = query.filter(secret::Column::TenantId.eq(tenant_id));
+        if let Some(user_id) = &filter.user_id {
+            query = query.filter(secret::Column::UserId.eq(user_id));
         }
         if let Some(prefix) = &filter.prefix {
             if !prefix.is_empty() {
@@ -65,8 +65,8 @@ impl SecretRepoTrait for SeaOrmSecretRepo {
     async fn count_secrets(&self, filter: &PrefixFilter) -> Outcome<u64> {
         use sea_orm::PaginatorTrait;
         let mut query = secret::Entity::find().filter(secret::Column::DeletedAt.is_null());
-        if let Some(tenant_id) = &filter.tenant_id {
-            query = query.filter(secret::Column::TenantId.eq(tenant_id));
+        if let Some(user_id) = &filter.user_id {
+            query = query.filter(secret::Column::UserId.eq(user_id));
         }
         if let Some(prefix) = &filter.prefix {
             if !prefix.is_empty() {
@@ -80,10 +80,10 @@ impl SecretRepoTrait for SeaOrmSecretRepo {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn get_batch_secrets(&self, tenant_id: &str, keys: &[Key]) -> Outcome<Vec<SecretEntry>> {
+    async fn get_batch_secrets(&self, user_id: &str, keys: &[Key]) -> Outcome<Vec<SecretEntry>> {
         let key_strs: Vec<&str> = keys.iter().map(|k| k.as_str()).collect();
         let rows = secret::Entity::find()
-            .filter(secret::Column::TenantId.eq(tenant_id))
+            .filter(secret::Column::UserId.eq(user_id))
             .filter(secret::Column::Key.is_in(key_strs))
             .filter(secret::Column::DeletedAt.is_null())
             .all(&self.db)
@@ -99,8 +99,8 @@ impl SecretRepoTrait for SeaOrmSecretRepo {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn get_secret_by_key(&self, tenant_id: &str, key: &Key) -> Outcome<Option<SecretEntry>> {
-        let row = secret::Entity::find_by_id((tenant_id.to_string(), key.as_str().to_string()))
+    async fn get_secret_by_key(&self, user_id: &str, key: &Key) -> Outcome<Option<SecretEntry>> {
+        let row = secret::Entity::find_by_id((user_id.to_string(), key.as_str().to_string()))
             .filter(secret::Column::DeletedAt.is_null())
             .one(&self.db)
             .await
@@ -114,9 +114,9 @@ impl SecretRepoTrait for SeaOrmSecretRepo {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn create_secret(&self, tenant_id: &str, cmd: &NewSecretCommand) -> Outcome<SecretEntry> {
+    async fn create_secret(&self, user_id: &str, cmd: &NewSecretCommand) -> Outcome<SecretEntry> {
         let exists =
-            secret::Entity::find_by_id((tenant_id.to_string(), cmd.key.as_str().to_string()))
+            secret::Entity::find_by_id((user_id.to_string(), cmd.key.as_str().to_string()))
                 .filter(secret::Column::DeletedAt.is_null())
                 .one(&self.db)
                 .await
@@ -127,7 +127,7 @@ impl SecretRepoTrait for SeaOrmSecretRepo {
             return Err(SecretRepoErrors::SecretAlreadyExists.into_errors());
         }
 
-        let active = secret::ActiveModel::from_new_cmd(tenant_id, cmd);
+        let active = secret::ActiveModel::from_new_cmd(user_id, cmd);
         let model = secret::Entity::insert(active)
             .exec_with_returning(&self.db)
             .await
@@ -141,11 +141,11 @@ impl SecretRepoTrait for SeaOrmSecretRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_secret(
         &self,
-        tenant_id: &str,
+        user_id: &str,
         key: &Key,
         cmd: &EditSecretCommand,
     ) -> Outcome<SecretEntry> {
-        let current = secret::Entity::find_by_id((tenant_id.to_string(), key.as_str().to_string()))
+        let current = secret::Entity::find_by_id((user_id.to_string(), key.as_str().to_string()))
             .filter(secret::Column::DeletedAt.is_null())
             .one(&self.db)
             .await
@@ -176,9 +176,9 @@ impl SecretRepoTrait for SeaOrmSecretRepo {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn delete_secret(&self, tenant_id: &str, key: &Key) -> Outcome<()> {
+    async fn delete_secret(&self, user_id: &str, key: &Key) -> Outcome<()> {
         let result =
-            secret::Entity::delete_by_id((tenant_id.to_string(), key.as_str().to_string()))
+            secret::Entity::delete_by_id((user_id.to_string(), key.as_str().to_string()))
                 .exec(&self.db)
                 .await
                 .map_err(|e| SecretRepoErrors::ErrorDeletingSecret(e.into()).into_errors())?;

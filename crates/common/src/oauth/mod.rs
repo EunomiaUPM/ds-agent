@@ -18,7 +18,7 @@
 //! The identity provider of the agent, as far as it depends on ds-agent.
 //!
 //! The provider-independent part lives in `ymir`: [`UserInfo`] (the user, its role path and the
-//! access rule over the role tree), the [`TokenValidatorTrait`] with its two validators, the
+//! access rule over the role tree), the [`OauthTokenValidatorTrait`] with its two validators, the
 //! [`OauthHttpMiddleware`] and the `UserInfo` axum extractor. What stays here needs this
 //! repository's config or transports:
 //!
@@ -80,7 +80,7 @@ pub use provider::token_validator;
 // pub use rules::AuthRules;
 pub use ymir::http::OauthHttpMiddleware;
 pub use ymir::services::token_validator::{
-    FixedUserValidator, ProxiedTokenValidator, TokenValidatorTrait,
+    FixedUserValidator, ProxiedTokenValidator, OauthTokenValidatorTrait,
 };
 pub use ymir::types::oauth::{RolePath, UserInfo};
 

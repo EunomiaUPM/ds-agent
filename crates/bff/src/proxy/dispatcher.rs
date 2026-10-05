@@ -27,6 +27,7 @@ use axum::response::{IntoResponse, Response};
 use common::config::services::traits::GatewayConfigTrait;
 use common::config::services::GatewayConfig;
 use common::config::types::traits::{CommonConfigTrait, MinKnownConfigTrait};
+use common::routes::auth;
 use futures_util::TryStreamExt;
 use tracing::error;
 use uuid::Uuid;
@@ -147,30 +148,14 @@ impl HttpProxyDispatcher {
                 self.config.transfer().get_host(HostType::Http),
                 "api/v1/dataplane".to_string(),
             )),
-            "mates" => Some((
-                self.config.ssi_auth().get_host(HostType::Http),
-                "api/v1/mates".to_string(),
-            )),
-            "wallet" => Some((
-                self.config.ssi_auth().get_host(HostType::Http),
-                "api/v1/wallet".to_string(),
-            )),
-            "vc-request" => Some((
-                self.config.ssi_auth().get_host(HostType::Http),
-                "api/v1/vc-request".to_string(),
-            )),
-            "peer-connection" | "onboard" => Some((
-                self.config.ssi_auth().get_host(HostType::Http),
-                "api/v1/peer-connection".to_string(),
-            )),
-            "gate" => Some((
-                self.config.ssi_auth().get_host(HostType::Http),
-                "api/v1/gate".to_string(),
-            )),
-            "gaia" => Some((
-                self.config.ssi_auth().get_host(HostType::Http),
-                "api/v1/gaia".to_string(),
-            )),
+            "mates" => Some(self.ssi_auth_upstream(auth::mates::PREFIX)),
+            "wallet" => Some(self.ssi_auth_upstream(auth::wallet::PREFIX)),
+            "vc-request" => Some(self.ssi_auth_upstream(auth::vc_request::PREFIX)),
+            "peer-connection" | "onboard" => {
+                Some(self.ssi_auth_upstream(auth::peer_connection::PREFIX))
+            }
+            "gate" => Some(self.ssi_auth_upstream(auth::gate::PREFIX)),
+            "gaia" => Some(self.ssi_auth_upstream(auth::gaia::PREFIX)),
             "dataset-offerings" => Some((
                 self.config.catalog().get_host(HostType::Http),
                 "api/v1/catalog-agent/dataset-offerings".to_string(),
@@ -193,6 +178,16 @@ impl HttpProxyDispatcher {
             )),
             _ => None,
         }
+    }
+
+    /// Host and path of the SSI auth agent's capability mounted at `prefix`, under the agent's
+    /// API version.
+    fn ssi_auth_upstream(&self, prefix: &str) -> (String, String) {
+        let ssi_auth = self.config.ssi_auth();
+        (
+            ssi_auth.get_host(HostType::Http),
+            format!("{}{}", ssi_auth.get_api_version(), prefix),
+        )
     }
 
     async fn execute(

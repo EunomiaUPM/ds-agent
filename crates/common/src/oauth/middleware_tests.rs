@@ -33,13 +33,13 @@ use ymir::errors::{Errors, Outcome};
 
 use ymir::http::OauthHttpMiddleware;
 
-use crate::oauth::{RolePath, TokenValidatorTrait, UserInfo};
+use crate::oauth::{RolePath, OauthTokenValidatorTrait, UserInfo};
 
 /// Accepts one root and one regular user token; anything else is unauthorized.
 struct StubValidator;
 
 #[async_trait::async_trait]
-impl TokenValidatorTrait for StubValidator {
+impl OauthTokenValidatorTrait for StubValidator {
     async fn validate_token<'a>(&self, token: Option<&'a str>) -> Outcome<UserInfo> {
         match token.unwrap_or_default() {
             "valid_root_token" => Ok(UserInfo::new("root", None, RolePath::root(), Map::new())),
@@ -55,7 +55,7 @@ impl TokenValidatorTrait for StubValidator {
 }
 
 fn app() -> Router {
-    let validator: Arc<dyn TokenValidatorTrait> = Arc::new(StubValidator);
+    let validator: Arc<dyn OauthTokenValidatorTrait> = Arc::new(StubValidator);
 
     async fn scope_handler(user: UserInfo) -> impl IntoResponse {
         Json(serde_json::json!({
@@ -173,7 +173,7 @@ async fn user_without_middleware_is_unauthorized() {
 /// lets anonymous requests through.
 #[tokio::test]
 async fn query_tokens_and_permissive_mode_are_accepted() {
-    let validator: Arc<dyn TokenValidatorTrait> = Arc::new(StubValidator);
+    let validator: Arc<dyn OauthTokenValidatorTrait> = Arc::new(StubValidator);
 
     let req_query = Request::builder()
         .uri("/data?token=valid_user_token")

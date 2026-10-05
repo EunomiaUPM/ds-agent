@@ -22,7 +22,7 @@ use std::sync::Arc;
 use ymir::config::traits::ConnectionConfigTrait;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::token_validator::{
-    FixedUserValidator, ProxiedTokenValidator, TokenValidatorTrait,
+    FixedUserValidator, ProxiedTokenValidator, OauthTokenValidatorTrait,
 };
 
 use crate::config::OauthConfig;
@@ -33,7 +33,7 @@ use crate::config::services::CommonConfig;
 ///
 /// # Panics
 /// With `built_in`, which is not operational yet.
-pub fn token_validator(common: &CommonConfig) -> Outcome<Arc<dyn TokenValidatorTrait>> {
+pub fn token_validator(common: &CommonConfig) -> Outcome<Arc<dyn OauthTokenValidatorTrait>> {
     match &common.oauth {
         OauthConfig::BuiltIn => {
             panic!("the built_in OAuth provider is not operational yet; use keycloak or static")

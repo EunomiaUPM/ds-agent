@@ -21,6 +21,7 @@ use std::sync::Arc;
 
 use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientExt;
+use ymir::types::oauth::UserInfo;
 use ymir::utils::http_client;
 
 use crate::dsp_common::well_known_types::{VersionPath, VersionResponse};
@@ -36,10 +37,11 @@ impl WellKnownRPCService {
     pub fn new(mates_facade: Arc<dyn MatesFacadeTrait>) -> Self {
         Self { mates_facade }
     }
+    /// Address of peer `mate_id`, read as the system user: any known peer.
     async fn get_base_url(&self, mate_id: &str) -> Outcome<String> {
         let participant = self
             .mates_facade
-            .get_mate_by_id(mate_id.to_string())
+            .get_mate_by_id(&UserInfo::system(), mate_id.to_string())
             .await
             .map_err(|e| Errors::missing_resource(mate_id, "Mate not found", Some(Box::new(e))))?;
         Ok(participant.base_url)

@@ -22,7 +22,7 @@ use serde_json::Map;
 use ymir::errors::Errors;
 
 use crate::oauth::{
-    FixedUserValidator, ProxiedTokenValidator, RolePath, TokenValidatorTrait,
+    FixedUserValidator, ProxiedTokenValidator, RolePath, OauthTokenValidatorTrait,
     UserInfo,
 };
 use crate::config::OauthConfig;

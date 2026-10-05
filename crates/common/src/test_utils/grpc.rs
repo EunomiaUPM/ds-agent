@@ -22,7 +22,7 @@ use serde_json::Map;
 use tonic::Request;
 use ymir::errors::{Errors, Outcome};
 
-use crate::oauth::{RolePath, TokenValidatorTrait, UserInfo};
+use crate::oauth::{RolePath, OauthTokenValidatorTrait, UserInfo};
 
 /// User behind the `user` token.
 pub const USER_ID: &str = "user-1";
@@ -36,7 +36,7 @@ pub const ROOT_ID: &str = "root";
 pub struct StubTokenValidator;
 
 #[async_trait::async_trait]
-impl TokenValidatorTrait for StubTokenValidator {
+impl OauthTokenValidatorTrait for StubTokenValidator {
     async fn validate_token<'a>(&self, token: Option<&'a str>) -> Outcome<UserInfo> {
         let (user_id, role) = match token.unwrap_or_default() {
             "user" => (USER_ID, USER_ROLE.parse::<RolePath>()?),

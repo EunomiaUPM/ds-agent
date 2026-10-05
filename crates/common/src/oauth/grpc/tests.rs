@@ -25,13 +25,13 @@ use tonic::Code;
 use ymir::errors::{Errors, Outcome};
 
 use crate::oauth::grpc::GrpcAuth;
-use crate::oauth::{RolePath, TokenValidatorTrait, UserInfo};
+use crate::oauth::{RolePath, OauthTokenValidatorTrait, UserInfo};
 
 /// Accepts a root and a regular user token; anything else is unauthorized.
 struct StubValidator;
 
 #[async_trait::async_trait]
-impl TokenValidatorTrait for StubValidator {
+impl OauthTokenValidatorTrait for StubValidator {
     async fn validate_token<'a>(&self, token: Option<&'a str>) -> Outcome<UserInfo> {
         match token.unwrap_or_default() {
             "root" => Ok(UserInfo::new("root", None, RolePath::root(), Map::new())),

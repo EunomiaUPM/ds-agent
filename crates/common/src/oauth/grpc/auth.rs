@@ -24,17 +24,17 @@ use tonic::Status;
 
 use ymir::types::oauth::UserInfo;
 
-use crate::oauth::TokenValidatorTrait;
+use crate::oauth::OauthTokenValidatorTrait;
 use crate::oauth::AUTHORIZATION_HEADER;
 
 /// Validates bearer tokens from metadata into the caller's `UserInfo`.
 #[derive(Clone)]
 pub struct GrpcAuth {
-    validator: Arc<dyn TokenValidatorTrait>,
+    validator: Arc<dyn OauthTokenValidatorTrait>,
 }
 
 impl GrpcAuth {
-    pub fn new(validator: Arc<dyn TokenValidatorTrait>) -> Self {
+    pub fn new(validator: Arc<dyn OauthTokenValidatorTrait>) -> Self {
         Self { validator }
     }
 

@@ -24,7 +24,7 @@ use ymir::errors::Outcome;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
-use crate::oauth::{TokenValidatorTrait, token_validator};
+use crate::oauth::{OauthTokenValidatorTrait, token_validator};
 use crate::config::services::CommonConfig;
 
 /// One vault, one DB pool and one token validator for the whole process.
@@ -32,7 +32,7 @@ use crate::config::services::CommonConfig;
 pub struct RootContext {
     pub vault: Arc<VaultService>,
     pub db: DatabaseConnection,
-    pub validator: Arc<dyn TokenValidatorTrait>,
+    pub validator: Arc<dyn OauthTokenValidatorTrait>,
 }
 
 impl RootContext {

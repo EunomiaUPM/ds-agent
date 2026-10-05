@@ -22,21 +22,22 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use ymir::config::types::HostType;
 use ymir::errors::Outcome;
+use ymir::http::routes::fill;
 use ymir::services::client::ClientExt;
-use ymir::utils::http_client;
+use ymir::types::oauth::UserInfo;
+use ymir::utils::{encode_url_safe_no_pad, http_client};
 
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
 use crate::facades::mates_facade::MatesFacadeTrait;
 use crate::paginated_spec::Paginated;
+use crate::routes::auth::mates;
 use ymir::data::entities::shared::participant::Model as Mates;
 
-/// Paths of the auth agent's `/mates` API, under its API version.
-const MATES_PATH: &str = "/mates";
-const MATES_MYSELF_PATH: &str = "/mates/myself";
-const MATES_ALL_PATH: &str = "/mates/all";
-
-/// Participants read from the auth agent's `/mates` API.
+/// Participants read from the auth agent's `/mates` API ([`mates`]).
+///
+/// The calls carry no user token yet: the auth agent filters for whoever its identity provider
+/// gives (the fixed user with `static`; a 401 with `keycloak`). Propagating the caller is pending.
 pub struct MatesRemoteFacade {
     config: Arc<MinKnownConfig>,
 }
@@ -46,32 +47,37 @@ impl MatesRemoteFacade {
         Self { config }
     }
 
+    /// The auth agent's `/mates` API, under its API version.
     fn base_url(&self) -> String {
         format!(
-            "{}{}",
+            "{}{}{}",
             self.config.get_host(HostType::Http),
-            self.config.get_api_version()
+            self.config.get_api_version(),
+            mates::PREFIX
         )
     }
 }
 
 #[async_trait]
 impl MatesFacadeTrait for MatesRemoteFacade {
+    /// `mate_id` is the plain DID; it travels in base64url, as the auth agent expects it in the
+    /// path.
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth"))]
-    async fn get_mate_by_id(&self, mate_id: String) -> Outcome<Mates> {
-        let url = format!("{}{}/{}", self.base_url(), MATES_PATH, mate_id);
+    async fn get_mate_by_id(&self, _user: &UserInfo, mate_id: String) -> Outcome<Mates> {
+        let segment = encode_url_safe_no_pad(&mate_id);
+        let url = format!("{}{}", self.base_url(), fill(mates::BY_ID, &segment));
         http_client().get_json(&url, None).await
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth"))]
     async fn get_me_mate(&self) -> Outcome<Mates> {
-        let url = format!("{}{}", self.base_url(), MATES_MYSELF_PATH);
+        let url = format!("{}{}", self.base_url(), mates::MYSELF);
         http_client().get_json(&url, None).await
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth"))]
-    async fn get_all_mates(&self) -> Outcome<Vec<Mates>> {
-        let url = format!("{}{}", self.base_url(), MATES_ALL_PATH);
+    async fn get_all_mates(&self, _user: &UserInfo) -> Outcome<Vec<Mates>> {
+        let url = format!("{}{}", self.base_url(), mates::ALL);
         let page: Paginated<Mates> = http_client().get_json(&url, None).await?;
         Ok(page.items)
     }

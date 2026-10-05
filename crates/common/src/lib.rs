@@ -47,6 +47,7 @@ pub mod module_loader;
 pub mod paginated_spec;
 pub mod query;
 pub mod rdf;
+pub mod routes;
 pub mod serde_utils;
 pub mod telemetry;
 pub mod test_utils;

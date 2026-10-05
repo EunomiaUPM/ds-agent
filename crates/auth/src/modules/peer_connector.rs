@@ -30,7 +30,7 @@ use ymir::types::gnap::grant_request::GrantKind;
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody, GrantStatus};
 use ymir::types::listing::{GrantSort, SentGrantListFilter};
-use ymir::types::oauth::UserInfo;
+use ymir::types::oauth::{UserInfo, UserTrait};
 use ymir::types::verification::VerificationStatus;
 use ymir::types::wallet::OidcUri;
 
@@ -44,7 +44,7 @@ pub trait PeerConnectorModule:
     // ==========================================================================================
 
     /// Page of grants sent to peers, visible to the caller.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all(
         &self,
         user: &UserInfo,
@@ -84,7 +84,7 @@ pub trait PeerConnectorModule:
 
     /// The access-token grant `id` as `user` may get it (see `grant::Model::seen_by`), if it
     /// sees the grant; missing-resource error otherwise.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_by_id(&self, user: &UserInfo, id: &str) -> Outcome<grant::Model> {
         let grant = self.get_access_grant(id).await?;
         user.ensure_sees(&grant.user_id, &grant.role, &grant.visibility, id)?;
@@ -93,7 +93,7 @@ pub trait PeerConnectorModule:
 
     /// The grant with its resource request, as `user` may get it. Its interaction and
     /// verification, which carry the GNAP continuation token, only for who reaches the grant.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_by_id_with_details(&self, user: &UserInfo, id: &str) -> Outcome<Value> {
         let grant = self.get_access_grant(id).await?;
         user.ensure_sees(&grant.user_id, &grant.role, &grant.visibility, id)?;
@@ -125,12 +125,12 @@ pub trait PeerConnectorModule:
     ///
     /// Passive obtaining (tokens plan, §4.4) will go here: without a token, request one from the
     /// peer on the user's behalf instead of answering `None`.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn peer_token(&self, user: &UserInfo, participant_id: &str) -> Outcome<Option<String>> {
         let grant = self
             .repo()
             .sent_grant()
-            .get_active_access(user.user_id(), participant_id)
+            .get_active_access(user.id(), participant_id)
             .await?;
         Ok(grant.and_then(|g| g.token))
     }
@@ -140,7 +140,7 @@ pub trait PeerConnectorModule:
     // ==========================================================================================
 
     /// Sends a grant request to the peer and follows its answer.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn req_peer_connection(&self, user: &UserInfo, payload: ReachProvider) -> Outcome<()> {
         let actions = payload.actions.clone();
         let grant = self.peer_connector().build_grant_plan(user, payload);
@@ -172,7 +172,7 @@ pub trait PeerConnectorModule:
 
     /// Answers the pending presentation request of grant `id` through the wallet, if `user`
     /// reaches the grant: acting needs more than seeing it (the verification shares its id).
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn process_oid4vp(&self, user: &UserInfo, id: &str, payload: OidcUri) -> Outcome<()> {
         let grant = self.get_access_grant(id).await?;
         user.ensure_reaches(&grant.user_id, &grant.role, id)?;

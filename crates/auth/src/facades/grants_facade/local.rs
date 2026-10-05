@@ -56,7 +56,7 @@ impl GrantsFacadeTrait for GrantsLocalFacade {
         level = "info",
         skip_all,
         err,
-        fields(peer.service = "auth", user = %user.user_id())
+        fields(peer.service = "auth", user = %user.id())
     )]
     async fn peer_token(&self, user: &UserInfo, participant_id: String) -> Outcome<Option<String>> {
         self.peer_connector.peer_token(user, &participant_id).await

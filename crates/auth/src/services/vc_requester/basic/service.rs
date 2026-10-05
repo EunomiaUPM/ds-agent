@@ -68,7 +68,7 @@ impl VcRequesterTrait for VCReqService {
         grant::Plan {
             id: uuid::Uuid::new_v4().to_string(),
             role: user_info.role().clone(),
-            user_id: user_info.user_id().to_string(),
+            user_id: user_info.id().to_string(),
             username: user_info.username().map(ToString::to_string),
             participant_id: payload.id,
             participant_nick: payload.nick,

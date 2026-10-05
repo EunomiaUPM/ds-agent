@@ -18,7 +18,7 @@
 //! The party acting on a DSP process: a remote peer over the protocol or a local user over RPC.
 
 use urn::Urn;
-use ymir::types::oauth::{RolePath, UserInfo};
+use ymir::types::oauth::{RolePath, UserInfo, UserTrait};
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::{Errors, Outcome};
 

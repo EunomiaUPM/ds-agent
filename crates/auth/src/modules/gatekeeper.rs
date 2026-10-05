@@ -30,7 +30,7 @@ use ymir::types::gnap::grant_request::GrantKind;
 use ymir::types::gnap::grant_response::{ErrorResponse, GrantResponse};
 use ymir::types::gnap::GrantStatus;
 use ymir::types::listing::{GrantSort, RecvGrantListFilter};
-use ymir::types::oauth::UserInfo;
+use ymir::types::oauth::{RoleTrait, UserInfo};
 use ymir::utils::{create_opaque_token, errors_to_error_code, require_field};
 
 /// Answering GNAP grant requests from peers: each one is verified with an OID4VP presentation.
@@ -44,7 +44,7 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
     // ==========================================================================================
 
     /// Page of the received grants `user` sees.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all(
         &self,
         user: &UserInfo,
@@ -82,7 +82,7 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
     }
 
     /// The received grant `id` if `user` sees it; missing-resource error otherwise.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_by_id(&self, user: &UserInfo, id: &str) -> Outcome<grant::Model> {
         let grant = self.repo().recv_grant().get_by_id(id).await?;
         user.ensure_sees_team(&grant.role, &grant.visibility, id)?;
@@ -91,7 +91,7 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
 
     /// The received grant with its resource request, interaction and verification, if `user`
     /// sees the grant.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_by_id_with_details(&self, user: &UserInfo, id: &str) -> Outcome<Value> {
         let grant = self.get_by_id(user, id).await?;
         let resource_req = self.repo().resource_req().get_by_id(id).await?;

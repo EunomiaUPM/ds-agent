@@ -21,7 +21,7 @@ use ymir::data::entities::wallet::vc;
 use ymir::errors::Outcome;
 use ymir::services::{HasIssuer, HasWallet};
 use ymir::types::issuance::VcBody;
-use ymir::types::oauth::UserInfo;
+use ymir::types::oauth::{RoleTrait, UserInfo};
 
 /// Issuing this participant's own Gaia-X credentials.
 #[async_trait]
@@ -29,7 +29,7 @@ pub trait GaiaSelfAttesterModule:
     HasGaiaSelfAttester + HasIssuer + HasWallet + Send + Sync + 'static
 {
     /// Attests the connector's shared identity, hence admin only.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn generate_gaia_vcs(&self, user: &UserInfo) -> Outcome<()> {
         user.require_root()?;
         let legal_p = self.gaia().generate_legal_person().await?;

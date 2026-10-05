@@ -82,7 +82,7 @@ pub use ymir::http::OauthHttpMiddleware;
 pub use ymir::services::token_validator::{
     FixedUserValidator, ProxiedTokenValidator, OauthTokenValidatorTrait,
 };
-pub use ymir::types::oauth::{RolePath, UserInfo};
+pub use ymir::types::oauth::{RolePath, RoleTrait, UserInfo, UserTrait};
 
 /// Header / metadata key carrying the bearer token.
 pub const AUTHORIZATION_HEADER: &str = "authorization";

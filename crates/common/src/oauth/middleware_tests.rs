@@ -33,7 +33,7 @@ use ymir::errors::{Errors, Outcome};
 
 use ymir::http::OauthHttpMiddleware;
 
-use crate::oauth::{RolePath, OauthTokenValidatorTrait, UserInfo};
+use crate::oauth::{OauthTokenValidatorTrait, RolePath, RoleTrait, UserInfo};
 
 /// Accepts one root and one regular user token; anything else is unauthorized.
 struct StubValidator;
@@ -59,7 +59,7 @@ fn app() -> Router {
 
     async fn scope_handler(user: UserInfo) -> impl IntoResponse {
         Json(serde_json::json!({
-            "user_id": user.user_id(),
+            "user_id": user.id(),
             "role": user.role().as_str(),
             "is_root": user.is_root()
         }))

@@ -39,12 +39,12 @@ fn opened(d: &mut Doubles) {
         .recv_verification
         .expect_get_by_state()
         .withf(|state| state == "state-1")
-        .returning(|_| Ok(recv_verification("tenant-1", "g-1", None)));
+        .returning(|_| Ok(recv_verification("g-1", None)));
     d.repos
         .recv_interaction
         .expect_get_by_id()
         .withf(|id| id == "g-1")
-        .returning(|id| Ok(recv_interaction("tenant-1", id)));
+        .returning(|id| Ok(recv_interaction(id)));
 }
 
 /// The verification is stored as the verifier left it and the interaction finishes with success.

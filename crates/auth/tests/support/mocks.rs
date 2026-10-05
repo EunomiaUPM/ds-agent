@@ -34,7 +34,9 @@ use ymir::services::repo::traits::received::{
 use ymir::services::repo::traits::sent::{
     MockSentGrantRepoTrait, MockSentInteractionRepoTrait, MockSentVerificationRepoTrait,
 };
-use ymir::services::repo::traits::shared::{MockParticipantRepoTrait, MockResourceReqRepoTrait};
+use ymir::services::repo::traits::shared::{
+    MockParticipantRelationRepoTrait, MockParticipantRepoTrait, MockResourceReqRepoTrait,
+};
 use ymir::services::verifier::MockVerifierTrait;
 use ymir::services::wallet::MockWalletTrait;
 
@@ -46,6 +48,7 @@ pub struct Repos {
     pub sent_interaction: MockSentInteractionRepoTrait,
     pub sent_verification: MockSentVerificationRepoTrait,
     pub participant: MockParticipantRepoTrait,
+    pub participant_relation: MockParticipantRelationRepoTrait,
     pub resource_req: MockResourceReqRepoTrait,
     pub recv_grant: MockRecvGrantRepoTrait,
     pub recv_interaction: MockRecvInteractionRepoTrait,
@@ -81,6 +84,10 @@ impl Repos {
             .returning(move || repo.clone());
         let repo = Arc::new(self.participant);
         factory.expect_participant().returning(move || repo.clone());
+        let repo = Arc::new(self.participant_relation);
+        factory
+            .expect_participant_relation()
+            .returning(move || repo.clone());
         let repo = Arc::new(self.resource_req);
         factory
             .expect_resource_req()

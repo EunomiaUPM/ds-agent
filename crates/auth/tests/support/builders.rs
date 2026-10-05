@@ -16,12 +16,16 @@
  */
 
 //! Records of the auth flows as the repositories would return them.
+//!
+//! Sent grants belong to a user (`user_id` + `role`); received grants only have the role that
+//! handles them. Interactions, verifications and resource requests hang 1:1 from their grant
+//! by id, so they carry neither.
 
 use chrono::Utc;
 use serde_json::json;
 use ymir::data::entities::received;
 use ymir::data::entities::sent;
-use ymir::data::entities::shared::{participant, resource_req};
+use ymir::data::entities::shared::{participant, participant_relation, resource_req};
 use ymir::data::entities::wallet::vc;
 use ymir::types::gnap::grant_request::access::AccessType;
 use ymir::types::gnap::grant_request::client::{Client, ClientKey, KeyProof};
@@ -33,19 +37,33 @@ use ymir::types::gnap::GrantStatus;
 use ymir::types::issuance::VcBody;
 use ymir::types::jwt::VCJwtClaims;
 use ymir::types::keys::DbKeySource;
-use ymir::types::participants::ParticipantType;
+use ymir::types::oauth::RolePath;
+use ymir::types::participants::{ParticipantType, Visibility};
 use ymir::types::vcs::{VcFormat, VcType, VcTypeConfig};
 use ymir::types::verification::VerificationStatus;
 
 use auth::types::entities::{ReachAuthority, ReachProvider};
 
-/// Grant we sent to a peer; `auto` presents and redeems without manual steps.
-pub fn sent_grant(tenant: &str, id: &str, auto: bool) -> sent::grant::Model {
+/// Role path from a literal of the tests.
+pub fn role(path: &str) -> RolePath {
+    path.parse().expect("valid role path")
+}
+
+// ==========================================================================================
+// Sent grants (ours): access tokens and VC requests, owned by a user
+// ==========================================================================================
+
+/// Access-token grant `user_id` (under `role_path`) sent to the peer; `auto` presents without
+/// manual steps.
+pub fn sent_grant(user_id: &str, role_path: &str, id: &str, auto: bool) -> sent::grant::Model {
     sent::grant::Model {
         id: id.to_string(),
-        tenant_id: tenant.to_string(),
+        role: role(role_path),
+        user_id: user_id.to_string(),
+        username: None,
         participant_id: "did:web:peer".to_string(),
         participant_nick: "peer".to_string(),
+        visibility: Visibility::Private,
         grant_endpoint: "http://peer/gnap/grant".to_string(),
         kind: GrantKind::AccessToken,
         status: GrantStatus::Pending,
@@ -59,12 +77,27 @@ pub fn sent_grant(tenant: &str, id: &str, auto: bool) -> sent::grant::Model {
     }
 }
 
-pub fn sent_grant_plan(tenant: &str, id: &str) -> sent::grant::Plan {
+/// VC request `user_id` (under `role_path`) sent to the authority; `auto` redeems the offer
+/// without manual steps.
+pub fn vc_request(user_id: &str, role_path: &str, id: &str, auto: bool) -> sent::grant::Model {
+    sent::grant::Model {
+        participant_id: "did:web:authority".to_string(),
+        participant_nick: "authority".to_string(),
+        visibility: Visibility::Public,
+        kind: GrantKind::CredentialRequest,
+        ..sent_grant(user_id, role_path, id, auto)
+    }
+}
+
+pub fn sent_grant_plan(user_id: &str, role_path: &str, id: &str) -> sent::grant::Plan {
     sent::grant::Plan {
-        tenant_id: tenant.to_string(),
         id: id.to_string(),
+        role: role(role_path),
+        user_id: user_id.to_string(),
+        username: None,
         participant_id: "did:web:peer".to_string(),
         participant_nick: "peer".to_string(),
+        visibility: Visibility::Private,
         vc_type_config: None,
         grant_endpoint: "http://peer/gnap/grant".to_string(),
         kind: GrantKind::AccessToken,
@@ -72,10 +105,9 @@ pub fn sent_grant_plan(tenant: &str, id: &str) -> sent::grant::Plan {
     }
 }
 
-pub fn sent_interaction(tenant: &str, id: &str) -> sent::interaction::Model {
+pub fn sent_interaction(id: &str) -> sent::interaction::Model {
     sent::interaction::Model {
         id: id.to_string(),
-        tenant_id: tenant.to_string(),
         start: vec![InteractStart::Oid4VP],
         method: FinishMethod::Push,
         callback_uri: "http://me/callback".to_string(),
@@ -92,9 +124,8 @@ pub fn sent_interaction(tenant: &str, id: &str) -> sent::interaction::Model {
     }
 }
 
-pub fn sent_interaction_plan(tenant: &str, id: &str) -> sent::interaction::Plan {
+pub fn sent_interaction_plan(id: &str) -> sent::interaction::Plan {
     sent::interaction::Plan {
-        tenant_id: tenant.to_string(),
         id: id.to_string(),
         start: vec![InteractStart::Oid4VP],
         method: FinishMethod::Push,
@@ -104,10 +135,9 @@ pub fn sent_interaction_plan(tenant: &str, id: &str) -> sent::interaction::Plan 
     }
 }
 
-pub fn sent_verification(tenant: &str, id: &str) -> sent::verification::Model {
+pub fn sent_verification(id: &str) -> sent::verification::Model {
     sent::verification::Model {
         id: id.to_string(),
-        tenant_id: tenant.to_string(),
         uri: "openid4vp://peer".to_string(),
         scheme: "openid4vp".to_string(),
         response_type: "vp_token".to_string(),
@@ -123,9 +153,8 @@ pub fn sent_verification(tenant: &str, id: &str) -> sent::verification::Model {
     }
 }
 
-pub fn sent_verification_plan(tenant: &str, id: &str) -> sent::verification::Plan {
+pub fn sent_verification_plan(id: &str) -> sent::verification::Plan {
     sent::verification::Plan {
-        tenant_id: tenant.to_string(),
         id: id.to_string(),
         uri: "openid4vp://peer".to_string(),
         scheme: "openid4vp".to_string(),
@@ -139,10 +168,9 @@ pub fn sent_verification_plan(tenant: &str, id: &str) -> sent::verification::Pla
     }
 }
 
-pub fn resource_req(tenant: &str, id: &str) -> resource_req::Model {
+pub fn resource_req(id: &str) -> resource_req::Model {
     resource_req::Model {
         id: id.to_string(),
-        tenant_id: tenant.to_string(),
         r#type: AccessType::ApiAccess,
         actions: vec![InteractAction::Talk],
         locations: None,
@@ -154,12 +182,18 @@ pub fn resource_req(tenant: &str, id: &str) -> resource_req::Model {
     }
 }
 
-/// Grant a peer sent us.
-pub fn recv_grant(tenant: &str, id: &str) -> received::grant::Model {
+// ==========================================================================================
+// Received grants (a peer's): handled by a role
+// ==========================================================================================
+
+/// Grant a peer sent us, handled by `role_path`, public and not approved yet.
+pub fn recv_grant(role_path: &str, id: &str) -> received::grant::Model {
     received::grant::Model {
         id: id.to_string(),
-        tenant_id: tenant.to_string(),
+        role: role(role_path),
+        visibility: Visibility::Public,
         participant_nick: "peer".to_string(),
+        participant_id: None,
         kind: GrantKind::AccessToken,
         token: None,
         vc_type_config: None,
@@ -169,20 +203,20 @@ pub fn recv_grant(tenant: &str, id: &str) -> received::grant::Model {
     }
 }
 
-pub fn recv_grant_plan(tenant: &str, id: &str) -> received::grant::Plan {
+pub fn recv_grant_plan(role_path: &str, id: &str) -> received::grant::Plan {
     received::grant::Plan {
-        tenant_id: tenant.to_string(),
         id: id.to_string(),
+        role: role(role_path),
+        visibility: Visibility::Public,
         participant_nick: "peer".to_string(),
         vc_type_config: None,
         kind: GrantKind::AccessToken,
     }
 }
 
-pub fn recv_interaction(tenant: &str, id: &str) -> received::interaction::Model {
+pub fn recv_interaction(id: &str) -> received::interaction::Model {
     received::interaction::Model {
         id: id.to_string(),
-        tenant_id: tenant.to_string(),
         start: vec![InteractStart::Oid4VP],
         method: FinishMethod::Push,
         callback_uri: "http://peer/callback".to_string(),
@@ -200,9 +234,8 @@ pub fn recv_interaction(tenant: &str, id: &str) -> received::interaction::Model 
     }
 }
 
-pub fn recv_interaction_plan(tenant: &str, id: &str) -> received::interaction::Plan {
+pub fn recv_interaction_plan(id: &str) -> received::interaction::Plan {
     received::interaction::Plan {
-        tenant_id: tenant.to_string(),
         id: id.to_string(),
         start: vec![InteractStart::Oid4VP],
         method: FinishMethod::Push,
@@ -219,14 +252,9 @@ pub fn recv_interaction_plan(tenant: &str, id: &str) -> received::interaction::P
 }
 
 /// Verification of a presentation; `holder` is set once the peer presented.
-pub fn recv_verification(
-    tenant: &str,
-    id: &str,
-    holder: Option<&str>,
-) -> received::verification::Model {
+pub fn recv_verification(id: &str, holder: Option<&str>) -> received::verification::Model {
     received::verification::Model {
         id: id.to_string(),
-        tenant_id: tenant.to_string(),
         state: "state-1".to_string(),
         nonce: "nonce".to_string(),
         vc_type: vec![VcType::LegalPerson],
@@ -240,40 +268,55 @@ pub fn recv_verification(
     }
 }
 
-pub fn recv_verification_plan(tenant: &str, id: &str) -> received::verification::Plan {
+pub fn recv_verification_plan(id: &str) -> received::verification::Plan {
     received::verification::Plan {
-        tenant_id: tenant.to_string(),
         id: id.to_string(),
         audience: "http://me/verify".to_string(),
         vc_type: vec![VcType::LegalPerson],
     }
 }
 
-pub fn participant(tenant: &str, id: &str) -> participant::Model {
+// ==========================================================================================
+// Participants and who added them
+// ==========================================================================================
+
+/// A participant, global to the connector.
+pub fn participant(id: &str) -> participant::Model {
     participant::Model {
-        tenant_id: tenant.to_string(),
         participant_id: id.to_string(),
         participant_nick: "peer".to_string(),
         participant_type: ParticipantType::Agent,
         base_url: "http://peer".to_string(),
-        token: Some("peer-token".to_string()),
         saved_at: Utc::now(),
         last_interaction: Utc::now(),
         extra_fields: json!({"color": "blue"}),
     }
 }
 
-pub fn participant_plan(tenant: &str, id: &str) -> participant::Plan {
+pub fn participant_plan(id: &str) -> participant::Plan {
     participant::Plan {
         participant_id: id.to_string(),
-        tenant_id: tenant.to_string(),
         participant_nick: "peer".to_string(),
         participant_type: ParticipantType::Agent,
         base_url: "http://peer".to_string(),
-        token: None,
         extra_fields: None,
     }
 }
+
+/// Relation of `user_id` (under `role_path`) with participant `id`, private.
+pub fn relation(user_id: &str, role_path: &str, id: &str) -> participant_relation::Model {
+    participant_relation::Model {
+        user_id: user_id.to_string(),
+        participant_id: id.to_string(),
+        username: None,
+        role: role(role_path),
+        visibility: Visibility::Private,
+    }
+}
+
+// ==========================================================================================
+// Payloads
+// ==========================================================================================
 
 pub fn reach_provider() -> ReachProvider {
     ReachProvider {
@@ -281,6 +324,7 @@ pub fn reach_provider() -> ReachProvider {
         nick: "peer".to_string(),
         url: "http://peer".to_string(),
         actions: vec![InteractAction::Talk],
+        visibility: Visibility::Private,
         auto: Some(true),
     }
 }
@@ -306,7 +350,7 @@ pub fn grant_request() -> GrantRequest {
     GrantRequest::new_token(
         client,
         vec![InteractAction::Talk],
-        &sent_interaction("peer-tenant", "g-1"),
+        &sent_interaction("g-1"),
     )
 }
 

@@ -23,7 +23,7 @@ use ymir::errors::Errors;
 
 use crate::oauth::{
     FixedUserValidator, ProxiedTokenValidator, RolePath, OauthTokenValidatorTrait,
-    UserInfo,
+    RoleTrait, UserInfo, UserTrait,
 };
 use crate::config::OauthConfig;
 
@@ -98,7 +98,7 @@ async fn proxied_validator_reads_the_forwarded_token() {
         .validate_token(Some(FORWARDED_JWT))
         .await
         .unwrap();
-    assert_eq!(user.user_id(), "0b6f-uuid");
+    assert_eq!(user.id(), "0b6f-uuid");
     assert_eq!(user.email(), Some("ana@upm.es"));
     assert_eq!(user.username(), Some("ana"));
     assert_eq!(user.role(), &role("/admin/upm/dit"));
@@ -111,9 +111,9 @@ async fn proxied_validator_reads_the_forwarded_token() {
 #[tokio::test]
 async fn fixed_validator_ignores_the_token() {
     let validator = FixedUserValidator::new(user("dev", "/admin"));
-    assert_eq!(validator.validate_token(None).await.unwrap().user_id(), "dev");
+    assert_eq!(validator.validate_token(None).await.unwrap().id(), "dev");
     assert_eq!(
-        validator.validate_token(Some("anything")).await.unwrap().user_id(),
+        validator.validate_token(Some("anything")).await.unwrap().id(),
         "dev"
     );
 }
@@ -131,7 +131,7 @@ fn oauth_config_reads_each_provider() {
     let OauthConfig::Static(user) = static_cfg else {
         panic!("expected static");
     };
-    assert_eq!(user.user_id(), "dev");
+    assert_eq!(user.id(), "dev");
     assert_eq!(user.role(), &role("/admin/upm"));
     assert!(user.extra().get("provider").is_none());
 

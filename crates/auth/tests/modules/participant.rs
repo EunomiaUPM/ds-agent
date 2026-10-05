@@ -15,38 +15,16 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! ParticipantModule: the peers and authorities a tenant knows, always within its own tenant.
+//! ParticipantModule: the peers and authorities the connector knows (global), and who added
+//! each one (a relation per user, with its visibility).
 
 use auth::modules::ParticipantModule;
-use common::facades::VerifyTokenRequest;
-use common::test_utils::scopes::TestScopes;
+use common::test_utils::scopes::TestUsers;
 use serde_json::json;
+use ymir::types::participants::Visibility;
 
 use crate::support::builders::{participant, participant_plan};
 use crate::support::mocks::Doubles;
-
-/// A peer token of another tenant does not authenticate against this one.
-#[tokio::test]
-async fn token_of_another_tenant_is_not_visible() {
-    let mut d = Doubles::default();
-    d.repos
-        .participant
-        .expect_get_by_token()
-        .withf(|token| token == "peer-token")
-        .returning(|_| Ok(participant("tenant-2", "did:web:peer")));
-
-    let result = d
-        .core()
-        .get_by_token(
-            &TestScopes::owner("tenant-1"),
-            VerifyTokenRequest {
-                token: "peer-token".to_string(),
-            },
-        )
-        .await;
-
-    assert!(result.is_err());
-}
 
 /// New extra fields are merged into the stored ones.
 #[tokio::test]
@@ -54,9 +32,9 @@ async fn extra_fields_are_merged() {
     let mut d = Doubles::default();
     d.repos
         .participant
-        .expect_get_by_id()
-        .withf(|tenant, id| tenant == "tenant-1" && id == "did:web:peer")
-        .returning(|tenant, id| Ok(participant(tenant, id)));
+        .expect_get_visible()
+        .withf(|_, id| id == "did:web:peer")
+        .returning(|_, id| Ok(participant(id)));
     d.repos
         .participant
         .expect_update()
@@ -65,65 +43,73 @@ async fn extra_fields_are_merged() {
         .returning(Ok);
 
     d.core()
-        .update_extra_fields_by_id(
-            &TestScopes::owner("tenant-1"),
-            "did:web:peer".to_string(),
-            json!({"size": 3}),
-        )
+        .update_extra_fields_by_id(&TestUsers::root(), "did:web:peer", json!({"size": 3}))
         .await
         .unwrap();
 }
 
-/// A reader cannot change a participant.
+/// The participant is shared by the whole organization, so only the root changes it.
 #[tokio::test]
-async fn reader_cannot_update_extra_fields() {
+async fn only_the_root_updates_extra_fields() {
     let result = Doubles::default()
         .core()
         .update_extra_fields_by_id(
-            &TestScopes::reader("tenant-1"),
-            "did:web:peer".to_string(),
+            &TestUsers::user("ana", "/admin/upm"),
+            "did:web:peer",
             json!({"size": 3}),
         )
         .await;
     assert!(result.is_err());
 }
 
-/// An owner always creates in its own tenant, whatever the payload says.
+/// Adding a participant stores it (if new) and the relation of the user who added it, under
+/// its role and with the visibility it chose.
 #[tokio::test]
-async fn owner_creates_in_its_own_tenant() {
+async fn adding_stores_the_participant_and_the_users_relation() {
     let mut d = Doubles::default();
     d.repos
         .participant
-        .expect_create()
-        .withf(|plan| plan.tenant_id == "tenant-1")
+        .expect_create_if_absent()
+        .withf(|plan| plan.participant_id == "did:web:peer")
         .times(1)
-        .returning(|plan| Ok(participant(&plan.tenant_id, &plan.participant_id)));
+        .returning(|plan| Ok(participant(&plan.participant_id)));
+    d.repos
+        .participant_relation
+        .expect_force_update()
+        .withf(|relation| {
+            relation.user_id == "ana"
+                && relation.participant_id == "did:web:peer"
+                && relation.role.as_str() == "/admin/upm"
+                && relation.visibility == Visibility::Anonymous
+        })
+        .times(1)
+        .returning(Ok);
 
     d.core()
         .create_participant(
-            &TestScopes::owner("tenant-1"),
-            participant_plan("tenant-2", "did:web:peer"),
+            &TestUsers::user("ana", "/admin/upm"),
+            participant_plan("did:web:peer"),
+            Visibility::Anonymous,
         )
         .await
         .unwrap();
 }
 
-/// An admin creates in the tenant the payload names.
+/// A participant the user does not see is not found.
 #[tokio::test]
-async fn admin_creates_in_the_requested_tenant() {
+async fn participant_not_seen_is_not_found() {
     let mut d = Doubles::default();
     d.repos
         .participant
-        .expect_create()
-        .withf(|plan| plan.tenant_id == "tenant-2")
-        .times(1)
-        .returning(|plan| Ok(participant(&plan.tenant_id, &plan.participant_id)));
+        .expect_get_visible()
+        .returning(|_, id| Err(ymir::errors::Errors::missing_resource(id, "not found", None)));
 
-    d.core()
-        .create_participant(
-            &TestScopes::admin(),
-            participant_plan("tenant-2", "did:web:peer"),
-        )
-        .await
-        .unwrap();
+    let result = ParticipantModule::get_by_id(
+        &d.core(),
+        &TestUsers::user("ana", "/admin/upm"),
+        "did:web:peer",
+    )
+    .await;
+
+    assert!(result.is_err());
 }

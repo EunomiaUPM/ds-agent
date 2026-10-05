@@ -46,7 +46,7 @@ impl MatesFacadeTrait for MatesLocalFacade {
         level = "info",
         skip_all,
         err,
-        fields(peer.service = "auth", user = %user.user_id())
+        fields(peer.service = "auth", user = %user.id())
     )]
     async fn get_mate_by_id(&self, user: &UserInfo, mate_id: String) -> Outcome<Mates> {
         self.participants.get_by_id(user, &mate_id).await
@@ -63,7 +63,7 @@ impl MatesFacadeTrait for MatesLocalFacade {
         level = "info",
         skip_all,
         err,
-        fields(peer.service = "auth", user = %user.user_id())
+        fields(peer.service = "auth", user = %user.id())
     )]
     async fn get_all_mates(&self, user: &UserInfo) -> Outcome<Vec<Mates>> {
         let query = QuerySpec::<ParticipantFilter>::default();

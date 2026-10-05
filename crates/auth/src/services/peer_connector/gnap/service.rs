@@ -30,7 +30,6 @@ use ymir::capabilities::HttpSig;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::data::entities::sent::{grant, interaction, verification};
-use ymir::data::entities::shared::participant_relation::VERIFICATION_USER_ID;
 use ymir::data::entities::shared::{participant, participant_relation, resource_req};
 use ymir::errors::{Errors, Outcome};
 use ymir::http::routes::fill;
@@ -71,7 +70,7 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
     fn build_grant_plan(&self, user_info: &UserInfo, payload: ReachProvider) -> grant::Plan {
         grant::Plan {
             id: uuid::Uuid::new_v4().to_string(),
-            user_id: user_info.user_id().to_string(),
+            user_id: user_info.id().to_string(),
             username: user_info.username().map(ToString::to_string),
             role: user_info.role().clone(),
             participant_id: payload.id,

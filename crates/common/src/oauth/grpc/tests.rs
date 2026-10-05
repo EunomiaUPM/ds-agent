@@ -25,7 +25,7 @@ use tonic::Code;
 use ymir::errors::{Errors, Outcome};
 
 use crate::oauth::grpc::GrpcAuth;
-use crate::oauth::{RolePath, OauthTokenValidatorTrait, UserInfo};
+use crate::oauth::{OauthTokenValidatorTrait, RolePath, RoleTrait, UserInfo};
 
 /// Accepts a root and a regular user token; anything else is unauthorized.
 struct StubValidator;
@@ -99,7 +99,7 @@ async fn invalid_token_is_unauthenticated() {
 #[tokio::test]
 async fn valid_token_gives_its_user() {
     let user = auth().user(&meta(Some("user"))).await.unwrap();
-    assert_eq!(user.user_id(), "ana");
+    assert_eq!(user.id(), "ana");
     assert_eq!(user.role().as_str(), "/admin/upm/dit");
     assert!(!user.is_root());
 

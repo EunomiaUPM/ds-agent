@@ -28,10 +28,9 @@ use ymir::config::types::HostType;
 use ymir::data::entities::shared::participant::{Model, Plan};
 use ymir::data::entities::shared::participant_relation;
 use ymir::errors::Outcome;
-use ymir::services::repo::traits::CrudRepoTrait;
 use ymir::services::HasWallet;
 use ymir::types::listing::{ParticipantListFilter, ParticipantSort};
-use ymir::types::oauth::UserInfo;
+use ymir::types::oauth::{RoleTrait, UserInfo};
 use ymir::types::participants::{ParticipantType, Visibility};
 
 /// The participant registry: peers and authorities this connector knows, and itself. Every read
@@ -39,7 +38,7 @@ use ymir::types::participants::{ParticipantType, Visibility};
 #[async_trait]
 pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'static {
     /// Page of participants visible to `user`.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all(
         &self,
         user: &UserInfo,
@@ -81,14 +80,14 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
     }
 
     /// The participant `id` if `user` sees it; missing-resource error otherwise.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_by_id(&self, user: &UserInfo, id: &str) -> Outcome<Model> {
         self.repo().participant().get_visible(user, id).await
     }
 
     /// Who added the participant `id`, as far as `user` may know: anonymous relations of others
     /// come without author. Missing-resource error if `user` does not see the participant.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_relations(
         &self,
         user: &UserInfo,
@@ -102,7 +101,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
     }
 
     /// This connector itself, derived from the wallet; never stored.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %_user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %_user.id()))]
     async fn get_myself(&self, _user: &UserInfo) -> Outcome<Model> {
         let lock = self.wallet().get_identity();
         let identity = lock.read().await;
@@ -119,7 +118,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
     }
 
     /// The participants among the requested ids that `user` sees.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_participant_batch(
         &self,
         user: &UserInfo,
@@ -133,7 +132,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
 
     /// Merges `extra_fields` into the participant's own. Root only: the participant is shared by
     /// the whole organization.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn update_extra_fields_by_id(
         &self,
         user: &UserInfo,
@@ -148,7 +147,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
 
     /// Adds the participant if new (an existing one is left as it is) and `user`'s relation with
     /// it, with `visibility`.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn create_participant(
         &self,
         user: &UserInfo,
@@ -157,7 +156,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
     ) -> Outcome<Model> {
         let model = self.repo().participant().create_if_absent(payload).await?;
         let relation = participant_relation::Model {
-            user_id: user.user_id().to_string(),
+            user_id: user.id().to_string(),
             participant_id: model.participant_id.clone(),
             username: user.username().map(ToString::to_string),
             role: user.role().clone(),

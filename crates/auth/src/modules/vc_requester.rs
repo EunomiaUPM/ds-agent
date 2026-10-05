@@ -30,7 +30,7 @@ use ymir::types::gnap::grant_request::GrantKind;
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody, GrantStatus};
 use ymir::types::listing::{GrantSort, VcRequestListFilter};
-use ymir::types::oauth::UserInfo;
+use ymir::types::oauth::{UserInfo, UserTrait};
 use ymir::types::verification::VerificationStatus;
 use ymir::types::wallet::OidcUri;
 
@@ -49,7 +49,7 @@ pub trait VcRequesterModule:
 
     /// Page of the VC requests `user` sees, each as it may get it; they are created public, so in
     /// practice all of them.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all(
         &self,
         user: &UserInfo,
@@ -89,7 +89,7 @@ pub trait VcRequesterModule:
 
     /// The VC request `id` as `user` may get it (see `grant::Model::seen_by`), if it sees the
     /// request; missing-resource error otherwise.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_by_id(&self, user: &UserInfo, id: &str) -> Outcome<grant::Model> {
         let grant = self.get_vc_request(id).await?;
         user.ensure_sees(&grant.user_id, &grant.role, &grant.visibility, id)?;
@@ -98,7 +98,7 @@ pub trait VcRequesterModule:
 
     /// The VC request as `user` may get it. Its interaction and verification, which carry the
     /// GNAP continuation token, only for who reaches the request.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_by_id_with_details(&self, user: &UserInfo, id: &str) -> Outcome<Value> {
         let grant = self.get_vc_request(id).await?;
         user.ensure_sees(&grant.user_id, &grant.role, &grant.visibility, id)?;
@@ -123,7 +123,7 @@ pub trait VcRequesterModule:
     // ==========================================================================================
 
     /// Sends a grant request to the authority and follows its answer.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn beg_vc(&self, user: &UserInfo, payload: ReachAuthority) -> Outcome<()> {
         let start = payload.method.clone();
         let grant = self.vc_requester().build_grant_plan(user, payload);
@@ -152,7 +152,7 @@ pub trait VcRequesterModule:
 
     /// Accepts the credential offered for request `id` through the wallet and registers the
     /// authority, if `user` reaches the request: acting needs more than seeing it.
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn process_oid4vci(&self, user: &UserInfo, id: &str, payload: OidcUri) -> Outcome<()> {
         let grant = self.get_vc_request(id).await?;
         user.ensure_reaches(&grant.user_id, &grant.role, id)?;
@@ -162,7 +162,7 @@ pub trait VcRequesterModule:
 
     /// Answers the pending presentation request of request `id` through the wallet, if `user`
     /// reaches the request (the verification shares its id).
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.user_id()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn process_oid4vp(&self, user: &UserInfo, id: &str, payload: OidcUri) -> Outcome<()> {
         let grant = self.get_vc_request(id).await?;
         user.ensure_reaches(&grant.user_id, &grant.role, id)?;

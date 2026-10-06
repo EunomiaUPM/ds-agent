@@ -16,7 +16,8 @@
  */
 
 use crate::entities::filters::RecvGrantFilter;
-use crate::services::{HasGateKeeper, HasRepo};
+use crate::services::{HasGateKeeper, HasRepo, MayHaveEventBus};
+use crate::types::events::{recv_owner, GrantEvent};
 use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
@@ -25,6 +26,7 @@ use common::facades::grants_facade::VerifiedPeer;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use serde_json::{json, Value};
 use ymir::data::entities::received::grant;
+use ymir::errors::Errors;
 use ymir::errors::Outcome;
 use ymir::services::HasVerifier;
 use ymir::types::gnap::grant_request::GrantKind;
@@ -32,7 +34,6 @@ use ymir::types::gnap::grant_response::{ErrorCode, ErrorResponse, GrantResponse}
 use ymir::types::gnap::GrantStatus;
 use ymir::types::listing::{GrantSort, RecvGrantListFilter};
 use ymir::types::oauth::{RoleTrait, UserInfo};
-use ymir::errors::Errors;
 use ymir::utils::{errors_to_error_code, hash_token, require_field};
 
 /// Answering GNAP grant requests from peers: each one is verified with an OID4VP presentation.
@@ -40,7 +41,9 @@ use ymir::utils::{errors_to_error_code, hash_token, require_field};
 /// A received grant has no author, only the role that handles it and its visibility: users of
 /// that role or above handle it, and anyone sees it if it is public.
 #[async_trait]
-pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync + 'static {
+pub trait GateKeeperModule:
+    HasGateKeeper + HasVerifier + HasRepo + MayHaveEventBus + Send + Sync + 'static
+{
     // ==========================================================================================
     // Received grants: queries
     // ==========================================================================================
@@ -204,7 +207,8 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
             grant.ended_at = Some(Utc::now());
             grant.final_token_hash = None;
             grant.managing_token_hash = None;
-            self.repo().recv_grant().update(grant).await?;
+            let grant = self.repo().recv_grant().update(grant).await?;
+            self.gate_event(&grant, "revoked").await;
         }
         Ok(())
     }
@@ -217,6 +221,19 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
     // ==========================================================================================
     // Internal steps of the flow
     // ==========================================================================================
+
+    async fn gate_event(&self, grant: &grant::Model, action: &str) {
+        let owner = recv_owner(grant);
+        let payload = GrantEvent::from(grant);
+        events::emit_action!(
+            self.event_bus(),
+            &owner,
+            crate::EVENT_PREFIX,
+            "gate",
+            action,
+            &payload
+        );
+    }
 
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn get_managed_grant(&self, managing_id: &str) -> Outcome<grant::Model> {
@@ -264,7 +281,8 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         if lifetime_reached {
             grant.status = GrantStatus::Finalized;
             grant.ended_at = Some(now);
-            self.repo().recv_grant().update(grant).await?;
+            let grant = self.repo().recv_grant().update(grant).await?;
+            self.gate_event(&grant, "finalized").await;
             return Err(Errors::security(
                 "Grant has reached its maximum lifetime",
                 None,
@@ -274,6 +292,10 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         let expected_managing_hash =
             require_field(grant.managing_token_hash.as_ref(), "managing token")?;
         let (rotation, issued) = self.gatekeeper().rotate_token(&grant, now)?;
+        let mut rotated_grant = grant.clone();
+        rotated_grant.final_token_hash = Some(rotation.final_token_hash.clone());
+        rotated_grant.final_expires_at = Some(rotation.final_expires_at);
+        rotated_grant.managing_token_hash = Some(rotation.managing_token_hash.clone());
         let rotated = self
             .repo()
             .recv_grant()
@@ -282,6 +304,7 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         if !rotated {
             return Err(Errors::security("Token was rotated concurrently", None));
         }
+        self.gate_event(&rotated_grant, "rotated").await;
 
         let resource_req = self.repo().resource_req().get_by_id(&grant.id).await?;
         Ok(GrantResponse::token_issued(
@@ -322,6 +345,7 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         let verification = self.verifier().build_vp_plan(&grant.id)?;
         let verification = self.repo().recv_verification().create(verification).await?;
         let uri = self.verifier().generate_verification_uri(&verification);
+        self.gate_event(&grant, "requested").await;
         Ok(GrantResponse::pending(uri, &interaction))
     }
 
@@ -364,7 +388,8 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         let issued = self.gatekeeper().issue_token(&mut grant, Utc::now());
         grant.participant_id = Some(holder.to_string());
         grant.status = GrantStatus::Approved;
-        self.repo().recv_grant().update(grant).await?;
+        let grant = self.repo().recv_grant().update(grant).await?;
+        self.gate_event(&grant, "approved").await;
 
         let resource_req = self
             .repo()

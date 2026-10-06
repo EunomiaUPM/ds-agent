@@ -16,8 +16,9 @@
  */
 
 use crate::entities::filters::SentGrantFilter;
-use crate::services::{HasCallback, HasPeerConnector, HasRepo};
+use crate::services::{HasCallback, HasPeerConnector, HasRepo, MayHaveEventBus};
 use crate::types::entities::ReachProvider;
+use crate::types::events::{sent_owner, GrantEvent, VerificationEvent};
 use crate::types::response::{RotationOutcome, TokenWhatResponse};
 use crate::types::token_lifetimes::EXPIRY_MARGIN_SECS;
 use async_trait::async_trait;
@@ -38,7 +39,7 @@ use ymir::types::wallet::OidcUri;
 /// Onboarding with a peer through GNAP, presenting our credentials over OID4VP when asked.
 #[async_trait]
 pub trait PeerConnectorModule:
-    HasPeerConnector + HasRepo + HasCallback + HasWallet + Send + Sync + 'static
+    HasPeerConnector + HasRepo + HasCallback + HasWallet + MayHaveEventBus + Send + Sync + 'static
 {
     // ==========================================================================================
     // Sent grants: queries
@@ -174,6 +175,7 @@ pub trait PeerConnectorModule:
         let grant = self.repo().sent_grant().create(grant).await?;
         let interaction = self.repo().sent_interaction().create(interaction).await?;
         let resource_req = self.repo().resource_req().create(resource_req).await?;
+        self.peer_event(&grant, "requested").await;
 
         let grant_resp = self
             .peer_connector()
@@ -201,7 +203,9 @@ pub trait PeerConnectorModule:
                 e.log();
             }
         }
-        self.finalize_sent(grant).await
+        let grant = self.finalize_sent(grant).await?;
+        self.peer_event(&grant, "disconnected").await;
+        Ok(())
     }
 
     /// Answers the pending presentation request of grant `id` through the wallet, if `user`
@@ -251,6 +255,7 @@ pub trait PeerConnectorModule:
         match rotation {
             Ok((RotationOutcome::Rotated, rotated)) => {
                 let rotated = self.repo().sent_grant().update(rotated).await?;
+                self.peer_event(&rotated, "rotated").await;
                 Ok(rotated.final_token)
             }
             Ok((RotationOutcome::Refused, _)) => {
@@ -285,8 +290,9 @@ pub trait PeerConnectorModule:
             .has_open_access(user.id(), participant_id, processing_since)
             .await?;
         if !open {
-            if let Err(e) = self.renew_grant(user, &grant).await {
-                e.log();
+            match self.renew_grant(user, &grant).await {
+                Ok(()) => self.peer_event(&grant, "renewing").await,
+                Err(e) => e.log(),
             }
         }
 
@@ -321,11 +327,46 @@ pub trait PeerConnectorModule:
     }
 
     #[tracing::instrument(level = "info", skip_all, err)]
-    async fn finalize_sent(&self, mut grant: grant::Model) -> Outcome<()> {
+    async fn finalize_sent(&self, mut grant: grant::Model) -> Outcome<grant::Model> {
         grant.status = GrantStatus::Finalized;
         grant.ended_at = Some(Utc::now());
-        self.repo().sent_grant().update(grant).await?;
-        Ok(())
+        self.repo().sent_grant().update(grant).await
+    }
+
+    async fn peer_event(&self, grant: &grant::Model, action: &str) {
+        let owner = sent_owner(grant);
+        let payload = GrantEvent::from(grant);
+        events::emit_action!(
+            self.event_bus(),
+            &owner,
+            crate::EVENT_PREFIX,
+            "peer",
+            action,
+            &payload
+        );
+    }
+
+    async fn peer_presented_event(&self, verification: &verification::Model) {
+        if self.event_bus().is_none() {
+            return;
+        }
+        let grant = match self.repo().sent_grant().get_by_id(&verification.id).await {
+            Ok(grant) => grant,
+            Err(e) => {
+                tracing::warn!("No grant for presentation {}: {e}", verification.id);
+                return;
+            }
+        };
+        let owner = sent_owner(&grant);
+        let payload = VerificationEvent::from(verification);
+        events::emit_action!(
+            self.event_bus(),
+            &owner,
+            crate::EVENT_PREFIX,
+            "peer",
+            "presented",
+            &payload
+        );
     }
 
     /// Checks the callback, sends the GNAP continuation and follows its answer.
@@ -360,6 +401,9 @@ pub trait PeerConnectorModule:
                 .manage_grant_resp(grant_resp, &mut grant, &mut interaction);
         let grant = self.repo().sent_grant().update(grant).await?;
         let _interaction = self.repo().sent_interaction().update(interaction).await?;
+        if grant.status == GrantStatus::Rejected {
+            self.peer_event(&grant, "rejected").await;
+        }
 
         match what_response? {
             TokenWhatResponse::Completed => {
@@ -370,6 +414,7 @@ pub trait PeerConnectorModule:
                     .participant_relation()
                     .force_update(relation)
                     .await?;
+                self.peer_event(&grant, "approved").await;
                 Ok(())
             }
             TokenWhatResponse::Presentation(uri) => self.manage_auto_oid4vp(&grant, &uri).await,
@@ -402,7 +447,8 @@ pub trait PeerConnectorModule:
             }
         }
         verification.ended_at = Some(Utc::now());
-        self.repo().sent_verification().update(verification).await?;
+        let verification = self.repo().sent_verification().update(verification).await?;
+        self.peer_presented_event(&verification).await;
         Ok(())
     }
 
@@ -412,7 +458,8 @@ pub trait PeerConnectorModule:
         let mut grant = self.repo().sent_grant().get_by_id(id).await?;
         grant.status = GrantStatus::Rejected;
         grant.ended_at = Some(Utc::now());
-        self.repo().sent_grant().update(grant).await?;
+        let grant = self.repo().sent_grant().update(grant).await?;
+        self.peer_event(&grant, "rejected").await;
         Ok(())
     }
 }

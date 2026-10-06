@@ -240,6 +240,7 @@ dependencies = [
  "base64",
  "chrono",
  "common",
+ "events",
  "json_value_merge",
  "mockall",
  "sea-orm",

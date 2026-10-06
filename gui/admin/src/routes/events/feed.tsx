@@ -366,7 +366,7 @@ const FeedComponent = () => {
           >
             All
           </Button>
-          {["transfers:*", "transfers:bla", "transfers:**", "catalog:*"].map((pat) => (
+          {["transfers:*", "transfers:bla", "transfers:**", "catalog:*", "auth:*"].map((pat) => (
             <Button
               key={pat}
               variant={

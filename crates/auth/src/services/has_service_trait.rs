@@ -22,6 +22,7 @@ use crate::services::gatekeeper::GateKeeperTrait;
 use crate::services::peer_connector::PeerConnectorTrait;
 use crate::services::vc_requester::VcRequesterTrait;
 use common::config::services::SsiAuthConfig;
+use events::EventBus;
 use std::sync::Arc;
 
 /// Access to the auth config, for the default methods of the modules.
@@ -57,4 +58,8 @@ pub trait HasVcRequester {
 /// Access to the Gaia-X self-attester.
 pub trait HasGaiaSelfAttester {
     fn gaia(&self) -> Arc<dyn GaiaSelfAttesterTrait>;
+}
+
+pub trait MayHaveEventBus {
+    fn event_bus(&self) -> Option<&EventBus>;
 }

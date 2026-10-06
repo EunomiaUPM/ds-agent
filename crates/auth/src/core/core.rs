@@ -28,9 +28,10 @@ use crate::services::peer_connector::PeerConnectorTrait;
 use crate::services::vc_requester::VcRequesterTrait;
 use crate::services::{
     HasCallback, HasConfig, HasGaiaSelfAttester, HasGateKeeper, HasPeerConnector, HasRepo,
-    HasVcRequester,
+    HasVcRequester, MayHaveEventBus,
 };
 use common::config::services::SsiAuthConfig;
+use events::EventBus;
 use std::sync::Arc;
 use ymir::modules::WalletModuleTrait;
 use ymir::services::issuer::IssuerTrait;
@@ -50,6 +51,7 @@ pub struct AuthCore {
     gaia: Option<Arc<dyn GaiaSelfAttesterTrait>>,
     issuer: Option<Arc<dyn IssuerTrait>>,
     config: Arc<SsiAuthConfig>,
+    event_bus: Option<EventBus>,
 }
 
 impl AuthCore {
@@ -64,6 +66,7 @@ impl AuthCore {
         gaia: Option<Arc<dyn GaiaSelfAttesterTrait>>,
         issuer: Option<Arc<dyn IssuerTrait>>,
         config: Arc<SsiAuthConfig>,
+        event_bus: Option<EventBus>,
     ) -> AuthCore {
         AuthCore {
             vc_requester,
@@ -76,7 +79,14 @@ impl AuthCore {
             wallet,
             gaia,
             issuer,
+            event_bus,
         }
+    }
+}
+
+impl MayHaveEventBus for AuthCore {
+    fn event_bus(&self) -> Option<&EventBus> {
+        self.event_bus.as_ref()
     }
 }
 

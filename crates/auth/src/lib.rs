@@ -30,6 +30,7 @@
 pub const SERVICE_NAME: &str = "ssi-auth-agent";
 /// Name shown in the boot banner.
 pub const SERVICE_BIG_NAME: &str = "SSI-Auth Agent";
+pub const EVENT_PREFIX: &str = "auth:";
 
 pub mod core;
 pub mod data;

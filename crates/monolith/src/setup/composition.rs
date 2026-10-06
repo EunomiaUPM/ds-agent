@@ -51,7 +51,7 @@ impl MonolithModule {
     pub async fn compose(config: &ApplicationConfig, root: &RootContext) -> Outcome<Self> {
         let events = EventsModule::compose(root);
         let bus = Some(events.event_bus());
-        let auth = AuthModule::compose(config.ssi_auth(), root).await?;
+        let auth = AuthModule::compose(config.ssi_auth(), root, bus.clone()).await?;
         let auth_ports = auth.local_ports();
         let self_participant = auth.self_participant_onboarder();
         let catalog_ports = CatalogPorts::local(auth_ports.clone());

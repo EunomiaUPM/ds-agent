@@ -120,6 +120,7 @@ impl Doubles {
             Some(Arc::new(self.gaia)),
             Some(Arc::new(self.issuer)),
             config(),
+            None,
         )
     }
 }

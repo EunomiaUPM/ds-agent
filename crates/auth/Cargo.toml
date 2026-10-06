@@ -15,6 +15,7 @@ path = "src/main.rs"
 
 [dependencies]
 common = { version = "0.4.0", path = "../common", default-features = true }
+events = { version = "0.4.0", path = "../events", default-features = false }
 # oauth = { version = "0.4.0", path = "../oauth" }  # disabled, see the workspace Cargo.toml
 
 serde = { workspace = true }

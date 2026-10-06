@@ -40,6 +40,7 @@ use common::facades::AuthPorts;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
 use common::routes::auth::gate;
+use events::EventBus;
 use sea_orm_migration::MigrationTrait;
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait, WalletConfigTrait};
 use ymir::config::types::HostType;
@@ -64,7 +65,11 @@ impl AuthModule {
     /// Builds the auth core on the shared root context: connects to the configured wallet, wires
     /// every service and takes the token validator from the root. Fails if the wallet cannot be
     /// reached or is not supported.
-    pub async fn compose(config: &SsiAuthConfig, root: &RootContext) -> Outcome<Self> {
+    pub async fn compose(
+        config: &SsiAuthConfig,
+        root: &RootContext,
+        event_bus: Option<EventBus>,
+    ) -> Outcome<Self> {
         // ===== CONFIG ============================================================================
         let vault = root.vault.clone();
         let db_connection = root.db.clone();
@@ -122,6 +127,7 @@ impl AuthModule {
             gaia,
             issuer,
             core_config,
+            event_bus,
         ));
 
         // ===== MODULE ============================================================================

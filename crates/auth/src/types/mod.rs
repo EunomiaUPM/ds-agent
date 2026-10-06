@@ -18,6 +18,7 @@
 //! Request and response types shared by the modules.
 
 pub mod entities;
+pub mod events;
 pub mod response;
 pub mod token;
 pub mod token_lifetimes;

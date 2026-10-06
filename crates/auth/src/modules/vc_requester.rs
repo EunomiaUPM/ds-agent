@@ -16,8 +16,9 @@
  */
 
 use crate::entities::filters::SentGrantFilter;
-use crate::services::{HasCallback, HasRepo, HasVcRequester};
+use crate::services::{HasCallback, HasRepo, HasVcRequester, MayHaveEventBus};
 use crate::types::entities::ReachAuthority;
+use crate::types::events::{sent_owner, GrantEvent, VerificationEvent};
 use crate::types::response::VcWhatResponse;
 use async_trait::async_trait;
 use chrono::Utc;
@@ -41,7 +42,7 @@ use ymir::types::wallet::OidcUri;
 /// on it.
 #[async_trait]
 pub trait VcRequesterModule:
-    HasVcRequester + HasRepo + HasCallback + HasWallet + Send + Sync + 'static
+    HasVcRequester + HasRepo + HasCallback + HasWallet + MayHaveEventBus + Send + Sync + 'static
 {
     // ==========================================================================================
     // VC requests: queries
@@ -131,6 +132,7 @@ pub trait VcRequesterModule:
 
         let grant = self.repo().sent_grant().create(grant).await?;
         let interaction = self.repo().sent_interaction().create(interaction).await?;
+        self.vc_event(&grant, "requested").await;
 
         let grant_resp = self
             .vc_requester()
@@ -216,6 +218,9 @@ pub trait VcRequesterModule:
                 .manage_grant_resp(grant_resp, &mut grant, &mut interaction);
         let grant = self.repo().sent_grant().update(grant).await?;
         let _interaction = self.repo().sent_interaction().update(interaction).await?;
+        if grant.status == GrantStatus::Rejected {
+            self.vc_event(&grant, "rejected").await;
+        }
 
         match what_response? {
             VcWhatResponse::Issuance(uri) => self.manage_oid4vci(grant, &uri).await,
@@ -252,6 +257,7 @@ pub trait VcRequesterModule:
             .participant_relation()
             .force_update(relation)
             .await?;
+        self.vc_event(&grant, "issued").await;
         Ok(())
     }
 
@@ -280,7 +286,8 @@ pub trait VcRequesterModule:
             }
         }
         verification.ended_at = Some(Utc::now());
-        self.repo().sent_verification().update(verification).await?;
+        let verification = self.repo().sent_verification().update(verification).await?;
+        self.vc_presented_event(&verification).await;
         Ok(())
     }
 
@@ -290,7 +297,44 @@ pub trait VcRequesterModule:
         let mut grant = self.repo().sent_grant().get_by_id(id).await?;
         grant.status = GrantStatus::Rejected;
         grant.ended_at = Some(Utc::now());
-        self.repo().sent_grant().update(grant).await?;
+        let grant = self.repo().sent_grant().update(grant).await?;
+        self.vc_event(&grant, "rejected").await;
         Ok(())
+    }
+
+    async fn vc_event(&self, grant: &grant::Model, action: &str) {
+        let owner = sent_owner(grant);
+        let payload = GrantEvent::from(grant);
+        events::emit_action!(
+            self.event_bus(),
+            &owner,
+            crate::EVENT_PREFIX,
+            "vc-request",
+            action,
+            &payload
+        );
+    }
+
+    async fn vc_presented_event(&self, verification: &verification::Model) {
+        if self.event_bus().is_none() {
+            return;
+        }
+        let grant = match self.repo().sent_grant().get_by_id(&verification.id).await {
+            Ok(grant) => grant,
+            Err(e) => {
+                tracing::warn!("No request for presentation {}: {e}", verification.id);
+                return;
+            }
+        };
+        let owner = sent_owner(&grant);
+        let payload = VerificationEvent::from(verification);
+        events::emit_action!(
+            self.event_bus(),
+            &owner,
+            crate::EVENT_PREFIX,
+            "vc-request",
+            "presented",
+            &payload
+        );
     }
 }

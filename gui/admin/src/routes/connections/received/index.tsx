@@ -17,7 +17,7 @@ export interface RecvGrant {
   id: string;
   participant_nick: string;
   kind: string;
-  token?: string | null;
+  final_token_hash?: string | null;
   vc_type_config?: string[] | null;
   status: string;
   created_at: string;

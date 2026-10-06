@@ -22,7 +22,7 @@ export interface SentGrant {
   grant_endpoint: string;
   kind: string;
   status: string;
-  token?: string | null;
+  final_token?: string | null;
   vc_type_config?: string[] | null;
   vc_uri?: string | null;
   as_assigned_id?: string | null;

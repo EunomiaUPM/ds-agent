@@ -22,13 +22,16 @@
 use std::sync::{Arc, Mutex};
 
 use auth::modules::GateKeeperModule;
+use auth::types::token::IssuedToken;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
 use common::test_utils::scopes::TestUsers;
 use ymir::errors::Errors;
+use ymir::types::gnap::access_token::{BoundToken, TokenManagement};
 use ymir::types::gnap::grant_response::{GrantResponse, GrantResponseKind};
 use ymir::types::gnap::GrantStatus;
 use ymir::types::participants::Visibility;
+use ymir::utils::hash_token;
 
 use crate::support::builders::{
     grant_request, participant, participant_plan, recv_grant, recv_grant_plan, recv_interaction,
@@ -40,7 +43,7 @@ use crate::support::mocks::Doubles;
 fn continuation(d: &mut Doubles, holder: Option<&'static str>) {
     d.repos
         .recv_interaction
-        .expect_get_by_cont_id()
+        .expect_get_by_continuation_id()
         .withf(|id| id == "cont-1")
         .returning(|_| Ok(recv_interaction("g-1")));
     d.gatekeeper
@@ -164,6 +167,17 @@ async fn continuation_approves_the_grant_with_a_token_for_the_peer() {
         .expect_force_update()
         .times(1)
         .returning(Ok);
+    d.gatekeeper.expect_issue_token().times(1).returning(|grant, _| {
+        grant.final_token_hash = Some(hash_token("peer-token"));
+        IssuedToken {
+            final_token: "peer-token".to_string(),
+            final_expires_in: 3600,
+            manage: TokenManagement::new(
+                "http://me/gate/token/g-1",
+                BoundToken::new("managing-token"),
+            ),
+        }
+    });
     let stored_token = Arc::new(Mutex::new(None));
     let seen = stored_token.clone();
     d.repos
@@ -175,7 +189,7 @@ async fn continuation_approves_the_grant_with_a_token_for_the_peer() {
         })
         .times(1)
         .returning(move |grant| {
-            *seen.lock().unwrap() = grant.token.clone();
+            *seen.lock().unwrap() = grant.final_token_hash.clone();
             Ok(grant)
         });
     d.repos
@@ -196,8 +210,10 @@ async fn continuation_approves_the_grant_with_a_token_for_the_peer() {
     };
     assert_eq!(
         stored_token.lock().unwrap().as_deref(),
-        Some(access_token.value.as_str())
+        Some(hash_token(&access_token.value).as_str())
     );
+    assert_eq!(access_token.expires_in, Some(3600));
+    assert!(access_token.manage.is_some());
 }
 
 /// Without a verified holder the continuation fails and no peer is stored.
@@ -220,7 +236,7 @@ async fn unknown_continuation_is_rejected() {
     let mut d = Doubles::default();
     d.repos
         .recv_interaction
-        .expect_get_by_cont_id()
+        .expect_get_by_continuation_id()
         .returning(|id| Err(Errors::missing_resource(id, "unknown continuation", None)));
 
     let response = d
@@ -295,13 +311,13 @@ async fn token_of_an_approved_grant_gives_the_peer_and_its_role() {
     let mut d = Doubles::default();
     d.repos
         .recv_grant
-        .expect_get_approved_by_token()
-        .withf(|token| token == "peer-token")
-        .returning(|_| {
+        .expect_get_valid_by_final_hash()
+        .withf(|hash, _| hash == hash_token("peer-token"))
+        .returning(|_, _| {
             let mut grant = recv_grant("/admin/upm", "g-1");
             grant.status = GrantStatus::Approved;
             grant.participant_id = Some("did:web:peer".to_string());
-            grant.token = Some("peer-token".to_string());
+            grant.final_token_hash = Some(hash_token("peer-token"));
             Ok(grant)
         });
 
@@ -317,8 +333,8 @@ async fn unknown_token_is_rejected() {
     let mut d = Doubles::default();
     d.repos
         .recv_grant
-        .expect_get_approved_by_token()
-        .returning(|_| Err(Errors::missing_resource("token", "no approved grant", None)));
+        .expect_get_valid_by_final_hash()
+        .returning(|_, _| Err(Errors::missing_resource("token", "no approved grant", None)));
 
     let result = d.core().verify_token("forged").await;
 

@@ -19,6 +19,7 @@ use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
+use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde_json::Value;
@@ -68,7 +69,10 @@ impl OnboarderRouter {
         Router::new()
             .route(peer_connection::CONNECT, post(Self::connect))
             .route(peer_connection::REQUEST_ALL, get(Self::get_all))
-            .route(peer_connection::REQUEST, get(Self::get_one))
+            .route(
+                peer_connection::REQUEST,
+                get(Self::get_one).delete(Self::disconnect),
+            )
             .route(peer_connection::REQUEST_DETAILS, get(Self::get_one_with_details))
             .route(peer_connection::OID4VP, post(Self::manage_oid4vp))
             .route(peer_connection::TOKEN, get(Self::peer_token))
@@ -119,6 +123,15 @@ impl OnboarderRouter {
         Path(id): Path<String>,
     ) -> AppResult<Json<grant::Model>> {
         Ok(Json(peer_connector.get_by_id(&user, &id).await?))
+    }
+
+    async fn disconnect(
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        user: UserInfo,
+        Path(id): Path<String>,
+    ) -> AppResult<StatusCode> {
+        peer_connector.disconnect(&user, &id).await?;
+        Ok(StatusCode::NO_CONTENT)
     }
 
     async fn get_one_with_details(

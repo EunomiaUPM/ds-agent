@@ -20,8 +20,11 @@ use std::sync::Arc;
 use super::super::PeerConnectorTrait;
 use crate::services::peer_connector::gnap::config::GnapPeerConnectorConfig;
 use crate::types::entities::ReachProvider;
-use crate::types::response::TokenWhatResponse;
+use crate::types::response::{RotationOutcome, TokenWhatResponse};
 use async_trait::async_trait;
+use axum::http::header::AUTHORIZATION;
+use axum::http::HeaderMap;
+use chrono::{DateTime, Duration, Utc};
 use common::config::types::traits::EntityClientTrait;
 use common::routes::auth::peer_connection;
 use common::utils::parse_url;
@@ -39,7 +42,8 @@ use ymir::services::vault::VaultTrait;
 use ymir::types::gnap::grant_request::access::AccessType;
 use ymir::types::gnap::grant_request::interact::{FinishMethod, InteractAction, InteractStart};
 use ymir::types::gnap::grant_request::{GrantKind, GrantRequest};
-use ymir::types::gnap::grant_response::{GrantResponse, GrantResponseKind};
+use ymir::types::gnap::access_token::AccessToken;
+use ymir::types::gnap::grant_response::{ErrorCode, GrantResponse, GrantResponseKind};
 use ymir::types::gnap::GrantStatus;
 use ymir::types::http::HttpBody;
 use ymir::types::keys::{Certificate, KeySource, PrivateKey};
@@ -47,7 +51,8 @@ use ymir::types::oauth::UserInfo;
 use ymir::types::participants::ParticipantType;
 use ymir::types::secrets::{PemHelper, StringHelper};
 use ymir::utils::{
-    expect_from_env, get_query_param, http_client, json_headers, trim_4_base, ResponseExt,
+    expect_from_env, get_query_param, http_client, json_headers, require_field, trim_4_base,
+    ParseHeaderExt, ResponseExt,
 };
 
 /// GNAP client towards peers; reads the agent's certificate from the vault.
@@ -62,6 +67,63 @@ impl GnapPeerConnectorService {
         config: GnapPeerConnectorConfig,
     ) -> GnapPeerConnectorService {
         GnapPeerConnectorService { vault, config }
+    }
+
+    async fn signing_material(&self) -> Outcome<(String, KeySource, PrivateKey)> {
+        let cert = expect_from_env("VAULT_APP_CERT");
+        let cert: StringHelper = self.vault.read(None, &cert).await?;
+        let certificate = Certificate::try_from_pem(cert.data())?;
+        let key_source = KeySource::Cert(certificate);
+
+        let priv_key = expect_from_env("VAULT_APP_PRIV_KEY");
+        let priv_key: PemHelper = self.vault.read(None, &priv_key).await?;
+        let priv_key = PrivateKey::from_safe_pem(priv_key.pem(), priv_key.kty(), priv_key.crv())?;
+
+        Ok((cert.data().to_string(), key_source, priv_key))
+    }
+
+    async fn managing_headers(&self, grant: &grant::Model, method: &str) -> Outcome<HeaderMap> {
+        let uri = require_field(grant.managing_uri.as_ref(), "managing uri")?;
+        let token = require_field(grant.managing_token.as_ref(), "managing token")?;
+        let (_, key_source, priv_key) = self.signing_material().await?;
+
+        let authorization = format!("GNAP {}", token);
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, authorization.parse_header()?);
+        let httpsig = HttpSig::build(
+            &key_source,
+            &priv_key,
+            None,
+            method,
+            uri,
+            &[],
+            "application/json",
+            Some(&authorization),
+        )?;
+        headers.extend(httpsig);
+        Ok(headers)
+    }
+
+    fn expiry(now: DateTime<Utc>, expires_in: Option<u64>) -> Option<DateTime<Utc>> {
+        expires_in.map(|secs| now + Duration::seconds(secs as i64))
+    }
+
+    fn apply_access_token(grant: &mut grant::Model, access_token: AccessToken) {
+        let now = Utc::now();
+        grant.final_token = Some(access_token.value);
+        grant.final_expires_at = Self::expiry(now, access_token.expires_in);
+        match access_token.manage {
+            Some(manage) => {
+                grant.managing_uri = Some(manage.uri);
+                grant.managing_token = Some(manage.access_token.value);
+                grant.managing_expires_at = Self::expiry(now, manage.access_token.expires_in);
+            }
+            None => {
+                grant.managing_uri = None;
+                grant.managing_token = None;
+                grant.managing_expires_at = None;
+            }
+        }
     }
 }
 
@@ -186,16 +248,9 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
     ) -> Outcome<GrantResponse> {
         info!("Sending request to establish connection with peer");
 
-        let cert = expect_from_env("VAULT_APP_CERT");
-        let cert: StringHelper = self.vault.read(None, &cert).await?;
-        let certificate = Certificate::try_from_pem(cert.data())?;
-        let key_source = KeySource::Cert(certificate);
+        let (cert, key_source, priv_key) = self.signing_material().await?;
 
-        let priv_key = expect_from_env("VAULT_APP_PRIV_KEY");
-        let priv_key: PemHelper = self.vault.read(None, &priv_key).await?;
-        let priv_key = PrivateKey::from_safe_pem(priv_key.pem(), priv_key.kty(), priv_key.crv())?;
-
-        let client = self.config.get_client(cert.data())?;
+        let client = self.config.get_client(&cert)?;
 
         let grant_request =
             GrantRequest::new_token(client, resource_req.actions.clone(), interaction);
@@ -233,7 +288,7 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
             GrantResponse::Approved(payload) => match payload.kind {
                 GrantResponseKind::AccessToken { access_token } => {
                     grant.status = GrantStatus::Approved;
-                    grant.token = Some(access_token.value);
+                    Self::apply_access_token(grant, access_token);
                     Ok(TokenWhatResponse::Completed)
                 }
                 GrantResponseKind::CredentialResponse { .. } => Err(Errors::provider_grant(
@@ -246,9 +301,9 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
 
                 interaction.as_nonce = payload.interact.finish;
                 interaction.oidc_vp_uri = payload.interact.oid4vp.clone();
-                interaction.continue_token = Some(payload.r#continue.access_token.value);
-                interaction.continue_endpoint = Some(payload.r#continue.uri);
-                interaction.continue_wait = payload.r#continue.wait.map(|n| n as i64);
+                interaction.continuation_token = Some(payload.r#continue.access_token.value);
+                interaction.continuation_endpoint = Some(payload.r#continue.uri);
+                interaction.continuation_wait = payload.r#continue.wait.map(|n| n as i64);
                 let uri = payload.interact.oid4vp.ok_or_else(|| {
                     Errors::provider_grant(
                         "Provider did not send expected interaction method (oid4vp)",
@@ -268,6 +323,55 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
                     error.error
                 )))
             }
+        }
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn send_rotation_req(&self, grant: &grant::Model) -> Outcome<GrantResponse> {
+        info!("Rotating the token of a grant with a peer");
+        let uri = require_field(grant.managing_uri.as_ref(), "managing uri")?;
+        let headers = self.managing_headers(grant, "POST").await?;
+        let res = http_client()
+            .post(uri, Some(headers), HttpBody::None)
+            .await?;
+        res.parse_json().await
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn send_revocation_req(&self, grant: &grant::Model) -> Outcome<()> {
+        info!("Revoking the token of a grant with a peer");
+        let uri = require_field(grant.managing_uri.as_ref(), "managing uri")?;
+        let headers = self.managing_headers(grant, "DELETE").await?;
+        http_client()
+            .delete(uri, Some(headers), HttpBody::None)
+            .await?
+            .ensure_success()
+            .await?;
+        Ok(())
+    }
+
+    fn apply_rotation_resp(
+        &self,
+        response: GrantResponse,
+        grant: &mut grant::Model,
+    ) -> Outcome<RotationOutcome> {
+        match response {
+            GrantResponse::Approved(payload) => match payload.kind {
+                GrantResponseKind::AccessToken { access_token } => {
+                    Self::apply_access_token(grant, access_token);
+                    Ok(RotationOutcome::Rotated)
+                }
+                GrantResponseKind::CredentialResponse { .. } => Err(Errors::provider_grant(
+                    "Provider returned an OID4VCI URI when rotating a token",
+                )),
+            },
+            GrantResponse::Error(error) => match error.error {
+                ErrorCode::InvalidRotation => Ok(RotationOutcome::Refused),
+                other => Err(Errors::provider_grant(format!("Provider said {}", other))),
+            },
+            _ => Err(Errors::provider_grant(
+                "Provider answered a token rotation with an unexpected response",
+            )),
         }
     }
 }

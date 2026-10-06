@@ -74,6 +74,7 @@ pub mod auth {
         pub const ACCESS: &str = "/access";
         /// Continuation of a grant, by its continuation id.
         pub const CONTINUE: &str = "/continue/{id}";
+        pub const TOKEN: &str = "/token/{id}";
         pub const REQUEST_ALL: &str = "/request/all";
         pub const REQUEST: &str = "/request/{id}";
         pub const REQUEST_DETAILS: &str = "/request/{id}/details";

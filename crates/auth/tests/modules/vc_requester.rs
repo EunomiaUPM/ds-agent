@@ -22,15 +22,14 @@ use std::sync::{Arc, Mutex};
 use auth::modules::VcRequesterModule;
 use auth::types::response::VcWhatResponse;
 use common::test_utils::scopes::TestUsers;
-use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::GrantStatus;
 use ymir::types::oauth::UserInfo;
 use ymir::types::participants::ParticipantType;
 use ymir::types::wallet::OidcUri;
 
 use crate::support::builders::{
-    participant, participant_plan, reach_authority, relation, resource_req, sent_grant_plan,
-    sent_interaction, sent_interaction_plan, vc_request,
+    issued_token_response, participant, participant_plan, reach_authority, relation, resource_req,
+    sent_grant_plan, sent_interaction, sent_interaction_plan, vc_request,
 };
 use crate::support::mocks::Doubles;
 
@@ -57,7 +56,7 @@ fn request(d: &mut Doubles, auto: bool, what: VcWhatResponse) -> Arc<Mutex<Vec<G
         .returning(|plan| Ok(sent_interaction(&plan.id)));
     d.vc_requester
         .expect_send_grant_req()
-        .returning(|grant, _| Ok(GrantResponse::token_approved("t", &resource_req(&grant.id))));
+        .returning(|grant, _| Ok(issued_token_response("t", &resource_req(&grant.id))));
     d.vc_requester
         .expect_manage_grant_resp()
         .return_once(move |_, _, _| Ok(what));

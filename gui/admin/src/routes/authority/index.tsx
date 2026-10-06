@@ -23,7 +23,7 @@ interface SentGrant {
   grant_endpoint: string;
   kind: string;
   status: string;
-  token?: string | null;
+  final_token?: string | null;
   /**
    * Each entry is the string id of a VcTypeConfig, e.g. "gx_VatId_jwt_vc_json".
    * Comes from the backend's `impl_serde_via_str!(VcTypeConfig)`.

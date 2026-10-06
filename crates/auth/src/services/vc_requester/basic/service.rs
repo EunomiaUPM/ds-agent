@@ -224,9 +224,9 @@ impl VcRequesterTrait for VCReqService {
 
                 interaction.as_nonce = payload.interact.finish;
                 interaction.oidc_vp_uri = payload.interact.oid4vp.clone();
-                interaction.continue_token = Some(payload.r#continue.access_token.value);
-                interaction.continue_endpoint = Some(payload.r#continue.uri);
-                interaction.continue_wait = payload.r#continue.wait.map(|n| n as i64);
+                interaction.continuation_token = Some(payload.r#continue.access_token.value);
+                interaction.continuation_endpoint = Some(payload.r#continue.uri);
+                interaction.continuation_wait = payload.r#continue.wait.map(|n| n as i64);
                 let uri = payload.interact.oid4vp.ok_or_else(|| {
                     Errors::authority_grant(
                         "Authority did not send expected interaction method (oid4vp)",

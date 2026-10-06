@@ -39,7 +39,11 @@ interface SentGrant {
   grant_endpoint: string;
   kind: string;
   status: string;
-  token?: string | null;
+  final_token?: string | null;
+  final_expires_at?: string | null;
+  managing_uri?: string | null;
+  managing_token?: string | null;
+  managing_expires_at?: string | null;
   vc_type_config?: string[] | null;
   vc_uri?: string | null;
   as_assigned_id?: string | null;
@@ -56,9 +60,9 @@ interface SentInteraction {
   client_nonce: string;
   hash_method: any;
   hints?: string | null;
-  continue_endpoint?: string | null;
-  continue_token?: string | null;
-  continue_wait?: number | null;
+  continuation_endpoint?: string | null;
+  continuation_token?: string | null;
+  continuation_wait?: number | null;
   as_nonce?: string | null;
   oidc_vp_uri?: string | null;
   interact_ref?: string | null;
@@ -235,7 +239,20 @@ function SentRequestDetails() {
                   <SecretField value={grant.as_assigned_id} />
                 </DetailItem>
                 <DetailItem label="Access Token">
-                  <SecretField value={grant.token} />
+                  <SecretField value={grant.final_token} />
+                </DetailItem>
+                <DetailItem label="Token Expires">
+                  {grant.final_expires_at ? <FormatDate date={grant.final_expires_at} /> : "-"}
+                </DetailItem>
+                <DetailItem label="Managing Token">
+                  <SecretField value={grant.managing_token} />
+                </DetailItem>
+                <DetailItem label="Grant Valid Until">
+                  {grant.managing_expires_at ? (
+                    <FormatDate date={grant.managing_expires_at} />
+                  ) : (
+                    "-"
+                  )}
                 </DetailItem>
                 <DetailItem label="Created At">
                   {grant.created_at ? <FormatDate date={grant.created_at} /> : "-"}
@@ -327,9 +344,9 @@ function SentRequestDetails() {
                     {interaction.callback_uri}
                   </span>
                 </DetailItem>
-                <DetailItem label="Continue Endpoint">
+                <DetailItem label="Continuation Endpoint">
                   <span className="font-mono text-xs break-all">
-                    {interaction.continue_endpoint || "—"}
+                    {interaction.continuation_endpoint || "—"}
                   </span>
                 </DetailItem>
                 <DetailItem label="Hash Method">
@@ -339,8 +356,8 @@ function SentRequestDetails() {
                       : (Object.keys(interaction.hash_method ?? {})[0] ?? "—")}
                   </span>
                 </DetailItem>
-                <DetailItem label="Continue Wait">
-                  <span className="font-mono text-xs">{interaction.continue_wait ?? "—"}</span>
+                <DetailItem label="Continuation Wait">
+                  <span className="font-mono text-xs">{interaction.continuation_wait ?? "—"}</span>
                 </DetailItem>
                 <DetailItem label="Interact Ref">
                   <SecretField value={interaction.interact_ref} />

@@ -23,14 +23,13 @@ use auth::types::response::TokenWhatResponse;
 use common::test_utils::scopes::TestUsers;
 use ymir::errors::Errors;
 use ymir::types::gnap::grant_request::interact::InteractAction;
-use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody, GrantStatus, RejectedCallbackBody};
 use ymir::types::verification::VerificationStatus;
 use ymir::types::wallet::OidcUri;
 
 use crate::support::builders::{
-    participant, participant_plan, reach_provider, relation, resource_req, sent_grant,
-    sent_grant_plan, sent_interaction, sent_interaction_plan, sent_verification,
+    issued_token_response, participant, participant_plan, reach_provider, relation, resource_req,
+    sent_grant, sent_grant_plan, sent_interaction, sent_interaction_plan, sent_verification,
     sent_verification_plan,
 };
 use crate::support::mocks::Doubles;
@@ -58,7 +57,7 @@ fn connection(d: &mut Doubles, auto: bool, what: TokenWhatResponse) {
     d.repos.resource_req.expect_create().returning(Ok);
     d.peer_connector
         .expect_send_grant_req()
-        .returning(|_, _, req| Ok(GrantResponse::token_approved("peer-token", req)));
+        .returning(|_, _, req| Ok(issued_token_response("peer-token", req)));
     d.peer_connector
         .expect_manage_grant_resp()
         .return_once(move |_, _, _| Ok(what));
@@ -304,7 +303,7 @@ async fn peer_token_is_the_one_of_the_users_own_grant() {
         .returning(|_, _| {
             let mut grant = sent_grant("ana", "/admin/upm", "g-1", true);
             grant.status = GrantStatus::Approved;
-            grant.token = Some("peer-token".to_string());
+            grant.final_token = Some("peer-token".to_string());
             Ok(Some(grant))
         });
 

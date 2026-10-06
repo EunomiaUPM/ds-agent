@@ -15,9 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::types::token::IssuedToken;
 use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
+use chrono::{DateTime, Utc};
+use ymir::data::entities::received::grant::FinalRotation;
 use ymir::data::entities::received::{grant, interaction};
 use ymir::data::entities::shared::{participant, participant_relation, resource_req};
 use ymir::errors::Outcome;
@@ -72,4 +75,19 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
         model: &interaction::Model,
         verification_result: Outcome<()>,
     ) -> Outcome<InteractionFinishResponse>;
+
+    fn issue_token(&self, grant: &mut grant::Model, now: DateTime<Utc>) -> IssuedToken;
+    fn rotate_token(
+        &self,
+        grant: &grant::Model,
+        now: DateTime<Utc>,
+    ) -> Outcome<(FinalRotation, IssuedToken)>;
+    fn validate_managing_req(
+        &self,
+        grant: &grant::Model,
+        interaction: &interaction::Model,
+        method: &str,
+        payload: &Bytes,
+        headers: &HeaderMap,
+    ) -> Outcome<()>;
 }

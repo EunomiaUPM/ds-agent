@@ -27,12 +27,14 @@ use ymir::data::entities::received;
 use ymir::data::entities::sent;
 use ymir::data::entities::shared::{participant, participant_relation, resource_req};
 use ymir::data::entities::wallet::vc;
+use ymir::types::gnap::access_token::{BoundToken, TokenManagement};
 use ymir::types::gnap::grant_request::access::AccessType;
 use ymir::types::gnap::grant_request::client::{Client, ClientKey, KeyProof};
 use ymir::types::gnap::grant_request::interact::{
     FinishMethod, HashMethod, InteractAction, InteractStart,
 };
 use ymir::types::gnap::grant_request::{GrantKind, GrantRequest};
+use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::GrantStatus;
 use ymir::types::issuance::VcBody;
 use ymir::types::jwt::VCJwtClaims;
@@ -67,7 +69,11 @@ pub fn sent_grant(user_id: &str, role_path: &str, id: &str, auto: bool) -> sent:
         grant_endpoint: "http://peer/gnap/grant".to_string(),
         kind: GrantKind::AccessToken,
         status: GrantStatus::Pending,
-        token: None,
+        final_token: None,
+        final_expires_at: None,
+        managing_uri: None,
+        managing_token: None,
+        managing_expires_at: None,
         vc_type_config: None,
         vc_uri: None,
         as_assigned_id: None,
@@ -114,9 +120,9 @@ pub fn sent_interaction(id: &str) -> sent::interaction::Model {
         client_nonce: "client-nonce".to_string(),
         hash_method: HashMethod::Sha256,
         hints: None,
-        continue_endpoint: None,
-        continue_token: None,
-        continue_wait: None,
+        continuation_endpoint: None,
+        continuation_token: None,
+        continuation_wait: None,
         as_nonce: None,
         oidc_vp_uri: None,
         interact_ref: None,
@@ -168,6 +174,11 @@ pub fn sent_verification_plan(id: &str) -> sent::verification::Plan {
     }
 }
 
+pub fn issued_token_response(token: &str, req: &resource_req::Model) -> GrantResponse {
+    let managing = TokenManagement::new("http://peer/gate/token/m-1", BoundToken::new("managing"));
+    GrantResponse::token_issued(token, req, 3600, managing)
+}
+
 pub fn resource_req(id: &str) -> resource_req::Model {
     resource_req::Model {
         id: id.to_string(),
@@ -195,7 +206,11 @@ pub fn recv_grant(role_path: &str, id: &str) -> received::grant::Model {
         participant_nick: "peer".to_string(),
         participant_id: None,
         kind: GrantKind::AccessToken,
-        token: None,
+        final_token_hash: None,
+        final_expires_at: None,
+        managing_id: None,
+        managing_token_hash: None,
+        managing_expires_at: None,
         vc_type_config: None,
         status: GrantStatus::Pending,
         created_at: Utc::now(),
@@ -224,10 +239,10 @@ pub fn recv_interaction(id: &str) -> received::interaction::Model {
         client_nonce: "client-nonce".to_string(),
         hash_method: HashMethod::Sha256,
         hints: None,
-        continue_endpoint: "http://me/gnap/continue/cont-1".to_string(),
-        continue_id: "cont-1".to_string(),
-        continue_token: "cont-token".to_string(),
-        continue_wait: None,
+        continuation_endpoint: "http://me/gnap/continue/cont-1".to_string(),
+        continuation_id: "cont-1".to_string(),
+        continuation_token: "cont-token".to_string(),
+        continuation_wait: None,
         as_nonce: "as-nonce".to_string(),
         interact_ref: "interact-ref".to_string(),
         hash: "hash".to_string(),
@@ -245,9 +260,9 @@ pub fn recv_interaction_plan(id: &str) -> received::interaction::Plan {
         hash_method: None,
         hints: None,
         grant_endpoint: "http://me/gnap/grant".to_string(),
-        continue_endpoint: "http://me/gnap/continue/cont-1".to_string(),
-        continue_token: "cont-token".to_string(),
-        continue_wait: None,
+        continuation_endpoint: "http://me/gnap/continue/cont-1".to_string(),
+        continuation_token: "cont-token".to_string(),
+        continuation_wait: None,
     }
 }
 

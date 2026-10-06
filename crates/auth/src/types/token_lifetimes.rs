@@ -15,9 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Request and response types shared by the modules.
-
-pub mod entities;
-pub mod response;
-pub mod token;
-pub mod token_lifetimes;
+pub const FINAL_TOKEN_TTL_SECS: i64 = 3_600;
+pub const MANAGING_TOKEN_TTL_SECS: i64 = 604_800;
+pub const EXPIRY_MARGIN_SECS: i64 = 60;
+pub const SWEEP_INTERVAL_SECS: u64 = 300;

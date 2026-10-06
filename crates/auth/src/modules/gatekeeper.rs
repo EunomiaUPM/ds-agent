@@ -20,6 +20,7 @@ use crate::services::{HasGateKeeper, HasRepo};
 use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
+use chrono::{DateTime, Utc};
 use common::facades::grants_facade::VerifiedPeer;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use serde_json::{json, Value};
@@ -27,11 +28,12 @@ use ymir::data::entities::received::grant;
 use ymir::errors::Outcome;
 use ymir::services::HasVerifier;
 use ymir::types::gnap::grant_request::GrantKind;
-use ymir::types::gnap::grant_response::{ErrorResponse, GrantResponse};
+use ymir::types::gnap::grant_response::{ErrorCode, ErrorResponse, GrantResponse};
 use ymir::types::gnap::GrantStatus;
 use ymir::types::listing::{GrantSort, RecvGrantListFilter};
 use ymir::types::oauth::{RoleTrait, UserInfo};
-use ymir::utils::{create_opaque_token, errors_to_error_code, require_field};
+use ymir::errors::Errors;
+use ymir::utils::{errors_to_error_code, hash_token, require_field};
 
 /// Answering GNAP grant requests from peers: each one is verified with an OID4VP presentation.
 ///
@@ -110,11 +112,15 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
     // ==========================================================================================
 
     /// The peer behind `token` and the role that handles what it opens, if this connector
-    /// issued the token and the grant is approved; missing-resource error otherwise. No user:
-    /// the caller is a DSP endpoint answering the peer.
+    /// issued the token, the grant is approved and the token has not expired; missing-resource
+    /// error otherwise. No user: the caller is a DSP endpoint answering the peer.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn verify_token(&self, token: &str) -> Outcome<VerifiedPeer> {
-        let grant = self.repo().recv_grant().get_approved_by_token(token).await?;
+        let grant = self
+            .repo()
+            .recv_grant()
+            .get_valid_by_final_hash(&hash_token(token), Utc::now())
+            .await?;
         let participant_id = require_field(grant.participant_id.as_ref(), "participant_id")?;
         Ok(VerifiedPeer {
             participant_id: participant_id.to_string(),
@@ -157,9 +163,134 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
             })
     }
 
+    #[tracing::instrument(level = "info", skip_all)]
+    async fn manage_rotation(
+        &self,
+        managing_id: &str,
+        payload: Bytes,
+        headers: HeaderMap,
+    ) -> GrantResponse {
+        self.inner_manage_rotation(managing_id, payload, headers)
+            .await
+            .unwrap_or_else(|e| {
+                e.log();
+                let error = match errors_to_error_code(&e) {
+                    server @ ErrorCode::Other(_) => server,
+                    _ => ErrorCode::InvalidRotation,
+                };
+                GrantResponse::Error(ErrorResponse { error })
+            })
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn manage_revocation(
+        &self,
+        managing_id: &str,
+        payload: Bytes,
+        headers: HeaderMap,
+    ) -> Outcome<()> {
+        let mut grant = self.get_managed_grant(managing_id).await?;
+        let interaction = self.repo().recv_interaction().get_by_id(&grant.id).await?;
+        self.gatekeeper().validate_managing_req(
+            &grant,
+            &interaction,
+            "DELETE",
+            &payload,
+            &headers,
+        )?;
+
+        if grant.status == GrantStatus::Approved {
+            grant.status = GrantStatus::Finalized;
+            grant.ended_at = Some(Utc::now());
+            grant.final_token_hash = None;
+            grant.managing_token_hash = None;
+            self.repo().recv_grant().update(grant).await?;
+        }
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn sweep_expired(&self, now: DateTime<Utc>) -> Outcome<u64> {
+        self.repo().recv_grant().finalize_expired(now).await
+    }
+
     // ==========================================================================================
     // Internal steps of the flow
     // ==========================================================================================
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn get_managed_grant(&self, managing_id: &str) -> Outcome<grant::Model> {
+        let grant = self
+            .repo()
+            .recv_grant()
+            .get_by_managing_id(managing_id)
+            .await?;
+        if grant.kind != GrantKind::AccessToken {
+            return Err(Errors::missing_resource(
+                managing_id,
+                "grant not found",
+                None,
+            ));
+        }
+        Ok(grant)
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn inner_manage_rotation(
+        &self,
+        managing_id: &str,
+        payload: Bytes,
+        headers: HeaderMap,
+    ) -> Outcome<GrantResponse> {
+        let mut grant = self.get_managed_grant(managing_id).await?;
+        let interaction = self.repo().recv_interaction().get_by_id(&grant.id).await?;
+        self.gatekeeper().validate_managing_req(
+            &grant,
+            &interaction,
+            "POST",
+            &payload,
+            &headers,
+        )?;
+
+        if grant.status != GrantStatus::Approved {
+            return Err(Errors::security("Grant is not approved", None));
+        }
+
+        let now = Utc::now();
+        let lifetime_reached = match grant.managing_expires_at {
+            Some(at) => at <= now,
+            None => true,
+        };
+        if lifetime_reached {
+            grant.status = GrantStatus::Finalized;
+            grant.ended_at = Some(now);
+            self.repo().recv_grant().update(grant).await?;
+            return Err(Errors::security(
+                "Grant has reached its maximum lifetime",
+                None,
+            ));
+        }
+
+        let expected_managing_hash =
+            require_field(grant.managing_token_hash.as_ref(), "managing token")?;
+        let (rotation, issued) = self.gatekeeper().rotate_token(&grant, now)?;
+        let rotated = self
+            .repo()
+            .recv_grant()
+            .rotate_final(&grant.id, expected_managing_hash, rotation)
+            .await?;
+        if !rotated {
+            return Err(Errors::security("Token was rotated concurrently", None));
+        }
+
+        let resource_req = self.repo().resource_req().get_by_id(&grant.id).await?;
+        Ok(GrantResponse::token_issued(
+            issued.final_token,
+            &resource_req,
+            issued.final_expires_in,
+            issued.manage,
+        ))
+    }
 
     /// Validates the request and stores the grant, its interaction, resource request and
     /// verification. The grant's role and visibility would come from rules on what the peer asks
@@ -205,7 +336,11 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         payload: Bytes,
         headers: HeaderMap,
     ) -> Outcome<GrantResponse> {
-        let interaction = self.repo().recv_interaction().get_by_cont_id(id).await?;
+        let interaction = self
+            .repo()
+            .recv_interaction()
+            .get_by_continuation_id(id)
+            .await?;
         self.gatekeeper()
             .validate_cont_req(&interaction, &payload, &headers)?;
 
@@ -226,8 +361,7 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         let relation = self.gatekeeper().build_mate_rel_plan(&grant.role, holder);
         self.repo().participant_relation().force_update(relation).await?;
 
-        let token = create_opaque_token();
-        grant.token = Some(token.to_string());
+        let issued = self.gatekeeper().issue_token(&mut grant, Utc::now());
         grant.participant_id = Some(holder.to_string());
         grant.status = GrantStatus::Approved;
         self.repo().recv_grant().update(grant).await?;
@@ -237,6 +371,11 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
             .resource_req()
             .get_by_id(&interaction.id)
             .await?;
-        Ok(GrantResponse::token_approved(token, &resource_req))
+        Ok(GrantResponse::token_issued(
+            issued.final_token,
+            &resource_req,
+            issued.final_expires_in,
+            issued.manage,
+        ))
     }
 }

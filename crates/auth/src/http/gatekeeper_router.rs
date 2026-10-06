@@ -20,7 +20,7 @@ use std::sync::Arc;
 use axum::body::Bytes;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
-use axum::http::HeaderMap;
+use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde_json::Value;
@@ -58,6 +58,10 @@ impl GateKeeperRouter {
         Router::new()
             .route(gate::ACCESS, post(Self::manage_req))
             .route(gate::CONTINUE, post(Self::continue_req))
+            .route(
+                gate::TOKEN,
+                post(Self::rotate_token).delete(Self::revoke_token),
+            )
             .with_state(self.gatekeeper.clone())
     }
 
@@ -92,6 +96,27 @@ impl GateKeeperRouter {
         Ok(Json(
             gatekeeper.manage_continue_req(&id, payload, headers).await,
         ))
+    }
+
+    async fn rotate_token(
+        State(gatekeeper): State<Arc<dyn GateKeeperModule>>,
+        headers: HeaderMap,
+        Path(id): Path<String>,
+        payload: Bytes,
+    ) -> AppResult<Json<GrantResponse>> {
+        Ok(Json(
+            gatekeeper.manage_rotation(&id, payload, headers).await,
+        ))
+    }
+
+    async fn revoke_token(
+        State(gatekeeper): State<Arc<dyn GateKeeperModule>>,
+        headers: HeaderMap,
+        Path(id): Path<String>,
+        payload: Bytes,
+    ) -> AppResult<StatusCode> {
+        gatekeeper.manage_revocation(&id, payload, headers).await?;
+        Ok(StatusCode::NO_CONTENT)
     }
 
     // ==========================================================================================

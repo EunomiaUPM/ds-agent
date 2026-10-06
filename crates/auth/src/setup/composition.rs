@@ -30,8 +30,10 @@ use crate::services::gatekeeper::gnap::{GnapGateKeeperConfig, GnapGateKeeperServ
 use crate::services::peer_connector::gnap::{GnapPeerConnectorConfig, GnapPeerConnectorService};
 use crate::services::vc_requester::basic::{VCReqService, VCRequesterConfig};
 use crate::setup::seeders::SelfParticipantOnboarder;
+use crate::workers::GrantExpiryWorker;
 use crate::SERVICE_NAME;
 use axum::Router;
+use common::boot::workers::BackgroundWorker;
 use common::config::services::SsiAuthConfig;
 use common::config::types::traits::{CommonConfigTrait, GaiaConfigTrait};
 use common::facades::AuthPorts;
@@ -190,5 +192,12 @@ impl ServiceModuleTrait for AuthModule {
     fn http(&self) -> Option<(String, Router)> {
         let r = AuthRouter::new(self.core.clone(), self.oauth_token_validator.clone());
         Some((String::new(), r.router()))
+    }
+
+    fn workers(&self) -> Vec<Box<dyn BackgroundWorker>> {
+        vec![Box::new(GrantExpiryWorker::new(
+            self.core.clone(),
+            self.core.clone(),
+        ))]
     }
 }

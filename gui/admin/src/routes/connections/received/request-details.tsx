@@ -32,7 +32,9 @@ interface RecvGrant {
   id: string;
   participant_nick: string;
   kind: string;
-  token?: string | null;
+  final_token_hash?: string | null;
+  final_expires_at?: string | null;
+  managing_expires_at?: string | null;
   vc_type_config?: string[] | null;
   status: string;
   created_at: string;
@@ -48,10 +50,10 @@ interface RecvInteraction {
   client_nonce: string;
   hash_method: any;
   hints?: string | null;
-  continue_endpoint: string;
-  continue_id: string;
-  continue_token: string;
-  continue_wait?: number | null;
+  continuation_endpoint: string;
+  continuation_id: string;
+  continuation_token: string;
+  continuation_wait?: number | null;
   as_nonce: string;
   interact_ref: string;
   hash: string;
@@ -187,8 +189,18 @@ function ReceivedRequestDetails() {
                   </Badge>
                 </DetailItem>
                 <DetailItem label="Peer Nick">{grant.participant_nick || "-"}</DetailItem>
-                <DetailItem label="Issued Token">
-                  <SecretField value={grant.token} />
+                <DetailItem label="Hash of Token">
+                  <SecretField value={grant.final_token_hash} />
+                </DetailItem>
+                <DetailItem label="Token Expires">
+                  {grant.final_expires_at ? <FormatDate date={grant.final_expires_at} /> : "-"}
+                </DetailItem>
+                <DetailItem label="Grant Valid Until">
+                  {grant.managing_expires_at ? (
+                    <FormatDate date={grant.managing_expires_at} />
+                  ) : (
+                    "-"
+                  )}
                 </DetailItem>
                 <DetailItem label="VC Types Requested">
                   {(grant.vc_type_config ?? []).length === 0 ? (
@@ -291,9 +303,9 @@ function ReceivedRequestDetails() {
                     {interaction.callback_uri}
                   </span>
                 </DetailItem>
-                <DetailItem label="Continue Endpoint">
+                <DetailItem label="Continuation Endpoint">
                   <span className="font-mono text-xs break-all">
-                    {interaction.continue_endpoint}
+                    {interaction.continuation_endpoint}
                   </span>
                 </DetailItem>
                 <DetailItem label="Hash Method">
@@ -303,8 +315,8 @@ function ReceivedRequestDetails() {
                       : (Object.keys(interaction.hash_method ?? {})[0] ?? "—")}
                   </span>
                 </DetailItem>
-                <DetailItem label="Continue Wait">
-                  <span className="font-mono text-xs">{interaction.continue_wait ?? "—"}</span>
+                <DetailItem label="Continuation Wait">
+                  <span className="font-mono text-xs">{interaction.continuation_wait ?? "—"}</span>
                 </DetailItem>
                 <DetailItem label="Interact Ref">
                   <SecretField value={interaction.interact_ref} />

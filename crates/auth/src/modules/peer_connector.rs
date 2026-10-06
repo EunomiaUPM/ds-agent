@@ -18,9 +18,10 @@
 use crate::entities::filters::SentGrantFilter;
 use crate::services::{HasCallback, HasPeerConnector, HasRepo};
 use crate::types::entities::ReachProvider;
-use crate::types::response::TokenWhatResponse;
+use crate::types::response::{RotationOutcome, TokenWhatResponse};
+use crate::types::token_lifetimes::EXPIRY_MARGIN_SECS;
 use async_trait::async_trait;
-use chrono::Utc;
+use chrono::{DateTime, Duration, Utc};
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use serde_json::{json, Value};
 use ymir::data::entities::sent::{grant, interaction, verification};
@@ -123,16 +124,37 @@ pub trait PeerConnectorModule:
     /// The token `user` presents to `participant_id`: the one of its own latest approved grant
     /// with that peer. `None` if it has none, even if a colleague does.
     ///
-    /// Passive obtaining (tokens plan, §4.4) will go here: without a token, request one from the
-    /// peer on the user's behalf instead of answering `None`.
+    /// A token about to expire is rotated, and a grant about to reach its lifetime is renewed with
+    /// a new grant request. Obtaining the first grant with a peer (tokens plan, §4.4) is still up
+    /// to the user.
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn peer_token(&self, user: &UserInfo, participant_id: &str) -> Outcome<Option<String>> {
-        let grant = self
+        let Some(grant) = self
             .repo()
             .sent_grant()
             .get_active_access(user.id(), participant_id)
-            .await?;
-        Ok(grant.and_then(|g| g.token))
+            .await?
+        else {
+            return Ok(None);
+        };
+
+        let now = Utc::now();
+        let margin = Duration::seconds(EXPIRY_MARGIN_SECS);
+        let grant_ending = expires_within(grant.managing_expires_at, margin, now);
+        let token_ending = expires_within(grant.final_expires_at, margin, now);
+
+        if grant_ending || (grant.managing_uri.is_none() && token_ending) {
+            return self.renew_access(user, participant_id, grant, now).await;
+        }
+        if token_ending {
+            return self.rotate_access(user, participant_id, grant, now).await;
+        }
+        Ok(grant.final_token)
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn sweep_expired(&self, now: DateTime<Utc>) -> Outcome<u64> {
+        self.repo().sent_grant().finalize_expired(now).await
     }
 
     // ==========================================================================================
@@ -170,6 +192,18 @@ pub trait PeerConnectorModule:
         }
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn disconnect(&self, user: &UserInfo, id: &str) -> Outcome<()> {
+        let grant = self.get_access_grant(id).await?;
+        user.ensure_reaches(&grant.user_id, &grant.role, id)?;
+        if grant.status == GrantStatus::Approved && grant.managing_uri.is_some() {
+            if let Err(e) = self.peer_connector().send_revocation_req(&grant).await {
+                e.log();
+            }
+        }
+        self.finalize_sent(grant).await
+    }
+
     /// Answers the pending presentation request of grant `id` through the wallet, if `user`
     /// reaches the grant: acting needs more than seeing it (the verification shares its id).
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
@@ -193,6 +227,105 @@ pub trait PeerConnectorModule:
             return Err(Errors::missing_resource(id, "grant not found", None));
         }
         Ok(grant)
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn rotate_access(
+        &self,
+        user: &UserInfo,
+        participant_id: &str,
+        grant: grant::Model,
+        now: DateTime<Utc>,
+    ) -> Outcome<Option<String>> {
+        let usable = is_valid_at(grant.final_expires_at, now);
+        let rotation = match self.peer_connector().send_rotation_req(&grant).await {
+            Ok(response) => {
+                let mut rotated = grant.clone();
+                self.peer_connector()
+                    .apply_rotation_resp(response, &mut rotated)
+                    .map(|outcome| (outcome, rotated))
+            }
+            Err(e) => Err(e),
+        };
+
+        match rotation {
+            Ok((RotationOutcome::Rotated, rotated)) => {
+                let rotated = self.repo().sent_grant().update(rotated).await?;
+                Ok(rotated.final_token)
+            }
+            Ok((RotationOutcome::Refused, _)) => {
+                let current = self.repo().sent_grant().get_by_id(&grant.id).await?;
+                if current.status == GrantStatus::Approved
+                    && current.final_token != grant.final_token
+                {
+                    return Ok(current.final_token);
+                }
+                self.renew_access(user, participant_id, grant, now).await
+            }
+            Err(e) if usable => {
+                e.log();
+                Ok(grant.final_token)
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn renew_access(
+        &self,
+        user: &UserInfo,
+        participant_id: &str,
+        grant: grant::Model,
+        now: DateTime<Utc>,
+    ) -> Outcome<Option<String>> {
+        let processing_since = now - Duration::seconds(EXPIRY_MARGIN_SECS);
+        let open = self
+            .repo()
+            .sent_grant()
+            .has_open_access(user.id(), participant_id, processing_since)
+            .await?;
+        if !open {
+            if let Err(e) = self.renew_grant(user, &grant).await {
+                e.log();
+            }
+        }
+
+        let latest = self
+            .repo()
+            .sent_grant()
+            .get_active_access(user.id(), participant_id)
+            .await?;
+        if let Some(latest) = latest {
+            if latest.id != grant.id && is_valid_at(latest.final_expires_at, now) {
+                return Ok(latest.final_token);
+            }
+        }
+        if is_valid_at(grant.final_expires_at, now) {
+            return Ok(grant.final_token);
+        }
+        Ok(None)
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn renew_grant(&self, user: &UserInfo, grant: &grant::Model) -> Outcome<()> {
+        let resource_req = self.repo().resource_req().get_by_id(&grant.id).await?;
+        let payload = ReachProvider {
+            id: grant.participant_id.clone(),
+            nick: grant.participant_nick.clone(),
+            url: grant.grant_endpoint.clone(),
+            actions: resource_req.actions,
+            visibility: grant.visibility.clone(),
+            auto: Some(grant.auto),
+        };
+        self.req_peer_connection(user, payload).await
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn finalize_sent(&self, mut grant: grant::Model) -> Outcome<()> {
+        grant.status = GrantStatus::Finalized;
+        grant.ended_at = Some(Utc::now());
+        self.repo().sent_grant().update(grant).await?;
+        Ok(())
     }
 
     /// Checks the callback, sends the GNAP continuation and follows its answer.
@@ -281,5 +414,19 @@ pub trait PeerConnectorModule:
         grant.ended_at = Some(Utc::now());
         self.repo().sent_grant().update(grant).await?;
         Ok(())
+    }
+}
+
+fn expires_within(at: Option<DateTime<Utc>>, margin: Duration, now: DateTime<Utc>) -> bool {
+    match at {
+        Some(at) => at - margin <= now,
+        None => false,
+    }
+}
+
+fn is_valid_at(at: Option<DateTime<Utc>>, now: DateTime<Utc>) -> bool {
+    match at {
+        Some(at) => at > now,
+        None => true,
     }
 }

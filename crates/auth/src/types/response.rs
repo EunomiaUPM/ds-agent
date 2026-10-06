@@ -15,9 +15,23 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Request and response types shared by the modules.
+//! What to do after a GNAP answer.
 
-pub mod entities;
-pub mod response;
-pub mod token;
-pub mod token_lifetimes;
+/// Authority's answer: issue over OID4VCI, present over OID4VP, or wait.
+pub enum VcWhatResponse {
+    Issuance(String),
+    Presentation(String),
+    Wait,
+}
+
+/// Peer's answer: done, present over OID4VP, or wait.
+pub enum TokenWhatResponse {
+    Completed,
+    Presentation(String),
+    Wait,
+}
+
+pub enum RotationOutcome {
+    Rotated,
+    Refused,
+}

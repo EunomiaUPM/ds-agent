@@ -15,9 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Request and response types shared by the modules.
+use ymir::types::gnap::access_token::TokenManagement;
 
-pub mod entities;
-pub mod response;
-pub mod token;
-pub mod token_lifetimes;
+pub struct IssuedToken {
+    pub final_token: String,
+    pub final_expires_in: u64,
+    pub manage: TokenManagement,
+}

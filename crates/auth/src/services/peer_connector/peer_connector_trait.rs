@@ -16,7 +16,7 @@
  */
 
 use crate::types::entities::ReachProvider;
-use crate::types::response::TokenWhatResponse;
+use crate::types::response::{RotationOutcome, TokenWhatResponse};
 use async_trait::async_trait;
 use ymir::data::entities::sent::{grant, interaction, verification};
 use ymir::data::entities::shared::{participant, participant_relation, resource_req};
@@ -57,4 +57,11 @@ pub trait PeerConnectorTrait: Send + Sync + 'static {
         grant: &mut grant::Model,
         interaction: &mut interaction::Model,
     ) -> Outcome<TokenWhatResponse>;
+    async fn send_rotation_req(&self, grant: &grant::Model) -> Outcome<GrantResponse>;
+    async fn send_revocation_req(&self, grant: &grant::Model) -> Outcome<()>;
+    fn apply_rotation_resp(
+        &self,
+        response: GrantResponse,
+        grant: &mut grant::Model,
+    ) -> Outcome<RotationOutcome>;
 }

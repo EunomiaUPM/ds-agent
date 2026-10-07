@@ -16,12 +16,13 @@
  */
 
 use crate::services::{HasGateKeeper, HasRepo, MayHaveEventBus};
-use crate::types::events::{recv_owner, VerificationEvent};
+use crate::types::events::{recv_owner, GrantEvent, VerificationEvent};
 use async_trait::async_trait;
+use chrono::Utc;
 use ymir::data::entities::received::verification;
 use ymir::errors::Outcome;
 use ymir::services::HasVerifier;
-use ymir::types::gnap::InteractionFinishResponse;
+use ymir::types::gnap::{GrantStatus, InteractionFinishResponse};
 use ymir::types::vcs::VPDef;
 use ymir::types::verification::VerifyPayload;
 
@@ -62,10 +63,34 @@ pub trait VerifierModule:
         };
         let verification = self.repo().recv_verification().update(verification).await?;
         self.verifier_event(&verification, action).await;
+        if verification_result.is_err() {
+            self.finalize_denied(&verification.id).await?;
+        }
 
         self.gatekeeper()
             .finish_interaction(&interaction, verification_result)
             .await
+    }
+
+    async fn finalize_denied(&self, id: &str) -> Outcome<()> {
+        let mut grant = self.repo().recv_grant().get_by_id(id).await?;
+        if grant.status != GrantStatus::Pending {
+            return Ok(());
+        }
+        grant.status = GrantStatus::Finalized;
+        grant.ended_at = Some(Utc::now());
+        let grant = self.repo().recv_grant().update(grant).await?;
+        let owner = recv_owner(&grant);
+        let payload = GrantEvent::from(&grant);
+        events::emit_action!(
+            self.event_bus(),
+            &owner,
+            crate::EVENT_PREFIX,
+            "gate",
+            "finalized",
+            &payload
+        );
+        Ok(())
     }
 
     async fn verifier_event(&self, verification: &verification::Model, action: &str) {

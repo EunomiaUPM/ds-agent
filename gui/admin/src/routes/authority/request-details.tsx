@@ -29,6 +29,7 @@ import {
 } from "shared/src/components/ui/card";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { customInstance } from "shared/src/data/orval-mutator";
+import { syncParticipants } from "shared/src/data/syncParticipants";
 import { formatUrn, getFriendlyVCType } from "shared/src/lib/utils";
 import { z } from "zod";
 
@@ -141,6 +142,7 @@ function RequestDetailsPage() {
         method: "POST",
         data: { uri },
       });
+      await syncParticipants();
       await queryClient.invalidateQueries({ queryKey });
     } catch (err) {
       console.error(err);

@@ -20,10 +20,10 @@
 
 use auth::modules::VerifierModule;
 use ymir::errors::Errors;
-use ymir::types::gnap::InteractionFinishResponse;
+use ymir::types::gnap::{GrantStatus, InteractionFinishResponse};
 use ymir::types::verification::{VerificationStatus, VerifyPayload};
 
-use crate::support::builders::{recv_interaction, recv_verification};
+use crate::support::builders::{recv_grant, recv_interaction, recv_verification};
 use crate::support::mocks::Doubles;
 
 fn payload() -> VerifyPayload {
@@ -91,6 +91,16 @@ async fn rejected_presentation_finishes_the_interaction_with_failure() {
     d.repos
         .recv_verification
         .expect_update()
+        .times(1)
+        .returning(Ok);
+    d.repos
+        .recv_grant
+        .expect_get_by_id()
+        .returning(|id| Ok(recv_grant("/admin", id)));
+    d.repos
+        .recv_grant
+        .expect_update()
+        .withf(|grant| grant.status == GrantStatus::Finalized && grant.ended_at.is_some())
         .times(1)
         .returning(Ok);
     d.gatekeeper

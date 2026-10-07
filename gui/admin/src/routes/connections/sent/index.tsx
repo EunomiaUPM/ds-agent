@@ -102,9 +102,11 @@ function SentConnectionsPage() {
               accessorKey: "status",
               options: [
                 { label: "All Statuses", value: "all" },
-                { label: "Approved", value: "Approved" },
+                { label: "Processing", value: "Processing" },
                 { label: "Pending", value: "Pending" },
+                { label: "Approved", value: "Approved" },
                 { label: "Rejected", value: "Rejected" },
+                { label: "Finalized", value: "Finalized" },
               ],
             },
           ]}

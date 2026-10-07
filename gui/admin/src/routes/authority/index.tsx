@@ -125,9 +125,11 @@ function AuthorityRequestsPage() {
               label: "Status",
               options: [
                 { label: "All Statuses", value: "all" },
-                { label: "Pending", value: "pending" },
-                { label: "Approved", value: "approved" },
-                { label: "Rejected", value: "rejected" },
+                { label: "Processing", value: "Processing" },
+                { label: "Pending", value: "Pending" },
+                { label: "Approved", value: "Approved" },
+                { label: "Rejected", value: "Rejected" },
+                { label: "Finalized", value: "Finalized" },
               ],
             },
           ]}

@@ -69,9 +69,9 @@ function ReceivedConnectionsPage() {
             accessorKey: "status",
             options: [
               { label: "All Statuses", value: "all" },
-              { label: "Approved", value: "Approved" },
               { label: "Pending", value: "Pending" },
-              { label: "Rejected", value: "Rejected" },
+              { label: "Approved", value: "Approved" },
+              { label: "Finalized", value: "Finalized" },
             ],
           },
         ]}

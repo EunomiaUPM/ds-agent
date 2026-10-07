@@ -32,7 +32,7 @@ import { Skeleton } from "shared/src/components/ui/skeleton";
 
 import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { customInstance } from "shared/src/data/orval-mutator";
+import { syncParticipants } from "shared/src/data/syncParticipants";
 import { useMyself } from "shared/src/data/useMyself";
 
 interface Participant extends ParticipantDto {
@@ -76,10 +76,8 @@ function RouteComponent() {
   const handleSync = async () => {
     setIsSyncing(true);
     try {
-      await customInstance(`/mates/sync`, { method: "POST" });
+      await syncParticipants();
       await queryClient.invalidateQueries();
-    } catch (err) {
-      console.error(err);
     } finally {
       setIsSyncing(false);
     }

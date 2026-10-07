@@ -69,7 +69,7 @@ impl GateKeeperRouter {
     pub fn internal(&self) -> Router {
         Router::new()
             .route(gate::REQUEST_ALL, get(Self::get_all))
-            .route(gate::REQUEST, get(Self::get_one))
+            .route(gate::REQUEST, get(Self::get_one).delete(Self::disconnect))
             .route(gate::REQUEST_DETAILS, get(Self::get_one_with_details))
             .route(gate::TOKEN_VERIFY, post(Self::verify_token))
             .with_state(self.gatekeeper.clone())
@@ -142,6 +142,15 @@ impl GateKeeperRouter {
         Path(id): Path<String>,
     ) -> AppResult<Json<grant::Model>> {
         Ok(Json(gatekeeper.get_by_id(&user, &id).await?))
+    }
+
+    async fn disconnect(
+        State(gatekeeper): State<Arc<dyn GateKeeperModule>>,
+        user: UserInfo,
+        Path(id): Path<String>,
+    ) -> AppResult<StatusCode> {
+        gatekeeper.disconnect(&user, &id).await?;
+        Ok(StatusCode::NO_CONTENT)
     }
 
     async fn get_one_with_details(

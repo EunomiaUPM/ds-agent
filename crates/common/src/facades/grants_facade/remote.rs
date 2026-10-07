@@ -20,16 +20,18 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use axum::http::StatusCode;
 use ymir::config::types::HostType;
 use ymir::errors::Outcome;
 use ymir::http::routes::fill;
-use ymir::services::client::ClientExt;
+use ymir::services::client::{ClientExt, ClientTrait};
+use ymir::types::http::HttpBody;
 use ymir::types::oauth::UserInfo;
-use ymir::utils::{encode_url_safe_no_pad, http_client};
+use ymir::utils::{encode_url_safe_no_pad, http_client, ResponseExt};
 
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
-use crate::facades::grants_facade::{GrantsFacadeTrait, VerifiedPeer};
+use crate::facades::grants_facade::{GrantsFacadeTrait, PeerToken, VerifiedPeer};
 use crate::facades::VerifyTokenRequest;
 use crate::routes::auth::{gate, peer_connection};
 
@@ -54,6 +56,17 @@ impl GrantsRemoteFacade {
             self.config.get_api_version()
         )
     }
+
+    fn token_url(&self, route: &str, participant_id: &str, requested: bool) -> String {
+        let segment = encode_url_safe_no_pad(participant_id);
+        format!(
+            "{}{}{}?requested={}",
+            self.base_url(),
+            peer_connection::PREFIX,
+            fill(route, &segment),
+            requested
+        )
+    }
 }
 
 #[async_trait]
@@ -68,16 +81,42 @@ impl GrantsFacadeTrait for GrantsRemoteFacade {
 
     /// `participant_id` is the plain DID; it travels in base64url, as the auth agent expects it
     /// in the path. `user` does not travel yet (see the type's doc): the auth agent answers for
-    /// its own caller.
+    /// its own caller. `200` carries the token and `202` means it is still pending.
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth"))]
-    async fn peer_token(&self, _user: &UserInfo, participant_id: String) -> Outcome<Option<String>> {
-        let segment = encode_url_safe_no_pad(&participant_id);
-        let url = format!(
-            "{}{}{}",
-            self.base_url(),
-            peer_connection::PREFIX,
-            fill(peer_connection::TOKEN, &segment)
-        );
-        http_client().get_json(&url, None).await
+    async fn peer_token(
+        &self,
+        _user: &UserInfo,
+        participant_id: String,
+        requested: bool,
+    ) -> Outcome<PeerToken> {
+        let url = self.token_url(peer_connection::TOKEN, &participant_id, requested);
+        let response = http_client()
+            .get(&url, None)
+            .await?
+            .ensure_success()
+            .await?;
+        if response.status() == StatusCode::ACCEPTED {
+            return Ok(PeerToken::Pending);
+        }
+        Ok(PeerToken::Ready(response.parse_json().await?))
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth"))]
+    async fn refresh_peer_token(
+        &self,
+        _user: &UserInfo,
+        participant_id: String,
+        requested: bool,
+    ) -> Outcome<PeerToken> {
+        let url = self.token_url(peer_connection::TOKEN_REFRESH, &participant_id, requested);
+        let response = http_client()
+            .post(&url, None, HttpBody::None)
+            .await?
+            .ensure_success()
+            .await?;
+        if response.status() == StatusCode::ACCEPTED {
+            return Ok(PeerToken::Pending);
+        }
+        Ok(PeerToken::Ready(response.parse_json().await?))
     }
 }

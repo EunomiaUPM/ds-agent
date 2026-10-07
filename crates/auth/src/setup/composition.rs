@@ -30,7 +30,7 @@ use crate::services::gatekeeper::gnap::{GnapGateKeeperConfig, GnapGateKeeperServ
 use crate::services::peer_connector::gnap::{GnapPeerConnectorConfig, GnapPeerConnectorService};
 use crate::services::vc_requester::basic::{VCReqService, VCRequesterConfig};
 use crate::setup::seeders::SelfParticipantOnboarder;
-use crate::workers::GrantExpiryWorker;
+use crate::workers::{DirectorySyncWorker, GrantExpiryWorker};
 use crate::SERVICE_NAME;
 use axum::Router;
 use common::boot::workers::BackgroundWorker;
@@ -201,9 +201,12 @@ impl ServiceModuleTrait for AuthModule {
     }
 
     fn workers(&self) -> Vec<Box<dyn BackgroundWorker>> {
-        vec![Box::new(GrantExpiryWorker::new(
-            self.core.clone(),
-            self.core.clone(),
-        ))]
+        vec![
+            Box::new(GrantExpiryWorker::new(
+                self.core.clone(),
+                self.core.clone(),
+            )),
+            Box::new(DirectorySyncWorker::new(self.core.clone())),
+        ]
     }
 }

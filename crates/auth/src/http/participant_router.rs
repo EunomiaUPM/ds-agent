@@ -31,7 +31,7 @@ use common::routes::auth::mates;
 use serde::Deserialize;
 use ymir::data::entities::shared::participant::{Model, Plan};
 use ymir::errors::AppResult;
-use ymir::types::oauth::UserInfo;
+use ymir::types::oauth::{RoleTrait, UserInfo};
 use ymir::types::participants::Visibility;
 use ymir::utils::extract_payload;
 
@@ -59,6 +59,7 @@ impl ParticipantRouter {
             .route(mates::BY_ID, get(Self::get_by_id).put(Self::update_by_id))
             .route(mates::BATCH, post(Self::get_batch))
             .route(mates::ROOT, post(Self::create))
+            .route(mates::SYNC, post(Self::sync))
             .with_state(self.manager.clone())
     }
 
@@ -136,6 +137,14 @@ impl ParticipantRouter {
                 .create_participant(&user, payload.plan, payload.visibility)
                 .await?,
         ))
+    }
+
+    async fn sync(
+        State(manager): State<Arc<dyn ParticipantModule>>,
+        user: UserInfo,
+    ) -> AppResult<Json<u64>> {
+        user.require_root()?;
+        Ok(Json(manager.sync_directory().await?))
     }
 }
 

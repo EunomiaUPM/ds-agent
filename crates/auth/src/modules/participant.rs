@@ -28,10 +28,12 @@ use ymir::config::types::HostType;
 use ymir::data::entities::shared::participant::{Model, Plan};
 use ymir::data::entities::shared::participant_relation;
 use ymir::errors::Outcome;
+use ymir::services::client::ClientExt;
 use ymir::services::HasWallet;
 use ymir::types::listing::{ParticipantListFilter, ParticipantSort};
-use ymir::types::oauth::{RoleTrait, UserInfo};
+use ymir::types::oauth::{RolePath, RoleTrait, UserInfo, SYSTEM_USER_ID};
 use ymir::types::participants::{ParticipantType, Visibility};
+use ymir::utils::http_client;
 
 /// The participant registry: peers and authorities this connector knows, and itself. Every read
 /// done for a user applies the visibility rules of the participant repository.
@@ -167,5 +169,77 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
             .force_update(relation)
             .await?;
         Ok(model)
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn sync_directory(&self) -> Outcome<u64> {
+        let myself = self.get_myself(&UserInfo::system()).await?;
+        let authorities: Vec<Model> = self
+            .repo()
+            .participant()
+            .get_all(None, None)
+            .await?
+            .into_iter()
+            .filter(|p| p.participant_type == ParticipantType::Authority)
+            .collect();
+
+        let mut synced = 0;
+        for authority in authorities {
+            let url = format!(
+                "{}/.well-known/federated-catalog",
+                authority.base_url.trim_end_matches('/')
+            );
+            let listed: Vec<Plan> = match http_client().get_json(&url, None).await {
+                Ok(listed) => listed,
+                Err(e) => {
+                    e.log();
+                    continue;
+                }
+            };
+            for plan in listed {
+                if plan.participant_id == myself.participant_id {
+                    continue;
+                }
+                if self.sync_participant(plan).await? {
+                    synced += 1;
+                }
+            }
+        }
+        Ok(synced)
+    }
+
+    async fn sync_participant(&self, plan: Plan) -> Outcome<bool> {
+        let participant_id = plan.participant_id.clone();
+        let existing = self
+            .repo()
+            .participant()
+            .get_batch(std::slice::from_ref(&participant_id))
+            .await?;
+        let changed = match existing.first() {
+            None => {
+                self.repo().participant().create_if_absent(plan).await?;
+                true
+            }
+            Some(known) => {
+                let changed = known.participant_nick != plan.participant_nick
+                    || known.base_url != plan.base_url;
+                if changed {
+                    self.repo().participant().force_update(plan).await?;
+                }
+                changed
+            }
+        };
+        let relation = participant_relation::Model {
+            user_id: SYSTEM_USER_ID.to_string(),
+            username: None,
+            participant_id,
+            role: RolePath::root(),
+            visibility: Visibility::Public,
+        };
+        self.repo()
+            .participant_relation()
+            .force_update(relation)
+            .await?;
+        Ok(changed)
     }
 }

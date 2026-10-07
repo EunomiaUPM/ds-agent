@@ -37,6 +37,7 @@ pub mod auth {
         pub const MYSELF: &str = "/myself";
         pub const BATCH: &str = "/batch";
         pub const BY_ID: &str = "/{id}";
+        pub const SYNC: &str = "/sync";
     }
 
     /// Credential requests to an authority.
@@ -64,6 +65,7 @@ pub mod auth {
         pub const OID4VP: &str = "/oid4vp/{id}";
         /// The caller's token towards a peer, by the peer's participant id (grants facade).
         pub const TOKEN: &str = "/token/{id}";
+        pub const TOKEN_REFRESH: &str = "/token/{id}/refresh";
     }
 
     /// GNAP gatekeeper (grants received). Its `PREFIX` is the authorization server advertised in

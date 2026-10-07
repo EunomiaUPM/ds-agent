@@ -78,6 +78,7 @@ pub fn sent_grant(user_id: &str, role_path: &str, id: &str, auto: bool) -> sent:
         vc_uri: None,
         as_assigned_id: None,
         auto,
+        requested: true,
         created_at: Utc::now(),
         ended_at: None,
     }
@@ -108,6 +109,7 @@ pub fn sent_grant_plan(user_id: &str, role_path: &str, id: &str) -> sent::grant:
         grant_endpoint: "http://peer/gnap/grant".to_string(),
         kind: GrantKind::AccessToken,
         auto: Some(true),
+        requested: true,
     }
 }
 
@@ -341,6 +343,7 @@ pub fn reach_provider() -> ReachProvider {
         actions: vec![InteractAction::Talk],
         visibility: Visibility::Private,
         auto: Some(true),
+        requested: None,
     }
 }
 

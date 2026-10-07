@@ -19,9 +19,12 @@ use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
+use axum::http::header::RETRY_AFTER;
 use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use serde::Deserialize;
 use serde_json::Value;
 use ymir::data::entities::sent::grant;
 use ymir::errors::AppResult;
@@ -34,6 +37,7 @@ use crate::entities::filters::SentGrantFilter;
 use crate::http::path_id::decode_path_id;
 use crate::modules::PeerConnectorModule;
 use crate::types::entities::ReachProvider;
+use common::facades::grants_facade::PeerToken;
 use common::paginated_spec::Paginated;
 use common::query::{QueryFilter, QuerySpec};
 use common::routes::auth::peer_connection;
@@ -76,6 +80,10 @@ impl OnboarderRouter {
             .route(peer_connection::REQUEST_DETAILS, get(Self::get_one_with_details))
             .route(peer_connection::OID4VP, post(Self::manage_oid4vp))
             .route(peer_connection::TOKEN, get(Self::peer_token))
+            .route(
+                peer_connection::TOKEN_REFRESH,
+                post(Self::refresh_peer_token),
+            )
             .with_state(self.peer_connector.clone())
     }
 
@@ -145,14 +153,31 @@ impl OnboarderRouter {
     }
 
     /// The caller's token towards peer `id` (in base64url, see `path_id`), for the grants
-    /// facade; `null` if it has none.
+    /// facade: `200` with the token, or `202` while the grant obtained for it completes.
     async fn peer_token(
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
         user: UserInfo,
         Path(id): Path<String>,
-    ) -> AppResult<Json<Option<String>>> {
+        Query(query): Query<TokenQuery>,
+    ) -> AppResult<Response> {
         let id = decode_path_id(&id)?;
-        Ok(Json(peer_connector.peer_token(&user, &id).await?))
+        let token = peer_connector
+            .peer_token(&user, &id, query.requested)
+            .await?;
+        Ok(token_response(token))
+    }
+
+    async fn refresh_peer_token(
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        user: UserInfo,
+        Path(id): Path<String>,
+        Query(query): Query<TokenQuery>,
+    ) -> AppResult<Response> {
+        let id = decode_path_id(&id)?;
+        let token = peer_connector
+            .refresh_peer_token(&user, &id, query.requested)
+            .await?;
+        Ok(token_response(token))
     }
 
     // ==========================================================================================
@@ -176,5 +201,22 @@ impl OnboarderRouter {
     ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
         peer_connector.process_oid4vp(&user, &id, payload).await
+    }
+}
+
+#[derive(Deserialize)]
+struct TokenQuery {
+    #[serde(default = "requested_by_default")]
+    requested: bool,
+}
+
+fn requested_by_default() -> bool {
+    true
+}
+
+fn token_response(token: PeerToken) -> Response {
+    match token {
+        PeerToken::Ready(token) => Json(token).into_response(),
+        PeerToken::Pending => (StatusCode::ACCEPTED, [(RETRY_AFTER, "1")]).into_response(),
     }
 }

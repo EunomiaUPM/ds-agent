@@ -27,11 +27,11 @@ use common::oauth::{Owner, UserInfo};
 use common::dsp_common::DspActor;
 use common::dsp_common::odrl::OdrlMessageOffer;
 use common::facades::AuthPorts;
+use common::facades::grants_facade::obtain_peer_token;
 use std::fmt::Debug;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
-use ymir::utils::bearer_headers;
 
 /// Routing context for steps that create a brand-new negotiation process
 /// (initial request and initial offer).
@@ -59,10 +59,7 @@ impl NegotiationRpcInitialContext {
         associated_peer: String,
         auth: &AuthPorts,
     ) -> Outcome<Self> {
-        let token = auth
-            .grants
-            .peer_token(user, associated_peer.clone())
-            .await?;
+        let token = obtain_peer_token(auth.grants.as_ref(), user, &associated_peer, true).await?;
         if token.is_none() {
             return Err(Errors::missing_resource(
                 associated_peer,
@@ -137,7 +134,7 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
     /// Raw RPC input type this step handles.
     type Input: RpcNegotiationProcessMessageTrait + Clone + Send + Sync + 'static;
     /// Step-specific routing context produced by `prepare_context`.
-    type Context: Send + Sync + Debug + 'static;
+    type Context: Send + Sync + Debug + PeerTokenOrigin + 'static;
 
     /// Optional input validation executed before any I/O.  Default: no-op.
     async fn validate(
@@ -180,20 +177,27 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
         NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
         NegotiationProcessView,
     )>;
+}
 
-    /// Bearer headers with the token `user` presents to `peer` (its own grant with it), sent
-    /// with this request only.
-    ///
-    /// `None` when the user has no token; the request proceeds unauthenticated.
-    async fn peer_headers(
-        auth: &AuthPorts,
-        user: &UserInfo,
-        peer: &str,
-    ) -> Outcome<Option<HeaderMap>> {
-        match auth.grants.peer_token(user, peer.to_string()).await {
-            Ok(token) => token.as_deref().map(bearer_headers).transpose(),
-            Err(_) => Ok(None),
-        }
+pub(super) trait PeerTokenOrigin {
+    fn requested(&self) -> bool;
+}
+
+impl PeerTokenOrigin for NegotiationRpcInitialContext {
+    fn requested(&self) -> bool {
+        true
+    }
+}
+
+impl PeerTokenOrigin for NegotiationRpcContinuationContext {
+    fn requested(&self) -> bool {
+        self.process.inner.role != "Provider"
+    }
+}
+
+impl PeerTokenOrigin for NegotiationRpcAgreementContext {
+    fn requested(&self) -> bool {
+        self.process.inner.role != "Provider"
     }
 }
 

@@ -20,6 +20,7 @@
 
 use auth::modules::PeerConnectorModule;
 use auth::types::response::TokenWhatResponse;
+use common::facades::grants_facade::PeerToken;
 use common::test_utils::scopes::TestUsers;
 use ymir::errors::Errors;
 use ymir::types::gnap::grant_request::interact::InteractAction;
@@ -307,21 +308,33 @@ async fn peer_token_is_the_one_of_the_users_own_grant() {
             Ok(Some(grant))
         });
 
-    let token = d.core().peer_token(&ana(), "did:web:peer").await.unwrap();
+    let token = d
+        .core()
+        .peer_token(&ana(), "did:web:peer", true)
+        .await
+        .unwrap();
 
-    assert_eq!(token.as_deref(), Some("peer-token"));
+    assert_eq!(token, PeerToken::Ready("peer-token".to_string()));
 }
 
-/// Without a grant of its own with the peer, the user has no token.
+/// Without a grant of its own with the peer, the user waits for the one in progress.
 #[tokio::test]
-async fn no_own_grant_no_token() {
+async fn no_own_grant_waits_for_the_one_in_progress() {
     let mut d = Doubles::default();
     d.repos
         .sent_grant
         .expect_get_active_access()
         .returning(|_, _| Ok(None));
+    d.repos
+        .sent_grant
+        .expect_has_open_access()
+        .returning(|_, _, _| Ok(true));
 
-    let token = d.core().peer_token(&ana(), "did:web:peer").await.unwrap();
+    let token = d
+        .core()
+        .peer_token(&ana(), "did:web:peer", true)
+        .await
+        .unwrap();
 
-    assert!(token.is_none());
+    assert_eq!(token, PeerToken::Pending);
 }

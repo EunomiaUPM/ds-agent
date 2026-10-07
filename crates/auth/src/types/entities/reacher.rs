@@ -43,4 +43,5 @@ pub struct ReachProvider {
     pub visibility: Visibility,
     // #[serde(default)] TODO
     pub auto: Option<bool>,
+    pub requested: Option<bool>,
 }

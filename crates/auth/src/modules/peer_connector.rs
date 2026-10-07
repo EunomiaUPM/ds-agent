@@ -23,16 +23,19 @@ use crate::types::response::{RotationOutcome, TokenWhatResponse};
 use crate::types::token_lifetimes::EXPIRY_MARGIN_SECS;
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
+use common::facades::grants_facade::PeerToken;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use serde_json::{json, Value};
 use ymir::data::entities::sent::{grant, interaction, verification};
 use ymir::errors::{Errors, Outcome};
 use ymir::services::HasWallet;
+use ymir::types::gnap::grant_request::interact::InteractAction;
 use ymir::types::gnap::grant_request::GrantKind;
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody, GrantStatus};
 use ymir::types::listing::{GrantSort, SentGrantListFilter};
 use ymir::types::oauth::{UserInfo, UserTrait};
+use ymir::types::participants::Visibility;
 use ymir::types::verification::VerificationStatus;
 use ymir::types::wallet::OidcUri;
 
@@ -123,13 +126,48 @@ pub trait PeerConnectorModule:
     // ==========================================================================================
 
     /// The token `user` presents to `participant_id`: the one of its own latest approved grant
-    /// with that peer. `None` if it has none, even if a colleague does.
+    /// with that peer, even if a colleague has another. Without one, a grant is requested on the
+    /// user's behalf and the answer is `Pending` until it completes.
     ///
     /// A token about to expire is rotated, and a grant about to reach its lifetime is renewed with
-    /// a new grant request. Obtaining the first grant with a peer (tokens plan, §4.4) is still up
-    /// to the user.
+    /// a new grant request.
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn peer_token(&self, user: &UserInfo, participant_id: &str) -> Outcome<Option<String>> {
+    async fn peer_token(
+        &self,
+        user: &UserInfo,
+        participant_id: &str,
+        requested: bool,
+    ) -> Outcome<PeerToken> {
+        match self.current_token(user, participant_id).await? {
+            Some(token) => Ok(PeerToken::Ready(token)),
+            None => self.obtain_access(user, participant_id, requested).await,
+        }
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn refresh_peer_token(
+        &self,
+        user: &UserInfo,
+        participant_id: &str,
+        requested: bool,
+    ) -> Outcome<PeerToken> {
+        let active = self
+            .repo()
+            .sent_grant()
+            .get_active_access(user.id(), participant_id)
+            .await?;
+        if let Some(grant) = active {
+            self.finalize_sent(grant).await?;
+        }
+        self.obtain_access(user, participant_id, requested).await
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn current_token(
+        &self,
+        user: &UserInfo,
+        participant_id: &str,
+    ) -> Outcome<Option<String>> {
         let Some(grant) = self
             .repo()
             .sent_grant()
@@ -313,6 +351,45 @@ pub trait PeerConnectorModule:
     }
 
     #[tracing::instrument(level = "info", skip_all, err)]
+    async fn obtain_access(
+        &self,
+        user: &UserInfo,
+        participant_id: &str,
+        requested: bool,
+    ) -> Outcome<PeerToken> {
+        let processing_since = Utc::now() - Duration::seconds(EXPIRY_MARGIN_SECS);
+        let open = self
+            .repo()
+            .sent_grant()
+            .has_open_access(user.id(), participant_id, processing_since)
+            .await?;
+        if open {
+            return Ok(PeerToken::Pending);
+        }
+
+        let mate = self
+            .repo()
+            .participant()
+            .get_by_id(participant_id)
+            .await
+            .map_err(|e| {
+                Errors::missing_resource(participant_id, "unknown peer", Some(Box::new(e)))
+            })?;
+        let url = self.peer_connector().discover_gate(&mate.base_url).await?;
+        let payload = ReachProvider {
+            id: mate.participant_id,
+            nick: mate.participant_nick,
+            url,
+            actions: vec![InteractAction::Talk],
+            visibility: Visibility::Private,
+            auto: Some(true),
+            requested: Some(requested),
+        };
+        self.req_peer_connection(user, payload).await?;
+        Ok(PeerToken::Pending)
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn renew_grant(&self, user: &UserInfo, grant: &grant::Model) -> Outcome<()> {
         let resource_req = self.repo().resource_req().get_by_id(&grant.id).await?;
         let payload = ReachProvider {
@@ -322,6 +399,7 @@ pub trait PeerConnectorModule:
             actions: resource_req.actions,
             visibility: grant.visibility.clone(),
             auto: Some(grant.auto),
+            requested: Some(grant.requested),
         };
         self.req_peer_connection(user, payload).await
     }

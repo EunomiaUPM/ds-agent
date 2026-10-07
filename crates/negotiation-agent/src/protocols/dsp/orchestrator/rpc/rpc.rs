@@ -24,7 +24,7 @@ use crate::protocols::dsp::orchestrator::rpc::step_offer_init::RpcOfferInitStep;
 use crate::protocols::dsp::orchestrator::rpc::step_request::RpcRequestStep;
 use crate::protocols::dsp::orchestrator::rpc::step_request_init::RpcRequestInitStep;
 use crate::protocols::dsp::orchestrator::rpc::step_termination::RpcTerminationStep;
-use crate::protocols::dsp::orchestrator::rpc::step_trait::NegotiationRpcStep;
+use crate::protocols::dsp::orchestrator::rpc::step_trait::{NegotiationRpcStep, PeerTokenOrigin};
 use crate::protocols::dsp::orchestrator::rpc::step_verification::RpcVerificationStep;
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationAgreementMessageDto, RpcNegotiationEventAcceptedMessageDto,
@@ -43,6 +43,7 @@ use common::oauth::UserInfo;
 use common::config::services::ContractsConfig;
 use common::dsp_common::DspActor;
 use common::facades::AuthPorts;
+use common::facades::grants_facade::send_with_peer_token;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
@@ -250,9 +251,13 @@ impl RPCOrchestratorService {
         S::validate(&self.validator, &DspActor::user(user), input).await?;
         let ctx = S::prepare_context(user, input, &self.persistence_service, &self.auth).await?;
         let (_, peer) = S::auth_peer(&ctx);
-        let headers = S::peer_headers(&self.auth, user, peer).await?;
-        let (response, process) =
-            S::send_and_persist(headers, &self.persistence_service, &ctx, input).await?;
-        Ok((response, process))
+        send_with_peer_token(
+            self.auth.grants.as_ref(),
+            user,
+            peer,
+            ctx.requested(),
+            |headers| S::send_and_persist(headers, &self.persistence_service, &ctx, input),
+        )
+        .await
     }
 }

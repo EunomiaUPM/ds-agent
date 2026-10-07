@@ -57,6 +57,7 @@ pub trait PeerConnectorTrait: Send + Sync + 'static {
         grant: &mut grant::Model,
         interaction: &mut interaction::Model,
     ) -> Outcome<TokenWhatResponse>;
+    async fn discover_gate(&self, base_url: &str) -> Outcome<String>;
     async fn send_rotation_req(&self, grant: &grant::Model) -> Outcome<GrantResponse>;
     async fn send_revocation_req(&self, grant: &grant::Model) -> Outcome<()>;
     fn apply_rotation_resp(

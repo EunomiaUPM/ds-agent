@@ -30,7 +30,9 @@ import dayjs from "dayjs";
 import { Card, CardContent, CardHeader, CardTitle } from "shared/src/components/ui/card";
 import { Skeleton } from "shared/src/components/ui/skeleton";
 
-import { keepPreviousData } from "@tanstack/react-query";
+import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { customInstance } from "shared/src/data/orval-mutator";
 import { useMyself } from "shared/src/data/useMyself";
 
 interface Participant extends ParticipantDto {
@@ -68,6 +70,21 @@ function RouteComponent() {
     },
   });
   const myAgent = useMyself();
+  const queryClient = useQueryClient();
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      await customInstance(`/mates/sync`, { method: "POST" });
+      await queryClient.invalidateQueries();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const rawParticipants = (
     Array.isArray(participants?.data)
       ? participants.data
@@ -149,6 +166,11 @@ function RouteComponent() {
       )}
 
       <PageSection title="Network Participants">
+        <div className="flex justify-end mb-2">
+          <Button variant="outline" size="sm" disabled={isSyncing} onClick={handleSync}>
+            Reload participants
+          </Button>
+        </div>
         <DataTable
           className="text-sm"
           data={participants?.data}

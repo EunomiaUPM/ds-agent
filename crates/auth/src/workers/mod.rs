@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+mod directory_sync;
 mod grant_expiry;
 
+pub use directory_sync::DirectorySyncWorker;
 pub use grant_expiry::GrantExpiryWorker;

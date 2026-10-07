@@ -26,8 +26,9 @@ use axum::http::header::AUTHORIZATION;
 use axum::http::HeaderMap;
 use chrono::{DateTime, Duration, Utc};
 use common::config::types::traits::EntityClientTrait;
-use common::routes::auth::peer_connection;
+use common::routes::auth::{gate, peer_connection};
 use common::utils::parse_url;
+use serde_json::Value;
 use tracing::info;
 use ymir::capabilities::HttpSig;
 use ymir::config::traits::HostsConfigTrait;
@@ -35,14 +36,14 @@ use ymir::config::types::HostType;
 use ymir::data::entities::sent::{grant, interaction, verification};
 use ymir::data::entities::shared::{participant, participant_relation, resource_req};
 use ymir::errors::{Errors, Outcome};
-use ymir::http::routes::fill;
-use ymir::services::client::ClientTrait;
+use ymir::http::routes::{fill, wallet};
+use ymir::services::client::{ClientExt, ClientTrait};
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
+use ymir::types::gnap::access_token::AccessToken;
 use ymir::types::gnap::grant_request::access::AccessType;
 use ymir::types::gnap::grant_request::interact::{FinishMethod, InteractAction, InteractStart};
 use ymir::types::gnap::grant_request::{GrantKind, GrantRequest};
-use ymir::types::gnap::access_token::AccessToken;
 use ymir::types::gnap::grant_response::{ErrorCode, GrantResponse, GrantResponseKind};
 use ymir::types::gnap::GrantStatus;
 use ymir::types::http::HttpBody;
@@ -140,7 +141,8 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
             visibility: payload.visibility,
             vc_type_config: None,
             grant_endpoint: payload.url,
-            auto: payload.auto,
+            auto: Some(payload.auto.unwrap_or(true)),
+            requested: payload.requested.unwrap_or(true),
             kind: GrantKind::AccessToken,
         }
     }
@@ -373,5 +375,29 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
                 "Provider answered a token rotation with an unexpected response",
             )),
         }
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn discover_gate(&self, base_url: &str) -> Outcome<String> {
+        let base_url = base_url.trim_end_matches('/');
+        let did_doc: Value = http_client()
+            .get_json(&format!("{base_url}{}", wallet::DID_DOC), None)
+            .await?;
+        let advertised = did_doc
+            .get("service")
+            .and_then(Value::as_array)
+            .and_then(|services| {
+                services.iter().find(|service| {
+                    service.get("type").and_then(Value::as_str) == Some("AuthorizationServer")
+                })
+            })
+            .and_then(|service| service.get("serviceEndpoint"))
+            .and_then(Value::as_str)
+            .map(|endpoint| endpoint.trim_end_matches('/').to_string());
+        let gate_url = match advertised {
+            Some(gate_url) => gate_url,
+            None => format!("{base_url}{}{}", self.config.get_api_path(), gate::PREFIX),
+        };
+        Ok(format!("{gate_url}{}", gate::ACCESS))
     }
 }

@@ -229,6 +229,10 @@ function NewSentConnection() {
                 <CardDescription>
                   Enter the participant base URL to discover its DID and initiate onboarding.
                 </CardDescription>
+                <CardDescription>
+                  Connections are now obtained automatically when you talk to a participant; this
+                  manual onboarding is no longer needed.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...form}>

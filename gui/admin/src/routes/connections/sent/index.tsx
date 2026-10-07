@@ -23,6 +23,7 @@ export interface SentGrant {
   kind: string;
   status: string;
   final_token?: string | null;
+  requested?: boolean;
   vc_type_config?: string[] | null;
   vc_uri?: string | null;
   as_assigned_id?: string | null;
@@ -131,6 +132,15 @@ function SentConnectionsPage() {
                     OFF
                   </Badge>
                 ),
+            },
+            {
+              header: "Origin",
+              accessorKey: "requested",
+              cell: (r) => (
+                <Badge variant="info" className="text-xs">
+                  {r.requested === false ? "Response" : "Request"}
+                </Badge>
+              ),
             },
             {
               header: "Status",

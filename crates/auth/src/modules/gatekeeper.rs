@@ -218,6 +218,21 @@ pub trait GateKeeperModule:
         self.repo().recv_grant().finalize_expired(now).await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn disconnect(&self, user: &UserInfo, id: &str) -> Outcome<()> {
+        let mut grant = self.repo().recv_grant().get_by_id(id).await?;
+        user.ensure_handles(&grant.role, id)?;
+        if grant.status == GrantStatus::Approved {
+            grant.status = GrantStatus::Finalized;
+            grant.ended_at = Some(Utc::now());
+            grant.final_token_hash = None;
+            grant.managing_token_hash = None;
+            let grant = self.repo().recv_grant().update(grant).await?;
+            self.gate_event(&grant, "revoked").await;
+        }
+        Ok(())
+    }
+
     // ==========================================================================================
     // Internal steps of the flow
     // ==========================================================================================

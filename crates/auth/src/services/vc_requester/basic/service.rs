@@ -76,6 +76,7 @@ impl VcRequesterTrait for VCReqService {
             grant_endpoint: payload.url,
             vc_type_config: Some(vec![payload.vc_type]),
             auto: payload.auto,
+            requested: true,
             kind: GrantKind::CredentialRequest,
         }
     }

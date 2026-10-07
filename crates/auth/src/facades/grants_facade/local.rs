@@ -21,7 +21,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use common::facades::grants_facade::{GrantsFacadeTrait, VerifiedPeer};
+use common::facades::grants_facade::{GrantsFacadeTrait, PeerToken, VerifiedPeer};
 use ymir::errors::Outcome;
 use ymir::types::oauth::UserInfo;
 
@@ -58,7 +58,31 @@ impl GrantsFacadeTrait for GrantsLocalFacade {
         err,
         fields(peer.service = "auth", user = %user.id())
     )]
-    async fn peer_token(&self, user: &UserInfo, participant_id: String) -> Outcome<Option<String>> {
-        self.peer_connector.peer_token(user, &participant_id).await
+    async fn peer_token(
+        &self,
+        user: &UserInfo,
+        participant_id: String,
+        requested: bool,
+    ) -> Outcome<PeerToken> {
+        self.peer_connector
+            .peer_token(user, &participant_id, requested)
+            .await
+    }
+
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(peer.service = "auth", user = %user.id())
+    )]
+    async fn refresh_peer_token(
+        &self,
+        user: &UserInfo,
+        participant_id: String,
+        requested: bool,
+    ) -> Outcome<PeerToken> {
+        self.peer_connector
+            .refresh_peer_token(user, &participant_id, requested)
+            .await
     }
 }

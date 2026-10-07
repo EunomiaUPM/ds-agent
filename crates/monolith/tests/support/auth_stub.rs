@@ -21,7 +21,7 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use common::facades::grants_facade::{GrantsFacadeTrait, VerifiedPeer};
+use common::facades::grants_facade::{GrantsFacadeTrait, PeerToken, VerifiedPeer};
 use common::facades::mates_facade::MatesFacadeTrait;
 use common::facades::AuthPorts;
 use common::oauth::{OauthTokenValidatorTrait, RolePath, UserInfo, Visibility};
@@ -113,8 +113,30 @@ impl GrantsFacadeTrait for StubAuth {
         }
     }
 
-    async fn peer_token(&self, _user: &UserInfo, participant_id: String) -> Outcome<Option<String>> {
-        Ok((participant_id == self.peer.participant_id).then(|| self.outbound_token.clone()))
+    async fn peer_token(
+        &self,
+        _user: &UserInfo,
+        participant_id: String,
+        _requested: bool,
+    ) -> Outcome<PeerToken> {
+        if participant_id == self.peer.participant_id {
+            Ok(PeerToken::Ready(self.outbound_token.clone()))
+        } else {
+            Err(Errors::missing_resource(
+                participant_id,
+                "unknown peer",
+                None,
+            ))
+        }
+    }
+
+    async fn refresh_peer_token(
+        &self,
+        user: &UserInfo,
+        participant_id: String,
+        requested: bool,
+    ) -> Outcome<PeerToken> {
+        self.peer_token(user, participant_id, requested).await
     }
 }
 

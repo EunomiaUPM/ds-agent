@@ -48,6 +48,7 @@ interface SentGrant {
   vc_uri?: string | null;
   as_assigned_id?: string | null;
   auto: boolean;
+  requested: boolean;
   created_at: string;
   ended_at?: string | null;
 }
@@ -156,6 +157,21 @@ function SentRequestDetails() {
     }
   };
 
+  const handleDisconnect = async () => {
+    if (!grant) return;
+    setIsProcessing(true);
+    try {
+      await customInstance(`/peer-connection/request/${encodeURIComponent(grant.id)}`, {
+        method: "DELETE",
+      });
+      await queryClient.invalidateQueries({ queryKey });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <PageSection>
@@ -194,7 +210,19 @@ function SentRequestDetails() {
             Back to Sent
           </Button>
         </Link>
-        <div className="text-xs text-muted-foreground font-mono">ID: {grant.id}</div>
+        <div className="flex items-center gap-3">
+          {grant.status === "Approved" && (
+            <Button
+              variant="outline_destructive"
+              size="sm"
+              disabled={isProcessing}
+              onClick={handleDisconnect}
+            >
+              Disconnect
+            </Button>
+          )}
+          <div className="text-xs text-muted-foreground font-mono">ID: {grant.id}</div>
+        </div>
       </div>
 
       <PageSection title={`Connection: ${grant.participant_nick || "Provider"}`}>
@@ -237,6 +265,9 @@ function SentRequestDetails() {
                 </DetailItem>
                 <DetailItem label="AS Assigned ID">
                   <SecretField value={grant.as_assigned_id} />
+                </DetailItem>
+                <DetailItem label="Origin">
+                  <Badge variant="info">{grant.requested ? "Request" : "Response"}</Badge>
                 </DetailItem>
                 <DetailItem label="Access Token">
                   <SecretField value={grant.final_token} />

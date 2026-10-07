@@ -23,6 +23,13 @@ import {
 } from "shared/src/components/ui/form";
 import { Input } from "shared/src/components/ui/input";
 import { Checkbox } from "shared/src/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "shared/src/components/ui/select";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
 import * as z from "zod";
@@ -35,10 +42,8 @@ import WizardDialog from "shared/src/components/WizardDialog";
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),
   nick: z.string().min(1, "Name is required"),
-  tenant: z
-    .string()
-    .min(1, "Peer tenant is required")
-    .regex(/^[A-Za-z0-9_.-]+$/, "Letters, digits, '.', '_' and '-' only"),
+  // Who else sees the request and, once it completes, the relation with the peer.
+  visibility: z.enum(["Private", "Anonymous", "Public"]).default("Private"),
   auto: z.boolean().default(true),
   actions: z.array(z.string()).min(1, "Select at least one action"),
 });
@@ -106,7 +111,7 @@ function NewSentConnection() {
     defaultValues: {
       url: search.url ?? "",
       nick: search.nick ?? "",
-      tenant: "",
+      visibility: "Private",
       auto: true,
       actions: ["talk"],
     },
@@ -153,10 +158,10 @@ function NewSentConnection() {
 
     setIsSubmitting(true);
     try {
-      // The DID is shared by the peer's tenants, so its gate is completed with the tenant.
+      // The peer's gate takes grant requests at `<gate>/access`.
       const authService = discoveredInfo.services.find((s) => s.type === "AuthorizationServer");
       const gate = (authService?.serviceEndpoint || `${values.url}/api/v1/gate`).replace(/\/$/, "");
-      const targetUrl = `${gate}/${encodeURIComponent(values.tenant)}/access`;
+      const targetUrl = `${gate}/access`;
 
       await customInstance(`/peer-connection/connect`, {
         method: "POST",
@@ -165,6 +170,7 @@ function NewSentConnection() {
           nick: values.nick,
           url: targetUrl,
           actions: values.actions,
+          visibility: values.visibility,
           auto: values.auto,
         },
       });
@@ -223,6 +229,10 @@ function NewSentConnection() {
                 <CardTitle>Participant Connection</CardTitle>
                 <CardDescription>
                   Enter the participant base URL to discover its DID and initiate onboarding.
+                </CardDescription>
+                <CardDescription>
+                  Connections are now obtained automatically when you talk to a participant; this
+                  manual onboarding is no longer needed.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -313,15 +323,26 @@ function NewSentConnection() {
 
                     <FormField
                       control={form.control as any}
-                      name="tenant"
+                      name="visibility"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Peer Tenant</FormLabel>
-                          <FormControl>
-                            <Input placeholder="acme" {...field} />
-                          </FormControl>
+                          <FormLabel>Visibility</FormLabel>
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Private">Private</SelectItem>
+                              <SelectItem value="Anonymous">Anonymous</SelectItem>
+                              <SelectItem value="Public">Public</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <FormDescription>
-                            Tenant of the peer connector you are onboarding into.
+                            Who else sees this connection: only you and the roles above you
+                            (Private), everyone without your name (Anonymous), or everyone
+                            (Public).
                           </FormDescription>
                           <FormMessage />
                         </FormItem>

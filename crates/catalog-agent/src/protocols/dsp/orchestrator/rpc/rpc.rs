@@ -28,21 +28,20 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::protocols::dsp::types::dataset_definition::Dataset;
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
-use axum::http::HeaderMap;
-use common::auth::AccessScope;
-use common::facades::mates_facade::MatesFacadeTrait;
+use common::facades::grants_facade::{send_with_peer_token, GrantsFacadeTrait};
+use common::oauth::UserInfo;
 use common::well_known::rpc::WellKnownRPCRequest;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientExt;
 use ymir::types::http::{HttpBody, Method};
-use ymir::utils::{bearer_headers, http_client};
+use ymir::utils::http_client;
 
 pub struct RPCOrchestratorService {
     validator: Arc<dyn ValidationRpcSteps>,
     facades: Arc<dyn FacadeTrait>,
     persistence: Arc<OrchestrationPersistenceForProtocolForRPC>,
-    mates_facade: Arc<dyn MatesFacadeTrait>,
+    grants_facade: Arc<dyn GrantsFacadeTrait>,
 }
 
 impl RPCOrchestratorService {
@@ -50,35 +49,23 @@ impl RPCOrchestratorService {
         validator: Arc<dyn ValidationRpcSteps>,
         facades: Arc<dyn FacadeTrait>,
         persistence: Arc<OrchestrationPersistenceForProtocolForRPC>,
-        mates_facade: Arc<dyn MatesFacadeTrait>,
+        grants_facade: Arc<dyn GrantsFacadeTrait>,
     ) -> RPCOrchestratorService {
         Self {
             validator,
             facades,
             persistence,
-            mates_facade,
-        }
-    }
-
-    /// Bearer headers for the peer's token, if the tenant holds one for that mate.
-    async fn peer_headers(&self, scope: &AccessScope, peer: String) -> Outcome<Option<HeaderMap>> {
-        match self
-            .mates_facade
-            .get_mate_by_id(scope.acting_tenant().clone(), peer)
-            .await
-        {
-            Ok(mate) => mate.token.as_deref().map(bearer_headers).transpose(),
-            Err(_) => Ok(None),
+            grants_facade,
         }
     }
 }
 
 #[async_trait::async_trait]
 impl RPCOrchestratorTrait for RPCOrchestratorService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn setup_catalog_request_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcCatalogRequestMessageDto,
     ) -> Outcome<RpcCatalogResponseMessageDto<RpcCatalogRequestMessageDto, Catalog>> {
         // agent_peer
@@ -91,7 +78,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
 
         if !input.no_cache {
             // hit caché and return guard
-            let catalog_in_cache = self.persistence.get_catalog(scope, &agent_peer).await?;
+            let catalog_in_cache = self.persistence.get_catalog(user, &agent_peer).await?;
             if let Some(catalog) = catalog_in_cache {
                 let response = RpcCatalogResponseMessageDto {
                     request: input.clone(),
@@ -111,7 +98,6 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             .get_catalog_rpc_path_facade()
             .await
             .resolve_dataspace_current_path(&WellKnownRPCRequest {
-                tenant_id: scope.acting_tenant().clone(),
                 participant_id,
             })
             .await?;
@@ -119,20 +105,26 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         // send dsp message to peer to fetch catalog
         let peer_url = format!("{provider_address}/catalog/request");
         let request_body: CatalogMessageWrapper<CatalogRequestMessageDto> = input.clone().into();
-        let headers = self.peer_headers(scope, agent_peer.clone()).await?;
-        let response = http_client()
-            .post_json::<CatalogMessageWrapper<CatalogRequestMessageDto>, Catalog>(
-                peer_url.as_str(),
-                headers,
-                &request_body,
-            )
-            .await?;
+        let response = send_with_peer_token(
+            self.grants_facade.as_ref(),
+            user,
+            &agent_peer,
+            true,
+            |headers| {
+                http_client().post_json::<CatalogMessageWrapper<CatalogRequestMessageDto>, Catalog>(
+                    peer_url.as_str(),
+                    headers,
+                    &request_body,
+                )
+            },
+        )
+        .await?;
 
         if !input.no_cache {
             // hydrate cache
             let _ = self
                 .persistence
-                .set_catalog(scope, &agent_peer, &response)
+                .set_catalog(user, &agent_peer, &response)
                 .await?;
         }
 
@@ -144,10 +136,10 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         Ok(response)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn setup_dataset_request_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcDatasetRequestMessageDto,
     ) -> Outcome<RpcCatalogResponseMessageDto<RpcDatasetRequestMessageDto, Dataset>> {
         // validation
@@ -161,7 +153,6 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             .get_catalog_rpc_path_facade()
             .await
             .resolve_dataspace_current_path(&WellKnownRPCRequest {
-                tenant_id: scope.acting_tenant().clone(),
                 participant_id,
             })
             .await?;
@@ -169,15 +160,17 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         let peer_url = format!("{provider_address}/catalog/datasets/{dataset}");
         let request_body: CatalogMessageWrapper<DatasetRequestMessage> = input.clone().into();
         let peer_id = input.get_associated_agent_peer().unwrap_or_default();
-        let headers = self.peer_headers(scope, peer_id).await?;
-        let response: Dataset = http_client()
-            .send_json(
-                Method::GET,
-                peer_url.as_str(),
-                headers,
-                HttpBody::json(&request_body)?,
-            )
-            .await?;
+        let body = HttpBody::json(&request_body)?;
+        let response: Dataset = send_with_peer_token(
+            self.grants_facade.as_ref(),
+            user,
+            &peer_id,
+            true,
+            |headers| {
+                http_client().send_json(Method::GET, peer_url.as_str(), headers, body.clone())
+            },
+        )
+        .await?;
 
         let response = RpcCatalogResponseMessageDto {
             request: input.clone(),

@@ -16,6 +16,7 @@
  */
 
 use crate::data::entities::dataset::{EditDatasetModel, NewDatasetModel};
+use common::oauth::OwnerScope;
 use crate::data::entities::{catalog, dataset};
 use crate::data::repo_traits::catalog_db_errors::{
     CatalogAgentRepoErrors, CatalogRepoErrors, DatasetRepoErrors,
@@ -37,8 +38,8 @@ impl FilterApplier<sea_orm::Select<dataset::Entity>> for DatasetFilter {
         &self,
         mut q: sea_orm::Select<dataset::Entity>,
     ) -> sea_orm::Select<dataset::Entity> {
-        if let Some(tenant_id) = &self.tenant_id {
-            q = q.filter(dataset::Column::TenantId.eq(tenant_id));
+        if let Some(user_id) = &self.user_id {
+            q = q.filter(dataset::Column::UserId.eq(user_id));
         }
         if let Some(catalog_id) = &self.catalog_id {
             q = q.filter(dataset::Column::CatalogId.eq(catalog_id));
@@ -77,11 +78,18 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_datasets(
         &self,
+        scope: &OwnerScope,
         filters: &DatasetFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<dataset::Model>, Option<u64>)> {
-        let q = filters.apply_to(dataset::Entity::find());
+        let q = filters
+            .apply_to(dataset::Entity::find())
+            .filter(scope.condition(
+                dataset::Column::UserId,
+                dataset::Column::UserRole,
+                dataset::Column::Visibility,
+            ));
         let total = q.clone().count(&self.db_connection).await.map_err(|err| {
             CatalogAgentRepoErrors::DatasetRepoErrors(DatasetRepoErrors::ErrorFetchingDataset(
                 err.into(),
@@ -111,12 +119,12 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_datasets(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<dataset::Model>> {
         let dataset_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let dataset_process = dataset::Entity::find()
-            .apply_if(tenant_id, |q, t| q.filter(dataset::Column::TenantId.eq(t)))
+            .filter(scope.condition(dataset::Column::UserId, dataset::Column::UserRole, dataset::Column::Visibility))
             .filter(dataset::Column::Id.is_in(dataset_ids))
             .all(&self.db_connection)
             .await;
@@ -132,12 +140,12 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_datasets_by_catalog_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         catalog_id: &Urn,
     ) -> Outcome<Vec<dataset::Model>> {
         let catalog_id = catalog_id.to_string();
         let datasets = dataset::Entity::find()
-            .apply_if(tenant_id, |q, t| q.filter(dataset::Column::TenantId.eq(t)))
+            .filter(scope.condition(dataset::Column::UserId, dataset::Column::UserRole, dataset::Column::Visibility))
             .filter(dataset::Column::CatalogId.eq(catalog_id))
             .all(&self.db_connection)
             .await;
@@ -153,12 +161,12 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_dataset_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         dataset_id: &Urn,
     ) -> Outcome<Option<dataset::Model>> {
         let dataset_id = dataset_id.to_string();
         let dataset = dataset::Entity::find_by_id(dataset_id)
-            .apply_if(tenant_id, |q, t| q.filter(dataset::Column::TenantId.eq(t)))
+            .filter(scope.condition(dataset::Column::UserId, dataset::Column::UserRole, dataset::Column::Visibility))
             .one(&self.db_connection)
             .await;
         match dataset {
@@ -173,14 +181,14 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_dataset_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         dataset_id: &Urn,
         edit_dataset_model: &EditDatasetModel,
     ) -> Outcome<dataset::Model> {
         let dataset_id = dataset_id.to_string();
 
         let old_model = dataset::Entity::find_by_id(dataset_id)
-            .apply_if(tenant_id, |q, t| q.filter(dataset::Column::TenantId.eq(t)))
+            .filter(scope.condition(dataset::Column::UserId, dataset::Column::UserRole, dataset::Column::Visibility))
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -229,7 +237,11 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_dataset(&self, new_dataset_model: &NewDatasetModel) -> Outcome<dataset::Model> {
         let catalog = catalog::Entity::find_by_id(new_dataset_model.catalog_id.clone().to_string())
-            .filter(catalog::Column::TenantId.eq(&new_dataset_model.tenant_id))
+            .filter(OwnerScope::seeing(&new_dataset_model.owner).condition(
+                    catalog::Column::UserId,
+                    catalog::Column::UserRole,
+                    catalog::Column::Visibility,
+                ))
             .one(&self.db_connection)
             .await
             .map_err(|err| {
@@ -261,13 +273,13 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_dataset_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         dataset_id: &Urn,
     ) -> Outcome<dataset::Model> {
-        // Single round-trip: DELETE ... RETURNING, tenant-scoped; empty result means not found.
+        // Single round-trip: DELETE ... RETURNING, owner-scoped; empty result means not found.
         let deleted = dataset::Entity::delete_many()
             .filter(dataset::Column::Id.eq(dataset_id.to_string()))
-            .apply_if(tenant_id, |q, t| q.filter(dataset::Column::TenantId.eq(t)))
+            .filter(scope.condition(dataset::Column::UserId, dataset::Column::UserRole, dataset::Column::Visibility))
             .exec_with_returning(&self.db_connection)
             .await
             .map_err(|err| {

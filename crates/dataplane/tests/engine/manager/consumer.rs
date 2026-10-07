@@ -63,7 +63,6 @@ async fn set_started() {
     )
     .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
         transfer_dto_urn: tp_id,
-        tenant_id: "tenant-1".to_string(),
     }))
     .await;
 
@@ -114,7 +113,6 @@ async fn set_stopped() {
     )
     .execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
         transfer_dto_urn: tp_id,
-        tenant_id: "tenant-1".to_string(),
     }))
     .await;
 
@@ -165,7 +163,6 @@ async fn set_terminating() {
     )
     .execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
         transfer_dto_urn: tp_id,
-        tenant_id: "tenant-1".to_string(),
     }))
     .await;
 
@@ -201,7 +198,6 @@ async fn set_subscribing_noop() {
     )
     .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
         transfer_dto_urn: tp_id,
-        tenant_id: "tenant-1".to_string(),
     }))
     .await;
 
@@ -237,7 +233,6 @@ async fn set_unsubscribing_noop() {
     )
     .execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
         transfer_dto_urn: tp_id,
-        tenant_id: "tenant-1".to_string(),
     }))
     .await;
 
@@ -285,7 +280,6 @@ async fn continuation_not_found_returns_err() {
     )
     .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
         transfer_dto_urn: Urn::from_str("urn:transfer-process:99").unwrap(),
-        tenant_id: "tenant-1".to_string(),
     }))
     .await;
 

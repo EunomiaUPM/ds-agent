@@ -39,6 +39,7 @@ import {
 } from "shared/src/components/ui/tooltip";
 import WizardDialog from "shared/src/components/WizardDialog";
 import { customInstance } from "shared/src/data/orval-mutator";
+import { syncParticipants } from "shared/src/data/syncParticipants";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
 import { formatIdentifier, getFriendlyVCType } from "shared/src/lib/utils";
@@ -220,6 +221,7 @@ function NewAuthorityRequest() {
           url: targetUrl,
         },
       });
+      await syncParticipants();
 
       // mark that the user just authenticated via the new-authority flow
       try {

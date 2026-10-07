@@ -37,11 +37,9 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(ConnectorInstances::TenantId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(ConnectorInstances::UserId).string().not_null())
+                    .col(ColumnDef::new(ConnectorInstances::UserRole).string_len(255).not_null())
+                    .col(ColumnDef::new(ConnectorInstances::Visibility).string_len(16).not_null())
                     .col(
                         ColumnDef::new(ConnectorInstances::TemplateName)
                             .string()
@@ -88,7 +86,6 @@ impl MigrationTrait for Migration {
                             .from(
                                 ConnectorInstances::Table,
                                 (
-                                    ConnectorInstances::TenantId,
                                     ConnectorInstances::TemplateName,
                                     ConnectorInstances::TemplateVersion,
                                 ),
@@ -96,7 +93,6 @@ impl MigrationTrait for Migration {
                             .to(
                                 ConnectorTemplates::Table,
                                 (
-                                    ConnectorTemplates::TenantId,
                                     ConnectorTemplates::Name,
                                     ConnectorTemplates::Version,
                                 ),
@@ -119,7 +115,9 @@ impl MigrationTrait for Migration {
 pub enum ConnectorInstances {
     Table,
     Id,
-    TenantId,
+    UserId,
+    UserRole,
+    Visibility,
     TemplateName,
     TemplateVersion,
     DistributionId,
@@ -133,7 +131,6 @@ pub enum ConnectorInstances {
 #[derive(Iden)]
 pub enum ConnectorTemplates {
     Table,
-    TenantId,
     Name,
     Version,
 }

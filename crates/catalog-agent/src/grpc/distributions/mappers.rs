@@ -32,7 +32,7 @@ impl TryFrom<ListDistributionsRequest> for ListParams<DistributionFilter> {
 
     fn try_from(req: ListDistributionsRequest) -> Result<Self, Status> {
         let filter = DistributionFilter {
-            tenant_id: None,
+            user_id: None,
             dataset_id: req.dataset_id.non_empty().map(str::to_owned),
             access_service: req.access_service.non_empty().map(str::to_owned),
             format: req.format.non_empty().map(str::to_owned),
@@ -50,7 +50,8 @@ impl TryFrom<CreateDistributionRequest> for NewDistributionDto {
     fn try_from(req: CreateDistributionRequest) -> Result<Self, Status> {
         Ok(Self {
             id: req.id.as_deref().unwrap_or_default().opt_urn("id")?,
-            tenant_id: None,
+            visibility: None,
+            owner: None,
             dct_title: req.dct_title,
             dct_description: req.dct_description,
             dct_formats: req.dct_formats.non_empty().map(str::to_owned),

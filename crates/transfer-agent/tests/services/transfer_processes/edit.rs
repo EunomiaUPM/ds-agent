@@ -38,7 +38,7 @@ async fn edit_with_state_change() {
     let svc = make_svc(proc_repo, id_repo);
     let view = svc
         .edit(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &urn,
             &make_edit_cmd(Some("COMPLETED"), None),
         )
@@ -66,7 +66,7 @@ async fn edit_without_identifiers_skips_upsert() {
 
     let svc = make_svc(proc_repo, id_repo);
     svc.edit(
-        &TestScopes::admin_of("tenant-1"),
+        &TestUsers::user("tenant-1", "/admin"),
         &urn,
         &make_edit_cmd(None, None),
     )
@@ -106,7 +106,7 @@ async fn edit_with_identifiers_upserts_then_fetches() {
     let svc = make_svc(proc_repo, id_repo);
     let view = svc
         .edit(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &urn,
             &make_edit_cmd(None, Some(ids)),
         )
@@ -156,7 +156,7 @@ async fn edit_view_identifiers_come_from_repo_after_upsert() {
     let svc = make_svc(proc_repo, id_repo);
     let view = svc
         .edit(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &urn,
             &make_edit_cmd(None, Some(ids)),
         )
@@ -181,7 +181,7 @@ async fn edit_propagates_process_repo_error() {
     let svc = make_svc(proc_repo, id_repo);
     assert!(
         svc.edit(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &p_urn(1),
             &make_edit_cmd(None, None)
         )
@@ -209,7 +209,7 @@ async fn edit_propagates_identifier_upsert_error() {
     let svc = make_svc(proc_repo, id_repo);
     assert!(
         svc.edit(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &p_urn(1),
             &make_edit_cmd(None, Some(ids))
         )
@@ -241,7 +241,7 @@ async fn edit_propagates_identifier_fetch_error() {
     let svc = make_svc(proc_repo, id_repo);
     assert!(
         svc.edit(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &p_urn(1),
             &make_edit_cmd(None, None)
         )

@@ -28,7 +28,7 @@ use catalog_agent::services::distributions::MockDistributionServiceTrait;
 use catalog_agent::services::odrl_policies::MockOdrlPolicyServiceTrait;
 use common::paginated_spec::{Paginated, MAX_PAGE_LIMIT};
 use common::test_utils::grpc::TENANT;
-use common::test_utils::scopes::TestScopes;
+use common::test_utils::scopes::TestUsers;
 use mockall::Sequence;
 
 use crate::support::builders::{catalog_dto, data_service_dto};
@@ -87,7 +87,7 @@ async fn catalog_lists_sub_catalogs_from_every_page() {
         Arc::new(MockDistributionServiceTrait::new()),
     );
     let catalog = persistence
-        .get_catalog(&TestScopes::reader(TENANT))
+        .get_catalog(&TestUsers::alone(TENANT))
         .await
         .unwrap();
 

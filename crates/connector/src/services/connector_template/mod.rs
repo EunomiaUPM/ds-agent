@@ -21,7 +21,7 @@ pub mod service;
 
 use crate::entities::connector_template::ConnectorTemplateDto;
 use crate::entities::filters::ConnectorTemplateFilter;
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use common::paginated_spec::{Page, Paginated, Sort};
 use ymir::errors::Outcome;
 
@@ -32,7 +32,7 @@ pub trait ConnectorTemplateServiceTrait: Send + Sync {
     /// Page of templates matching the filters.
     async fn get_all_templates(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &ConnectorTemplateFilter,
         page: &Page,
         sort: Sort,
@@ -40,24 +40,24 @@ pub trait ConnectorTemplateServiceTrait: Send + Sync {
     /// Every version of the template named `template_id`.
     async fn get_templates_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         template_id: &str,
     ) -> Outcome<Vec<ConnectorTemplateDto>>;
     async fn get_template_by_name_and_version(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         name: &str,
         version: &str,
     ) -> Outcome<Option<ConnectorTemplateDto>>;
-    /// Checks that every placeholder is declared, then stores the template in the caller's tenant.
+    /// Checks that every placeholder is declared, then stores the template as the caller's.
     async fn create_template(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_template: &mut ConnectorTemplateDto,
     ) -> Outcome<ConnectorTemplateDto>;
     async fn delete_template_by_name_and_version(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         name: &str,
         version: &str,
     ) -> Outcome<()>;

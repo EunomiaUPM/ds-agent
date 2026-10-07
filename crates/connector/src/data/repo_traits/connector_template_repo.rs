@@ -16,6 +16,7 @@
  */
 
 use crate::data::entities::connector_templates;
+use common::oauth::OwnerScope;
 use crate::data::entities::connector_templates::NewConnectorTemplateModel;
 use crate::entities::filters::ConnectorTemplateFilter;
 use common::paginated_spec::{Page, Sort};
@@ -31,19 +32,20 @@ pub trait ConnectorTemplateRepoTrait: Send + Sync {
 
     async fn get_templates_by_name(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         template_name: &str,
     ) -> Outcome<Vec<connector_templates::Model>>;
 
     async fn get_template_by_name_and_version(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         name: &str,
         version: &str,
     ) -> Outcome<Option<connector_templates::Model>>;
 
     async fn get_all_templates(
         &self,
+        scope: &OwnerScope,
         filters: &ConnectorTemplateFilter,
         page: &Page,
         sort: Sort,
@@ -51,7 +53,7 @@ pub trait ConnectorTemplateRepoTrait: Send + Sync {
 
     async fn delete_template_by_name_and_version(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         name: &str,
         version: &str,
     ) -> Outcome<()>;

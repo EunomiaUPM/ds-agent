@@ -25,10 +25,10 @@ async fn get_all_empty_result() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_all_transfer_processes()
-        .returning(|_, _, _| Ok(vec![]));
+        .returning(|_, _, _, _| Ok(vec![]));
     proc_repo
         .expect_count_transfer_processes()
-        .returning(|_| Ok(0));
+        .returning(|_, _| Ok(0));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_batch_process_id()
@@ -37,7 +37,7 @@ async fn get_all_empty_result() {
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
         .get_all(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &empty_filter(),
             &default_page(),
             &Sort::CreatedAtDesc,
@@ -59,10 +59,10 @@ async fn get_all_full_page_produces_cursor() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_all_transfer_processes()
-        .returning(move |_, _, _| Ok(vec![pc.clone()]));
+        .returning(move |_, _, _, _| Ok(vec![pc.clone()]));
     proc_repo
         .expect_count_transfer_processes()
-        .returning(|_| Ok(1));
+        .returning(|_, _| Ok(1));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_batch_process_id()
@@ -71,7 +71,7 @@ async fn get_all_full_page_produces_cursor() {
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
         .get_all(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &empty_filter(),
             &Page::new(1, None),
             &Sort::CreatedAtDesc,
@@ -93,10 +93,10 @@ async fn get_all_partial_page_no_cursor() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_all_transfer_processes()
-        .returning(move |_, _, _| Ok(vec![pcc.clone()]));
+        .returning(move |_, _, _, _| Ok(vec![pcc.clone()]));
     proc_repo
         .expect_count_transfer_processes()
-        .returning(|_| Ok(1));
+        .returning(|_, _| Ok(1));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_batch_process_id()
@@ -105,7 +105,7 @@ async fn get_all_partial_page_no_cursor() {
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
         .get_all(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &empty_filter(),
             &Page::new(5, None),
             &Sort::CreatedAtDesc,
@@ -124,7 +124,7 @@ async fn get_all_cursor_uses_updated_at_for_sort_updated_at_desc() {
     let updated = now - Duration::hours(1);
     let process = TransferProcess::rehydrate(
         TransferProcessId::new(p_urn(1)),
-        "t".to_string(),
+        common::test_utils::scopes::TestUsers::owner("t"),
         TransferRole::Provider,
         created,
         updated,
@@ -141,10 +141,10 @@ async fn get_all_cursor_uses_updated_at_for_sort_updated_at_desc() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_all_transfer_processes()
-        .returning(move |_, _, _| Ok(vec![pc.clone()]));
+        .returning(move |_, _, _, _| Ok(vec![pc.clone()]));
     proc_repo
         .expect_count_transfer_processes()
-        .returning(|_| Ok(1));
+        .returning(|_, _| Ok(1));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_batch_process_id()
@@ -153,7 +153,7 @@ async fn get_all_cursor_uses_updated_at_for_sort_updated_at_desc() {
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
         .get_all(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &empty_filter(),
             &Page::new(1, None),
             &Sort::UpdatedAtDesc,
@@ -172,7 +172,7 @@ async fn get_all_cursor_uses_created_at_for_sort_created_at_asc() {
     let updated = now - Duration::hours(1);
     let process = TransferProcess::rehydrate(
         TransferProcessId::new(p_urn(1)),
-        "tenant-2".to_string(),
+        common::test_utils::scopes::TestUsers::owner("tenant-2"),
         TransferRole::Provider,
         created,
         updated,
@@ -189,10 +189,10 @@ async fn get_all_cursor_uses_created_at_for_sort_created_at_asc() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_all_transfer_processes()
-        .returning(move |_, _, _| Ok(vec![pc.clone()]));
+        .returning(move |_, _, _, _| Ok(vec![pc.clone()]));
     proc_repo
         .expect_count_transfer_processes()
-        .returning(|_| Ok(1));
+        .returning(|_, _| Ok(1));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_batch_process_id()
@@ -201,7 +201,7 @@ async fn get_all_cursor_uses_created_at_for_sort_created_at_asc() {
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
         .get_all(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &empty_filter(),
             &Page::new(1, None),
             &Sort::CreatedAtAsc,
@@ -222,10 +222,10 @@ async fn get_all_merges_identifiers_and_promotes_consumer_pid() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_all_transfer_processes()
-        .returning(move |_, _, _| Ok(vec![pc.clone()]));
+        .returning(move |_, _, _, _| Ok(vec![pc.clone()]));
     proc_repo
         .expect_count_transfer_processes()
-        .returning(|_| Ok(1));
+        .returning(|_, _| Ok(1));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_batch_process_id()
@@ -234,7 +234,7 @@ async fn get_all_merges_identifiers_and_promotes_consumer_pid() {
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
         .get_all(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &empty_filter(),
             &default_page(),
             &Sort::CreatedAtDesc,
@@ -259,10 +259,10 @@ async fn get_all_total_forwarded_from_count() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_all_transfer_processes()
-        .returning(|_, _, _| Ok(vec![]));
+        .returning(|_, _, _, _| Ok(vec![]));
     proc_repo
         .expect_count_transfer_processes()
-        .returning(|_| Ok(42));
+        .returning(|_, _| Ok(42));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_batch_process_id()
@@ -271,7 +271,7 @@ async fn get_all_total_forwarded_from_count() {
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
         .get_all(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &empty_filter(),
             &default_page(),
             &Sort::CreatedAtDesc,

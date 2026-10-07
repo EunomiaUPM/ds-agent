@@ -16,6 +16,7 @@
  */
 
 use chrono::Utc;
+use common::oauth::{Owner, RolePath, Visibility};
 use compact_str::CompactString;
 use sea_orm::ActiveValue::Set;
 use sea_orm::entity::prelude::*;
@@ -34,7 +35,9 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
     pub transfer_process_id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub direction: String,
     pub protocol: String,
     pub message_type: String,
@@ -50,7 +53,7 @@ impl Model {
 
         let id = MessageId::new(parse_urn(&self.id)?);
         let transfer_process_id = TransferProcessId::new(parse_urn(&self.transfer_process_id)?);
-        let tenant_id = self.tenant_id;
+        let owner = Owner::new(self.user_id, self.user_role, self.visibility);
         let direction = deser_enum::<Direction>(&self.direction)?;
         let protocol = deser_enum::<ProtocolId>(&self.protocol)?;
         let message_type = ProtocolMessageType(CompactString::from(self.message_type));
@@ -60,7 +63,7 @@ impl Model {
         Ok(TransferMessage {
             id,
             transfer_process_id,
-            tenant_id,
+            owner,
             direction,
             protocol,
             message_type,
@@ -77,7 +80,9 @@ impl ActiveModel {
         Self {
             id: Set(msg.id().to_string()),
             transfer_process_id: Set(msg.transfer_process_id().to_string()),
-            tenant_id: Set(msg.tenant_id().as_str().to_string()),
+            user_id: Set(msg.owner().user_id.clone()),
+            user_role: Set(msg.owner().role.clone()),
+            visibility: Set(msg.owner().visibility.clone()),
             direction: Set(ser_enum(&msg.direction())),
             protocol: Set(ser_enum(msg.protocol())),
             message_type: Set(msg.message_type().0.to_string()),
@@ -93,3 +98,5 @@ impl ActiveModel {
 pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
+
+common::impl_owned!(Model);

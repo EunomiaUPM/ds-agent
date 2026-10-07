@@ -33,7 +33,7 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationRequestInitMessageDto, NegotiationRequestMessageDto,
     NegotiationTerminationMessageDto, NegotiationVerificationMessageDto,
 };
-use ymir::data::entities::shared::participant::Model as Mates;
+use common::facades::grants_facade::VerifiedPeer;
 use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
@@ -41,13 +41,13 @@ pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
     async fn on_get_negotiation(
         &self,
         id: &str,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
     async fn on_initial_contract_request(
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<(
         NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
         bool,
@@ -57,20 +57,20 @@ pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
         &self,
         id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
     async fn on_agreement_verification(
         &self,
         id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
     async fn on_initial_provider_offer(
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<(
         NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
         bool,
@@ -80,27 +80,27 @@ pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
         &self,
         id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferMessageDto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
     async fn on_agreement_reception(
         &self,
         id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
     async fn on_negotiation_event(
         &self,
         id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationEventMessageDto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
     async fn on_negotiation_termination(
         &self,
         id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 }

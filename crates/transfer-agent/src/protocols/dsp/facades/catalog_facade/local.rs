@@ -20,7 +20,7 @@ use std::sync::Arc;
 use catalog_agent::services::datasets::DatasetServiceTrait;
 use catalog_agent::services::distributions::DistributionServiceTrait;
 use catalog_agent::{DatasetDto, DistributionDto};
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use connector::{ConnectorInstanceDto, ConnectorInstanceFacadeTrait};
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -55,11 +55,11 @@ impl CatalogFacadeTrait for CatalogLocalFacade {
         level = "info",
         skip_all,
         err,
-        fields(peer.service = "catalog", tenant = %tenant_id)
+        fields(peer.service = "catalog")
     )]
-    async fn get_dataset(&self, tenant_id: &str, dataset_id: &Urn) -> Outcome<DatasetDto> {
+    async fn get_dataset(&self, dataset_id: &Urn) -> Outcome<DatasetDto> {
         self.datasets
-            .get_dataset_by_id(&AccessScope::service(tenant_id), dataset_id)
+            .get_dataset_by_id(&UserInfo::system(), dataset_id)
             .await
     }
 
@@ -67,17 +67,16 @@ impl CatalogFacadeTrait for CatalogLocalFacade {
         level = "info",
         skip_all,
         err,
-        fields(peer.service = "catalog", tenant = %tenant_id)
+        fields(peer.service = "catalog")
     )]
     async fn get_distribution_by_format(
         &self,
-        tenant_id: &str,
         dataset_id: &Urn,
         dct_format: &str,
     ) -> Outcome<DistributionDto> {
         self.distributions
             .get_distribution_by_dataset_id_and_dct_format(
-                &AccessScope::service(tenant_id),
+                &UserInfo::system(),
                 dataset_id,
                 dct_format,
             )
@@ -87,11 +86,10 @@ impl CatalogFacadeTrait for CatalogLocalFacade {
     /// Traced by the connector facade itself.
     async fn get_instance_by_distribution(
         &self,
-        tenant_id: &str,
         distribution_id: &Urn,
     ) -> Outcome<Option<ConnectorInstanceDto>> {
         self.connector
-            .get_instance_by_distribution(tenant_id, distribution_id)
+            .get_instance_by_distribution(distribution_id)
             .await
     }
 }

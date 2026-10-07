@@ -21,6 +21,7 @@ use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
+use common::oauth::{Owner, RolePath, Visibility};
 use sea_orm::ActiveValue;
 use ymir::errors::{Errors, Outcome};
 
@@ -33,7 +34,9 @@ use crate::entities::dead_letter::DeadLetterStatus;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub delivery_id: Option<String>,
     pub event_id: String,
     pub subscription_id: String,
@@ -59,7 +62,7 @@ impl Model {
 
         Ok(DeadLetterRecord {
             id: self.id,
-            tenant_id: self.tenant_id,
+            owner: Owner::new(self.user_id, self.user_role, self.visibility),
             delivery_id: self.delivery_id,
             event_id: self.event_id,
             subscription_id: self.subscription_id,
@@ -81,7 +84,9 @@ impl ActiveModel {
     pub fn from_domain(entity: &DeadLetterRecord) -> Self {
         Self {
             id: ActiveValue::Set(entity.id.clone()),
-            tenant_id: ActiveValue::Set(entity.tenant_id.clone()),
+            user_id: ActiveValue::Set(entity.owner.user_id.clone()),
+            user_role: ActiveValue::Set(entity.owner.role.clone()),
+            visibility: ActiveValue::Set(entity.owner.visibility.clone()),
             delivery_id: ActiveValue::Set(entity.delivery_id.clone()),
             event_id: ActiveValue::Set(entity.event_id.clone()),
             subscription_id: ActiveValue::Set(entity.subscription_id.clone()),

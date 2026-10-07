@@ -23,7 +23,7 @@ use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::catalogs::{CatalogDto, EditCatalogDto, NewCatalogDto};
 use crate::entities::filters::CatalogFilter;
 use crate::services::catalogs::CatalogServiceTrait;
-use common::auth::AccessScope;
+use common::oauth::{OwnedTrait, Owner, OwnerScope, RoleTrait, UserInfo};
 use common::errors::NotFoundExt;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use common::query::QueryFilter;
@@ -60,24 +60,21 @@ impl CatalogService {
 
 #[async_trait::async_trait]
 impl CatalogServiceTrait for CatalogService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all_catalogs(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &CatalogFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<CatalogDto>> {
-        scope.require_read()?;
         filters.validate()?;
-        let mut filters = filters.clone();
-        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
         let page = page.clamped();
 
         let (catalogs, total) = self
             .repo
             .get_catalog_repo()
-            .get_all_catalogs(&filters, &page, sort)
+            .get_all_catalogs(&OwnerScope::seeing(user), filters, &page, sort)
             .await?;
 
         let dtos: Vec<CatalogDto> = catalogs.into_iter().map(Into::into).collect();
@@ -97,17 +94,16 @@ impl CatalogServiceTrait for CatalogService {
         }))
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_batch_catalogs(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         ids: &[Urn],
     ) -> Outcome<Vec<CatalogDto>> {
-        scope.require_read()?;
         let catalogs = self
             .repo
             .get_catalog_repo()
-            .get_batch_catalogs(scope.tenant_filter().map(str::to_string), ids)
+            .get_batch_catalogs(&OwnerScope::seeing(user), ids)
             .await?;
 
         let mut dtos: Vec<CatalogDto> = Vec::new();
@@ -126,17 +122,16 @@ impl CatalogServiceTrait for CatalogService {
         Ok(dtos)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_catalog_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         catalog_id: &Urn,
     ) -> Outcome<CatalogDto> {
-        scope.require_read()?;
         let catalog = self
             .repo
             .get_catalog_repo()
-            .get_catalog_by_id(scope.tenant_filter().map(str::to_string), catalog_id)
+            .get_catalog_by_id(&OwnerScope::seeing(user), catalog_id)
             .await?
             .or_not_found(catalog_id, "catalog")?;
 
@@ -151,13 +146,12 @@ impl CatalogServiceTrait for CatalogService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn get_main_catalog(&self, scope: &AccessScope) -> Outcome<Option<CatalogDto>> {
-        scope.require_read()?;
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn get_main_catalog(&self, user: &UserInfo) -> Outcome<Option<CatalogDto>> {
         let catalog = self
             .repo
             .get_catalog_repo()
-            .get_main_catalog(scope.acting_tenant())
+            .get_main_catalog()
             .await?;
         let dto: Option<CatalogDto> = catalog.map(|c| c.into());
 
@@ -166,27 +160,26 @@ impl CatalogServiceTrait for CatalogService {
             let _ = self
                 .cache
                 .get_catalog_cache()
-                .set_main(&dto.inner.tenant_id, &main_id, dto)
+                .set_main(crate::MAIN_CACHE_KEY, &main_id, dto)
                 .await;
         }
 
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn put_catalog_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         catalog_id: &Urn,
         edit_catalog_model: &EditCatalogDto,
     ) -> Outcome<CatalogDto> {
-        scope.require_write()?;
         let edit_model: EditCatalogModel = edit_catalog_model.clone().into();
         let catalog = self
             .repo
             .get_catalog_repo()
             .put_catalog_by_id(
-                scope.tenant_filter().map(str::to_string),
+                &OwnerScope::acting(user),
                 catalog_id,
                 &edit_model,
             )
@@ -203,7 +196,7 @@ impl CatalogServiceTrait for CatalogService {
 
         events::emit_action!(
             self.event_bus,
-            &dto.inner.tenant_id,
+            &dto.inner.owner(),
             crate::EVENT_PREFIX,
             "catalog",
             "edit",
@@ -212,16 +205,16 @@ impl CatalogServiceTrait for CatalogService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn create_catalog(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_catalog_model: &NewCatalogDto,
     ) -> Outcome<CatalogDto> {
         let mut new_catalog_model = new_catalog_model.clone();
-        let tenant_id = scope.resolve_create_tenant(new_catalog_model.tenant_id.as_deref())?;
-        new_catalog_model.tenant_id = Some(tenant_id.clone());
-        let new_model = new_catalog_model.into_model(tenant_id);
+        let owner =
+            Owner::for_new(user, new_catalog_model.owner.take(), new_catalog_model.visibility.clone());
+        let new_model = new_catalog_model.into_model(owner);
         let catalog = self
             .repo
             .get_catalog_repo()
@@ -239,7 +232,7 @@ impl CatalogServiceTrait for CatalogService {
 
         events::emit_action!(
             self.event_bus,
-            &dto.inner.tenant_id,
+            &dto.inner.owner(),
             crate::EVENT_PREFIX,
             "catalog",
             "create",
@@ -248,16 +241,16 @@ impl CatalogServiceTrait for CatalogService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn create_main_catalog(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_catalog_model: &NewCatalogDto,
     ) -> Outcome<CatalogDto> {
-        let mut new_catalog_model = new_catalog_model.clone();
-        let tenant_id = scope.resolve_create_tenant(new_catalog_model.tenant_id.as_deref())?;
-        new_catalog_model.tenant_id = Some(tenant_id.clone());
-        let new_model = new_catalog_model.into_model(tenant_id);
+        // The main catalog is the connector's: the root's and public, served over DSP to every
+        // peer with the sub-catalogs each one sees.
+        user.require_root()?;
+        let new_model = new_catalog_model.clone().into_model(Owner::connector());
         let catalog = self
             .repo
             .get_catalog_repo()
@@ -269,12 +262,12 @@ impl CatalogServiceTrait for CatalogService {
         let _ = self
             .cache
             .get_catalog_cache()
-            .set_main(&dto.inner.tenant_id, &catalog_urn, &dto)
+            .set_main(crate::MAIN_CACHE_KEY, &catalog_urn, &dto)
             .await;
 
         events::emit_action!(
             self.event_bus,
-            &dto.inner.tenant_id,
+            &dto.inner.owner(),
             crate::EVENT_PREFIX,
             "catalog",
             "create",
@@ -283,13 +276,12 @@ impl CatalogServiceTrait for CatalogService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn delete_catalog_by_id(&self, scope: &AccessScope, catalog_id: &Urn) -> Outcome<()> {
-        scope.require_write()?;
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn delete_catalog_by_id(&self, user: &UserInfo, catalog_id: &Urn) -> Outcome<()> {
         let deleted = self
             .repo
             .get_catalog_repo()
-            .delete_catalog_by_id(scope.tenant_filter().map(str::to_string), catalog_id)
+            .delete_catalog_by_id(&OwnerScope::acting(user), catalog_id)
             .await?;
 
         let _ = self
@@ -305,7 +297,7 @@ impl CatalogServiceTrait for CatalogService {
 
         events::emit_action!(
             self.event_bus,
-            &deleted.tenant_id,
+            &deleted.owner(),
             crate::EVENT_PREFIX,
             "catalog",
             "delete",

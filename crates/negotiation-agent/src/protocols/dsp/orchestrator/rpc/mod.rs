@@ -22,7 +22,7 @@ use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationRequestInitMessageDto, RpcNegotiationRequestMessageDto,
     RpcNegotiationTerminationMessageDto, RpcNegotiationVerificationMessageDto,
 };
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use ymir::errors::Outcome;
 
 pub mod rpc;
@@ -46,47 +46,47 @@ pub(super) mod step_verification;
 pub trait RPCOrchestratorTrait: Send + Sync + 'static {
     async fn setup_negotiation_request_init_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationRequestInitMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationRequestInitMessageDto>>;
     async fn setup_negotiation_request_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationRequestMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationRequestMessageDto>>;
     async fn setup_negotiation_offer_init_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationOfferInitMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationOfferInitMessageDto>>;
     async fn setup_negotiation_offer_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationOfferMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationOfferMessageDto>>;
     async fn setup_negotiation_agreement_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationAgreementMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationAgreementMessageDto>>;
     async fn setup_negotiation_agreement_verification_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationVerificationMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationVerificationMessageDto>>;
     async fn setup_negotiation_event_accepted_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationEventAcceptedMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationEventAcceptedMessageDto>>;
     async fn setup_negotiation_event_finalized_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationEventFinalizedMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationEventFinalizedMessageDto>>;
     async fn setup_negotiation_termination_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationTerminationMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationTerminationMessageDto>>;
 }

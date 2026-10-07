@@ -19,8 +19,4 @@ export type StreamEventsSseParams = {
  * Topic pattern; `*` matches one segment, `**` any number of them.
  */
 topic?: TopicPatternParameter;
-/**
- * Tenant to follow. Non-admins may only name their own tenant.
- */
-tenant?: string;
 };

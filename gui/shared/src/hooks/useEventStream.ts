@@ -18,8 +18,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { EventEnvelope } from "../data/orval/model";
 import { getApiGatewayBase } from "../data/orval-mutator";
-import { getSessionToken } from "../lib/session";
-import { getActingTenant, TENANT_CHANGED_EVENT } from "../lib/tenant";
 
 export interface UseEventStreamOptions {
   topic?: string;
@@ -36,26 +34,19 @@ export interface UseEventStreamResult {
 }
 
 /**
- * Live domain events over Server-Sent Events, limited to the tenants the session may see.
- * The token and acting tenant travel as query parameters because EventSource sends no headers.
+ * Live domain events over Server-Sent Events, limited to what the session's user sees. The
+ * session travels as the proxy's cookie, like any other request (EventSource sends no headers).
  */
 export function useEventStream(options: UseEventStreamOptions = {}): UseEventStreamResult {
   const { topic, enabled = true, onEvent, maxBuffer = 100 } = options;
 
   const [events, setEvents] = useState<EventEnvelope[]>([]);
   const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [tenant, setTenant] = useState<string | null>(getActingTenant());
   const onEventRef = useRef(onEvent);
   onEventRef.current = onEvent;
 
   const clearEvents = useCallback(() => {
     setEvents([]);
-  }, []);
-
-  useEffect(() => {
-    const onTenantChanged = () => setTenant(getActingTenant());
-    window.addEventListener(TENANT_CHANGED_EVENT, onTenantChanged);
-    return () => window.removeEventListener(TENANT_CHANGED_EVENT, onTenantChanged);
   }, []);
 
   useEffect(() => {
@@ -74,9 +65,6 @@ export function useEventStream(options: UseEventStreamOptions = {}): UseEventStr
 
     const queryParams = new URLSearchParams();
     if (topic) queryParams.set("topic", topic);
-    const token = getSessionToken();
-    if (token) queryParams.set("token", token);
-    if (tenant) queryParams.set("tenant", tenant);
 
     const query = queryParams.toString();
     const eventSource = new EventSource(`${apiBase}/events/stream${query ? `?${query}` : ""}`);
@@ -105,7 +93,7 @@ export function useEventStream(options: UseEventStreamOptions = {}): UseEventStr
     return () => {
       eventSource.close();
     };
-  }, [enabled, topic, maxBuffer, tenant]);
+  }, [enabled, topic, maxBuffer]);
 
   return { events, isConnected, clearEvents };
 }

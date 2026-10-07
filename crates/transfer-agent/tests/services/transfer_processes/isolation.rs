@@ -18,6 +18,7 @@
 //! Tenant isolation and role checks.
 
 use super::*;
+use common::oauth::OwnerScope;
 
 /// Reading a record of another tenant is not found: the lookup only searches the
 /// caller's tenant.
@@ -29,40 +30,48 @@ async fn get_one_foreign_tenant_returns_not_found() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_transfer_process_by_id()
-        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &p_urn(1))
+        .withf(|scope, id| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-2")) && id == &p_urn(1))
         .returning(|_, _| Ok(None));
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.get_one(&TestScopes::owner("tenant-2"), p.id().as_urn())
+        svc.get_one(&TestUsers::user("tenant-2", "/admin/tenant-2"), p.id().as_urn())
             .await
             .is_err()
     );
 }
 
-/// A non-admin listing another tenant is rejected before touching the repository.
+/// Narrowing a listing to another user stays within what the caller sees.
 #[tokio::test]
-async fn get_all_foreign_tenant_query_rejected_with_forbidden() {
-    let proc_repo = MockTransferProcessRepoTrait::new();
+async fn get_all_of_another_user_stays_within_what_the_caller_sees() {
+    let mut proc_repo = MockTransferProcessRepoTrait::new();
+    proc_repo
+        .expect_get_all_transfer_processes()
+        .withf(|scope, f, _, _| {
+            *scope == OwnerScope::seeing(&TestUsers::alone("tenant-1"))
+                && f.user_id.as_deref() == Some("tenant-foreign")
+        })
+        .returning(|_, _, _, _| Ok(vec![]));
+    proc_repo.expect_count_transfer_processes().returning(|_, _| Ok(0));
     let id_repo = MockTransferIdentifierRepoTrait::new();
     let svc = make_svc(proc_repo, id_repo);
 
     let filter = TransferProcessFilter {
-        tenant_id: Some("tenant-foreign".to_string()),
+        user_id: Some("tenant-foreign".to_string()),
         ..Default::default()
     };
 
     let result = svc
         .get_all(
-            &TestScopes::owner("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin/tenant-1"),
             &filter,
             &Page::default(),
             &Sort::default(),
         )
         .await;
 
-    assert!(result.is_err());
+    assert!(result.unwrap().items.is_empty());
 }
 
 /// A non-admin always creates in its own tenant, whatever the command says.
@@ -74,14 +83,14 @@ async fn create_forces_caller_tenant_for_non_admin() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_create_transfer_process()
-        .withf(|cmd| cmd.tenant_id.as_deref() == Some("tenant-2"))
+        .withf(|cmd| cmd.owner == Some(common::test_utils::scopes::TestUsers::owner("tenant-2")))
         .returning(move |_| Ok(pc.clone()));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo.expect_upsert_identifier().times(0);
 
     let svc = make_svc(proc_repo, id_repo);
     // make_new_cmd sets tenant_id = tenant-1; the scope must override it.
-    svc.create(&TestScopes::owner("tenant-2"), &make_new_cmd(None))
+    svc.create(&TestUsers::user("tenant-2", "/admin/tenant-2"), &make_new_cmd(None))
         .await
         .unwrap();
 }
@@ -93,14 +102,14 @@ async fn edit_foreign_tenant_returns_not_found_without_mutating() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_put_transfer_process()
-        .withf(|tenant, id, _| tenant.as_deref() == Some("tenant-2") && id == &p_urn(1))
+        .withf(|scope, id, _| *scope == OwnerScope::acting(&TestUsers::alone("tenant-2")) && id == &p_urn(1))
         .returning(|_, _, _| Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors()));
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
         svc.edit(
-            &TestScopes::owner("tenant-2"),
+            &TestUsers::user("tenant-2", "/admin/tenant-2"),
             &p_urn(1),
             &make_edit_cmd(None, None)
         )
@@ -116,13 +125,13 @@ async fn delete_foreign_tenant_returns_not_found() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_delete_transfer_process()
-        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &p_urn(1))
+        .withf(|scope, id| *scope == OwnerScope::acting(&TestUsers::alone("tenant-2")) && id == &p_urn(1))
         .returning(|_, _| Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors()));
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.delete(&TestScopes::owner("tenant-2"), &p_urn(1))
+        svc.delete(&TestUsers::user("tenant-2", "/admin/tenant-2"), &p_urn(1))
             .await
             .is_err()
     );
@@ -135,7 +144,7 @@ async fn batch_filters_out_foreign_tenant_records() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_batch_transfer_processes()
-        .withf(|tenant, ids| tenant.as_deref() == Some("tenant-2") && ids == [p_urn(1)])
+        .withf(|scope, ids| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-2")) && ids == [p_urn(1)])
         .returning(|_, _| Ok(vec![]));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
@@ -145,7 +154,7 @@ async fn batch_filters_out_foreign_tenant_records() {
     let svc = make_svc(proc_repo, id_repo);
     let views = svc
         .batch(
-            &TestScopes::owner("tenant-2"),
+            &TestUsers::user("tenant-2", "/admin/tenant-2"),
             &BatchRequests {
                 ids: vec![p_urn(1)],
             },

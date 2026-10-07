@@ -25,9 +25,9 @@ use crate::protocols::dsp::services::connector_resolver::connector_resolver::Con
 use crate::services::transfer_message::service::TransferMessageService;
 use crate::services::transfer_process::service::TransferProcessService;
 use crate::setup::ports::TransferPorts;
-use common::auth::OauthTokenValidator;
+use common::oauth::OauthTokenValidatorTrait;
 use common::config::services::TransferConfig;
-use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
+use common::facades::grants_facade::GrantsFacadeTrait;
 use common::module_loader::root_context::RootContext;
 
 #[derive(Clone)]
@@ -35,8 +35,8 @@ pub struct AppContext {
     pub config: Arc<TransferConfig>,
     pub transfer_process_svc: Arc<TransferProcessService>,
     pub transfer_message_svc: Arc<TransferMessageService>,
-    pub oauth_validator: Arc<dyn OauthTokenValidator>,
-    pub ssi_auth_facade: Arc<dyn SSIAuthFacadeTrait>,
+    pub oauth_validator: Arc<dyn OauthTokenValidatorTrait>,
+    pub grants_facade: Arc<dyn GrantsFacadeTrait>,
     /// DSP collaborators, consumed once the domain loader and manager are wired.
     pub connector_resolver: Arc<dyn ConnectorResolverTrait>,
     pub dsp_facades: Arc<dyn FacadeTrait>,
@@ -70,7 +70,7 @@ impl AppContext {
             transfer_process_svc,
             transfer_message_svc,
             oauth_validator: root.validator.clone(),
-            ssi_auth_facade: ports.auth.ssi_auth.clone(),
+            grants_facade: ports.auth.grants.clone(),
             connector_resolver: Arc::new(ConnectorResolver::new(
                 ports.negotiation.clone(),
                 ports.catalog.clone(),

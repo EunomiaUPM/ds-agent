@@ -16,6 +16,7 @@
  */
 
 use crate::entities::ids::{MessageId, TransferProcessId};
+use common::oauth::{RolePath, Visibility};
 use crate::entities::message_envelope::MessageEnvelope;
 use crate::entities::protocol::{ProtocolId, ProtocolMessageType};
 use crate::entities::transfer_message::{Direction, TransferMessage};
@@ -27,7 +28,9 @@ use serde::Serialize;
 pub struct TransferMessageView {
     pub id: MessageId,
     pub transfer_process_id: TransferProcessId,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub direction: Direction,
     pub protocol: ProtocolId,
     pub message_type: ProtocolMessageType,
@@ -42,7 +45,9 @@ impl TransferMessageView {
         Self {
             id: msg.id,
             transfer_process_id: msg.transfer_process_id,
-            tenant_id: msg.tenant_id,
+            user_id: msg.owner.user_id,
+            user_role: msg.owner.role,
+            visibility: msg.owner.visibility,
             direction: msg.direction,
             protocol: msg.protocol,
             message_type: msg.message_type,

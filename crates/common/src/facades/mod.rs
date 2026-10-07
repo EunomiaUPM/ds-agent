@@ -17,14 +17,15 @@
 
 //! Ports to the auth agent that every other agent consumes, with their HTTP adapters.
 //!
-//! Catalog, negotiation and transfer need two things from the SSI auth agent: the known
-//! participants of a tenant ([`MatesFacadeTrait`]) and the check of a peer's GNAP token on the
-//! DSP endpoints ([`SSIAuthFacadeTrait`]). [`AuthPorts`] bundles both. The remote adapters live
-//! here and call the auth agent with the service token; the in-process adapters live in the
-//! `auth` crate, which `common` cannot depend on. The composition root picks one or the other.
+//! Catalog, negotiation and transfer need two things from the SSI auth agent: the participants a
+//! user sees ([`MatesFacadeTrait`]) and the GNAP tokens with the peers ([`GrantsFacadeTrait`]):
+//! checking the one a peer presents on the DSP endpoints, and getting the one a user presents
+//! when calling a peer. [`AuthPorts`] bundles both. The remote adapters live here and call the
+//! auth agent over HTTP; the in-process adapters live in the `auth` crate, which `common` cannot
+//! depend on. The composition root picks one or the other.
 //!
 //! [`MatesFacadeTrait`]: mates_facade::MatesFacadeTrait
-//! [`SSIAuthFacadeTrait`]: ssi_auth_facade::SSIAuthFacadeTrait
+//! [`GrantsFacadeTrait`]: grants_facade::GrantsFacadeTrait
 //!
 //! ## 1. Choosing the adapters
 //!
@@ -51,32 +52,50 @@
 //! ## 2. Authenticating a peer on a DSP endpoint
 //!
 //! ```rust,ignore
-//! match state.ssi_auth.verify_token(token).await {
-//!     Ok(mate) => {
-//!         request.extensions_mut().insert(mate);
+//! match state.grants.verify_token(token).await {
+//!     Ok(peer) => {
+//!         request.extensions_mut().insert(peer);
 //!         Ok(next.run(request).await)
 //!     }
 //!     Err(_) => Err(StatusCode::UNAUTHORIZED),
 //! }
 //! ```
 //!
-//! The returned `Mates` record carries the tenant the peer onboarded into, which is what
-//! `crate::dsp_common::DspActor::peer` needs.
+//! The returned [`VerifiedPeer`] says who the peer is and which role handles what it opens.
 //!
-//! ## 3. Reading participants
+//! [`VerifiedPeer`]: grants_facade::VerifiedPeer
+//!
+//! ## 3. Calling a peer
 //!
 //! ```rust,ignore
-//! let me = ports.mates.get_me_mate(tenant_id.clone()).await?;
-//! let peer = ports.mates.get_mate_by_id(tenant_id, mate_id).await?;
+//! let headers = match ports.grants.peer_token(&user, peer_id).await? {
+//!     Some(token) => Some(bearer_headers(&token)?),
+//!     None => None,
+//! };
 //! ```
 //!
-//! Both traits have `mockall` mocks (`MockMatesFacadeTrait`, `MockSSIAuthFacadeTrait`) for tests.
+//! ## 4. Reading participants
+//!
+//! ```rust,ignore
+//! let me = ports.mates.get_me_mate().await?;
+//! let peer = ports.mates.get_mate_by_id(&user, mate_id).await?;
+//! ```
+//!
+//! Both traits have `mockall` mocks (`MockMatesFacadeTrait`, `MockGrantsFacadeTrait`) for tests.
 
 use serde::{Deserialize, Serialize};
 
+pub mod grants_facade;
 pub mod mates_facade;
 pub mod ports;
-pub mod ssi_auth_facade;
+// Thin wrapper over ymir's `http_client()`, left over from the client-credentials service
+// token; remote facades call `http_client()` directly. Kept as it was, out of the module tree.
+// pub mod service_client;
+// Replaced by `grants_facade`, which every agent uses now. Kept as it was, out of the module
+// tree.
+// pub mod ssi_auth_facade;
+
+// pub use service_client::ServiceHttpClient;
 
 pub use ports::AuthPorts;
 

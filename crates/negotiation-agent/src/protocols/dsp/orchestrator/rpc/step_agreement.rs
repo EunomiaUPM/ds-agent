@@ -29,12 +29,12 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use crate::services::negotiation_process::views::NegotiationProcessView;
 use axum::http::HeaderMap;
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use common::dsp_common::DspActor;
 use common::dsp_common::odrl::{
     ContractRequestMessageOfferTypes, OdrlAgreement, OdrlMessageOffer, OdrlTypes,
 };
-use common::facades::mates_facade::MatesFacadeTrait;
+use common::facades::AuthPorts;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientExt;
@@ -72,17 +72,17 @@ impl NegotiationRpcStep for RpcAgreementStep {
 
     /// Resolves the continuation context and pre-fetches the enrichment data:
     /// the last offer (for agreement policy) and the participant IDs (from mates).
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn prepare_context(
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationAgreementMessageDto,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
-        mates_service: &Arc<dyn MatesFacadeTrait>,
+        auth: &AuthPorts,
     ) -> Outcome<NegotiationRpcAgreementContext> {
         let id = input
             .get_consumer_pid()
             .ok_or_else(|| Errors::parse("RpcAgreementStep: missing consumer PID", None))?;
-        let base = NegotiationRpcContinuationContext::resolve(&id, scope, persistence).await?;
+        let base = NegotiationRpcContinuationContext::resolve(&id, user, persistence).await?;
 
         // Fetch the last offer to copy its policy fields into the agreement.
         let last_offer_record = persistence.fetch_last_offer(&base.process).await?;
@@ -98,20 +98,15 @@ impl NegotiationRpcStep for RpcAgreementStep {
             }
         };
 
-        // Resolve participant IDs from the mates directory.
-        let assigner = mates_service
-            .get_me_mate(base.process.inner.tenant_id.clone())
+        // This connector assigns; the peer of the process is the assignee (its id is already
+        // the participant id).
+        let assigner = auth
+            .mates
+            .get_me_mate()
             .await
             .map(|m| m.participant_id)
             .unwrap_or_default();
-        let assignee = mates_service
-            .get_mate_by_id(
-                base.process.inner.tenant_id.clone(),
-                base.process.inner.associated_agent_peer.clone(),
-            )
-            .await
-            .map(|m| m.participant_id)
-            .unwrap_or_default();
+        let assignee = base.process.inner.associated_agent_peer.clone();
 
         Ok(NegotiationRpcAgreementContext {
             process: base.process,
@@ -125,7 +120,7 @@ impl NegotiationRpcStep for RpcAgreementStep {
 
     fn auth_peer(ctx: &NegotiationRpcAgreementContext) -> (&str, &str) {
         (
-            &ctx.process.inner.tenant_id,
+            &ctx.process.inner.user_id,
             &ctx.process.inner.associated_agent_peer,
         )
     }

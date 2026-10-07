@@ -27,8 +27,7 @@ use axum::http::StatusCode;
 use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::routing::get;
 use axum::{Json, Router};
-use common::auth::http::AuthClaims;
-use common::auth::AccessScope;
+use common::oauth::{Owner, OwnerScope, UserInfo};
 use common::paginated_spec::{Cursor, Paginated};
 use common::query::{QueryFilter, QuerySpec};
 use futures_util::stream::{self, Stream};
@@ -49,12 +48,11 @@ use crate::services::event_bus::EventBus;
 /// Query string of the event listing.
 pub type EventsQuery = QuerySpec<EventFilter>;
 
-/// Query string of the live stream: a topic pattern and, for admins, a tenant.
+/// Query string of the live stream: a topic pattern.
 #[derive(Debug, Deserialize)]
 pub struct StreamQuery {
     #[serde(flatten)]
     pub filter: EventFilter,
-    pub tenant: Option<String>,
 }
 
 /// Event routes: publish, list, live stream and the deliveries of each event.
@@ -82,10 +80,10 @@ impl EventsRouter {
 
     async fn handle_publish(
         State(bus): State<Arc<EventBus>>,
-        scope: AccessScope,
+        user: UserInfo,
         Json(req): Json<PublishEventRequest>,
     ) -> AppResult<(StatusCode, Json<EventEnvelope>)> {
-        let tenant_id = scope.resolve_create_tenant(None)?;
+        let owner = Owner::of(&user, req.visibility.clone());
         let topic = Topic::new(req.topic).map_err(|e| Errors::validation(e, None))?;
         let correlation_id = match req.correlation_id {
             Some(ref s) => {
@@ -95,7 +93,7 @@ impl EventsRouter {
         };
 
         let envelope = EventEnvelope::new(
-            tenant_id,
+            owner,
             topic,
             req.source_crate.unwrap_or_else(|| "events".to_string()),
             req.schema_version.unwrap_or(1),
@@ -109,7 +107,7 @@ impl EventsRouter {
 
     async fn handle_list_events(
         State(bus): State<Arc<EventBus>>,
-        scope: AccessScope,
+        user: UserInfo,
         Query(query): Query<EventsQuery>,
     ) -> AppResult<Json<Paginated<EventEnvelope>>> {
         query.filter.validate()?;
@@ -117,7 +115,7 @@ impl EventsRouter {
         let (events, total) = bus
             .event_repo()
             .list_events(
-                scope.tenant_filter().map(str::to_string),
+                &OwnerScope::seeing(&user),
                 &query.filter,
                 &page,
                 &query.sort,
@@ -131,14 +129,13 @@ impl EventsRouter {
         )))
     }
 
-    /// Server-sent events of the tenants visible to the caller, optionally narrowed by `topic`.
-    /// Browsers cannot set headers on `EventSource`, so `tenant` stands in for `x-tenant-id`.
+    /// Server-sent events the caller sees, optionally narrowed by `topic`.
     async fn handle_stream(
         State(bus): State<Arc<EventBus>>,
-        AuthClaims(claims): AuthClaims,
+        user: UserInfo,
         Query(query): Query<StreamQuery>,
     ) -> AppResult<Sse<impl Stream<Item = Result<Event, Infallible>>>> {
-        let scope = AccessScope::from_tenant_header(&claims, query.tenant.as_deref())?;
+        let scope = OwnerScope::seeing(&user);
         let pattern = query
             .filter
             .topic_pattern()?
@@ -150,7 +147,7 @@ impl EventsRouter {
                 loop {
                     match receiver.recv().await {
                         Ok(envelope)
-                            if scope.permits(&envelope.tenant_id)
+                            if scope.admits_owner(&envelope.owner)
                                 && pattern.matches(&envelope.topic) =>
                         {
                             let Ok(data) = serde_json::to_string(&envelope) else {
@@ -171,13 +168,13 @@ impl EventsRouter {
 
     async fn handle_get_event(
         State(bus): State<Arc<EventBus>>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(id): Path<String>,
     ) -> AppResult<Json<EventEnvelope>> {
         let (urn, uuid) = Self::parse_id(&id)?;
         let event = bus
             .event_repo()
-            .get_event_by_id(scope.tenant_filter().map(str::to_string), &urn)
+            .get_event_by_id(&OwnerScope::seeing(&user), &urn)
             .await?
             .ok_or_else(|| Errors::missing_resource(uuid.to_string(), "event not found", None))?;
         Ok(Json(event))
@@ -185,12 +182,12 @@ impl EventsRouter {
 
     async fn handle_get_deliveries(
         State(bus): State<Arc<EventBus>>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(id): Path<String>,
     ) -> AppResult<Json<Vec<EventDeliveryRecord>>> {
         let deliveries = bus
             .delivery_repo()
-            .list_by_event(scope.tenant_filter().map(str::to_string), &id)
+            .list_by_event(&OwnerScope::seeing(&user), &id)
             .await?;
         Ok(Json(deliveries))
     }

@@ -19,7 +19,7 @@
 
 use std::sync::Arc;
 
-use common::test_utils::scopes::TestScopes;
+use common::test_utils::scopes::TestUsers;
 use keystore::data::repo::config::MockKeystoreConfigRepo;
 use keystore::services::config::ConfigStore;
 use keystore::services::config::config::ConfigStoreImpl;
@@ -30,12 +30,12 @@ use ymir::errors::Errors;
 async fn non_admins_cannot_read_the_config() {
     let svc = ConfigStoreImpl::new(Arc::new(MockKeystoreConfigRepo::new()));
     assert!(
-        svc.get_application_config(&TestScopes::owner("tenant-1"))
+        svc.get_application_config(&TestUsers::user("tenant-1", "/admin/tenant-1"))
             .await
             .is_err()
     );
     assert!(
-        svc.get_application_config(&TestScopes::reader("tenant-1"))
+        svc.get_application_config(&TestUsers::user("tenant-1", "/admin/tenant-1"))
             .await
             .is_err()
     );
@@ -51,7 +51,7 @@ async fn admin_reads_through_the_repository() {
     let svc = ConfigStoreImpl::new(Arc::new(repo));
 
     let err = svc
-        .get_application_config(&TestScopes::admin())
+        .get_application_config(&TestUsers::user("admin-tenant", "/admin"))
         .await
         .unwrap_err();
     assert!(format!("{err:?}").contains("vault unreachable"), "{err:?}");

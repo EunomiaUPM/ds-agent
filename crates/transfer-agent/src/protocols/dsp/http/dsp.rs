@@ -26,8 +26,8 @@ use axum::middleware::Next;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Router, middleware};
-use common::auth::http::AuthHttpMiddleware;
-use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
+use ymir::http::OauthHttpMiddleware;
+use common::facades::grants_facade::GrantsFacadeTrait;
 use common::validation::ValidatorRegistry;
 use http::StatusCode;
 use std::sync::Arc;
@@ -40,7 +40,7 @@ use crate::protocols::dsp::services::validator::TransferValidators;
 
 #[derive(Clone)]
 pub struct DspRouter {
-    ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
+    grants: Arc<dyn GrantsFacadeTrait>,
     idempotency: Arc<dyn IdempotencyStoreTrait>,
     edge_validators: Arc<ValidatorRegistry<TransferDSPMessageType, TransferDSPContextTyped>>,
     domain_validators: Arc<ValidatorRegistry<TransferDSPMessageType, TransferDSPContextDomain>>,
@@ -48,16 +48,16 @@ pub struct DspRouter {
 
 impl DspRouter {
     /// Uses the in-memory idempotency store and default transfer validators.
-    pub fn new(ssi_auth: Arc<dyn SSIAuthFacadeTrait>) -> Self {
-        Self::with_idempotency_store(ssi_auth, Arc::new(InMemoryIdempotencyStore::new()))
+    pub fn new(grants: Arc<dyn GrantsFacadeTrait>) -> Self {
+        Self::with_idempotency_store(grants, Arc::new(InMemoryIdempotencyStore::new()))
     }
 
     pub fn with_idempotency_store(
-        ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
+        grants: Arc<dyn GrantsFacadeTrait>,
         idempotency: Arc<dyn IdempotencyStoreTrait>,
     ) -> Self {
         Self::with_validators(
-            ssi_auth,
+            grants,
             idempotency,
             Arc::new(TransferValidators::edge_registry()),
             Arc::new(TransferValidators::dsp_registry()),
@@ -65,13 +65,13 @@ impl DspRouter {
     }
 
     pub fn with_validators(
-        ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
+        grants: Arc<dyn GrantsFacadeTrait>,
         idempotency: Arc<dyn IdempotencyStoreTrait>,
         edge_validators: Arc<ValidatorRegistry<TransferDSPMessageType, TransferDSPContextTyped>>,
         domain_validators: Arc<ValidatorRegistry<TransferDSPMessageType, TransferDSPContextDomain>>,
     ) -> Self {
         Self {
-            ssi_auth,
+            grants,
             idempotency,
             edge_validators,
             domain_validators,
@@ -86,12 +86,12 @@ impl DspRouter {
         // DSP 10.1.2.3: an unauthorized client MUST get a 404, not a 401 — the
         // same answer as a missing process (10.1.2.2), so that probing cannot
         // reveal which Transfer Processes exist.
-        let token = AuthHttpMiddleware::bearer(request.headers())
+        let token = OauthHttpMiddleware::bearer(request.headers())
             .map_err(|_| StatusCode::NOT_FOUND)?
             .to_owned();
-        match state.ssi_auth.verify_token(token).await {
-            Ok(mate) => {
-                request.extensions_mut().insert(mate);
+        match state.grants.verify_token(token).await {
+            Ok(peer) => {
+                request.extensions_mut().insert(peer);
                 Ok(next.run(request).await)
             }
             Err(_) => Err(StatusCode::NOT_FOUND),

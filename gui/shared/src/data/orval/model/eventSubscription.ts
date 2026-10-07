@@ -14,10 +14,15 @@ are calls the GUI still makes to routes the backend no longer serves.
  */
 import type { EventSubscriptionHeaders } from './eventSubscriptionHeaders';
 import type { EventSubscriptionSecret } from './eventSubscriptionSecret';
+import type { Visibility } from './visibility';
 
 export interface EventSubscription {
   id: string;
-  tenant_id: string;
+  /** Owner of the record ("system" if a peer opened it). */
+  user_id: string;
+  /** Role the record was created under (or that handles it). */
+  role: string;
+  visibility: Visibility;
   callback_address: string;
   topic_pattern: string;
   /**

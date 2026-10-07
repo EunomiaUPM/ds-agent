@@ -22,6 +22,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::Utc;
+use common::oauth::{Owner, OwnerScope};
 use tokio::sync::broadcast;
 use tracing::Instrument;
 use tracing::{error, info, warn};
@@ -106,10 +107,10 @@ impl EventBus {
         <Self as EventPublisherTrait>::publish_event(self, event).await
     }
 
-    /// Publishes `payload` under `topic` for the tenant; used by `emit_action!`.
-    pub async fn emit_payload_with_tenant<T: serde::Serialize + ?Sized>(
+    /// Publishes `payload` under `topic` about a record of `owner`; used by `emit_action!`.
+    pub async fn emit_payload_for<T: serde::Serialize + ?Sized>(
         &self,
-        tenant_id: &str,
+        owner: &Owner,
         topic: &str,
         source: &str,
         payload: &T,
@@ -118,7 +119,7 @@ impl EventBus {
             crate::entities::topic::Topic::new(topic).map_err(|e| Errors::validation(e, None))?;
         let payload_val =
             serde_json::to_value(payload).map_err(|e| Errors::parse(e.to_string(), None))?;
-        let envelope = EventEnvelope::new(tenant_id, topic_obj, source, 1, None, payload_val);
+        let envelope = EventEnvelope::new(owner.clone(), topic_obj, source, 1, None, payload_val);
         self.publish(envelope).await
     }
 
@@ -151,16 +152,16 @@ impl EventBus {
         self.dispatcher.clone()
     }
 
-    /// Replay a single dead letter record by ID; `tenant_id: None` reaches any tenant (admin).
+    /// Replay a single dead letter record in `scope` by ID.
     #[tracing::instrument(level = "info", skip_all, err)]
     pub async fn replay_dead_letter(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         dlq_id: &str,
     ) -> Outcome<EventDeliveryRecord> {
         let record = self
             .dlq_repo
-            .get_dead_letter(tenant_id, dlq_id)
+            .get_dead_letter(scope, dlq_id)
             .await?
             .ok_or_else(|| Errors::missing_resource(dlq_id, "dead letter not found", None))?;
 
@@ -170,13 +171,13 @@ impl EventBus {
 
         let event = self
             .event_repo
-            .get_event_by_id(Some(record.tenant_id.clone()), &event_urn)
+            .get_event_by_id(&OwnerScope::All, &event_urn)
             .await?
             .ok_or_else(|| Errors::missing_resource(&record.event_id, "event not found", None))?;
 
         let sub = self
             .subscription_repo
-            .get_subscription(Some(record.tenant_id.clone()), &record.subscription_id)
+            .get_subscription(&OwnerScope::All, &record.subscription_id)
             .await?
             .ok_or_else(|| {
                 Errors::missing_resource(&record.subscription_id, "subscription not found", None)
@@ -195,7 +196,7 @@ impl EventBus {
             Ok(status) if status.is_success() => {
                 info!(dlq_id, status = %status, "Dead letter replayed successfully");
                 self.dlq_repo
-                    .mark_replayed(&record.tenant_id, dlq_id)
+                    .mark_replayed(dlq_id)
                     .await?;
 
                 if let Some(delivery_id) = &record.delivery_id {
@@ -209,7 +210,7 @@ impl EventBus {
                     id: record
                         .delivery_id
                         .unwrap_or_else(|| format!("urn:uuid:{}", Uuid::new_v4())),
-                    tenant_id: record.tenant_id.clone(),
+                    owner: record.owner.clone(),
                     event_id: record.event_id,
                     subscription_id: record.subscription_id,
                     status: DeliveryStatus::Delivered,
@@ -231,9 +232,9 @@ impl EventBus {
         }
     }
 
-    /// Replay all unresolved dead letter records in batches, oldest first.
+    /// Replay all unresolved dead letter records in `scope` in batches, oldest first.
     #[tracing::instrument(level = "info", skip_all, err)]
-    pub async fn replay_all_dead_letters(&self, tenant_id: Option<String>) -> Outcome<usize> {
+    pub async fn replay_all_dead_letters(&self, scope: &OwnerScope) -> Outcome<usize> {
         let filter = DeadLetterFilter {
             status: Some(DeadLetterStatus::Unresolved.as_str().to_string()),
         };
@@ -243,7 +244,7 @@ impl EventBus {
         loop {
             let (dead_letters, _) = self
                 .dlq_repo
-                .list_dead_letters(tenant_id.clone(), &filter, &page, &Sort::CreatedAtAsc)
+                .list_dead_letters(scope, &filter, &page, &Sort::CreatedAtAsc)
                 .await?;
             let Some(last) = dead_letters.last() else {
                 break;
@@ -253,7 +254,7 @@ impl EventBus {
 
             for dl in dead_letters {
                 if self
-                    .replay_dead_letter(Some(dl.tenant_id), &dl.id)
+                    .replay_dead_letter(&OwnerScope::All, &dl.id)
                     .await
                     .is_ok()
                 {
@@ -276,6 +277,7 @@ impl EventBus {
         delivery_id: String,
         event: EventEnvelope,
         sub_id: String,
+        sub_owner: Owner,
         callback_address: String,
         secret: Option<String>,
         headers: Option<std::collections::HashMap<String, String>>,
@@ -338,7 +340,7 @@ impl EventBus {
 
                         let dlq_record = DeadLetterRecord {
                             id: format!("urn:uuid:{}", Uuid::new_v4()),
-                            tenant_id: event.tenant_id.clone(),
+                            owner: sub_owner.clone(),
                             delivery_id: Some(delivery_id),
                             event_id: event.id.to_string(),
                             subscription_id: sub_id,
@@ -380,7 +382,7 @@ impl EventBus {
 
                         let dlq_record = DeadLetterRecord {
                             id: format!("urn:uuid:{}", Uuid::new_v4()),
-                            tenant_id: event.tenant_id.clone(),
+                            owner: sub_owner.clone(),
                             delivery_id: Some(delivery_id),
                             event_id: event.id.to_string(),
                             subscription_id: sub_id,
@@ -413,14 +415,14 @@ impl EventBusTrait for EventBus {
 
         let matching_subs = self
             .subscription_repo
-            .get_matching_subscriptions(&envelope.tenant_id, &envelope.topic)
+            .get_matching_subscriptions(&envelope.owner, &envelope.topic)
             .await?;
 
         for sub in matching_subs {
             let delivery_id = format!("urn:uuid:{}", Uuid::new_v4());
             let delivery = EventDeliveryRecord {
                 id: delivery_id.clone(),
-                tenant_id: envelope.tenant_id.clone(),
+                owner: sub.owner.clone(),
                 event_id: envelope.id.to_string(),
                 subscription_id: sub.id.clone(),
                 status: DeliveryStatus::Pending,
@@ -443,6 +445,7 @@ impl EventBusTrait for EventBus {
                 delivery_id,
                 envelope.clone(),
                 sub.id,
+                sub.owner,
                 sub.callback_address,
                 sub.secret,
                 sub.headers,
@@ -468,12 +471,12 @@ impl EventPublisherTrait for EventBus {
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn emit_payload(
         &self,
-        tenant_id: &str,
+        owner: &Owner,
         topic: &str,
         source: &str,
         payload: &serde_json::Value,
     ) -> Outcome<EventEnvelope> {
-        self.emit_payload_with_tenant(tenant_id, topic, source, payload)
+        self.emit_payload_for(owner, topic, source, payload)
             .await
     }
 }

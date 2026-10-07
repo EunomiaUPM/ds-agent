@@ -31,12 +31,16 @@ pub struct AdminSeeder {
 }
 
 impl AdminSeeder {
-    /// Reads the admin and service client settings from `common`.
+    /// Panics unless the provider is `built_in`: there is no one to seed otherwise.
     pub fn new(db: DatabaseConnection, common: &CommonConfig) -> Self {
+        let built_in = common
+            .oauth
+            .built_in()
+            .expect("the admin seeder only runs with the built_in provider");
         Self {
             db,
-            admin: common.admin_seed.clone(),
-            service_client: common.service_client.clone(),
+            admin: built_in.admin_seed.clone(),
+            service_client: built_in.service_client.clone(),
         }
     }
 }

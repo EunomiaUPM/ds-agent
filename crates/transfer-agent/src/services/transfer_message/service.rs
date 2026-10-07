@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::auth::access::AccessScope;
+use common::oauth::{Owner, OwnerScope, UserInfo};
 use common::errors::NotFoundExt;
 use common::paginated_spec::Cursor;
 use common::query::{Page, Paginated, QueryFilter, Sort};
@@ -49,41 +49,38 @@ impl TransferMessageService {
 
     // Refactors
 
-    /// Validates the date window, injects the scope's tenant into the filter, and
+    /// Validates the date window and
     /// clamps the page size — the normalization shared by both list endpoints.
     fn scoped_query(
-        scope: &AccessScope,
         filters: &TransferMessageFilter,
         page: &Page,
     ) -> Outcome<(TransferMessageFilter, Page)> {
         filters.validate()?;
-        let mut filters = filters.clone();
-        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
         let page = page.clamped();
-        Ok((filters, page))
+        Ok((filters.clone(), page))
     }
 }
 
 #[async_trait::async_trait]
 impl TransferMessageServiceTrait for TransferMessageService {
     /// Get all TransferMessage entities
-    /// Validate filtering based in tenant-id
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    /// Listed within what the caller sees
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &TransferMessageFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferMessageView>> {
-        scope.require_read()?;
         // Ensure access or 403
-        let (filters, page) = Self::scoped_query(scope, filters, page)?;
+        let (filters, page) = Self::scoped_query(filters, page)?;
         // Hit db concurrently
+        let scope = OwnerScope::seeing(user);
         let (messages, total) = tokio::try_join!(
             self.message_repo
-                .get_all_transfer_messages(&filters, &page, sort),
-            self.message_repo.count_transfer_messages(&filters),
+                .get_all_transfer_messages(&scope, &filters, &page, sort),
+            self.message_repo.count_transfer_messages(&scope, &filters),
         )?;
         // Assemble into view
         let items = messages
@@ -96,29 +93,29 @@ impl TransferMessageServiceTrait for TransferMessageService {
     }
 
     /// Get single transfer message entity
-    /// If tenant-id is coincident ok, otherwise not_found
+    /// Not found unless the caller sees it
     #[tracing::instrument(
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), process_id = %process_id)
+        fields(user = %user.id(), process_id = %process_id)
     )]
     async fn get_all_by_process(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         process_id: &Urn,
         filters: &TransferMessageFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferMessageView>> {
-        scope.require_read()?;
         // Ensure access or 403
-        let (filters, page) = Self::scoped_query(scope, filters, page)?;
+        let (filters, page) = Self::scoped_query(filters, page)?;
         // Hit db concurrently
+        let scope = OwnerScope::seeing(user);
         let (messages, total) = tokio::try_join!(
             self.message_repo
-                .get_messages_by_process_id(process_id, &filters, &page, sort),
-            self.message_repo.count_transfer_messages(&filters),
+                .get_messages_by_process_id(&scope, process_id, &filters, &page, sort),
+            self.message_repo.count_transfer_messages(&scope, &filters),
         )?;
         // Assemble into view
         let items = messages
@@ -135,13 +132,12 @@ impl TransferMessageServiceTrait for TransferMessageService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), id = %id)
+        fields(user = %user.id(), id = %id)
     )]
-    async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<TransferMessageView> {
-        scope.require_read()?;
+    async fn get_one(&self, user: &UserInfo, id: &Urn) -> Outcome<TransferMessageView> {
         let message = self
             .message_repo
-            .get_transfer_message_by_id(scope.tenant_filter().map(str::to_string), id)
+            .get_transfer_message_by_id(&OwnerScope::seeing(user), id)
             .await?
             .or_not_found(id, "transfer message")?;
 
@@ -149,21 +145,22 @@ impl TransferMessageServiceTrait for TransferMessageService {
     }
 
     /// Edit a transfer message
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn create(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         cmd: &NewTransferMessageCommand,
     ) -> Outcome<TransferMessageView> {
         let mut cmd = cmd.clone();
-        cmd.tenant_id = Some(scope.resolve_create_tenant(cmd.tenant_id.as_deref())?);
+        cmd.owner = Some(Owner::for_new(user, cmd.owner.take(), cmd.visibility.clone()));
         // Create in db
         let message = self.message_repo.create_transfer_message(&cmd).await?;
         // Assemble into view
+        let owner = message.owner().clone();
         let view = TransferMessageView::assemble(message);
         events::emit_action!(
             self.event_bus,
-            &view.tenant_id,
+            &owner,
             crate::EVENT_PREFIX,
             "message",
             "create",
@@ -177,14 +174,13 @@ impl TransferMessageServiceTrait for TransferMessageService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), id = %id)
+        fields(user = %user.id(), id = %id)
     )]
-    async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
-        scope.require_write()?;
+    async fn delete(&self, user: &UserInfo, id: &Urn) -> Outcome<()> {
         // Hit db
         let owner = self
             .message_repo
-            .delete_transfer_message(scope.tenant_filter().map(str::to_string), id)
+            .delete_transfer_message(&OwnerScope::acting(user), id)
             .await?;
         events::emit_action!(
             self.event_bus,

@@ -22,6 +22,7 @@ use std::sync::{Arc, LazyLock};
 
 use chrono::Utc;
 use common::boot::workers::BackgroundWorker;
+use common::oauth::OwnerScope;
 use opentelemetry::global;
 use opentelemetry::metrics::Counter;
 use tokio::sync::Semaphore;
@@ -159,7 +160,7 @@ impl RetryWorker {
         };
 
         let event = match event_repo
-            .get_event_by_id(Some(delivery.tenant_id.clone()), &event_urn)
+            .get_event_by_id(&OwnerScope::All, &event_urn)
             .await
         {
             Ok(Some(ev)) => ev,
@@ -174,7 +175,7 @@ impl RetryWorker {
         };
 
         let sub = match sub_repo
-            .get_subscription(Some(delivery.tenant_id.clone()), &delivery.subscription_id)
+            .get_subscription(&OwnerScope::All, &delivery.subscription_id)
             .await
         {
             Ok(Some(s)) => s,
@@ -246,7 +247,7 @@ impl RetryWorker {
 
                     let dlq = DeadLetterRecord {
                         id: format!("urn:uuid:{}", Uuid::new_v4()),
-                        tenant_id: delivery.tenant_id.clone(),
+                        owner: delivery.owner.clone(),
                         delivery_id: Some(delivery.id.clone()),
                         event_id: event.id.to_string(),
                         subscription_id: sub.id.clone(),
@@ -290,7 +291,7 @@ impl RetryWorker {
 
                     let dlq = DeadLetterRecord {
                         id: format!("urn:uuid:{}", Uuid::new_v4()),
-                        tenant_id: delivery.tenant_id.clone(),
+                        owner: delivery.owner.clone(),
                         delivery_id: Some(delivery.id.clone()),
                         event_id: event.id.to_string(),
                         subscription_id: sub.id.clone(),

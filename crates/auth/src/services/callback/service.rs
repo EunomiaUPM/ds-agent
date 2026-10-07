@@ -113,8 +113,8 @@ impl CallbackTrait for BasicCallbackService {
     async fn send_continue_req(&self, interaction: &interaction::Model) -> Outcome<GrantResponse> {
         info!("Continuing grant request");
 
-        let url = require_field(interaction.continue_endpoint.as_ref(), "continue-endpoint")?;
-        let token = require_field(interaction.continue_token.as_ref(), "continue token")?;
+        let url = require_field(interaction.continuation_endpoint.as_ref(), "continue-endpoint")?;
+        let token = require_field(interaction.continuation_token.as_ref(), "continue token")?;
 
         let cert = expect_from_env("VAULT_APP_CERT");
         let cert: StringHelper = self.vault.read(None, &cert).await?;
@@ -140,6 +140,7 @@ impl CallbackTrait for BasicCallbackService {
             "POST",
             url,
             &body_bytes,
+            "application/json",
             Some(&authorization),
         )?;
 

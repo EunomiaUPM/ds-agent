@@ -22,27 +22,18 @@ use transfer_agent::entities::protocol::ProtocolId;
 use transfer_agent::protocols::dsp::entities::auth::TransferDSPAuthn;
 use transfer_agent::protocols::dsp::entities::context_common::TransferContextRaw;
 use transfer_agent::protocols::dsp::entities::message_types::TransferDSPMessageType;
-use ymir::data::entities::shared::participant::Model as Mates;
+use common::facades::grants_facade::VerifiedPeer;
+use common::oauth::RolePath;
 
 use axum::extract::Request;
-use chrono::Utc;
-use serde_json::Value;
 use transfer_agent::entities::transfer_message::Direction;
 use transfer_agent::protocols::dsp::entities::context_dsp::*;
-use ymir::types::participants::ParticipantType;
 
-fn mate() -> Mates {
-    let t = Utc::now();
-    Mates {
-        tenant_id: "default".to_string(),
+fn mate() -> VerifiedPeer {
+    VerifiedPeer {
         participant_id: "did:example:provider".into(),
-        participant_type: ParticipantType::Agent,
-        participant_nick: "provider".to_string(),
-        base_url: "http://127.0.0.1:122".to_string(),
-        token: None,
-        saved_at: t,
-        last_interaction: t,
-        extra_fields: Value::Null,
+        role: RolePath::root(),
+        visibility: common::oauth::Visibility::Public,
     }
 }
 
@@ -72,8 +63,8 @@ async fn from_request_reads_wire_fields_and_resolved_participant() {
     assert_eq!(raw.authn.token_type, "Bearer");
     assert_eq!(raw.authn.token_content, "eyJabc");
     assert_eq!(
-        raw.authn.associated_participant.participant_nick,
-        "provider"
+        raw.authn.associated_participant.participant_id,
+        "did:example:provider"
     );
     assert!(matches!(raw.direction, Direction::Inbound));
 }

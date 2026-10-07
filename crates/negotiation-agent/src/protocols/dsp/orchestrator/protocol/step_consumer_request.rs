@@ -26,7 +26,7 @@ use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDs
 use crate::services::negotiation_process::views::NegotiationProcessView;
 use common::dsp_common::DspActor;
 use std::sync::Arc;
-use ymir::data::entities::shared::participant::Model as Mates;
+use common::facades::grants_facade::VerifiedPeer;
 use ymir::errors::Outcome;
 
 /// Handles a subsequent `ContractRequestMessage` from the Consumer (counter-offer
@@ -46,7 +46,7 @@ impl NegotiationProtocolStep for ConsumerRequestStep {
         validator: &Arc<dyn ValidationDspSteps>,
         id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<()> {
         validator
             .on_contract_request(&DspActor::peer(mate), id, input)
@@ -56,7 +56,7 @@ impl NegotiationProtocolStep for ConsumerRequestStep {
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn prepare_context(
         id: &str,
-        mate: &Mates,
+        mate: &VerifiedPeer,
         _input: &NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>,
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
     ) -> Outcome<(
@@ -73,7 +73,7 @@ impl NegotiationProtocolStep for ConsumerRequestStep {
         _id: &str,
         ctx: &NegotiationContinuationContext,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessView> {
         persistence
             .update_with_offer(ctx.id.as_str(), &input.dto, mate)

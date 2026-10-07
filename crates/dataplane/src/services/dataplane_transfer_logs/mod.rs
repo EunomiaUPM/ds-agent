@@ -21,7 +21,7 @@ pub mod service;
 
 pub use service::DataplaneTransferLogsService;
 
-use common::auth::access::AccessScope;
+use common::oauth::UserInfo;
 use urn::Urn;
 use ymir::errors::Outcome;
 
@@ -34,7 +34,7 @@ pub trait DataplaneTransferLogServiceTrait: Send + Sync + 'static {
     /// Every transition of the process visible to the caller.
     async fn get_transfer_logs_by_dataplane_process_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         dataplane_process_id: &Urn,
     ) -> Outcome<Vec<DataplaneTransferLogDto>>;
 }

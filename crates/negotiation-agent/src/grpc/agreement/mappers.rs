@@ -36,7 +36,7 @@ impl TryFrom<ListAgreementsRequest> for ListParams<AgreementFilter> {
     fn try_from(req: ListAgreementsRequest) -> Result<Self, Status> {
         let filter = AgreementFilter {
             id: None,
-            tenant_id: None,
+            user_id: None,
             process_id: req.process_id.non_empty().map(str::to_owned),
             consumer_id: req.consumer_id.non_empty().map(str::to_owned),
             provider_id: req.provider_id.non_empty().map(str::to_owned),
@@ -65,7 +65,8 @@ impl TryFrom<CreateAgreementRequest> for NewAgreementDto {
     fn try_from(req: CreateAgreementRequest) -> Result<Self, Status> {
         Ok(Self {
             id: req.id.as_deref().unwrap_or_default().opt_urn("id")?,
-            tenant_id: None,
+            visibility: None,
+            owner: None,
             negotiation_agent_process_id: req
                 .negotiation_agent_process_id
                 .urn("negotiation_agent_process_id")?,

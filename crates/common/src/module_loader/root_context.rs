@@ -24,32 +24,24 @@ use ymir::errors::Outcome;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
-use crate::auth::{OauthTokenValidator, ServiceHttpClient};
+use crate::oauth::{OauthTokenValidatorTrait, token_validator};
 use crate::config::services::CommonConfig;
 
-/// Builds the process token validator; lives in `oauth`, which `common` cannot depend on.
-pub type ValidatorFactory = fn(&CommonConfig, DatabaseConnection) -> Arc<dyn OauthTokenValidator>;
-
-/// One vault, one DB pool, one token validator and one service client for the whole process.
+/// One vault, one DB pool and one token validator for the whole process.
 #[derive(Clone)]
 pub struct RootContext {
     pub vault: Arc<VaultService>,
     pub db: DatabaseConnection,
-    pub validator: Arc<dyn OauthTokenValidator>,
-    pub service_client: Arc<ServiceHttpClient>,
+    pub validator: Arc<dyn OauthTokenValidatorTrait>,
 }
 
 impl RootContext {
-    /// Opens the database through the vault and builds the validator and service client.
-    pub async fn connect(
-        common: &CommonConfig,
-        vault: Arc<VaultService>,
-        validator: ValidatorFactory,
-    ) -> Outcome<Self> {
+    /// Opens the database through the vault and builds the validator of the configured
+    /// provider.
+    pub async fn connect(common: &CommonConfig, vault: Arc<VaultService>) -> Outcome<Self> {
         let db = vault.get_db_connection(common).await?;
         Ok(Self {
-            validator: validator(common, db.clone()),
-            service_client: Arc::new(ServiceHttpClient::from_common(common)),
+            validator: token_validator(common)?,
             vault,
             db,
         })

@@ -15,23 +15,25 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::services::HasGaiaSelfAttester;
+use crate::services::{HasGaiaSelfAttester, MayHaveEventBus};
+use crate::types::events::GaiaIssuedEvent;
 use async_trait::async_trait;
-use common::auth::AccessScope;
+use common::oauth::Owner;
 use ymir::data::entities::wallet::vc;
 use ymir::errors::Outcome;
 use ymir::services::{HasIssuer, HasWallet};
 use ymir::types::issuance::VcBody;
+use ymir::types::oauth::{RoleTrait, UserInfo};
 
 /// Issuing this participant's own Gaia-X credentials.
 #[async_trait]
 pub trait GaiaSelfAttesterModule:
-    HasGaiaSelfAttester + HasIssuer + HasWallet + Send + Sync + 'static
+    HasGaiaSelfAttester + HasIssuer + HasWallet + MayHaveEventBus + Send + Sync + 'static
 {
     /// Attests the connector's shared identity, hence admin only.
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn generate_gaia_vcs(&self, scope: &AccessScope) -> Outcome<()> {
-        scope.require_admin()?;
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn generate_gaia_vcs(&self, user: &UserInfo) -> Outcome<()> {
+        user.require_root()?;
         let legal_p = self.gaia().generate_legal_person().await?;
         let terms = self.gaia().generate_terms_cons_vc().await?;
         let legal_p = self.issuer().sign_claims(&legal_p).await?;
@@ -46,6 +48,17 @@ pub trait GaiaSelfAttesterModule:
         self.wallet().store_vc(legal_p).await?;
         self.wallet().store_vc(terms).await?;
 
+        let payload = GaiaIssuedEvent {
+            credentials: vec!["LegalPerson".to_string(), "TermsAndConditions".to_string()],
+        };
+        events::emit_action!(
+            self.event_bus(),
+            &Owner::connector(),
+            crate::EVENT_PREFIX,
+            "gaia",
+            "issued",
+            &payload
+        );
         Ok(())
     }
 }

@@ -26,7 +26,8 @@ use ymir::errors::Outcome;
 /// Filter criteria for querying connector templates.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct ConnectorTemplateFilter {
-    pub tenant_id: Option<String>,
+    /// Only the templates of this user, among those the caller sees.
+    pub user_id: Option<String>,
     pub name: Option<String>,
     pub author: Option<String>,
     pub version: Option<String>,
@@ -36,7 +37,7 @@ pub struct ConnectorTemplateFilter {
 
 impl QueryFilter for ConnectorTemplateFilter {
     fn is_empty(&self) -> bool {
-        self.tenant_id.is_none()
+        self.user_id.is_none()
             && self.name.is_none()
             && self.author.is_none()
             && self.version.is_none()
@@ -52,7 +53,8 @@ impl QueryFilter for ConnectorTemplateFilter {
 /// Filter criteria for querying connector instances.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct ConnectorInstanceFilter {
-    pub tenant_id: Option<String>,
+    /// Only the instances of this user, among those the caller sees.
+    pub user_id: Option<String>,
     pub distribution_id: Option<Urn>,
     pub template_name: Option<String>,
     pub template_version: Option<String>,
@@ -64,7 +66,7 @@ pub struct ConnectorInstanceFilter {
 
 impl QueryFilter for ConnectorInstanceFilter {
     fn is_empty(&self) -> bool {
-        self.tenant_id.is_none()
+        self.user_id.is_none()
             && self.distribution_id.is_none()
             && self.template_name.is_none()
             && self.template_version.is_none()

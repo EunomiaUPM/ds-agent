@@ -27,8 +27,8 @@ use ymir::errors::Outcome;
 #[serde(rename_all = "camelCase")]
 pub struct NegotiationProcessFilter {
     pub id: Option<String>,
-    #[serde(alias = "tenant_id", alias = "tenantId")]
-    pub tenant_id: Option<String>,
+    /// Only the records of this user, among those the caller sees.
+    pub user_id: Option<String>,
     pub state: Option<String>,
     pub role: Option<String>,
     pub protocol: Option<String>,
@@ -43,7 +43,7 @@ pub struct NegotiationProcessFilter {
 impl QueryFilter for NegotiationProcessFilter {
     fn is_empty(&self) -> bool {
         self.id.is_none()
-            && self.tenant_id.is_none()
+            && self.user_id.is_none()
             && self.state.is_none()
             && self.role.is_none()
             && self.protocol.is_none()
@@ -62,8 +62,8 @@ impl QueryFilter for NegotiationProcessFilter {
 #[serde(rename_all = "camelCase")]
 pub struct NegotiationMessageFilter {
     pub id: Option<String>,
-    #[serde(alias = "tenant_id", alias = "tenantId")]
-    pub tenant_id: Option<String>,
+    /// Only the records of this user, among those the caller sees.
+    pub user_id: Option<String>,
     #[serde(alias = "process_id")]
     pub process_id: Option<String>,
     pub protocol: Option<String>,
@@ -79,7 +79,7 @@ pub struct NegotiationMessageFilter {
 impl QueryFilter for NegotiationMessageFilter {
     fn is_empty(&self) -> bool {
         self.id.is_none()
-            && self.tenant_id.is_none()
+            && self.user_id.is_none()
             && self.process_id.is_none()
             && self.protocol.is_none()
             && self.message_type.is_none()
@@ -98,8 +98,8 @@ impl QueryFilter for NegotiationMessageFilter {
 #[serde(rename_all = "camelCase")]
 pub struct AgreementFilter {
     pub id: Option<String>,
-    #[serde(alias = "tenant_id", alias = "tenantId")]
-    pub tenant_id: Option<String>,
+    /// Only the records of this user, among those the caller sees.
+    pub user_id: Option<String>,
     #[serde(alias = "process_id")]
     pub process_id: Option<String>,
     #[serde(
@@ -125,7 +125,7 @@ pub struct AgreementFilter {
 impl QueryFilter for AgreementFilter {
     fn is_empty(&self) -> bool {
         self.id.is_none()
-            && self.tenant_id.is_none()
+            && self.user_id.is_none()
             && self.process_id.is_none()
             && self.consumer_id.is_none()
             && self.provider_id.is_none()
@@ -145,8 +145,8 @@ impl QueryFilter for AgreementFilter {
 #[serde(rename_all = "camelCase")]
 pub struct OfferFilter {
     pub id: Option<String>,
-    #[serde(alias = "tenant_id", alias = "tenantId")]
-    pub tenant_id: Option<String>,
+    /// Only the records of this user, among those the caller sees.
+    pub user_id: Option<String>,
     #[serde(alias = "process_id")]
     pub process_id: Option<String>,
     #[serde(alias = "offer_id")]
@@ -161,7 +161,7 @@ pub struct OfferFilter {
 impl QueryFilter for OfferFilter {
     fn is_empty(&self) -> bool {
         self.id.is_none()
-            && self.tenant_id.is_none()
+            && self.user_id.is_none()
             && self.process_id.is_none()
             && self.offer_id.is_none()
             && self.target.is_none()

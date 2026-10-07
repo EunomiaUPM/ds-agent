@@ -20,7 +20,7 @@
 //! A crate gets a full entity cache by implementing two small traits on a struct that holds a
 //! Redis connection: [`RedisCacheConnectorTrait`] (connection, entity name, TTL) and
 //! [`UtilsCacheTrait`] (key namespace). Blanket impls then provide [`EntityCacheTrait`] (single
-//! entities, a per-tenant "main" entity, a sorted collection, batches) and [`LookupCacheTrait`]
+//! entities, "main" entities by key, a sorted collection, batches) and [`LookupCacheTrait`]
 //! (parent-to-child indexes). Entities are stored as RedisJSON documents, so Redis needs the
 //! JSON module. [`NoopCache`] does nothing and stands in when the cache is disabled.
 //!
@@ -74,7 +74,7 @@
 //! let _ = cache.add_to_collection(&id, dto.inner.dct_issued.timestamp() as f64).await;
 //!
 //! let cached = cache.get_single(&id).await?;              // Option<DatasetDto>
-//! let main = cache.get_main(scope.acting_tenant()).await?; // the tenant's main catalog
+//! let main = cache.get_main(catalog_agent::MAIN_CACHE_KEY).await?; // the connector's main catalog
 //! let page = cache.get_collection(Some(25), Some(1)).await?;
 //! ```
 //!
@@ -95,11 +95,11 @@
 //! | What | Key |
 //! |---|---|
 //! | One entity | `<namespace>:<entity>:<urn>` |
-//! | Main entity of a tenant | `<namespace>:<entity>:main:<tenant>` (points to the entity key) |
+//! | Main entity under a key | `<namespace>:<entity>:main:<key>` (points to the entity key) |
 //! | Collection | `<namespace>:<entity>:all` |
 //! | Children of a parent | `<namespace>:<child>:<parent>:<parent urn>` |
 //!
-//! Entity keys are not scoped by tenant, so whatever is read from the cache still goes through
+//! Entity keys are not scoped by owner, so whatever is read from the cache still goes through
 //! the scope checks of the service. The boot can flush Redis on start with
 //! `crate::boot::seeders::RedisCacheFlush`.
 

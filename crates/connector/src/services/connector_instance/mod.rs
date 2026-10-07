@@ -20,7 +20,7 @@
 pub mod service;
 
 use crate::entities::connector_instance::{ConnectorInstanceDto, ConnectorInstantiationDto};
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use urn::Urn;
 use ymir::errors::Outcome;
 
@@ -31,13 +31,13 @@ pub trait ConnectorInstanceServiceTrait: Send + Sync {
     /// Instance `id` visible to the caller, or `None`.
     async fn get_instance_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         id: &Urn,
     ) -> Outcome<Option<ConnectorInstanceDto>>;
     /// Instance linked to the distribution, or `None`.
     async fn get_instance_by_distribution(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         distribution_id: &Urn,
     ) -> Outcome<Option<ConnectorInstanceDto>>;
     /// Validate parameters, resolve placeholders, and persist the instance.
@@ -46,9 +46,9 @@ pub trait ConnectorInstanceServiceTrait: Send + Sync {
     /// updated in-place.
     async fn upsert_instance(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         instance_dto: &mut ConnectorInstantiationDto,
     ) -> Outcome<ConnectorInstanceDto>;
     /// Deletes the instance and its distribution links.
-    async fn delete_instance_by_id(&self, scope: &AccessScope, id: &Urn) -> Outcome<()>;
+    async fn delete_instance_by_id(&self, user: &UserInfo, id: &Urn) -> Outcome<()>;
 }

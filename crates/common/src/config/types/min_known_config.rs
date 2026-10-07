@@ -25,7 +25,6 @@ use crate::config::services::{
     CatalogConfig, CommonConfig, ContractsConfig, GatewayConfig, SsiAuthConfig, TransferConfig,
 };
 use crate::config::types::traits::{CommonConfigTrait, MinKnownConfigTrait};
-use crate::config::types::ServiceClientConfig;
 use crate::config::ApplicationConfig;
 
 /// What an agent needs to reach another one: its hosts, API version and service client.
@@ -33,8 +32,6 @@ use crate::config::ApplicationConfig;
 pub struct MinKnownConfig {
     pub hosts: CommonHostsConfig,
     pub api_version: String,
-    #[serde(default)]
-    pub service_client: ServiceClientConfig,
 }
 
 impl MinKnownConfigTrait for MinKnownConfig {
@@ -49,9 +46,8 @@ impl MinKnownConfigTrait for MinKnownConfig {
 impl From<&CommonConfig> for MinKnownConfig {
     fn from(value: &CommonConfig) -> Self {
         Self {
-            hosts: value.hosts.clone(),
+            hosts: value.hosts().clone(),
             api_version: value.get_api_version(),
-            service_client: value.service_client.clone(),
         }
     }
 }
@@ -59,9 +55,8 @@ impl From<&CommonConfig> for MinKnownConfig {
 impl From<SsiAuthConfig> for MinKnownConfig {
     fn from(value: SsiAuthConfig) -> Self {
         Self {
-            hosts: value.common().hosts.clone(),
+            hosts: value.common().hosts().clone(),
             api_version: value.common().get_api_version(),
-            service_client: value.common().service_client.clone(),
         }
     }
 }
@@ -69,9 +64,8 @@ impl From<SsiAuthConfig> for MinKnownConfig {
 impl From<CatalogConfig> for MinKnownConfig {
     fn from(value: CatalogConfig) -> Self {
         Self {
-            hosts: value.common().hosts.clone(),
+            hosts: value.common().hosts().clone(),
             api_version: value.common().get_api_version(),
-            service_client: value.common().service_client.clone(),
         }
     }
 }
@@ -85,9 +79,8 @@ impl From<&CatalogConfig> for MinKnownConfig {
 impl From<ContractsConfig> for MinKnownConfig {
     fn from(value: ContractsConfig) -> Self {
         Self {
-            hosts: value.common().hosts.clone(),
+            hosts: value.common().hosts().clone(),
             api_version: value.common().get_api_version(),
-            service_client: value.common().service_client.clone(),
         }
     }
 }
@@ -101,9 +94,8 @@ impl From<&ContractsConfig> for MinKnownConfig {
 impl From<TransferConfig> for MinKnownConfig {
     fn from(value: TransferConfig) -> Self {
         Self {
-            hosts: value.common().hosts.clone(),
+            hosts: value.common().hosts().clone(),
             api_version: value.common().get_api_version(),
-            service_client: value.common().service_client.clone(),
         }
     }
 }
@@ -117,9 +109,8 @@ impl From<&TransferConfig> for MinKnownConfig {
 impl From<GatewayConfig> for MinKnownConfig {
     fn from(value: GatewayConfig) -> Self {
         Self {
-            hosts: value.common().hosts.clone(),
+            hosts: value.common().hosts().clone(),
             api_version: value.common().get_api_version(),
-            service_client: value.common().service_client.clone(),
         }
     }
 }
@@ -133,9 +124,8 @@ impl From<&GatewayConfig> for MinKnownConfig {
 impl From<ApplicationConfig> for MinKnownConfig {
     fn from(value: ApplicationConfig) -> Self {
         Self {
-            hosts: value.monolith().common().hosts.clone(),
+            hosts: value.monolith().common().hosts().clone(),
             api_version: value.monolith().common().get_api_version(),
-            service_client: value.monolith().common().service_client.clone(),
         }
     }
 }

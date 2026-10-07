@@ -23,7 +23,7 @@ use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::filters::OdrlPolicyFilter;
 use crate::entities::odrl_policies::{NewOdrlPolicyDto, OdrlPolicyDto};
 use crate::services::odrl_policies::OdrlPolicyServiceTrait;
-use common::auth::AccessScope;
+use common::oauth::{OwnedTrait, Owner, OwnerScope, UserInfo};
 use common::errors::NotFoundExt;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use common::query::QueryFilter;
@@ -60,24 +60,21 @@ impl OdrlPolicyService {
 
 #[async_trait::async_trait]
 impl OdrlPolicyServiceTrait for OdrlPolicyService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all_odrl_offers(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &OdrlPolicyFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<OdrlPolicyDto>> {
-        scope.require_read()?;
         filters.validate()?;
-        let mut filters = filters.clone();
-        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
         let page = page.clamped();
 
         let (odrl_policies, total) = self
             .repo
             .get_odrl_offer_repo()
-            .get_all_odrl_offers(&filters, &page, sort)
+            .get_all_odrl_offers(&OwnerScope::seeing(user), filters, &page, sort)
             .await?;
 
         let dtos: Vec<OdrlPolicyDto> = odrl_policies.into_iter().map(Into::into).collect();
@@ -97,17 +94,16 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
         }))
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_batch_odrl_offers(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         ids: &[Urn],
     ) -> Outcome<Vec<OdrlPolicyDto>> {
-        scope.require_read()?;
         let odrl_policies = self
             .repo
             .get_odrl_offer_repo()
-            .get_batch_odrl_offers(scope.tenant_filter().map(str::to_string), ids)
+            .get_batch_odrl_offers(&OwnerScope::seeing(user), ids)
             .await?;
 
         let mut dtos: Vec<OdrlPolicyDto> = Vec::new();
@@ -122,17 +118,16 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
         Ok(dtos)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all_odrl_offers_by_entity(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         entity: &Urn,
     ) -> Outcome<Vec<OdrlPolicyDto>> {
-        scope.require_read()?;
         let odrl_policies = self
             .repo
             .get_odrl_offer_repo()
-            .get_all_odrl_offers_by_entity(scope.tenant_filter().map(str::to_string), entity)
+            .get_all_odrl_offers_by_entity(&OwnerScope::seeing(user), entity)
             .await?;
 
         let mut dtos: Vec<OdrlPolicyDto> = Vec::new();
@@ -148,17 +143,16 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
         Ok(dtos)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_odrl_offer_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         odrl_offer_id: &Urn,
     ) -> Outcome<OdrlPolicyDto> {
-        scope.require_read()?;
         let odrl_policy = self
             .repo
             .get_odrl_offer_repo()
-            .get_odrl_offer_by_id(scope.tenant_filter().map(str::to_string), odrl_offer_id)
+            .get_odrl_offer_by_id(&OwnerScope::seeing(user), odrl_offer_id)
             .await?
             .or_not_found(odrl_offer_id, "odrl offer")?;
 
@@ -171,16 +165,16 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn create_odrl_offer(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_odrl_offer_model: &NewOdrlPolicyDto,
     ) -> Outcome<OdrlPolicyDto> {
         let mut new_odrl_offer_model = new_odrl_offer_model.clone();
-        let tenant_id = scope.resolve_create_tenant(new_odrl_offer_model.tenant_id.as_deref())?;
-        new_odrl_offer_model.tenant_id = Some(tenant_id.clone());
-        let new_model: NewOdrlOfferModel = new_odrl_offer_model.into_model(tenant_id);
+        let owner =
+            Owner::for_new(user, new_odrl_offer_model.owner.take(), new_odrl_offer_model.visibility.clone());
+        let new_model: NewOdrlOfferModel = new_odrl_offer_model.into_model(owner);
         let odrl_policy = self
             .repo
             .get_odrl_offer_repo()
@@ -204,7 +198,7 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
 
         events::emit_action!(
             self.event_bus,
-            &dto.inner.tenant_id,
+            &dto.inner.owner(),
             crate::EVENT_PREFIX,
             "offer",
             "create",
@@ -213,17 +207,16 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn delete_odrl_offer_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         odrl_offer_id: &Urn,
     ) -> Outcome<()> {
-        scope.require_write()?;
         let deleted = self
             .repo
             .get_odrl_offer_repo()
-            .delete_odrl_offer_by_id(scope.tenant_filter().map(str::to_string), odrl_offer_id)
+            .delete_odrl_offer_by_id(&OwnerScope::acting(user), odrl_offer_id)
             .await?;
 
         let cache = self.cache.get_odrl_offer_cache();
@@ -237,7 +230,7 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
 
         events::emit_action!(
             self.event_bus,
-            &deleted.tenant_id,
+            &deleted.owner(),
             crate::EVENT_PREFIX,
             "offer",
             "delete",
@@ -246,17 +239,16 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn delete_odrl_offers_by_entity(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         entity_id: &Urn,
     ) -> Outcome<()> {
-        scope.require_write()?;
         let deleted = self
             .repo
             .get_odrl_offer_repo()
-            .delete_odrl_offers_by_entity(scope.tenant_filter().map(str::to_string), entity_id)
+            .delete_odrl_offers_by_entity(&OwnerScope::acting(user), entity_id)
             .await?;
 
         let cache = self.cache.get_odrl_offer_cache();
@@ -267,7 +259,7 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
                 let _ = cache.remove_from_relation("target", entity_id, &id).await;
                 events::emit_action!(
                     self.event_bus,
-                    &policy.tenant_id,
+                    &policy.owner(),
                     crate::EVENT_PREFIX,
                     "offer",
                     "delete",

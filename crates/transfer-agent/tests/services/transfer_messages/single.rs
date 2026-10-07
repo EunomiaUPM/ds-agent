@@ -31,7 +31,7 @@ async fn get_one_happy_path() {
 
     let svc = make_svc(repo);
     let view = svc
-        .get_one(&TestScopes::admin_of("tenant-1"), &id_urn)
+        .get_one(&TestUsers::user("tenant-1", "/admin"), &id_urn)
         .await
         .unwrap();
 
@@ -52,11 +52,11 @@ async fn get_one_returns_view_fields_correctly() {
 
     let svc = make_svc(repo);
     let view = svc
-        .get_one(&TestScopes::admin_of("tenant-1"), &id_urn)
+        .get_one(&TestUsers::user("tenant-1", "/admin"), &id_urn)
         .await
         .unwrap();
 
-    assert_eq!(view.tenant_id, "tenant-1");
+    assert_eq!(view.user_id, "tenant-1");
     assert_eq!(view.state_transition_from, "INITIAL");
     assert_eq!(view.state_transition_to, "STARTED");
 }
@@ -70,7 +70,7 @@ async fn get_one_not_found_returns_error() {
 
     let svc = make_svc(repo);
     assert!(
-        svc.get_one(&TestScopes::admin_of("tenant-1"), &p_urn(999))
+        svc.get_one(&TestUsers::user("tenant-1", "/admin"), &p_urn(999))
             .await
             .is_err()
     );
@@ -86,7 +86,7 @@ async fn get_one_propagates_repo_error() {
 
     let svc = make_svc(repo);
     assert!(
-        svc.get_one(&TestScopes::admin_of("tenant-1"), &p_urn(1))
+        svc.get_one(&TestUsers::user("tenant-1", "/admin"), &p_urn(1))
             .await
             .is_err()
     );
@@ -104,7 +104,7 @@ async fn create_happy_path() {
 
     let svc = make_svc(repo);
     let view = svc
-        .create(&TestScopes::admin_of("tenant-1"), &make_cmd())
+        .create(&TestUsers::user("tenant-1", "/admin"), &make_cmd())
         .await
         .unwrap();
 
@@ -129,7 +129,7 @@ async fn create_view_fields_assembled_from_stored_message() {
     cmd.protocol = ProtocolId::Dsp2025_1;
     let svc = make_svc(repo);
     let view = svc
-        .create(&TestScopes::admin_of("tenant-1"), &cmd)
+        .create(&TestUsers::user("tenant-1", "/admin"), &cmd)
         .await
         .unwrap();
 
@@ -147,7 +147,7 @@ async fn create_propagates_repo_error() {
 
     let svc = make_svc(repo);
     assert!(
-        svc.create(&TestScopes::admin_of("tenant-1"), &make_cmd())
+        svc.create(&TestUsers::user("tenant-1", "/admin"), &make_cmd())
             .await
             .is_err()
     );
@@ -159,11 +159,11 @@ async fn delete_happy_path() {
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_delete_transfer_message()
         .times(1)
-        .returning(|_, _| Ok("tenant-1".to_string()));
+        .returning(|_, _| Ok(common::test_utils::scopes::TestUsers::owner("tenant-1")));
 
     let svc = make_svc(repo);
     assert!(
-        svc.delete(&TestScopes::admin_of("tenant-1"), &p_urn(1))
+        svc.delete(&TestUsers::user("tenant-1", "/admin"), &p_urn(1))
             .await
             .is_ok()
     );
@@ -179,7 +179,7 @@ async fn delete_propagates_error() {
 
     let svc = make_svc(repo);
     assert!(
-        svc.delete(&TestScopes::admin_of("tenant-1"), &p_urn(1))
+        svc.delete(&TestUsers::user("tenant-1", "/admin"), &p_urn(1))
             .await
             .is_err()
     );

@@ -37,7 +37,7 @@ impl TryFrom<ListNegotiationMessagesRequest> for ListParams<NegotiationMessageFi
     fn try_from(req: ListNegotiationMessagesRequest) -> Result<Self, Status> {
         let filter = NegotiationMessageFilter {
             id: None,
-            tenant_id: None,
+            user_id: None,
             process_id: req.process_id.non_empty().map(str::to_owned),
             protocol: req.protocol.non_empty().map(str::to_owned),
             message_type: req.message_type.non_empty().map(str::to_owned),
@@ -68,7 +68,8 @@ impl TryFrom<CreateNegotiationMessageRequest> for NewNegotiationMessageDto {
     fn try_from(req: CreateNegotiationMessageRequest) -> Result<Self, Status> {
         Ok(Self {
             id: req.id.as_deref().unwrap_or_default().opt_urn("id")?,
-            tenant_id: None,
+            visibility: None,
+            owner: None,
             negotiation_agent_process_id: req
                 .negotiation_agent_process_id
                 .urn("negotiation_agent_process_id")?,

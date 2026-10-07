@@ -15,25 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Admin user seeded at boot.
+mod directory_sync;
+mod grant_expiry;
 
-use serde::{Deserialize, Serialize};
-
-/// Admin user seeded at boot; its `tenant_id` is the admin tenant.
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(default)]
-pub struct AdminSeedConfig {
-    pub tenant_id: String,
-    pub email: String,
-    pub password: String,
-}
-
-impl Default for AdminSeedConfig {
-    fn default() -> Self {
-        Self {
-            tenant_id: "admin".to_string(),
-            email: "admin@admin.local".to_string(),
-            password: "admin".to_string(),
-        }
-    }
-}
+pub use directory_sync::DirectorySyncWorker;
+pub use grant_expiry::GrantExpiryWorker;

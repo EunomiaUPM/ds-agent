@@ -22,7 +22,7 @@ use std::sync::Arc;
 
 use common::errors::ResourceError;
 use common::paginated_spec::Paginated;
-use common::test_utils::grpc::{GrpcRequests, OTHER_TENANT, StubTokenValidator, TENANT};
+use common::test_utils::grpc::{GrpcRequests, StubTokenValidator};
 use negotiation_agent::grpc::api::negotiation_agent::negotiation_agent_messages_service_server::NegotiationAgentMessagesService;
 use negotiation_agent::grpc::api::negotiation_agent::{
     CreateNegotiationMessageRequest, GetMessagesByProcessIdRequest,
@@ -53,25 +53,10 @@ fn by_id(id: &str) -> GetNegotiationMessageByIdRequest {
 async fn get_without_token_is_unauthenticated() {
     let g = grpc(MockNegotiationMessageServiceTrait::new());
     let err = g
-        .get_negotiation_message_by_id(GrpcRequests::with_auth(by_id(&urn(1)), None, Some(TENANT)))
+        .get_negotiation_message_by_id(GrpcRequests::with_auth(by_id(&urn(1)), None))
         .await
         .unwrap_err();
     assert_eq!(err.code(), Code::Unauthenticated);
-}
-
-/// A non-admin naming another tenant is PermissionDenied.
-#[tokio::test]
-async fn get_foreign_tenant_without_admin_is_permission_denied() {
-    let g = grpc(MockNegotiationMessageServiceTrait::new());
-    let err = g
-        .get_negotiation_message_by_id(GrpcRequests::with_auth(
-            by_id(&urn(1)),
-            Some("owner"),
-            Some(OTHER_TENANT),
-        ))
-        .await
-        .unwrap_err();
-    assert_eq!(err.code(), Code::PermissionDenied);
 }
 
 /// A malformed URN is InvalidArgument and the message names the field.

@@ -27,7 +27,7 @@ services:
 
   fafnir-setup:
     container_name: "consumer-fafnir-setup"
-    image: "rmenendez8/fafnir:v0.2.0"
+    image: "rmenendez8/fafnir:v0.2.2"
     depends_on:
       consumer-db:
         condition: service_healthy
@@ -45,7 +45,7 @@ services:
 
   fafnir-wallet:
     container_name: "consumer-fafnir-wallet"
-    image: "rmenendez8/fafnir:v0.2.0"
+    image: "rmenendez8/fafnir:v0.2.2"
     restart: always
     depends_on:
       fafnir-setup:

@@ -18,6 +18,7 @@
 //! Dataset repository.
 
 use crate::data::entities::dataset;
+use common::oauth::OwnerScope;
 use crate::data::entities::dataset::{EditDatasetModel, NewDatasetModel};
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -25,37 +26,38 @@ use ymir::errors::Outcome;
 use crate::entities::filters::DatasetFilter;
 use common::paginated_spec::{Page, Sort};
 
-/// Persistence of datasets; `tenant_id` of `None` reaches every tenant.
+/// Persistence of datasets, within the owner scope each call gives.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DatasetRepositoryTrait: Send + Sync {
     /// Page of datasets matching the filters, with the total.
     async fn get_all_datasets(
         &self,
+        scope: &OwnerScope,
         filters: &DatasetFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<dataset::Model>, Option<u64>)>;
     async fn get_batch_datasets(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<dataset::Model>>;
     /// Datasets of the catalog.
     async fn get_datasets_by_catalog_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         catalog_id: &Urn,
     ) -> Outcome<Vec<dataset::Model>>;
     async fn get_dataset_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         dataset_id: &Urn,
     ) -> Outcome<Option<dataset::Model>>;
 
     async fn put_dataset_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         dataset_id: &Urn,
         edit_dataset_model: &EditDatasetModel,
     ) -> Outcome<dataset::Model>;
@@ -64,7 +66,7 @@ pub trait DatasetRepositoryTrait: Send + Sync {
     /// Deletes and returns the removed row so callers can evict derived caches.
     async fn delete_dataset_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         dataset_id: &Urn,
     ) -> Outcome<dataset::Model>;
 }

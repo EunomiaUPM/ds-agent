@@ -30,7 +30,7 @@ use catalog_agent::services::odrl_policies::MockOdrlPolicyServiceTrait;
 use common::errors::ResourceError;
 use common::grpc::JsonValueExt;
 use common::paginated_spec::Paginated;
-use common::test_utils::grpc::{GrpcRequests, StubTokenValidator, OTHER_TENANT, TENANT};
+use common::test_utils::grpc::{GrpcRequests, StubTokenValidator};
 use prost_types::Struct;
 use serde_json::json;
 use tonic::Code;
@@ -64,25 +64,10 @@ fn valid_create() -> CreateOdrlPolicyRequest {
 async fn get_without_token_is_unauthenticated() {
     let g = grpc(MockOdrlPolicyServiceTrait::new());
     let err = g
-        .get_odrl_offer_by_id(GrpcRequests::with_auth(by_id(&urn(1)), None, Some(TENANT)))
+        .get_odrl_offer_by_id(GrpcRequests::with_auth(by_id(&urn(1)), None))
         .await
         .unwrap_err();
     assert_eq!(err.code(), Code::Unauthenticated);
-}
-
-/// A non-admin naming another tenant is PermissionDenied.
-#[tokio::test]
-async fn get_foreign_tenant_without_admin_is_permission_denied() {
-    let g = grpc(MockOdrlPolicyServiceTrait::new());
-    let err = g
-        .get_odrl_offer_by_id(GrpcRequests::with_auth(
-            by_id(&urn(1)),
-            Some("owner"),
-            Some(OTHER_TENANT),
-        ))
-        .await
-        .unwrap_err();
-    assert_eq!(err.code(), Code::PermissionDenied);
 }
 
 /// A malformed URN is InvalidArgument and the message names the field.

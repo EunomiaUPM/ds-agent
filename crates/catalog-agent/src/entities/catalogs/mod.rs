@@ -18,6 +18,7 @@
 //! Catalogs.
 
 use crate::data::entities::catalog;
+use common::oauth::{Owner, Visibility};
 use crate::data::entities::catalog::{EditCatalogModel, Model, NewCatalogModel};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
@@ -37,8 +38,12 @@ pub struct CatalogDto {
 #[derive(Default)]
 pub struct NewCatalogDto {
     pub id: Option<Urn>,
+    /// Who else sees it; private by default.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tenant_id: Option<String>,
+    pub visibility: Option<Visibility>,
+    /// Owner an in-process flow asks for; only honoured for the root.
+    #[serde(skip)]
+    pub owner: Option<Owner>,
     pub foaf_home_page: Option<String>,
     pub dct_conforms_to: Option<String>,
     pub dct_creator: Option<String>,
@@ -58,11 +63,11 @@ pub struct EditCatalogDto {
 }
 
 impl NewCatalogDto {
-    /// Row for `tenant_id`.
-    pub fn into_model(self, tenant_id: String) -> NewCatalogModel {
+    /// Row owned by `owner`.
+    pub fn into_model(self, owner: Owner) -> NewCatalogModel {
         NewCatalogModel {
             id: self.id,
-            tenant_id,
+            owner,
             foaf_home_page: self.foaf_home_page,
             dct_conforms_to: self.dct_conforms_to,
             dct_creator: self.dct_creator,

@@ -15,52 +15,52 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::types::token::IssuedToken;
 use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
+use chrono::{DateTime, Utc};
+use ymir::data::entities::received::grant::FinalRotation;
 use ymir::data::entities::received::{grant, interaction};
-use ymir::data::entities::shared::{participant, resource_req};
+use ymir::data::entities::shared::{participant, participant_relation, resource_req};
 use ymir::errors::Outcome;
 use ymir::types::gnap::grant_request::client::Client;
 use ymir::types::gnap::grant_request::interact::InteractRequest;
 use ymir::types::gnap::grant_request::{GrantRequest, GrantRequestKind};
 use ymir::types::gnap::InteractionFinishResponse;
+use ymir::types::oauth::RolePath;
+use ymir::types::participants::Visibility;
 
 /// Gatekeeper side of GNAP: building and checking what peers send.
 #[mockall::automock]
 #[async_trait]
 pub trait GateKeeperTrait: Send + Sync + 'static {
-    /// New received grant; `class_id` is the class the peer claims.
-    fn build_grant_plan(&self, tenant_id: &str, class_id: Option<String>) -> Outcome<grant::Plan>;
+    /// New received grant; `class_id` is the class the peer claims (its nick). Without a `role`
+    /// the root handles it, and without a `visibility` it is public: once stored, a grant always
+    /// has both.
+    fn build_grant_plan(
+        &self,
+        role: Option<RolePath>,
+        visibility: Option<Visibility>,
+        class_id: Option<String>,
+    ) -> Outcome<grant::Plan>;
     fn build_resource_req_plan(
         &self,
-        tenant_id: &str,
         id: &str,
         grant_request_kind: GrantRequestKind,
     ) -> Outcome<resource_req::Model>;
     fn build_interaction_plan(
         &self,
-        tenant_id: &str,
         id: &str,
         client: Client,
         interact: Option<InteractRequest>,
     ) -> Outcome<interaction::Plan>;
-    /// Participant record of the peer once verified, with its access token.
-    fn build_mate_plan(
-        &self,
-        tenant_id: &str,
-        holder: &str,
-        nick: &str,
-        base_url: &str,
-        token: &str,
-    ) -> participant::Plan;
+    /// Participant record of the peer once verified.
+    fn build_mate_plan(&self, holder: &str, nick: &str, base_url: &str) -> participant::Plan;
+    /// Private relation of the verification with the verified peer, under `role`.
+    fn build_mate_rel_plan(&self, role: &RolePath, holder: &str) -> participant_relation::Model;
     /// Parses a grant request; only HTTP signature key proofs are accepted.
-    fn validate_grant_req(
-        &self,
-        tenant_id: &str,
-        payload: &Bytes,
-        headers: &HeaderMap,
-    ) -> Outcome<GrantRequest>;
+    fn validate_grant_req(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest>;
 
     /// Checks a continuation request against its interaction.
     fn validate_cont_req(
@@ -75,4 +75,19 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
         model: &interaction::Model,
         verification_result: Outcome<()>,
     ) -> Outcome<InteractionFinishResponse>;
+
+    fn issue_token(&self, grant: &mut grant::Model, now: DateTime<Utc>) -> IssuedToken;
+    fn rotate_token(
+        &self,
+        grant: &grant::Model,
+        now: DateTime<Utc>,
+    ) -> Outcome<(FinalRotation, IssuedToken)>;
+    fn validate_managing_req(
+        &self,
+        grant: &grant::Model,
+        interaction: &interaction::Model,
+        method: &str,
+        payload: &Bytes,
+        headers: &HeaderMap,
+    ) -> Outcome<()>;
 }

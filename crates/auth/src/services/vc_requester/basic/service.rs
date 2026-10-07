@@ -19,13 +19,15 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use common::config::types::traits::EntityClientTrait;
+use common::routes::auth::vc_request;
 use tracing::info;
 use ymir::capabilities::HttpSig;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::data::entities::sent::{grant, interaction, verification};
-use ymir::data::entities::shared::participant;
+use ymir::data::entities::shared::{participant, participant_relation};
 use ymir::errors::{Errors, Outcome};
+use ymir::http::routes::fill;
 use ymir::services::client::ClientTrait;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
@@ -35,7 +37,8 @@ use ymir::types::gnap::grant_response::{GrantResponse, GrantResponseKind};
 use ymir::types::gnap::GrantStatus;
 use ymir::types::http::HttpBody;
 use ymir::types::keys::{Certificate, KeySource, PrivateKey};
-use ymir::types::participants::ParticipantType;
+use ymir::types::oauth::UserInfo;
+use ymir::types::participants::{ParticipantType, Visibility};
 use ymir::types::secrets::{PemHelper, StringHelper};
 use ymir::utils::{
     expect_from_env, get_query_param, http_client, json_headers, require_field, trim_4_base,
@@ -61,29 +64,29 @@ impl VCReqService {
 
 #[async_trait]
 impl VcRequesterTrait for VCReqService {
-    fn build_grant_plan(&self, tenant_id: &str, payload: ReachAuthority) -> grant::Plan {
+    fn build_grant_plan(&self, user_info: &UserInfo, payload: ReachAuthority) -> grant::Plan {
         grant::Plan {
             id: uuid::Uuid::new_v4().to_string(),
-            tenant_id: tenant_id.to_string(),
+            role: user_info.role().clone(),
+            user_id: user_info.id().to_string(),
+            username: user_info.username().map(ToString::to_string),
             participant_id: payload.id,
             participant_nick: payload.nick,
+            visibility: Visibility::Public,
             grant_endpoint: payload.url,
             vc_type_config: Some(vec![payload.vc_type]),
             auto: payload.auto,
+            requested: true,
             kind: GrantKind::CredentialRequest,
         }
     }
-    fn build_interaction_plan(
-        &self,
-        tenant_id: &str,
-        id: &str,
-        start: InteractStart,
-    ) -> interaction::Plan {
+    fn build_interaction_plan(&self, id: &str, start: InteractStart) -> interaction::Plan {
         let callback_uri = format!(
-            "{}{}/vc-request/callback/{}",
+            "{}{}{}{}",
             self.config.hosts().get_host(HostType::Http),
             self.config.get_api_path(),
-            &id
+            vc_request::PREFIX,
+            fill(vc_request::CALLBACK, id)
         );
 
         let start = match start {
@@ -93,7 +96,6 @@ impl VcRequesterTrait for VCReqService {
 
         interaction::Plan {
             id: id.to_string(),
-            tenant_id: tenant_id.to_string(),
             start: vec![start],
             method: FinishMethod::Push,
             callback_uri,
@@ -102,12 +104,7 @@ impl VcRequesterTrait for VCReqService {
         }
     }
 
-    fn build_verification_plan(
-        &self,
-        tenant_id: &str,
-        uri: &str,
-        id: &str,
-    ) -> Outcome<verification::Plan> {
+    fn build_verification_plan(&self, uri: &str, id: &str) -> Outcome<verification::Plan> {
         info!("Saving verification data");
 
         let fixed_uri = uri.replacen("openid4vp://", "https://", 1);
@@ -123,7 +120,6 @@ impl VcRequesterTrait for VCReqService {
 
         Ok(verification::Plan {
             id: id.to_string(),
-            tenant_id: tenant_id.to_string(),
             uri: uri.to_string(),
             scheme: "openid4vp".to_string(),
             response_type,
@@ -140,12 +136,20 @@ impl VcRequesterTrait for VCReqService {
         let base_url = trim_4_base(&grant.grant_endpoint);
         participant::Plan {
             participant_id: grant.participant_id.clone(),
-            tenant_id: grant.tenant_id.clone(),
             participant_nick: grant.participant_nick.clone(),
             participant_type: ParticipantType::Authority,
             base_url,
-            token: None,
             extra_fields: None,
+        }
+    }
+
+    fn build_auth_relation(&self, grant: &grant::Model) -> participant_relation::Model {
+        participant_relation::Model {
+            user_id: grant.user_id.clone(),
+            username: grant.username.clone(),
+            participant_id: grant.participant_id.clone(),
+            role: grant.role.clone(),
+            visibility: grant.visibility.clone(),
         }
     }
 
@@ -181,6 +185,7 @@ impl VcRequesterTrait for VCReqService {
             "POST",
             &grant.grant_endpoint,
             &body_bytes,
+            "application/json",
             None,
         )?;
 
@@ -220,9 +225,9 @@ impl VcRequesterTrait for VCReqService {
 
                 interaction.as_nonce = payload.interact.finish;
                 interaction.oidc_vp_uri = payload.interact.oid4vp.clone();
-                interaction.continue_token = Some(payload.r#continue.access_token.value);
-                interaction.continue_endpoint = Some(payload.r#continue.uri);
-                interaction.continue_wait = payload.r#continue.wait.map(|n| n as i64);
+                interaction.continuation_token = Some(payload.r#continue.access_token.value);
+                interaction.continuation_endpoint = Some(payload.r#continue.uri);
+                interaction.continuation_wait = payload.r#continue.wait.map(|n| n as i64);
                 let uri = payload.interact.oid4vp.ok_or_else(|| {
                     Errors::authority_grant(
                         "Authority did not send expected interaction method (oid4vp)",

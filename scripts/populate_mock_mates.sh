@@ -51,10 +51,10 @@ create_mate() {
         --arg type   "$participant_type" \
         --arg url    "$base_url" \
         --argjson ef "$extra_fields" \
-        --arg tenant "${TENANT:-admin}" \
+        --arg vis    "${VISIBILITY:-Private}" \
         '{
             "participant_id":   $pid,
-            "tenant_id":        $tenant,
+            "visibility":       $vis,
             "participant_nick": $slug,
             "participant_type": $type,
             "base_url":         $url,

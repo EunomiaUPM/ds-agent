@@ -366,7 +366,7 @@ const FeedComponent = () => {
           >
             All
           </Button>
-          {["transfers:*", "transfers:bla", "transfers:**", "catalog:*"].map((pat) => (
+          {["transfers:*", "transfers:bla", "transfers:**", "catalog:*", "auth:*"].map((pat) => (
             <Button
               key={pat}
               variant={
@@ -436,9 +436,13 @@ const FeedComponent = () => {
               cell: (ev) => <Badge variant="infoLighter">{ev.source_crate}</Badge>,
             },
             {
-              header: "Tenant",
+              header: "Owner",
               sortable: false,
-              cell: (ev) => <span className="font-mono text-xs">{ev.tenant_id}</span>,
+              cell: (ev) => (
+                <span className="font-mono text-xs" title={`${ev.role} · ${ev.visibility}`}>
+                  {ev.user_id}
+                </span>
+              ),
             },
             {
               header: "Payload",

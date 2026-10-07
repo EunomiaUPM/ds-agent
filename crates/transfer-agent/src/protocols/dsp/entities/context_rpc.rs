@@ -27,21 +27,14 @@ use crate::protocols::dsp::entities::context_common::{
 use crate::protocols::dsp::entities::data_address::DataAddressDto;
 use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
 use http::request::Parts;
-use oauth::entities::user::User;
+use common::oauth::UserInfo;
 use serde::Deserialize;
-use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
 impl BuildAuthn for TransferRPCAuthn {
     fn from_request_parts(parts: &Parts) -> Outcome<Self> {
-        let me_participant = parts.extensions.get::<Mates>().cloned().ok_or_else(|| {
-            Errors::crazy(
-                "auth middleware did not resolve participant (Mates missing)",
-                None,
-            )
-        })?;
-        let me_user = parts.extensions.get::<User>().cloned().ok_or_else(|| {
-            Errors::crazy("auth middleware did not resolve user (User missing)", None)
+        let me_user = parts.extensions.get::<UserInfo>().cloned().ok_or_else(|| {
+            Errors::crazy("auth middleware did not resolve the user (UserInfo missing)", None)
         })?;
         let raw = Self::header(&parts.headers, "authorization").unwrap_or_default();
         let (token_type, token_content) = raw
@@ -52,7 +45,6 @@ impl BuildAuthn for TransferRPCAuthn {
             raw,
             token_type,
             token_content,
-            me_participant,
             me_user,
         })
     }

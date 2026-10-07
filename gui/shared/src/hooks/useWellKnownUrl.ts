@@ -1,5 +1,6 @@
 import { useContext, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { encodePathId } from "../lib/utils";
 import { useGetWellKnownDSpaceVersion } from "../data/orval/well-known/well-known";
 import { useFetchDataspaceVersionFromParticipant } from "../data/orval/well-known-rp-c/well-known-rp-c";
 import {
@@ -48,7 +49,7 @@ export const useMyWellKnownDSPPath = (version = "2025-1"): string | null => {
  */
 export const useParticipantDSPPath = (participantId: string | undefined, version = "2025-1") => {
   const queryClient = useQueryClient();
-  const { data: participantData } = useGetParticipantById(participantId as string, {
+  const { data: participantData } = useGetParticipantById(encodePathId(participantId ?? ""), {
     query: {
       enabled: !!participantId,
     },
@@ -72,7 +73,7 @@ export const useParticipantDSPPath = (participantId: string | undefined, version
 
   const resolve = async (id: string, ver = version): Promise<string | null> => {
     // Fetch participant
-    const pData = await queryClient.fetchQuery(getGetParticipantByIdQueryOptions(id));
+    const pData = await queryClient.fetchQuery(getGetParticipantByIdQueryOptions(encodePathId(id)));
     if (pData.status !== 200 || !pData.data.base_url) return null;
 
     // Fetch version

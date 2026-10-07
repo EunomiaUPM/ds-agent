@@ -25,6 +25,8 @@
     }
   },
   "include": ["src", "../shared/src/types.d.ts"],
+  // Pages of the former built-in OAuth module, out of the route tree (kept as they were).
+  "exclude": ["src/routes/-oauth", "src/routes/-login"],
   "references": [
     {
       "path": "./tsconfig.node.json"

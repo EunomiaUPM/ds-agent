@@ -18,6 +18,7 @@
 //! `dataplane_fields` table.
 
 use sea_orm::entity::prelude::*;
+use common::oauth::{RolePath, Visibility};
 use serde::{Deserialize, Serialize};
 
 /// `dataplane_fields` row: one key/value field of a process.
@@ -27,7 +28,9 @@ use serde::{Deserialize, Serialize};
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub key: String,
     pub value: Option<String>,
     pub dataplane_process_id: String,
@@ -53,9 +56,10 @@ impl Related<super::dataplane_transfers::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+common::impl_owned!(Model);
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NewDataPlaneFieldModel {
-    pub tenant_id: String,
     pub key: String,
     pub value: Option<String>,
 }

@@ -18,19 +18,20 @@
 //! Listing messages: paging, cursors, filters and sorts passed through, and repository errors.
 
 use super::*;
+use common::oauth::OwnerScope;
 
 /// An empty repository gives an empty page without cursor.
 #[tokio::test]
 async fn get_all_empty_result() {
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_all_transfer_messages()
-        .returning(|_, _, _| Ok(vec![]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(0));
+        .returning(|_, _, _, _| Ok(vec![]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(0));
 
     let svc = make_svc(repo);
     let result = svc
         .get_all(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &empty_filter(),
             &default_page(),
             &Sort::CreatedAtDesc,
@@ -53,13 +54,13 @@ async fn get_all_full_page_produces_cursor_from_occurred_at() {
     let mc = msg.clone();
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_all_transfer_messages()
-        .returning(move |_, _, _| Ok(vec![mc.clone()]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(1));
+        .returning(move |_, _, _, _| Ok(vec![mc.clone()]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(1));
 
     let svc = make_svc(repo);
     let result = svc
         .get_all(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &empty_filter(),
             &Page::new(1, None),
             &Sort::CreatedAtDesc,
@@ -78,13 +79,13 @@ async fn get_all_partial_page_no_cursor() {
     let mcc = mc.clone();
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_all_transfer_messages()
-        .returning(move |_, _, _| Ok(vec![mcc.clone()]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(1));
+        .returning(move |_, _, _, _| Ok(vec![mcc.clone()]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(1));
 
     let svc = make_svc(repo);
     let result = svc
         .get_all(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &empty_filter(),
             &Page::new(5, None),
             &Sort::CreatedAtDesc,
@@ -100,13 +101,13 @@ async fn get_all_partial_page_no_cursor() {
 async fn get_all_total_forwarded_from_count() {
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_all_transfer_messages()
-        .returning(|_, _, _| Ok(vec![]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(77));
+        .returning(|_, _, _, _| Ok(vec![]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(77));
 
     let svc = make_svc(repo);
     let result = svc
         .get_all(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &empty_filter(),
             &default_page(),
             &Sort::CreatedAtDesc,
@@ -122,9 +123,9 @@ async fn get_all_total_forwarded_from_count() {
 async fn get_all_filter_by_direction_passed_through() {
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_all_transfer_messages()
-        .withf(|f, _, _| f.direction == Some(Direction::Outbound))
-        .returning(|_, _, _| Ok(vec![]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(0));
+        .withf(|_, f, _, _| f.direction == Some(Direction::Outbound))
+        .returning(|_, _, _, _| Ok(vec![]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(0));
 
     let filter = TransferMessageFilter {
         direction: Some(Direction::Outbound),
@@ -132,7 +133,7 @@ async fn get_all_filter_by_direction_passed_through() {
     };
     let svc = make_svc(repo);
     svc.get_all(
-        &TestScopes::admin_of("tenant-1"),
+        &TestUsers::user("tenant-1", "/admin"),
         &filter,
         &default_page(),
         &Sort::CreatedAtDesc,
@@ -146,9 +147,9 @@ async fn get_all_filter_by_direction_passed_through() {
 async fn get_all_filter_by_protocol_passed_through() {
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_all_transfer_messages()
-        .withf(|f, _, _| f.protocol == Some(ProtocolId::Dsp2025_1))
-        .returning(|_, _, _| Ok(vec![]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(0));
+        .withf(|_, f, _, _| f.protocol == Some(ProtocolId::Dsp2025_1))
+        .returning(|_, _, _, _| Ok(vec![]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(0));
 
     let filter = TransferMessageFilter {
         protocol: Some(ProtocolId::Dsp2025_1),
@@ -156,7 +157,7 @@ async fn get_all_filter_by_protocol_passed_through() {
     };
     let svc = make_svc(repo);
     svc.get_all(
-        &TestScopes::admin_of("tenant-1"),
+        &TestUsers::user("tenant-1", "/admin"),
         &filter,
         &default_page(),
         &Sort::CreatedAtDesc,
@@ -170,9 +171,9 @@ async fn get_all_filter_by_protocol_passed_through() {
 async fn get_all_filter_by_state_transition_to_passed_through() {
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_all_transfer_messages()
-        .withf(|f, _, _| f.state_transition_to.as_ref().map(|s| s.0.as_str()) == Some("COMPLETED"))
-        .returning(|_, _, _| Ok(vec![]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(0));
+        .withf(|_, f, _, _| f.state_transition_to.as_ref().map(|s| s.0.as_str()) == Some("COMPLETED"))
+        .returning(|_, _, _, _| Ok(vec![]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(0));
 
     let filter = TransferMessageFilter {
         state_transition_to: Some(ProtocolState(CompactString::from("COMPLETED"))),
@@ -180,7 +181,7 @@ async fn get_all_filter_by_state_transition_to_passed_through() {
     };
     let svc = make_svc(repo);
     svc.get_all(
-        &TestScopes::admin_of("tenant-1"),
+        &TestUsers::user("tenant-1", "/admin"),
         &filter,
         &default_page(),
         &Sort::CreatedAtDesc,
@@ -194,17 +195,17 @@ async fn get_all_filter_by_state_transition_to_passed_through() {
 async fn get_all_filter_by_tenant_id_passed_through() {
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_all_transfer_messages()
-        .withf(|f, _, _| f.tenant_id.as_deref() == Some("t1"))
-        .returning(|_, _, _| Ok(vec![]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(0));
+        .withf(|scope, f, _, _| *scope == OwnerScope::All && f.user_id.as_deref() == Some("t1"))
+        .returning(|_, _, _, _| Ok(vec![]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(0));
 
     let filter = TransferMessageFilter {
-        tenant_id: Some("t1".to_string()),
+        user_id: Some("t1".to_string()),
         ..empty_filter()
     };
     let svc = make_svc(repo);
     svc.get_all(
-        &TestScopes::admin_of("tenant-1"),
+        &TestUsers::user("tenant-1", "/admin"),
         &filter,
         &default_page(),
         &Sort::CreatedAtDesc,
@@ -220,9 +221,9 @@ async fn get_all_filter_by_date_range_passed_through() {
     let before = Utc::now();
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_all_transfer_messages()
-        .withf(move |f, _, _| f.created_after == Some(after) && f.created_before == Some(before))
-        .returning(|_, _, _| Ok(vec![]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(0));
+        .withf(move |_, f, _, _| f.created_after == Some(after) && f.created_before == Some(before))
+        .returning(|_, _, _, _| Ok(vec![]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(0));
 
     let filter = TransferMessageFilter {
         created_after: Some(after),
@@ -231,7 +232,7 @@ async fn get_all_filter_by_date_range_passed_through() {
     };
     let svc = make_svc(repo);
     svc.get_all(
-        &TestScopes::admin_of("tenant-1"),
+        &TestUsers::user("tenant-1", "/admin"),
         &filter,
         &default_page(),
         &Sort::CreatedAtDesc,
@@ -245,13 +246,13 @@ async fn get_all_filter_by_date_range_passed_through() {
 async fn get_all_sort_created_at_asc_passed_through() {
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_all_transfer_messages()
-        .withf(|_, _, s| matches!(s, Sort::CreatedAtAsc))
-        .returning(|_, _, _| Ok(vec![]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(0));
+        .withf(|_, _, _, s| matches!(s, Sort::CreatedAtAsc))
+        .returning(|_, _, _, _| Ok(vec![]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(0));
 
     let svc = make_svc(repo);
     svc.get_all(
-        &TestScopes::admin_of("tenant-1"),
+        &TestUsers::user("tenant-1", "/admin"),
         &empty_filter(),
         &default_page(),
         &Sort::CreatedAtAsc,
@@ -265,13 +266,13 @@ async fn get_all_sort_created_at_asc_passed_through() {
 async fn get_all_sort_updated_at_desc_passed_through() {
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_all_transfer_messages()
-        .withf(|_, _, s| matches!(s, Sort::UpdatedAtDesc))
-        .returning(|_, _, _| Ok(vec![]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(0));
+        .withf(|_, _, _, s| matches!(s, Sort::UpdatedAtDesc))
+        .returning(|_, _, _, _| Ok(vec![]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(0));
 
     let svc = make_svc(repo);
     svc.get_all(
-        &TestScopes::admin_of("tenant-1"),
+        &TestUsers::user("tenant-1", "/admin"),
         &empty_filter(),
         &default_page(),
         &Sort::UpdatedAtDesc,
@@ -285,13 +286,13 @@ async fn get_all_sort_updated_at_desc_passed_through() {
 async fn get_all_page_limit_and_cursor_passed_through() {
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_all_transfer_messages()
-        .withf(|_, p, _| p.limit == 5 && p.cursor.as_deref() == Some("abc"))
-        .returning(|_, _, _| Ok(vec![]));
-    repo.expect_count_transfer_messages().returning(|_| Ok(0));
+        .withf(|_, _, p, _| p.limit == 5 && p.cursor.as_deref() == Some("abc"))
+        .returning(|_, _, _, _| Ok(vec![]));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(0));
 
     let svc = make_svc(repo);
     svc.get_all(
-        &TestScopes::admin_of("tenant-1"),
+        &TestUsers::user("tenant-1", "/admin"),
         &empty_filter(),
         &Page::new(5, Some("abc".to_string())),
         &Sort::CreatedAtDesc,
@@ -305,15 +306,15 @@ async fn get_all_page_limit_and_cursor_passed_through() {
 async fn get_all_propagates_message_repo_error() {
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_all_transfer_messages()
-        .returning(|_, _, _| {
+        .returning(|_, _, _, _| {
             Err(TransferMessageRepoErrors::ErrorFetchingTransferMessage(io_err()).into_errors())
         });
-    repo.expect_count_transfer_messages().returning(|_| Ok(0));
+    repo.expect_count_transfer_messages().returning(|_, _| Ok(0));
 
     let svc = make_svc(repo);
     assert!(
         svc.get_all(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &empty_filter(),
             &default_page(),
             &Sort::CreatedAtDesc
@@ -328,15 +329,15 @@ async fn get_all_propagates_message_repo_error() {
 async fn get_all_propagates_count_repo_error() {
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_all_transfer_messages()
-        .returning(|_, _, _| Ok(vec![]));
-    repo.expect_count_transfer_messages().returning(|_| {
+        .returning(|_, _, _, _| Ok(vec![]));
+    repo.expect_count_transfer_messages().returning(|_, _| {
         Err(TransferMessageRepoErrors::ErrorFetchingTransferMessage(io_err()).into_errors())
     });
 
     let svc = make_svc(repo);
     assert!(
         svc.get_all(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &empty_filter(),
             &default_page(),
             &Sort::CreatedAtDesc

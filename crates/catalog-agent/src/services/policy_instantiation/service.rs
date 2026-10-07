@@ -73,21 +73,21 @@ impl PolicyInstantiationService {
     }
 }
 
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 
 #[async_trait::async_trait]
 impl PolicyInstantiationServiceTrait for PolicyInstantiationService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn instantiate_policy(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         instantiation_request: &NewPolicyInstantiationDto,
     ) -> Outcome<OdrlPolicyDto> {
         // fetch policy template
         let policy_template = self
             .policy_templates_service
             .get_policies_template_by_version_and_id(
-                scope,
+                user,
                 &instantiation_request.id,
                 &instantiation_request.version,
             )
@@ -119,10 +119,11 @@ impl PolicyInstantiationServiceTrait for PolicyInstantiationService {
         let created_offer = self
             .odrl_policy_service
             .create_odrl_offer(
-                scope,
+                user,
                 &NewOdrlPolicyDto {
                     id: None,
-                    tenant_id: Some(policy_template.tenant_id.clone()),
+                    visibility: None,
+                    owner: None,
                     odrl_offer: final_odrl,
                     entity_id: instantiation_request.entity_id.clone(),
                     entity_type: instantiation_request.entity_type,

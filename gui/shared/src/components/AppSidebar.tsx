@@ -27,7 +27,6 @@ import {
   Wallet,
   ShieldCheck,
   KeyRound,
-  Lock,
   Radio,
 } from "lucide-react";
 import React, { useContext } from "react";
@@ -168,11 +167,13 @@ export function AppSidebar() {
           url: "/admin/my-catalog",
           icon: Archive,
         },
-        {
-          title: "OAuth & Security",
-          url: "/admin/oauth/clients",
-          icon: Lock,
-        },
+        // The former built-in OAuth module (clients, PATs) is disabled; identities live in
+        // the identity provider.
+        // {
+        //   title: "OAuth & Security",
+        //   url: "/admin/oauth/clients",
+        //   icon: Lock,
+        // },
         {
           title: "Events & Bus",
           url: "/admin/events/feed",

@@ -34,6 +34,7 @@ use urn::Urn;
 fn push_instance(subscribe_url: &str, unsubscribe_url: Option<&str>) -> ConnectorInstanceDto {
     ConnectorInstanceDto {
         id: Urn::from_str("urn:uuid:00000000-0000-0000-0000-000000000001").unwrap(),
+        user_id: "user-1".to_string(),
         metadata: ConnectorMetadata {
             name: None,
             author: None,

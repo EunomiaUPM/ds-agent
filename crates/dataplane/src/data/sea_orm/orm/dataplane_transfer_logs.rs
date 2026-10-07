@@ -18,6 +18,7 @@
 //! State transition log table.
 
 use super::dataplane_transfers::TransferState;
+use common::oauth::{Owner, RolePath, Visibility};
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
@@ -29,7 +30,9 @@ use urn::UrnBuilder;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub dataplane_process_id: String,
     pub previous_state: Option<TransferState>,
     pub new_state: TransferState,
@@ -59,9 +62,11 @@ impl Related<super::dataplane_transfers::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+common::impl_owned!(Model);
+
 #[derive(Clone)]
 pub struct NewTransferLog {
-    pub tenant_id: String,
+    pub owner: Owner,
     pub dataplane_process_id: String,
     pub previous_state: Option<TransferState>,
     pub new_state: TransferState,
@@ -79,7 +84,9 @@ impl From<NewTransferLog> for ActiveModel {
         .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(new_urn.to_string()),
-            tenant_id: ActiveValue::Set(value.tenant_id),
+            user_id: ActiveValue::Set(value.owner.user_id.clone()),
+            user_role: ActiveValue::Set(value.owner.role.clone()),
+            visibility: ActiveValue::Set(value.owner.visibility.clone()),
             dataplane_process_id: ActiveValue::Set(value.dataplane_process_id),
             previous_state: ActiveValue::Set(value.previous_state),
             new_state: ActiveValue::Set(value.new_state),

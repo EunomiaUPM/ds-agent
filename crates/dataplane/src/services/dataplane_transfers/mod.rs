@@ -21,7 +21,7 @@ pub mod service;
 
 pub use service::DataplaneTransferService;
 
-use common::auth::access::AccessScope;
+use common::oauth::UserInfo;
 use common::batch_requests::BatchRequests;
 use common::query::{Page, Paginated, Sort};
 use urn::Urn;
@@ -39,42 +39,42 @@ pub trait DataplaneTransferServiceTrait: Send + Sync + 'static {
     /// Page of processes visible to the caller.
     async fn get_all(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &DataplaneTransferFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<DataplaneTransferDto>>;
 
     /// 404 when the process is not visible to the caller.
-    async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<DataplaneTransferDto>;
+    async fn get_one(&self, user: &UserInfo, id: &Urn) -> Outcome<DataplaneTransferDto>;
 
     /// Process serving the given transfer process.
     async fn get_by_process_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         process_id: &Urn,
     ) -> Outcome<DataplaneTransferDto>;
 
     /// Processes found among the requested ids.
     async fn batch(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         req: &BatchRequests,
     ) -> Outcome<Vec<DataplaneTransferDto>>;
 
     async fn create(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         cmd: &NewDataplaneTransferDto,
     ) -> Outcome<DataplaneTransferDto>;
 
     /// Changes the fields set in `cmd`.
     async fn edit(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         id: &Urn,
         cmd: &EditDataplaneTransferDto,
     ) -> Outcome<DataplaneTransferDto>;
 
-    async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()>;
+    async fn delete(&self, user: &UserInfo, id: &Urn) -> Outcome<()>;
 }

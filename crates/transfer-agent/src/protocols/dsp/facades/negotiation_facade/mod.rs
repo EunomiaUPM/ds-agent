@@ -26,6 +26,6 @@ pub mod remote;
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait NegotiationFacadeTrait: Send + Sync {
-    /// Across tenants: the agreement itself says which tenant owns the transfer.
+    /// By id, whoever owns it: the agreement is what fixes the transfer.
     async fn get_agreement(&self, agreement_id: &Urn) -> Outcome<AgreementView>;
 }

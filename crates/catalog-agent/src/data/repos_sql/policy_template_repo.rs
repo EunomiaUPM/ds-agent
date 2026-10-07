@@ -16,6 +16,7 @@
  */
 
 use crate::data::entities::policy_template;
+use common::oauth::OwnerScope;
 use crate::data::entities::policy_template::{Model, NewPolicyTemplateModel};
 use crate::data::repo_traits::catalog_db_errors::{
     CatalogAgentRepoErrors, PolicyTemplatesRepoErrors,
@@ -29,8 +30,8 @@ use ymir::errors::{Outcome, RepoIntoErrors};
 
 impl FilterApplier<Select<policy_template::Entity>> for PolicyTemplateFilter {
     fn apply_to(&self, mut q: Select<policy_template::Entity>) -> Select<policy_template::Entity> {
-        if let Some(ref tenant_id) = self.tenant_id {
-            q = q.filter(policy_template::Column::TenantId.eq(tenant_id));
+        if let Some(ref user_id) = self.user_id {
+            q = q.filter(policy_template::Column::UserId.eq(user_id));
         }
         if let Some(ref id) = self.id {
             q = q.filter(policy_template::Column::Id.eq(id));
@@ -66,11 +67,16 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_policy_templates(
         &self,
+        scope: &OwnerScope,
         filters: &PolicyTemplateFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<policy_template::Model>, Option<u64>)> {
-        let mut q = policy_template::Entity::find();
+        let mut q = policy_template::Entity::find().filter(scope.condition(
+            policy_template::Column::UserId,
+            policy_template::Column::UserRole,
+            policy_template::Column::Visibility,
+        ));
         q = filters.apply_to(q);
 
         let total = q.clone().count(&self.db_connection).await.map_err(|err| {
@@ -102,12 +108,12 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_policy_templates(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         ids: &[String],
     ) -> Outcome<Vec<policy_template::Model>> {
         let policy_ids = ids.to_vec();
         let policy_process = policy_template::Entity::find()
-            .filter(policy_template::Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(policy_template::Column::UserId, policy_template::Column::UserRole, policy_template::Column::Visibility))
             .filter(policy_template::Column::Id.is_in(policy_ids))
             .all(&self.db_connection)
             .await;
@@ -123,11 +129,11 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_policy_templates_by_id(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         template_id: &str,
     ) -> Outcome<Vec<Model>> {
         match policy_template::Entity::find()
-            .filter(policy_template::Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(policy_template::Column::UserId, policy_template::Column::UserRole, policy_template::Column::Visibility))
             .filter(policy_template::Column::Id.eq(template_id))
             .all(&self.db_connection)
             .await
@@ -143,12 +149,12 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_policy_template_by_id_and_version(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         template_id: &str,
         version: &str,
     ) -> Outcome<Option<Model>> {
         match policy_template::Entity::find()
-            .filter(policy_template::Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(policy_template::Column::UserId, policy_template::Column::UserRole, policy_template::Column::Visibility))
             .filter(policy_template::Column::Id.eq(template_id))
             .filter(policy_template::Column::Version.eq(version))
             .one(&self.db_connection)
@@ -183,12 +189,12 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_policy_template_by_id_and_version(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         template_id: &str,
         version: &str,
     ) -> Outcome<()> {
         match policy_template::Entity::delete_many()
-            .filter(policy_template::Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(policy_template::Column::UserId, policy_template::Column::UserRole, policy_template::Column::Visibility))
             .filter(policy_template::Column::Id.eq(template_id))
             .filter(policy_template::Column::Version.eq(version))
             .exec(&self.db_connection)

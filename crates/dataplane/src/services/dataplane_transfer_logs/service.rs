@@ -19,7 +19,7 @@
 
 use std::sync::Arc;
 
-use common::auth::access::AccessScope;
+use common::oauth::{OwnerScope, UserInfo};
 use urn::Urn;
 use ymir::errors::Outcome;
 
@@ -39,19 +39,18 @@ impl DataplaneTransferLogsService {
 
 #[async_trait::async_trait]
 impl DataplaneTransferLogServiceTrait for DataplaneTransferLogsService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_transfer_logs_by_dataplane_process_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         dataplane_process_id: &Urn,
     ) -> Outcome<Vec<DataplaneTransferLogDto>> {
-        scope.require_read()?;
 
         let logs = self
             .data_plane_repo
             .get_dataplane_transfer_logs_repo()
             .get_transfer_logs_by_dataplane_process_id(
-                scope.tenant_filter().map(str::to_string),
+                &OwnerScope::seeing(user),
                 dataplane_process_id,
             )
             .await?;

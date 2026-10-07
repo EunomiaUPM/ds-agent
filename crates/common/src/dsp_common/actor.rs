@@ -17,46 +17,42 @@
 
 //! The party acting on a DSP process: a remote peer over the protocol or a local user over RPC.
 
-use crate::auth::AccessScope;
 use urn::Urn;
-use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::{Errors, Outcome};
+use ymir::types::oauth::UserInfo;
+
+use crate::facades::grants_facade::VerifiedPeer;
+use crate::oauth::{Owner, OwnershipTrait};
 
 /// Who is acting on a DSP process, as established by authentication.
 #[derive(Debug, Clone)]
 pub enum DspActor {
-    /// A remote connector authenticated through the SSI token.
-    Peer {
-        tenant_id: String,
-        participant_id: String,
-    },
+    /// A remote connector authenticated through its GNAP token.
+    Peer { participant_id: String },
     /// A local user authenticated through OAuth.
-    User(AccessScope),
+    User(UserInfo),
 }
 
 impl DspActor {
-    /// Peer authenticated by the SSI token, acting in the tenant it onboarded into.
-    pub fn peer(mate: &Mates) -> Self {
+    /// Peer whose token the grants facade verified.
+    pub fn peer(peer: &VerifiedPeer) -> Self {
         Self::Peer {
-            tenant_id: mate.tenant_id.clone(),
-            participant_id: mate.participant_id.clone(),
+            participant_id: peer.participant_id.clone(),
         }
     }
 
     /// Local user authenticated through OAuth.
-    pub fn user(scope: &AccessScope) -> Self {
-        Self::User(scope.clone())
+    pub fn user(user: &UserInfo) -> Self {
+        Self::User(user.clone())
     }
 
-    /// A peer may only act on processes of the tenant it onboarded into where it is the
-    /// `counterparty`; a user only within its tenants. A refusal looks like a missing process.
-    pub fn authorize(&self, owner_tenant: &str, counterparty: &str, pid: &Urn) -> Outcome<()> {
+    /// A peer may only act on processes where it is the `counterparty`; a user only on processes
+    /// it [acts on](OwnershipTrait::acts_on): its own, those below its role, and those a peer
+    /// opened for its very role. A refusal looks like a missing process.
+    pub fn authorize(&self, owner: &Owner, counterparty: &str, pid: &Urn) -> Outcome<()> {
         let allowed = match self {
-            Self::Peer {
-                tenant_id,
-                participant_id,
-            } => owner_tenant == tenant_id && counterparty == participant_id,
-            Self::User(scope) => scope.permits(owner_tenant),
+            Self::Peer { participant_id } => counterparty == participant_id,
+            Self::User(user) => user.acts_on_owner(owner),
         };
         if allowed {
             Ok(())

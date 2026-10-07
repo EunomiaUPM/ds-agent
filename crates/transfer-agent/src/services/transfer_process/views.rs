@@ -16,6 +16,7 @@
  */
 
 use crate::entities::ids::TransferProcessId;
+use common::oauth::{RolePath, Visibility};
 use crate::entities::protocol::{
     CONSUMER_PID_KEY, PROVIDER_PID_KEY, ProtocolId, ProtocolState, StateMetadata,
     TransferCorrelation, TransferRole,
@@ -30,7 +31,9 @@ use std::collections::HashMap;
 #[serde(rename_all = "camelCase")]
 pub struct TransferProcessView {
     pub id: TransferProcessId,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub role: TransferRole,
     pub protocol: ProtocolId,
     pub state: ProtocolState,
@@ -62,7 +65,9 @@ impl TransferProcessView {
         }
         Self {
             id: process.id().clone(),
-            tenant_id: process.tenant_id().clone(),
+            user_id: process.owner().user_id.clone(),
+            user_role: process.owner().role.clone(),
+            visibility: process.owner().visibility.clone(),
             role: process.role(),
             protocol: process.protocol().clone(),
             state: process.state().clone(),

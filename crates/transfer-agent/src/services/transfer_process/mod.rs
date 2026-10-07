@@ -18,7 +18,7 @@
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
 use crate::entities::filters::TransferProcessFilter;
 use crate::services::transfer_process::views::TransferProcessView;
-use common::auth::access::AccessScope;
+use common::oauth::UserInfo;
 use common::batch_requests::BatchRequests;
 use common::query::{Page, Paginated, Sort};
 use urn::Urn;
@@ -32,27 +32,27 @@ pub mod views;
 pub trait TransferProcessServiceTrait: Send + Sync + 'static {
     async fn get_all(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &TransferProcessFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferProcessView>>;
-    async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<TransferProcessView>;
+    async fn get_one(&self, user: &UserInfo, id: &Urn) -> Outcome<TransferProcessView>;
     async fn batch(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         batch_request: &BatchRequests,
     ) -> Outcome<Vec<TransferProcessView>>;
     async fn create(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         cmd: &NewTransferProcessCommand,
     ) -> Outcome<TransferProcessView>;
     async fn edit(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         id: &Urn,
         cmd: &EditTransferProcessCommand,
     ) -> Outcome<TransferProcessView>;
-    async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()>;
+    async fn delete(&self, user: &UserInfo, id: &Urn) -> Outcome<()>;
 }

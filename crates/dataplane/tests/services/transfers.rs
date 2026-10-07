@@ -23,7 +23,8 @@ use std::sync::Arc;
 use chrono::Utc;
 use common::batch_requests::BatchRequests;
 use common::query::{Page, Sort};
-use common::test_utils::scopes::TestScopes;
+use common::oauth::OwnerScope;
+use common::test_utils::scopes::TestUsers;
 use dataplane::cache::NoopCache;
 use dataplane::data::factory_trait::MockDataplaneRepoTrait;
 use dataplane::data::repo::dataplane_field::{
@@ -54,7 +55,9 @@ fn test_urn(n: u32) -> Urn {
 fn make_transfer_model(n: u32, tenant: &str) -> TransferModel {
     TransferModel {
         id: test_urn(n).to_string(),
-        tenant_id: tenant.to_string(),
+        user_id: tenant.to_string(),
+        user_role: common::oauth::RolePath::root(),
+        visibility: common::oauth::Visibility::Private,
         transfer_process_id: format!("urn:uuid:{n:08x}-0000-0000-0000-000000000001"),
         role: TransferRole::Provider,
         interaction_mode: InteractionMode::Pull,
@@ -71,7 +74,7 @@ fn make_transfer_model(n: u32, tenant: &str) -> TransferModel {
 fn make_new_dto() -> NewDataplaneTransferDto {
     NewDataplaneTransferDto {
         id: Some(test_urn(10)),
-        tenant_id: "tenant-default".to_string(),
+        owner: Some(TestUsers::owner("tenant-default")),
         transfer_process_id: "urn:uuid:00000010-0000-0000-0000-000000000001".to_string(),
         role: TransferRole::Provider,
         interaction_mode: InteractionMode::Pull,
@@ -96,7 +99,9 @@ fn default_logs_repo() -> MockDataplaneTransferLogsRepo {
     repo.expect_create_log().returning(|cmd| {
         Ok(LogModel {
             id: test_urn(999).to_string(),
-            tenant_id: cmd.tenant_id,
+            user_id: cmd.owner.user_id.clone(),
+            user_role: common::oauth::RolePath::root(),
+            visibility: common::oauth::Visibility::Private,
             dataplane_process_id: cmd.dataplane_process_id,
             previous_state: None,
             new_state: cmd.new_state,
@@ -134,36 +139,43 @@ async fn get_one_foreign_tenant_returns_not_found() {
     let mut transfer_repo = MockDataplaneTransfersRepo::new();
     transfer_repo
         .expect_get_dataplane_transfers_by_id()
-        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
+        .withf(|scope, id| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-2")) && id == &test_urn(1))
         .returning(|_, _| Ok(None));
 
     let svc = make_test_svc(transfer_repo);
     let result = svc
-        .get_one(&TestScopes::owner("tenant-2"), &test_urn(1))
+        .get_one(&TestUsers::user("tenant-2", "/admin/tenant-2"), &test_urn(1))
         .await;
     assert!(result.is_err());
 }
 
-/// A non-admin listing another tenant is rejected before touching the repository.
+/// Narrowing a listing to another user stays within what the caller sees.
 #[tokio::test]
-async fn get_all_foreign_tenant_query_rejected_with_forbidden() {
-    let transfer_repo = MockDataplaneTransfersRepo::new();
+async fn get_all_of_another_user_stays_within_what_the_caller_sees() {
+    let mut transfer_repo = MockDataplaneTransfersRepo::new();
+    transfer_repo.expect_get_all_dataplane_transfers()
+        .withf(|scope, f, _, _| {
+            *scope == OwnerScope::seeing(&TestUsers::alone("tenant-1"))
+                && f.user_id.as_deref() == Some("tenant-foreign")
+        })
+        .returning(|_, _, _, _| Ok(vec![]));
+    transfer_repo.expect_count_dataplane_transfers().returning(|_, _| Ok(0));
     let svc = make_test_svc(transfer_repo);
 
     let filter = DataplaneTransferFilter {
-        tenant_id: Some("tenant-foreign".to_string()),
+        user_id: Some("tenant-foreign".to_string()),
         ..Default::default()
     };
 
     let result = svc
         .get_all(
-            &TestScopes::owner("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin/tenant-1"),
             &filter,
             &Page::default(),
             &Sort::default(),
         )
         .await;
-    assert!(result.is_err());
+    assert!(result.unwrap().items.is_empty());
 }
 
 /// Editing a record of another tenant is not found and changes nothing.
@@ -172,14 +184,14 @@ async fn edit_foreign_tenant_returns_not_found_without_mutating() {
     let mut transfer_repo = MockDataplaneTransfersRepo::new();
     transfer_repo
         .expect_get_dataplane_transfers_by_id()
-        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
+        .withf(|scope, id| *scope == OwnerScope::acting(&TestUsers::alone("tenant-2")) && id == &test_urn(1))
         .returning(|_, _| Ok(None));
     transfer_repo.expect_put_dataplane_transfers().never();
 
     let svc = make_test_svc(transfer_repo);
     let result = svc
         .edit(
-            &TestScopes::owner("tenant-2"),
+            &TestUsers::user("tenant-2", "/admin/tenant-2"),
             &test_urn(1),
             &EditDataplaneTransferDto::default(),
         )
@@ -193,14 +205,14 @@ async fn delete_foreign_tenant_returns_not_found() {
     let mut transfer_repo = MockDataplaneTransfersRepo::new();
     transfer_repo
         .expect_delete_dataplane_transfers()
-        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
+        .withf(|scope, id| *scope == OwnerScope::acting(&TestUsers::alone("tenant-2")) && id == &test_urn(1))
         .returning(|_, _| {
             Err(DataplaneTransfersRepoErrors::DataplaneTransferNotFound.into_errors())
         });
 
     let svc = make_test_svc(transfer_repo);
     let result = svc
-        .delete(&TestScopes::owner("tenant-2"), &test_urn(1))
+        .delete(&TestUsers::user("tenant-2", "/admin/tenant-2"), &test_urn(1))
         .await;
     assert!(result.is_err());
 }
@@ -211,13 +223,13 @@ async fn batch_filters_out_foreign_tenant_records() {
     let mut transfer_repo = MockDataplaneTransfersRepo::new();
     transfer_repo
         .expect_get_batch_dataplane_transfers()
-        .withf(|tenant, ids| tenant.as_deref() == Some("tenant-2") && ids == [test_urn(1)])
+        .withf(|scope, ids| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-2")) && ids == [test_urn(1)])
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_test_svc(transfer_repo);
     let views = svc
         .batch(
-            &TestScopes::owner("tenant-2"),
+            &TestUsers::user("tenant-2", "/admin/tenant-2"),
             &BatchRequests {
                 ids: vec![test_urn(1)],
             },
@@ -233,11 +245,13 @@ async fn create_forces_caller_tenant_for_non_admin() {
     let mut transfer_repo = MockDataplaneTransfersRepo::new();
     transfer_repo
         .expect_create_dataplane_transfers()
-        .withf(|cmd| cmd.tenant_id == "tenant-2")
+        .withf(|cmd| cmd.owner == TestUsers::owner("tenant-2"))
         .returning(|cmd| {
             Ok(TransferModel {
                 id: test_urn(10).to_string(),
-                tenant_id: cmd.tenant_id.clone(),
+                user_id: cmd.owner.user_id.clone(),
+                user_role: common::oauth::RolePath::root(),
+                visibility: common::oauth::Visibility::Private,
                 transfer_process_id: cmd.transfer_process_id.clone(),
                 role: cmd.role.clone(),
                 interaction_mode: cmd.interaction_mode.clone(),
@@ -253,13 +267,13 @@ async fn create_forces_caller_tenant_for_non_admin() {
 
     let svc = make_test_svc(transfer_repo);
     let mut cmd = make_new_dto();
-    cmd.tenant_id = "tenant-foreign".to_string();
+    cmd.owner = Some(TestUsers::owner("tenant-foreign"));
 
     let created = svc
-        .create(&TestScopes::owner("tenant-2"), &cmd)
+        .create(&TestUsers::user("tenant-2", "/admin/tenant-2"), &cmd)
         .await
         .unwrap();
-    assert_eq!(created.inner.tenant_id, "tenant-2");
+    assert_eq!(created.inner.user_id, "tenant-2");
 }
 
 /// Looking up by transfer process in another tenant is not found.
@@ -268,12 +282,12 @@ async fn get_by_process_id_foreign_tenant_returns_not_found() {
     let mut transfer_repo = MockDataplaneTransfersRepo::new();
     transfer_repo
         .expect_get_by_transfer_process_id()
-        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
+        .withf(|scope, id| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-2")) && id == &test_urn(1))
         .returning(|_, _| Ok(None));
 
     let svc = make_test_svc(transfer_repo);
     let result = svc
-        .get_by_process_id(&TestScopes::owner("tenant-2"), &test_urn(1))
+        .get_by_process_id(&TestUsers::user("tenant-2", "/admin/tenant-2"), &test_urn(1))
         .await;
     assert!(result.is_err());
 }
@@ -284,16 +298,16 @@ async fn admin_can_query_all_tenants() {
     let mut transfer_repo = MockDataplaneTransfersRepo::new();
     transfer_repo
         .expect_get_all_dataplane_transfers()
-        .withf(|filter, _, _| filter.tenant_id.is_none())
-        .returning(|_, _, _| Ok(vec![make_transfer_model(1, "tenant-1")]));
+        .withf(|scope, _, _, _| *scope == OwnerScope::All)
+        .returning(|_, _, _, _| Ok(vec![make_transfer_model(1, "tenant-1")]));
     transfer_repo
         .expect_count_dataplane_transfers()
-        .returning(|_| Ok(1));
+        .returning(|_, _| Ok(1));
 
     let svc = make_test_svc(transfer_repo);
     let paginated = svc
         .get_all(
-            &TestScopes::admin(),
+            &TestUsers::user("admin-tenant", "/admin"),
             &DataplaneTransferFilter::default(),
             &Page::default(),
             &Sort::default(),
@@ -310,21 +324,21 @@ async fn admin_can_filter_specific_tenant() {
     let mut transfer_repo = MockDataplaneTransfersRepo::new();
     transfer_repo
         .expect_get_all_dataplane_transfers()
-        .withf(|filter, _, _| filter.tenant_id.as_deref() == Some("tenant-3"))
-        .returning(|_, _, _| Ok(vec![make_transfer_model(3, "tenant-3")]));
+        .withf(|scope, filter, _, _| *scope == OwnerScope::All && filter.user_id.as_deref() == Some("tenant-3"))
+        .returning(|_, _, _, _| Ok(vec![make_transfer_model(3, "tenant-3")]));
     transfer_repo
         .expect_count_dataplane_transfers()
-        .returning(|_| Ok(1));
+        .returning(|_, _| Ok(1));
 
     let svc = make_test_svc(transfer_repo);
     let filter = DataplaneTransferFilter {
-        tenant_id: Some("tenant-3".to_string()),
+        user_id: Some("tenant-3".to_string()),
         ..Default::default()
     };
 
     let paginated = svc
         .get_all(
-            &TestScopes::admin(),
+            &TestUsers::user("admin-tenant", "/admin"),
             &filter,
             &Page::default(),
             &Sort::default(),
@@ -333,30 +347,4 @@ async fn admin_can_filter_specific_tenant() {
         .unwrap();
 
     assert_eq!(paginated.items.len(), 1);
-}
-
-/// A reader can neither create, edit nor delete a transfer.
-#[tokio::test]
-async fn reader_cannot_create_or_mutate() {
-    let transfer_repo = MockDataplaneTransfersRepo::new();
-    let svc = make_test_svc(transfer_repo);
-
-    let create_res = svc
-        .create(&TestScopes::reader("tenant-1"), &make_new_dto())
-        .await;
-    assert!(create_res.is_err());
-
-    let edit_res = svc
-        .edit(
-            &TestScopes::reader("tenant-1"),
-            &test_urn(1),
-            &EditDataplaneTransferDto::default(),
-        )
-        .await;
-    assert!(edit_res.is_err());
-
-    let delete_res = svc
-        .delete(&TestScopes::reader("tenant-1"), &test_urn(1))
-        .await;
-    assert!(delete_res.is_err());
 }

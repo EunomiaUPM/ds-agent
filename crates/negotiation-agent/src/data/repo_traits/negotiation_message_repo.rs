@@ -18,6 +18,7 @@
 //! Message repository.
 
 use crate::data::entities::negotiation_message;
+use common::oauth::{Owner, OwnerScope};
 use crate::data::entities::negotiation_message::NewNegotiationMessageModel;
 use crate::entities::filters::NegotiationMessageFilter;
 use common::paginated_spec::{Page, Sort};
@@ -26,13 +27,14 @@ use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
-/// Persistence of negotiation messages; `tenant_id` of `None` reaches every tenant.
+/// Persistence of negotiation messages, within the owner scope each call gives.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait NegotiationMessageRepoTrait: Send + Sync {
     /// Page of messages matching the filters.
     async fn get_all_negotiation_messages(
         &self,
+        scope: &OwnerScope,
         filters: &NegotiationMessageFilter,
         page: &Page,
         sort: &Sort,
@@ -40,20 +42,20 @@ pub trait NegotiationMessageRepoTrait: Send + Sync {
 
     async fn get_batch_negotiation_messages(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<negotiation_message::Model>>;
 
     /// Every message of the process.
     async fn get_messages_by_process_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         process_id: &Urn,
     ) -> Outcome<Vec<negotiation_message::Model>>;
 
     async fn get_negotiation_message_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<negotiation_message::Model>>;
 
@@ -62,12 +64,12 @@ pub trait NegotiationMessageRepoTrait: Send + Sync {
         new_model: &NewNegotiationMessageModel,
     ) -> Outcome<negotiation_message::Model>;
 
-    /// Returns the tenant of the removed record.
+    /// Returns the owner of the removed record.
     async fn delete_negotiation_message(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
-    ) -> Outcome<String>;
+    ) -> Outcome<Owner>;
 }
 
 /// Failures of the message repository, mapped onto `Errors`.

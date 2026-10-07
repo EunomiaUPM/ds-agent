@@ -19,32 +19,26 @@ use crate::types::entities::ReachAuthority;
 use crate::types::response::VcWhatResponse;
 use async_trait::async_trait;
 use ymir::data::entities::sent::{grant, interaction, verification};
-use ymir::data::entities::shared::participant;
+use ymir::data::entities::shared::{participant, participant_relation};
 use ymir::errors::Outcome;
 use ymir::types::gnap::grant_request::interact::InteractStart;
 use ymir::types::gnap::grant_response::GrantResponse;
+use ymir::types::oauth::UserInfo;
 
 /// Client side of GNAP towards an authority: building, sending and reading credential requests.
 #[mockall::automock]
 #[async_trait]
 pub trait VcRequesterTrait: Send + Sync + 'static {
-    fn build_grant_plan(&self, tenant_id: &str, payload: ReachAuthority) -> grant::Plan;
+    fn build_grant_plan(&self, user_info: &UserInfo, payload: ReachAuthority) -> grant::Plan;
     /// Interaction started the way the request asks, such as a redirect.
-    fn build_interaction_plan(
-        &self,
-        tenant_id: &str,
-        id: &str,
-        start: InteractStart,
-    ) -> interaction::Plan;
+    fn build_interaction_plan(&self, id: &str, start: InteractStart) -> interaction::Plan;
     /// Presentation the authority asks for at `uri`.
-    fn build_verification_plan(
-        &self,
-        tenant_id: &str,
-        uri: &str,
-        id: &str,
-    ) -> Outcome<verification::Plan>;
+    fn build_verification_plan(&self, uri: &str, id: &str) -> Outcome<verification::Plan>;
     /// Participant record of the authority once the credential is issued.
     fn build_authority_plan(&self, grant: &grant::Model) -> participant::Plan;
+    /// Relation of the user who requested the credential with the authority, under the role and
+    /// visibility the grant was sent with.
+    fn build_auth_relation(&self, grant: &grant::Model) -> participant_relation::Model;
     async fn send_grant_req(
         &self,
         grant: &grant::Model,

@@ -29,7 +29,7 @@ use crate::services::parameters::ParameterStore;
 use crate::services::parameters::service::ParameterStoreImpl;
 use crate::services::secrets::SecretStore;
 use crate::services::secrets::service::SecretStoreImpl;
-use common::auth::OauthTokenValidator;
+use common::oauth::OauthTokenValidatorTrait;
 use common::config::ApplicationConfig;
 use common::module_loader::root_context::RootContext;
 use ymir::services::vault::VaultService;
@@ -39,7 +39,7 @@ pub struct AppContext {
     pub parameter_svc: Arc<dyn ParameterStore<serde_json::Value>>,
     pub secret_svc: Arc<dyn SecretStore>,
     pub config_svc: Arc<ConfigStoreImpl>,
-    pub oauth_validator: Arc<dyn OauthTokenValidator>,
+    pub oauth_validator: Arc<dyn OauthTokenValidatorTrait>,
 }
 
 impl AppContext {

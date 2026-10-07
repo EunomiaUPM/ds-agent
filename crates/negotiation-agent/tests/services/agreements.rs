@@ -20,7 +20,8 @@
 use chrono::Utc;
 use common::batch_requests::BatchRequests;
 use common::query::{Page, Sort};
-use common::test_utils::scopes::TestScopes;
+use common::oauth::OwnerScope;
+use common::test_utils::scopes::TestUsers;
 use negotiation_agent::data::entities::agreement::Model as AgreementModel;
 use negotiation_agent::data::repo_traits::agreement_repo::{
     AgreementRepoErrors, MockAgreementRepoTrait,
@@ -44,7 +45,9 @@ fn test_urn(n: u32) -> Urn {
 fn make_agreement_model(id: &Urn, tenant_id: &str) -> AgreementModel {
     AgreementModel {
         id: id.to_string(),
-        tenant_id: tenant_id.to_string(),
+        user_id: tenant_id.to_string(),
+        user_role: common::oauth::RolePath::root(),
+        visibility: common::oauth::Visibility::Private,
         negotiation_agent_process_id: "urn:uuid:process-1".to_string(),
         negotiation_agent_message_id: "urn:uuid:message-1".to_string(),
         consumer_participant_id: "urn:uuid:consumer-1".to_string(),
@@ -69,36 +72,43 @@ async fn get_one_foreign_tenant_returns_not_found() {
     let id = test_urn(1);
     agreement_repo
         .expect_get_agreement_by_id()
-        .withf(move |tenant, aid| tenant.as_deref() == Some("tenant-2") && aid == &test_urn(1))
+        .withf(move |scope, aid| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-2")) && aid == &test_urn(1))
         .returning(|_, _| Ok(None));
 
     let svc = make_service(agreement_repo);
     assert!(
-        svc.get_one(&TestScopes::owner("tenant-2"), &id)
+        svc.get_one(&TestUsers::user("tenant-2", "/admin/tenant-2"), &id)
             .await
             .is_err()
     );
 }
 
-/// A non-admin listing another tenant is rejected before touching the repository.
+/// Narrowing a listing to another user stays within what the caller sees.
 #[tokio::test]
-async fn get_all_foreign_tenant_query_rejected_with_forbidden() {
-    let svc = make_service(MockAgreementRepoTrait::new());
+async fn get_all_of_another_user_stays_within_what_the_caller_sees() {
+    let mut repo = MockAgreementRepoTrait::new();
+    repo.expect_get_all_agreements()
+        .withf(|scope, f, _, _| {
+            *scope == OwnerScope::seeing(&TestUsers::alone("tenant-1"))
+                && f.user_id.as_deref() == Some("tenant-foreign")
+        })
+        .returning(|_, _, _, _| Ok((vec![], Some(0))));
+    let svc = make_service(repo);
 
     let filter = AgreementFilter {
-        tenant_id: Some("tenant-foreign".to_string()),
+        user_id: Some("tenant-foreign".to_string()),
         ..Default::default()
     };
 
     let result = svc
         .get_all(
-            &TestScopes::owner("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin/tenant-1"),
             &filter,
             &Page::default(),
             &Sort::default(),
         )
         .await;
-    assert!(result.is_err());
+    assert!(result.unwrap().items.is_empty());
 }
 
 /// Editing a record of another tenant is not found and changes nothing.
@@ -108,7 +118,7 @@ async fn edit_foreign_tenant_returns_not_found_without_mutating() {
     let id = test_urn(1);
     agreement_repo
         .expect_put_agreement()
-        .withf(move |tenant, aid, _| tenant.as_deref() == Some("tenant-2") && aid == &test_urn(1))
+        .withf(move |scope, aid, _| *scope == OwnerScope::acting(&TestUsers::alone("tenant-2")) && aid == &test_urn(1))
         .returning(|_, _, _| Err(AgreementRepoErrors::AgreementNotFound.into_errors()));
 
     let svc = make_service(agreement_repo);
@@ -116,7 +126,7 @@ async fn edit_foreign_tenant_returns_not_found_without_mutating() {
         state: Some("FINALIZED".to_string()),
     };
     assert!(
-        svc.edit(&TestScopes::owner("tenant-2"), &id, &cmd)
+        svc.edit(&TestUsers::user("tenant-2", "/admin/tenant-2"), &id, &cmd)
             .await
             .is_err()
     );
@@ -129,12 +139,12 @@ async fn delete_foreign_tenant_returns_not_found() {
     let id = test_urn(1);
     agreement_repo
         .expect_delete_agreement()
-        .withf(move |tenant, aid| tenant.as_deref() == Some("tenant-2") && aid == &test_urn(1))
+        .withf(move |scope, aid| *scope == OwnerScope::acting(&TestUsers::alone("tenant-2")) && aid == &test_urn(1))
         .returning(|_, _| Err(AgreementRepoErrors::AgreementNotFound.into_errors()));
 
     let svc = make_service(agreement_repo);
     assert!(
-        svc.delete(&TestScopes::owner("tenant-2"), &id)
+        svc.delete(&TestUsers::user("tenant-2", "/admin/tenant-2"), &id)
             .await
             .is_err()
     );
@@ -147,13 +157,13 @@ async fn batch_filters_out_foreign_tenant_records() {
     let id = test_urn(1);
     agreement_repo
         .expect_get_batch_agreements()
-        .withf(move |tenant, ids| tenant.as_deref() == Some("tenant-2") && *ids == [test_urn(1)])
+        .withf(move |scope, ids| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-2")) && *ids == [test_urn(1)])
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_service(agreement_repo);
     let views = svc
         .batch(
-            &TestScopes::owner("tenant-2"),
+            &TestUsers::user("tenant-2", "/admin/tenant-2"),
             &BatchRequests { ids: vec![id] },
         )
         .await
@@ -169,13 +179,14 @@ async fn create_forces_caller_tenant_for_non_admin() {
     let id_clone = id.clone();
     agreement_repo
         .expect_create_agreement()
-        .withf(|model| model.tenant_id == "tenant-2")
-        .returning(move |model| Ok(make_agreement_model(&id_clone, &model.tenant_id)));
+        .withf(|model| model.owner == TestUsers::owner("tenant-2"))
+        .returning(move |model| Ok(make_agreement_model(&id_clone, &model.owner.user_id)));
 
     let svc = make_service(agreement_repo);
     let cmd = NewAgreementDto {
         id: Some(id),
-        tenant_id: Some("tenant-1".to_string()),
+        visibility: None,
+        owner: Some(TestUsers::owner("tenant-1")),
         negotiation_agent_process_id: test_urn(9),
         negotiation_agent_message_id: test_urn(8),
         consumer_participant_id: "urn:uuid:consumer-1".to_string(),
@@ -184,29 +195,8 @@ async fn create_forces_caller_tenant_for_non_admin() {
         target: test_urn(7),
     };
     let view = svc
-        .create(&TestScopes::owner("tenant-2"), &cmd)
+        .create(&TestUsers::user("tenant-2", "/admin/tenant-2"), &cmd)
         .await
         .unwrap();
-    assert_eq!(view.inner.tenant_id, "tenant-2");
-}
-
-/// A reader cannot create an agreement.
-#[tokio::test]
-async fn reader_cannot_create_agreement() {
-    let svc = make_service(MockAgreementRepoTrait::new());
-    let cmd = NewAgreementDto {
-        id: Some(test_urn(1)),
-        tenant_id: None,
-        negotiation_agent_process_id: test_urn(9),
-        negotiation_agent_message_id: test_urn(8),
-        consumer_participant_id: "urn:uuid:consumer-1".to_string(),
-        provider_participant_id: "urn:uuid:provider-1".to_string(),
-        agreement_content: serde_json::json!({}),
-        target: test_urn(7),
-    };
-    assert!(
-        svc.create(&TestScopes::reader("tenant-1"), &cmd)
-            .await
-            .is_err()
-    );
+    assert_eq!(view.inner.user_id, "tenant-2");
 }

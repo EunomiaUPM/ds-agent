@@ -19,21 +19,28 @@ use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
+use axum::http::header::RETRY_AFTER;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use serde::Deserialize;
 use serde_json::Value;
 use ymir::data::entities::sent::grant;
 use ymir::errors::AppResult;
 use ymir::types::gnap::CallbackBody;
+use ymir::types::oauth::UserInfo;
 use ymir::types::wallet::OidcUri;
 use ymir::utils::extract_payload;
 
 use crate::entities::filters::SentGrantFilter;
+use crate::http::path_id::decode_path_id;
 use crate::modules::PeerConnectorModule;
 use crate::types::entities::ReachProvider;
-use common::auth::AccessScope;
+use common::facades::grants_facade::PeerToken;
 use common::paginated_spec::Paginated;
 use common::query::{QueryFilter, QuerySpec};
+use common::routes::auth::peer_connection;
 
 pub type PeerConnectorQuery = QuerySpec<SentGrantFilter>;
 
@@ -43,45 +50,53 @@ pub struct OnboarderRouter {
 }
 
 impl OnboarderRouter {
+    // ==========================================================================================
+    // Sub-routers
+    // ==========================================================================================
+
     pub fn new(peer_connector: Arc<dyn PeerConnectorModule>) -> Self {
         Self { peer_connector }
     }
 
     /// GNAP interaction callbacks pushed by the peer's authorization server.
-    pub fn protocol_router(&self) -> Router {
+    pub fn external(&self) -> Router {
         Router::new()
             .route(
-                "/callback/{id}",
+                peer_connection::CALLBACK,
                 get(Self::get_callback).post(Self::post_callback),
             )
             .with_state(self.peer_connector.clone())
     }
 
-    pub fn router(&self) -> Router {
+    /// User routes to start and follow onboarding; mounted behind the OAuth guard.
+    pub fn internal(&self) -> Router {
         Router::new()
-            .route("/connect", post(Self::connect))
-            .route("/request/all", get(Self::get_all))
-            .route("/request/{id}", get(Self::get_one))
-            .route("/request/{id}/details", get(Self::get_one_with_details))
-            .route("/oid4vp/{id}", post(Self::manage_oid4vp))
+            .route(peer_connection::CONNECT, post(Self::connect))
+            .route(peer_connection::REQUEST_ALL, get(Self::get_all))
+            .route(
+                peer_connection::REQUEST,
+                get(Self::get_one).delete(Self::disconnect),
+            )
+            .route(peer_connection::REQUEST_DETAILS, get(Self::get_one_with_details))
+            .route(peer_connection::OID4VP, post(Self::manage_oid4vp))
+            .route(peer_connection::TOKEN, get(Self::peer_token))
+            .route(
+                peer_connection::TOKEN_REFRESH,
+                post(Self::refresh_peer_token),
+            )
             .with_state(self.peer_connector.clone())
     }
 
-    async fn connect(
-        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
-        scope: AccessScope,
-        payload: Result<Json<ReachProvider>, JsonRejection>,
-    ) -> AppResult<()> {
-        let payload = extract_payload(payload)?;
-        peer_connector.req_peer_connection(&scope, payload).await
-    }
+    // ==========================================================================================
+    // External requests: peers, authorities and wallets, authenticated by the protocol (no user)
+    // ==========================================================================================
 
     async fn get_callback(
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
         Path(id): Path<String>,
         Query(params): Query<CallbackBody>,
     ) -> AppResult<()> {
-        peer_connector.manage_interaction_finish(id, params).await
+        peer_connector.manage_interaction_finish(&id, params).await
     }
 
     async fn post_callback(
@@ -90,47 +105,118 @@ impl OnboarderRouter {
         payload: Result<Json<CallbackBody>, JsonRejection>,
     ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
-        peer_connector.manage_interaction_finish(id, payload).await
+        peer_connector.manage_interaction_finish(&id, payload).await
     }
+
+    // ==========================================================================================
+    // Internal requests: users, behind the OAuth guard (queries)
+    // ==========================================================================================
 
     async fn get_all(
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
-        scope: AccessScope,
+        user: UserInfo,
         Query(query): Query<PeerConnectorQuery>,
     ) -> AppResult<Json<Paginated<grant::Model>>> {
         query.filter.validate()?;
         Ok(Json(
             peer_connector
-                .get_all(&scope, &query.filter, &query.page, &query.sort)
+                .get_all(&user, &query.filter, &query.page, &query.sort)
                 .await?,
         ))
     }
 
     async fn get_one(
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(id): Path<String>,
     ) -> AppResult<Json<grant::Model>> {
-        Ok(Json(peer_connector.get_by_id(&scope, id).await?))
+        Ok(Json(peer_connector.get_by_id(&user, &id).await?))
+    }
+
+    async fn disconnect(
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        user: UserInfo,
+        Path(id): Path<String>,
+    ) -> AppResult<StatusCode> {
+        peer_connector.disconnect(&user, &id).await?;
+        Ok(StatusCode::NO_CONTENT)
     }
 
     async fn get_one_with_details(
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(id): Path<String>,
     ) -> AppResult<Json<Value>> {
         Ok(Json(
-            peer_connector.get_by_id_with_details(&scope, id).await?,
+            peer_connector.get_by_id_with_details(&user, &id).await?,
         ))
+    }
+
+    /// The caller's token towards peer `id` (in base64url, see `path_id`), for the grants
+    /// facade: `200` with the token, or `202` while the grant obtained for it completes.
+    async fn peer_token(
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        user: UserInfo,
+        Path(id): Path<String>,
+        Query(query): Query<TokenQuery>,
+    ) -> AppResult<Response> {
+        let id = decode_path_id(&id)?;
+        let token = peer_connector
+            .peer_token(&user, &id, query.requested)
+            .await?;
+        Ok(token_response(token))
+    }
+
+    async fn refresh_peer_token(
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        user: UserInfo,
+        Path(id): Path<String>,
+        Query(query): Query<TokenQuery>,
+    ) -> AppResult<Response> {
+        let id = decode_path_id(&id)?;
+        let token = peer_connector
+            .refresh_peer_token(&user, &id, query.requested)
+            .await?;
+        Ok(token_response(token))
+    }
+
+    // ==========================================================================================
+    // Internal requests: users, behind the OAuth guard (actions)
+    // ==========================================================================================
+
+    async fn connect(
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        user: UserInfo,
+        payload: Result<Json<ReachProvider>, JsonRejection>,
+    ) -> AppResult<()> {
+        let payload = extract_payload(payload)?;
+        peer_connector.req_peer_connection(&user, payload).await
     }
 
     async fn manage_oid4vp(
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(id): Path<String>,
         payload: Result<Json<OidcUri>, JsonRejection>,
     ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
-        peer_connector.process_oid4vp(&scope, id, payload).await
+        peer_connector.process_oid4vp(&user, &id, payload).await
+    }
+}
+
+#[derive(Deserialize)]
+struct TokenQuery {
+    #[serde(default = "requested_by_default")]
+    requested: bool,
+}
+
+fn requested_by_default() -> bool {
+    true
+}
+
+fn token_response(token: PeerToken) -> Response {
+    match token {
+        PeerToken::Ready(token) => Json(token).into_response(),
+        PeerToken::Pending => (StatusCode::ACCEPTED, [(RETRY_AFTER, "1")]).into_response(),
     }
 }

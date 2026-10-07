@@ -31,13 +31,10 @@ pub struct DataplanePorts {
 }
 
 impl DataplanePorts {
-    /// Microservices: the catalog's connector API with the service token.
-    pub fn remote(config: &TransferConfig, root: &RootContext) -> Self {
+    /// Microservices: the catalog's connector API.
+    pub fn remote(config: &TransferConfig, _root: &RootContext) -> Self {
         Self {
-            connector: Arc::new(ConnectorInstanceRemoteFacade::new(
-                config.catalog(),
-                root.service_client.clone(),
-            )),
+            connector: Arc::new(ConnectorInstanceRemoteFacade::new(config.catalog())),
         }
     }
 

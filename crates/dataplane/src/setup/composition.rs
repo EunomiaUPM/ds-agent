@@ -26,7 +26,8 @@ use common::config::types::traits::CommonConfigTrait;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
 use sea_orm_migration::MigrationTrait;
-use ymir::config::traits::ApiConfigTrait;
+use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
+use ymir::config::types::HostType;
 use ymir::errors::Outcome;
 
 use crate::engine::dataplane_manager::dataplane_manager::DataplaneManager;
@@ -42,6 +43,8 @@ use crate::testing_proxy::http::http::TestingHTTPProxy;
 #[derive(Clone)]
 pub struct DataplaneModule {
     prefix: String,
+    /// Public base URL of the agent, used to announce the proxy ingress URL to peers.
+    public_base_url: String,
     ctx: AppContext,
 }
 
@@ -57,6 +60,7 @@ impl DataplaneModule {
                 "{}/transfer-agent/dataplane",
                 config.common().get_api_version()
             ),
+            public_base_url: config.common().get_host(HostType::Http),
             ctx: AppContext::build(config, root, ports).await?,
         })
     }
@@ -76,7 +80,13 @@ impl DataplaneModule {
         let ctx = &self.ctx;
         let events_router = TransferEventsRouter::new(ctx.events_svc.clone());
         let processes_router = Router::new()
-            .merge(DataPlaneProcessesRouter::new(ctx.transfer_svc.clone()).router())
+            .merge(
+                DataPlaneProcessesRouter::new(
+                    ctx.transfer_svc.clone(),
+                    self.public_base_url.clone(),
+                )
+                .router(),
+            )
             .merge(DataplaneTransferLogsRouter::new(ctx.logs_svc.clone()).router())
             .merge(events_router.clone().dataplane_processes_sub_router());
         Router::new()
@@ -84,7 +94,7 @@ impl DataplaneModule {
             .nest("/transfer-events", events_router.events_sub_router())
             .route_layer(axum::middleware::from_fn_with_state(
                 ctx.oauth_validator.clone(),
-                common::auth::http::AuthHttpMiddleware::run,
+                ymir::http::OauthHttpMiddleware::run,
             ))
     }
 

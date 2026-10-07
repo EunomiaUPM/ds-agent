@@ -47,7 +47,9 @@ fn entity_for_init() -> Arc<dyn DataplaneTransferServiceTrait> {
     mock.expect_create().returning(|_, dto| {
         Ok(DataplaneTransferDto {
             inner: dataplane_transfers::Model {
-                tenant_id: dto.tenant_id.clone(),
+                user_id: dto.owner.clone().unwrap().user_id,
+                user_role: common::oauth::RolePath::root(),
+                visibility: common::oauth::Visibility::Private,
                 id: "urn:dataplane-transfer:test".to_string(),
                 transfer_process_id: dto.transfer_process_id.clone(),
                 role: dto.role.clone(),
@@ -83,6 +85,7 @@ async fn dummy_context(init: DataplaneInitCommandTypes) -> DataplaneContext {
 fn connector_fixture() -> ConnectorInstanceDto {
     ConnectorInstanceDto {
         id: Urn::from_str("urn:connector-instance:1").unwrap(),
+        user_id: "user-1".to_string(),
         metadata: ConnectorMetadata {
             name: None,
             author: None,
@@ -127,7 +130,7 @@ fn empty_address() -> DataplaneAddress {
 #[tokio::test]
 async fn consumer_pull_routes_to_consumer_pull_handler() {
     let context = dummy_context(DataplaneInitCommandTypes::AsConsumer {
-        tenant_id: "tenant-1".to_string(),
+        owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
         transfer_process_id: Urn::from_str("urn:tp:1").unwrap(),
         direction: DataplaneInitCommandDirection::Pull {
             data_address: Some(empty_address()),
@@ -141,7 +144,7 @@ async fn consumer_pull_routes_to_consumer_pull_handler() {
 #[tokio::test]
 async fn consumer_push_routes_to_consumer_push_handler() {
     let context = dummy_context(DataplaneInitCommandTypes::AsConsumer {
-        tenant_id: "tenant-1".to_string(),
+        owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
         transfer_process_id: Urn::from_str("urn:tp:1").unwrap(),
         direction: DataplaneInitCommandDirection::Push {
             data_address: Some(empty_address()),
@@ -155,7 +158,7 @@ async fn consumer_push_routes_to_consumer_push_handler() {
 #[tokio::test]
 async fn provider_pull_routes_to_provider_pull_handler() {
     let context = dummy_context(DataplaneInitCommandTypes::AsProvider {
-        tenant_id: "tenant-1".to_string(),
+        owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
         transfer_process_id: Urn::from_str("urn:tp:1").unwrap(),
         connector_instance: connector_fixture(),
         direction: DataplaneInitCommandDirection::Pull {
@@ -170,7 +173,7 @@ async fn provider_pull_routes_to_provider_pull_handler() {
 #[tokio::test]
 async fn provider_push_routes_to_provider_push_handler() {
     let context = dummy_context(DataplaneInitCommandTypes::AsProvider {
-        tenant_id: "tenant-1".to_string(),
+        owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
         transfer_process_id: Urn::from_str("urn:tp:1").unwrap(),
         connector_instance: connector_fixture(),
         direction: DataplaneInitCommandDirection::Push {

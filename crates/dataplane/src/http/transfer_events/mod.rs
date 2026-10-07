@@ -25,8 +25,8 @@ use axum::extract::{FromRef, Path, State};
 use axum::http::HeaderMap;
 use axum::routing::get;
 use axum::{Json, Router};
-use common::auth::access::AccessScope;
-use common::auth::http::ExtractedHeaders;
+use common::oauth::UserInfo;
+use common::http_tracing::ExtractedHeaders;
 use ymir::errors::AppResult;
 use ymir::utils::extract_path_urn;
 
@@ -66,14 +66,14 @@ impl TransferEventsRouter {
 
     async fn handle_get_events_by_transfer_id(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Path(dataplane_process_id): Path<String>,
     ) -> AppResult<(HeaderMap, Json<Vec<TransferEventDto>>)> {
         let process_urn = extract_path_urn(&dataplane_process_id)?;
         let events = state
             .service
-            .get_by_process_id(&scope, &process_urn)
+            .get_by_process_id(&user, &process_urn)
             .await?;
 
         Ok((headers.response_headers(), Json(events)))
@@ -81,12 +81,12 @@ impl TransferEventsRouter {
 
     async fn handle_get_event_by_id(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Path(event_id): Path<String>,
     ) -> AppResult<(HeaderMap, Json<TransferEventDto>)> {
         let event_urn = extract_path_urn(&event_id)?;
-        let event = state.service.get_one(&scope, &event_urn).await?;
+        let event = state.service.get_one(&user, &event_urn).await?;
 
         Ok((headers.response_headers(), Json(event)))
     }

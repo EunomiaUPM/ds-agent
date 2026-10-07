@@ -17,7 +17,7 @@
 
 use std::sync::Arc;
 
-use common::auth::OauthTokenValidator;
+use common::oauth::OauthTokenValidatorTrait;
 use common::config::services::GatewayConfig;
 use common::module_loader::root_context::RootContext;
 
@@ -27,7 +27,7 @@ use crate::proxy::HttpProxyDispatcher;
 #[derive(Clone)]
 pub struct AppContext {
     pub config: GatewayConfig,
-    pub oauth_validator: Option<Arc<dyn OauthTokenValidator>>,
+    pub oauth_validator: Option<Arc<dyn OauthTokenValidatorTrait>>,
     pub proxy: Arc<HttpProxyDispatcher>,
 }
 
@@ -40,7 +40,7 @@ impl AppContext {
     /// Without a validator the discovery helpers stay unguarded; meant for tests.
     pub fn new(
         config: GatewayConfig,
-        oauth_validator: Option<Arc<dyn OauthTokenValidator>>,
+        oauth_validator: Option<Arc<dyn OauthTokenValidatorTrait>>,
     ) -> Self {
         let proxy = Arc::new(HttpProxyDispatcher::new(config.clone()));
         Self {

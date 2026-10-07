@@ -23,7 +23,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use common::auth::AccessScope;
+use common::oauth::{OwnerScope, UserInfo};
 use common::paginated_spec::{Cursor, Paginated};
 use common::query::QuerySpec;
 use serde_json::json;
@@ -59,14 +59,14 @@ impl DeadLetterRouter {
 
     async fn handle_list(
         State(bus): State<Arc<EventBus>>,
-        scope: AccessScope,
+        user: UserInfo,
         Query(query): Query<DeadLettersQuery>,
     ) -> AppResult<Json<Paginated<DeadLetterRecord>>> {
         let page = query.page.clamped();
         let (dead_letters, total) = bus
             .dlq_repo()
             .list_dead_letters(
-                scope.tenant_filter().map(str::to_string),
+                &OwnerScope::seeing(&user),
                 &query.filter,
                 &page,
                 &query.sort,
@@ -82,12 +82,12 @@ impl DeadLetterRouter {
 
     async fn handle_get(
         State(bus): State<Arc<EventBus>>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(id): Path<String>,
     ) -> AppResult<Json<DeadLetterRecord>> {
         let dead_letter = bus
             .dlq_repo()
-            .get_dead_letter(scope.tenant_filter().map(str::to_string), &id)
+            .get_dead_letter(&OwnerScope::seeing(&user), &id)
             .await?
             .ok_or_else(|| Errors::missing_resource(&id, "dead letter not found", None))?;
         Ok(Json(dead_letter))
@@ -95,35 +95,32 @@ impl DeadLetterRouter {
 
     async fn handle_replay(
         State(bus): State<Arc<EventBus>>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(id): Path<String>,
     ) -> AppResult<Json<EventDeliveryRecord>> {
-        scope.require_write()?;
         let delivery = bus
-            .replay_dead_letter(scope.tenant_filter().map(str::to_string), &id)
+            .replay_dead_letter(&OwnerScope::acting(&user), &id)
             .await?;
         Ok(Json(delivery))
     }
 
     async fn handle_replay_all(
         State(bus): State<Arc<EventBus>>,
-        scope: AccessScope,
+        user: UserInfo,
     ) -> AppResult<Json<serde_json::Value>> {
-        scope.require_write()?;
         let count = bus
-            .replay_all_dead_letters(scope.tenant_filter().map(str::to_string))
+            .replay_all_dead_letters(&OwnerScope::acting(&user))
             .await?;
         Ok(Json(json!({ "replayed_count": count })))
     }
 
     async fn handle_delete(
         State(bus): State<Arc<EventBus>>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(id): Path<String>,
     ) -> AppResult<StatusCode> {
-        scope.require_write()?;
         bus.dlq_repo()
-            .delete_dead_letter(scope.tenant_filter().map(str::to_string), &id)
+            .delete_dead_letter(&OwnerScope::acting(&user), &id)
             .await?;
         Ok(StatusCode::NO_CONTENT)
     }

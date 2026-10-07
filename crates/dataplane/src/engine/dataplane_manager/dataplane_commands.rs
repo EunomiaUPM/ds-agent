@@ -25,6 +25,7 @@ use crate::errors::DataplaneError;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use crate::DataplaneAddress;
 use common::config::services::TransferConfig;
+use common::oauth::Owner;
 use connector::{ConnectorInstanceDto, ConnectorInstanceFacadeTrait};
 use keystore::SecretStore;
 use std::str::FromStr;
@@ -51,23 +52,25 @@ pub enum DataplaneCommand {
 #[derive(Clone, Debug)]
 pub enum DataplaneInitCommandTypes {
     AsProvider {
-        tenant_id: String,
+        /// Owner of the transfer, and so of its dataplane process.
+        owner: Owner,
         transfer_process_id: Urn,
         connector_instance: ConnectorInstanceDto,
         direction: DataplaneInitCommandDirection,
     },
     AsConsumer {
-        tenant_id: String,
+        /// Owner of the transfer, and so of its dataplane process.
+        owner: Owner,
         transfer_process_id: Urn,
         direction: DataplaneInitCommandDirection,
     },
 }
 
 impl DataplaneInitCommandTypes {
-    pub fn tenant_id(&self) -> &str {
+    pub fn owner(&self) -> &Owner {
         match self {
-            Self::AsProvider { tenant_id, .. } => tenant_id,
-            Self::AsConsumer { tenant_id, .. } => tenant_id,
+            Self::AsProvider { owner, .. } => owner,
+            Self::AsConsumer { owner, .. } => owner,
         }
     }
 }
@@ -87,8 +90,6 @@ pub enum DataplaneInitCommandDirection {
 #[derive(Clone, Debug)]
 pub struct DataplaneContinuation {
     pub transfer_dto_urn: Urn,
-    /// Tenant owning the transfer; the control plane always knows it.
-    pub tenant_id: String,
 }
 
 /// Answer to a command; some transitions return the address the peer must use.
@@ -168,7 +169,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         let dataplane_process = self
             .dataplane_service()
             .edit(
-                &context.tenant_scope(),
+                &context.engine_actor(),
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
@@ -189,7 +190,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
             let transfer_id = context.dataplane_process().inner.id.clone();
             let exported = RuntimeSecretVault::new(
                 store.as_ref(),
-                &context.dataplane_process().inner.tenant_id,
+                &context.dataplane_process().inner.user_id,
             )
             .export(runtime, &transfer_id)
             .await?;
@@ -222,7 +223,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         let dataplane_process = self
             .dataplane_service()
             .edit(
-                &context.tenant_scope(),
+                &context.engine_actor(),
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
@@ -241,7 +242,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         let dataplane_process = self
             .dataplane_service()
             .edit(
-                &context.tenant_scope(),
+                &context.engine_actor(),
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
@@ -266,7 +267,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         let dataplane_process = self
             .dataplane_service()
             .edit(
-                &context.tenant_scope(),
+                &context.engine_actor(),
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(TransferState::Subscribing),
@@ -299,7 +300,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         let dataplane_process = self
             .dataplane_service()
             .edit(
-                &context.tenant_scope(),
+                &context.engine_actor(),
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(TransferState::Unsubscribing),
@@ -328,7 +329,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         let dataplane_process = self
             .dataplane_service()
             .edit(
-                &context.tenant_scope(),
+                &context.engine_actor(),
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
@@ -347,7 +348,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         let dataplane_process = self
             .dataplane_service()
             .edit(
-                &context.tenant_scope(),
+                &context.engine_actor(),
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
@@ -360,7 +361,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
             let transfer_id = context.dataplane_process().inner.id.clone();
             let _ = RuntimeSecretVault::new(
                 store.as_ref(),
-                &context.dataplane_process().inner.tenant_id,
+                &context.dataplane_process().inner.user_id,
             )
             .cleanup(&transfer_id)
             .await;
@@ -388,7 +389,7 @@ pub async fn set_configuring_helper(
     let new_state = TransferState::Configuring;
     let dataplane_process = dp_trait
         .edit(
-            &context.tenant_scope(),
+            &context.engine_actor(),
             &dataplane_urn,
             &EditDataplaneTransferDto {
                 state: Some(new_state),

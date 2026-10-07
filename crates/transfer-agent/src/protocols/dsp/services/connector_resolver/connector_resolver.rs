@@ -57,22 +57,21 @@ impl ConnectorResolverTrait for ConnectorResolver {
     ) -> Outcome<ConnectorInstanceDto> {
         let format = formats.ok_or_else(|| Errors::crazy("dct_formats is required", None))?;
 
-        // The agreement fixes the tenant every later lookup is scoped to.
+        // The agreement fixes the dataset; the lookups below go by id, whoever owns the records.
         let agreement = self.negotiation.get_agreement(agreement_id).await?;
-        let tenant_id = agreement.inner.tenant_id.as_str();
         let target = get_urn_from_string(&agreement.inner.target)?;
 
-        let dataset = self.catalog.get_dataset(tenant_id, &target).await?;
+        let dataset = self.catalog.get_dataset(&target).await?;
         let dataset_id = get_urn_from_string(&dataset.inner.id)?;
 
         let distribution = self
             .catalog
-            .get_distribution_by_format(tenant_id, &dataset_id, format)
+            .get_distribution_by_format(&dataset_id, format)
             .await?;
         let distribution_id = Urn::from_str(distribution.inner.id.as_str())?;
 
         self.catalog
-            .get_instance_by_distribution(tenant_id, &distribution_id)
+            .get_instance_by_distribution(&distribution_id)
             .await?
             .ok_or_else(|| {
                 Errors::crazy(

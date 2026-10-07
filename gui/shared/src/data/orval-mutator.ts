@@ -1,5 +1,5 @@
-import { refreshOAuthToken, clearSession } from "../lib/session";
-import { getActingTenant } from "../lib/tenant";
+// Requests carry no token: the session is a cookie of oauth2-proxy, which adds the token on the
+// way to the agents (or there is none, in `static` mode). See lib/session.ts.
 
 // Custom mutator for Orval that uses a global API gateway configuration
 let API_GATEWAY_BASE: string = "";
@@ -12,8 +12,6 @@ export const getApiGatewayBase = (): string => API_GATEWAY_BASE;
 
 export type RequestConfig = RequestInit;
 
-let refreshPromise: Promise<string | null> | null = null;
-
 // NOTE: Adjusted signature to match Orval's default generation: (url, config)
 export const customInstance = async <T>(
   url: string,
@@ -22,31 +20,16 @@ export const customInstance = async <T>(
     headers?: any;
     params?: any;
     data?: any;
-    _isRetry?: boolean;
-    // Skips the acting tenant, for admin views that span every tenant.
-    _allTenants?: boolean;
+    // A 401 here does not end the session (used to ask whether there is one).
+    _noSessionRedirect?: boolean;
   } & Partial<RequestConfig>,
 ): Promise<T> => {
-  const { method, headers, params, data, _isRetry, _allTenants, ...rest } = options || {};
-
-  const token =
-    (headers as any)?.Authorization?.replace("Bearer ", "") ||
-    (typeof localStorage !== "undefined"
-      ? localStorage.getItem("eunomia_token") ||
-        localStorage.getItem("access_token") ||
-        localStorage.getItem("pat_token")
-      : null);
-
-  const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
-  const actingTenant = _allTenants ? null : getActingTenant();
-  const tenantHeader = actingTenant ? { "x-tenant-id": actingTenant } : {};
+  const { method, headers, params, data, _noSessionRedirect, ...rest } = options || {};
 
   const config: RequestConfig = {
     ...rest,
     headers: {
       "Content-Type": "application/json",
-      ...authHeader,
-      ...tenantHeader,
       ...headers,
       ...(rest as any)?.headers,
     },
@@ -99,41 +82,9 @@ export const customInstance = async <T>(
     }
   }
 
-  // Automatically refresh token on 401 Unauthorized or expired token error
-  const isUnauthorized =
-    response.status === 401 ||
-    (data_1 &&
-      typeof data_1 === "object" &&
-      (data_1.error_code === 4200 || data_1.message === "Unauthorized Error"));
-
-  const isAuthEndpoint =
-    url.includes("/oauth/refresh") ||
-    url.includes("/oauth/token") ||
-    url.includes("/oauth/login");
-
-  if (isUnauthorized && !isAuthEndpoint && !_isRetry) {
-    if (!refreshPromise) {
-      refreshPromise = refreshOAuthToken(API_GATEWAY_BASE).finally(() => {
-        refreshPromise = null;
-      });
-    }
-
-    const newToken = await refreshPromise;
-    if (newToken) {
-      return customInstance<T>(url, {
-        ...options,
-        headers: {
-          ...options.headers,
-          Authorization: `Bearer ${newToken}`,
-        },
-        _isRetry: true,
-      });
-    } else {
-      clearSession();
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("eunomia:unauthorized"));
-      }
-    }
+  // No session (or it expired at the proxy): the console goes back to the sign-in.
+  if (response.status === 401 && !_noSessionRedirect && typeof window !== "undefined") {
+    window.dispatchEvent(new Event("eunomia:unauthorized"));
   }
 
   // If response is a Paginated envelope ({ items: [...], total }), attach envelope properties to the array

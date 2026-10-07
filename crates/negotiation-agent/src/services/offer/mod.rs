@@ -23,7 +23,7 @@ pub mod views;
 use crate::entities::filters::OfferFilter;
 use crate::entities::offer::NewOfferDto;
 use crate::services::offer::views::OfferView;
-use common::auth::access::AccessScope;
+use common::oauth::UserInfo;
 use common::batch_requests::BatchRequests;
 use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
@@ -36,43 +36,43 @@ pub trait OfferServiceTrait: Send + Sync + 'static {
     /// Page of offers visible to the caller.
     async fn get_all(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &OfferFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<OfferView>>;
 
     /// 404 when the offer is not visible to the caller.
-    async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<OfferView>;
+    async fn get_one(&self, user: &UserInfo, id: &Urn) -> Outcome<OfferView>;
 
     /// Offer carried by the message.
     async fn get_by_negotiation_message(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         message_id: &Urn,
     ) -> Outcome<OfferView>;
 
     /// Offer by its ODRL `@id`.
-    async fn get_by_offer_id(&self, scope: &AccessScope, offer_id: &Urn) -> Outcome<OfferView>;
+    async fn get_by_offer_id(&self, user: &UserInfo, offer_id: &Urn) -> Outcome<OfferView>;
 
     /// Every offer made in the process.
     async fn get_by_process(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         process_id: &Urn,
     ) -> Outcome<Vec<OfferView>>;
 
     /// Most recent offer of the process.
     async fn get_last_by_process(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         process_id: &Urn,
     ) -> Outcome<OfferView>;
 
     /// Offers found among the requested ids.
-    async fn batch(&self, scope: &AccessScope, req: &BatchRequests) -> Outcome<Vec<OfferView>>;
+    async fn batch(&self, user: &UserInfo, req: &BatchRequests) -> Outcome<Vec<OfferView>>;
 
-    async fn create(&self, scope: &AccessScope, cmd: &NewOfferDto) -> Outcome<OfferView>;
+    async fn create(&self, user: &UserInfo, cmd: &NewOfferDto) -> Outcome<OfferView>;
 
-    async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()>;
+    async fn delete(&self, user: &UserInfo, id: &Urn) -> Outcome<()>;
 }

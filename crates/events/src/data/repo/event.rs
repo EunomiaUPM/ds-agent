@@ -18,6 +18,7 @@
 //! Event store repository.
 
 use async_trait::async_trait;
+use common::oauth::OwnerScope;
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -43,16 +44,15 @@ impl RepoIntoErrors for EventRepoError {}
 #[async_trait]
 pub trait EventStoreRepo: Send + Sync + 'static {
     async fn insert_event(&self, event: &EventEnvelope) -> Outcome<()>;
-    /// `tenant_id: None` reads across tenants (admin).
     async fn get_event_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<EventEnvelope>>;
     /// A page of events plus the total count of the filtered set.
     async fn list_events(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         filter: &EventFilter,
         page: &Page,
         sort: &Sort,

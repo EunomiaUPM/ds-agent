@@ -26,7 +26,7 @@ use keystore::entities::version::Version;
 pub fn metadata(tenant: &str, key: Key) -> Metadata {
     let now = Utc::now();
     Metadata {
-        tenant_id: tenant.to_string(),
+        user_id: tenant.to_string(),
         key,
         version: Version::INITIAL,
         created_at: now,

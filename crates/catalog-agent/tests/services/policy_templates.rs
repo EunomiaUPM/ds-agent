@@ -32,7 +32,8 @@ use catalog_agent::services::policy_templates::service::PolicyTemplateService;
 use catalog_agent::services::policy_templates::PolicyTemplateServiceTrait;
 use chrono::Utc;
 use common::paginated_spec::{Page, Sort};
-use common::test_utils::scopes::TestScopes;
+use common::oauth::OwnerScope;
+use common::test_utils::scopes::TestUsers;
 use serde_json::json;
 use ymir::errors::RepoIntoErrors;
 
@@ -54,7 +55,9 @@ fn make_svc(repo: MockPolicyTemplatesRepositoryTrait) -> PolicyTemplateService {
 
 fn make_model(tenant: &str, id: &str, version: &str) -> policy_template::Model {
     policy_template::Model {
-        tenant_id: tenant.to_string(),
+        user_id: tenant.to_string(),
+        user_role: common::oauth::RolePath::root(),
+        visibility: common::oauth::Visibility::Private,
         id: id.to_string(),
         version: version.to_string(),
         date: Utc::now().into(),
@@ -69,7 +72,8 @@ fn make_model(tenant: &str, id: &str, version: &str) -> policy_template::Model {
 fn make_new_dto() -> NewPolicyTemplateDto {
     NewPolicyTemplateDto {
         id: Some("tpl-1".to_string()),
-        tenant_id: None,
+        visibility: None,
+        owner: None,
         version: Some("1.0".to_string()),
         date: None,
         title: None,
@@ -86,12 +90,12 @@ fn make_new_dto() -> NewPolicyTemplateDto {
 async fn get_one_foreign_tenant_returns_not_found() {
     let mut repo = MockPolicyTemplatesRepositoryTrait::new();
     repo.expect_get_policy_template_by_id_and_version()
-        .withf(|tenant, id, version| tenant == "tenant-2" && id == "tpl-1" && version == "1.0")
+        .withf(|scope, id, version| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-2")) && id == "tpl-1" && version == "1.0")
         .returning(|_, _, _| Ok(None));
 
     let svc = make_svc(repo);
     assert!(svc
-        .get_policies_template_by_version_and_id(&TestScopes::owner("tenant-2"), "tpl-1", "1.0")
+        .get_policies_template_by_version_and_id(&TestUsers::user("tenant-2", "/admin/tenant-2"), "tpl-1", "1.0")
         .await
         .is_err());
 }
@@ -101,34 +105,42 @@ async fn get_one_foreign_tenant_returns_not_found() {
 async fn get_versions_by_id_is_tenant_scoped() {
     let mut repo = MockPolicyTemplatesRepositoryTrait::new();
     repo.expect_get_policy_templates_by_id()
-        .withf(|tenant, id| tenant == "tenant-2" && id == "tpl-1")
+        .withf(|scope, id| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-2")) && id == "tpl-1")
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_svc(repo);
     let dtos = svc
-        .get_policies_template_by_id(&TestScopes::owner("tenant-2"), "tpl-1")
+        .get_policies_template_by_id(&TestUsers::user("tenant-2", "/admin/tenant-2"), "tpl-1")
         .await
         .unwrap();
     assert!(dtos.is_empty());
 }
 
-/// A non-admin listing another tenant is rejected before touching the repository.
+/// Narrowing a listing to another user stays within what the caller sees.
 #[tokio::test]
-async fn get_all_foreign_tenant_query_rejected_with_forbidden() {
-    let svc = make_svc(MockPolicyTemplatesRepositoryTrait::new());
+async fn get_all_of_another_user_stays_within_what_the_caller_sees() {
+    let mut repo = MockPolicyTemplatesRepositoryTrait::new();
+    repo.expect_get_all_policy_templates()
+        .withf(|scope, f, _, _| {
+            *scope == OwnerScope::seeing(&TestUsers::alone("tenant-1"))
+                && f.user_id.as_deref() == Some("tenant-foreign")
+        })
+        .returning(|_, _, _, _| Ok((vec![], Some(0))));
+    let svc = make_svc(repo);
     let filter = PolicyTemplateFilter {
-        tenant_id: Some("tenant-foreign".to_string()),
+        user_id: Some("tenant-foreign".to_string()),
         ..Default::default()
     };
-    assert!(svc
+    let page = svc
         .get_all_policy_templates(
-            &TestScopes::owner("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin/tenant-1"),
             &filter,
             &Page::default(),
             &Sort::default()
         )
         .await
-        .is_err());
+        .unwrap();
+    assert!(page.items.is_empty());
 }
 
 /// An admin without a tenant filter lists every tenant.
@@ -136,8 +148,8 @@ async fn get_all_foreign_tenant_query_rejected_with_forbidden() {
 async fn get_all_admin_without_tenant_queries_cross_tenant() {
     let mut repo = MockPolicyTemplatesRepositoryTrait::new();
     repo.expect_get_all_policy_templates()
-        .withf(|f, _, _| f.tenant_id.is_none())
-        .returning(|_, _, _| {
+        .withf(|scope, _, _, _| *scope == OwnerScope::All)
+        .returning(|_, _, _, _| {
             Ok((
                 vec![
                     make_model("tenant-1", "tpl-1", "1.0"),
@@ -150,7 +162,7 @@ async fn get_all_admin_without_tenant_queries_cross_tenant() {
     let svc = make_svc(repo);
     let page = svc
         .get_all_policy_templates(
-            &TestScopes::admin(),
+            &TestUsers::user("admin-tenant", "/admin"),
             &PolicyTemplateFilter::default(),
             &Page::default(),
             &Sort::default(),
@@ -165,22 +177,12 @@ async fn get_all_admin_without_tenant_queries_cross_tenant() {
 async fn delete_foreign_tenant_returns_not_found() {
     let mut repo = MockPolicyTemplatesRepositoryTrait::new();
     repo.expect_delete_policy_template_by_id_and_version()
-        .withf(|tenant, id, version| tenant == "tenant-2" && id == "tpl-1" && version == "1.0")
+        .withf(|scope, id, version| *scope == OwnerScope::acting(&TestUsers::alone("tenant-2")) && id == "tpl-1" && version == "1.0")
         .returning(|_, _, _| Err(not_found()));
 
     let svc = make_svc(repo);
     assert!(svc
-        .delete_policy_template_by_version_and_id(&TestScopes::owner("tenant-2"), "tpl-1", "1.0")
-        .await
-        .is_err());
-}
-
-/// A reader cannot delete; the repository is never called.
-#[tokio::test]
-async fn delete_reader_is_forbidden_before_reaching_repo() {
-    let svc = make_svc(MockPolicyTemplatesRepositoryTrait::new());
-    assert!(svc
-        .delete_policy_template_by_version_and_id(&TestScopes::reader("tenant-1"), "tpl-1", "1.0")
+        .delete_policy_template_by_version_and_id(&TestUsers::user("tenant-2", "/admin/tenant-2"), "tpl-1", "1.0")
         .await
         .is_err());
 }
@@ -190,12 +192,12 @@ async fn delete_reader_is_forbidden_before_reaching_repo() {
 async fn batch_filters_out_foreign_tenant_records() {
     let mut repo = MockPolicyTemplatesRepositoryTrait::new();
     repo.expect_get_batch_policy_templates()
-        .withf(|tenant, ids| tenant == "tenant-2" && ids == ["tpl-1".to_string()])
+        .withf(|scope, ids| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-2")) && ids == ["tpl-1".to_string()])
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_svc(repo);
     let views = svc
-        .get_batch_policy_templates(&TestScopes::owner("tenant-2"), &["tpl-1".to_string()])
+        .get_batch_policy_templates(&TestUsers::user("tenant-2", "/admin/tenant-2"), &["tpl-1".to_string()])
         .await
         .unwrap();
     assert!(views.is_empty());
@@ -206,17 +208,17 @@ async fn batch_filters_out_foreign_tenant_records() {
 async fn create_forces_caller_tenant_for_non_admin() {
     let mut repo = MockPolicyTemplatesRepositoryTrait::new();
     repo.expect_create_policy_template()
-        .withf(|cmd| cmd.tenant_id == "tenant-2")
-        .returning(|cmd| Ok(make_model(&cmd.tenant_id, "tpl-1", "1.0")));
+        .withf(|cmd| cmd.owner == TestUsers::owner("tenant-2"))
+        .returning(|cmd| Ok(make_model(&cmd.owner.user_id, "tpl-1", "1.0")));
 
     let svc = make_svc(repo);
     let mut cmd = make_new_dto();
-    cmd.tenant_id = Some("tenant-1".to_string());
+    cmd.owner = Some(TestUsers::owner("tenant-1"));
     let dto = svc
-        .create_policy_template(&TestScopes::owner("tenant-2"), &cmd)
+        .create_policy_template(&TestUsers::user("tenant-2", "/admin/tenant-2"), &cmd)
         .await
         .unwrap();
-    assert_eq!(dto.tenant_id, "tenant-2");
+    assert_eq!(dto.user_id, "tenant-2");
 }
 
 /// An admin creates in the tenant named by the DTO.
@@ -224,25 +226,15 @@ async fn create_forces_caller_tenant_for_non_admin() {
 async fn create_admin_respects_requested_tenant() {
     let mut repo = MockPolicyTemplatesRepositoryTrait::new();
     repo.expect_create_policy_template()
-        .withf(|cmd| cmd.tenant_id == "tenant-9")
-        .returning(|cmd| Ok(make_model(&cmd.tenant_id, "tpl-1", "1.0")));
+        .withf(|cmd| cmd.owner == TestUsers::owner("tenant-9"))
+        .returning(|cmd| Ok(make_model(&cmd.owner.user_id, "tpl-1", "1.0")));
 
     let svc = make_svc(repo);
     let mut cmd = make_new_dto();
-    cmd.tenant_id = Some("tenant-9".to_string());
+    cmd.owner = Some(TestUsers::owner("tenant-9"));
     let dto = svc
-        .create_policy_template(&TestScopes::admin(), &cmd)
+        .create_policy_template(&TestUsers::user("admin-tenant", "/admin"), &cmd)
         .await
         .unwrap();
-    assert_eq!(dto.tenant_id, "tenant-9");
-}
-
-/// A reader cannot create.
-#[tokio::test]
-async fn create_reader_is_forbidden() {
-    let svc = make_svc(MockPolicyTemplatesRepositoryTrait::new());
-    assert!(svc
-        .create_policy_template(&TestScopes::reader("tenant-1"), &make_new_dto())
-        .await
-        .is_err());
+    assert_eq!(dto.user_id, "tenant-9");
 }

@@ -16,6 +16,7 @@
  */
 
 use chrono::{DateTime, Utc};
+use common::oauth::Owner;
 
 use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::ids::{MessageId, TransferProcessId};
@@ -32,7 +33,7 @@ pub struct TransferMessage {
     // Common
     pub id: MessageId,
     pub transfer_process_id: TransferProcessId,
-    pub tenant_id: String,
+    pub owner: Owner,
     pub direction: Direction,
 
     // Protocol
@@ -51,16 +52,13 @@ pub struct TransferMessage {
 impl TransferMessage {
     pub fn from_cmd(cmd: &NewTransferMessageCommand) -> Outcome<Self> {
         let id = cmd.id.clone().unwrap_or_else(MessageId::generate);
-        let tenant_id = cmd.tenant_id.clone().ok_or_else(|| {
-            Errors::crazy(
-                "tenant_id must be resolved before reaching the domain",
-                None,
-            )
+        let owner = cmd.owner.clone().ok_or_else(|| {
+            Errors::crazy("owner must be resolved before reaching the domain", None)
         })?;
         Ok(Self {
             id,
             transfer_process_id: cmd.transfer_process_id.clone(),
-            tenant_id,
+            owner,
             direction: cmd.direction,
             protocol: cmd.protocol.clone(),
             message_type: cmd.message_type.clone(),
@@ -77,8 +75,8 @@ impl TransferMessage {
     pub fn transfer_process_id(&self) -> &TransferProcessId {
         &self.transfer_process_id
     }
-    pub fn tenant_id(&self) -> &String {
-        &self.tenant_id
+    pub fn owner(&self) -> &Owner {
+        &self.owner
     }
     pub fn direction(&self) -> Direction {
         self.direction

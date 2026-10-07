@@ -15,18 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Transport-agnostic token verification port for authenticating credentials into claims.
+use ymir::types::gnap::access_token::TokenManagement;
 
-use ymir::errors::Outcome;
-
-use crate::auth::claims::Claims;
-
-/// Port implemented by services capable of verifying bearer tokens and resolving claims.
-#[async_trait::async_trait]
-pub trait OauthTokenValidator: Send + Sync + 'static {
-    /// Verifies the bearer token and returns its claims; any failure is a 401.
-    async fn validate_token(&self, token: &str) -> Outcome<Claims>;
+pub struct IssuedToken {
+    pub final_token: String,
+    pub final_expires_in: u64,
+    pub manage: TokenManagement,
 }
-
-/// Semantic alias for token verification service contracts.
-pub use OauthTokenValidator as TokenVerifier;

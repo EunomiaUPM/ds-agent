@@ -19,6 +19,7 @@
 
 use crate::data::sea_orm::orm::transfer_event;
 use crate::data::sea_orm::orm::transfer_event::{LogLevel, NewTransferEvent};
+use common::oauth::Owner;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urn::Urn;
@@ -36,7 +37,9 @@ pub struct TransferEventDto {
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct NewTransferEventDto {
-    pub tenant_id: String,
+    /// Owner of the event; only honoured for the root (the engine, for the transfer's owner).
+    #[serde(default)]
+    pub owner: Option<Owner>,
     pub transfer_id: Urn,
     pub level: LogLevel,
     pub component: String,
@@ -44,10 +47,12 @@ pub struct NewTransferEventDto {
     pub data: Option<Value>,
 }
 
-impl From<NewTransferEventDto> for NewTransferEvent {
-    fn from(value: NewTransferEventDto) -> Self {
-        Self {
-            tenant_id: value.tenant_id,
+impl NewTransferEventDto {
+    /// The row to store, owned by `owner`.
+    pub fn into_model(self, owner: Owner) -> NewTransferEvent {
+        let value = self;
+        NewTransferEvent {
+            owner,
             transfer_id: value.transfer_id.to_string(),
             level: value.level,
             component: value.component,

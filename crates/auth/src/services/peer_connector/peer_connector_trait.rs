@@ -16,36 +16,34 @@
  */
 
 use crate::types::entities::ReachProvider;
-use crate::types::response::TokenWhatResponse;
+use crate::types::response::{RotationOutcome, TokenWhatResponse};
 use async_trait::async_trait;
 use ymir::data::entities::sent::{grant, interaction, verification};
-use ymir::data::entities::shared::{participant, resource_req};
+use ymir::data::entities::shared::{participant, participant_relation, resource_req};
 use ymir::errors::Outcome;
 use ymir::types::gnap::grant_request::interact::InteractAction;
 use ymir::types::gnap::grant_response::GrantResponse;
+use ymir::types::oauth::UserInfo;
 
 /// Client side of GNAP towards a peer: building, sending and reading grant requests.
 #[mockall::automock]
 #[async_trait]
 pub trait PeerConnectorTrait: Send + Sync + 'static {
-    fn build_grant_plan(&self, tenant_id: &str, payload: ReachProvider) -> grant::Plan;
-    fn build_interaction_plan(&self, tenant_id: &str, id: &str) -> interaction::Plan;
+    fn build_grant_plan(&self, user_info: &UserInfo, payload: ReachProvider) -> grant::Plan;
+    fn build_interaction_plan(&self, id: &str) -> interaction::Plan;
     /// Resource request asking for `actions`.
     fn build_resource_req_plan(
         &self,
-        tenant_id: &str,
         id: &str,
         actions: Vec<InteractAction>,
     ) -> resource_req::Model;
     /// Presentation the peer asks for at `uri`.
-    fn build_verification_plan(
-        &self,
-        tenant_id: &str,
-        uri: &str,
-        id: &str,
-    ) -> Outcome<verification::Plan>;
+    fn build_verification_plan(&self, uri: &str, id: &str) -> Outcome<verification::Plan>;
     /// Participant record of the peer once the grant completes.
     fn build_mate_plan(&self, grant: &grant::Model) -> participant::Plan;
+    /// Relation of the user who sent the grant with the peer, under the role and visibility the
+    /// grant was sent with.
+    fn build_mate_relation(&self, grant: &grant::Model) -> participant_relation::Model;
     async fn send_grant_req(
         &self,
         grant: &grant::Model,
@@ -59,4 +57,12 @@ pub trait PeerConnectorTrait: Send + Sync + 'static {
         grant: &mut grant::Model,
         interaction: &mut interaction::Model,
     ) -> Outcome<TokenWhatResponse>;
+    async fn discover_gate(&self, base_url: &str) -> Outcome<String>;
+    async fn send_rotation_req(&self, grant: &grant::Model) -> Outcome<GrantResponse>;
+    async fn send_revocation_req(&self, grant: &grant::Model) -> Outcome<()>;
+    fn apply_rotation_resp(
+        &self,
+        response: GrantResponse,
+        grant: &mut grant::Model,
+    ) -> Outcome<RotationOutcome>;
 }

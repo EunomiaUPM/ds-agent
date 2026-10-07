@@ -18,6 +18,7 @@
 //! ODRL offers table.
 
 use crate::entities::odrl_policies::CatalogEntityTypes;
+use common::oauth::{Owner, RolePath, Visibility};
 use common::dsp_common::odrl::OdrlPolicyInfo;
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue;
@@ -30,7 +31,9 @@ use urn::{Urn, UrnBuilder};
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub odrl_offer: serde_json::Value,
     pub entity: String,
     pub entity_type: String,
@@ -69,8 +72,8 @@ pub enum Relation {
     Distribution,
     #[sea_orm(
         belongs_to = "super::policy_template::Entity",
-        from = "(Column::TenantId, Column::SourceTemplateId, Column::SourceTemplateVersion)",
-        to = "(super::policy_template::Column::TenantId, super::policy_template::Column::Id, super::policy_template::Column::Version)"
+        from = "(Column::SourceTemplateId, Column::SourceTemplateVersion)",
+        to = "(super::policy_template::Column::Id, super::policy_template::Column::Version)"
     )]
     Template,
 }
@@ -103,10 +106,12 @@ impl Related<super::distribution::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+common::impl_owned!(Model);
+
 #[derive(Clone)]
 pub struct NewOdrlOfferModel {
     pub id: Option<Urn>,
-    pub tenant_id: String,
+    pub owner: Owner,
     pub odrl_offer: OdrlPolicyInfo,
     pub entity_id: Urn,
     pub entity_type: CatalogEntityTypes,
@@ -123,7 +128,9 @@ impl From<NewOdrlOfferModel> for ActiveModel {
             .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(dto.id.clone().unwrap_or(new_urn.clone()).to_string()),
-            tenant_id: ActiveValue::Set(dto.tenant_id),
+            user_id: ActiveValue::Set(dto.owner.user_id.clone()),
+            user_role: ActiveValue::Set(dto.owner.role.clone()),
+            visibility: ActiveValue::Set(dto.owner.visibility.clone()),
             odrl_offer: ActiveValue::Set(serde_json::to_value(dto.odrl_offer).unwrap_or_default()),
             entity: ActiveValue::Set(dto.entity_id.to_string()),
             entity_type: ActiveValue::Set(dto.entity_type.to_string()),

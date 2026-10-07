@@ -18,6 +18,7 @@
 //! Dead letter repository.
 
 use async_trait::async_trait;
+use common::oauth::OwnerScope;
 use chrono::Utc;
 use common::paginated_spec::{Page, Sort};
 use sea_orm::{
@@ -59,14 +60,12 @@ impl EventDeadLetterRepo for SeaOrmDeadLetterRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_dead_letter(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &str,
     ) -> Outcome<Option<DeadLetterRecord>> {
         let model = dead_letter::Entity::find()
             .filter(dead_letter::Column::Id.eq(id))
-            .apply_if(tenant_id, |q, t| {
-                q.filter(dead_letter::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(dead_letter::Column::UserId, dead_letter::Column::UserRole, dead_letter::Column::Visibility))
             .one(&self.db)
             .await
             .map_err(|e| Errors::db("failed to query dead letter", Some(Box::new(e))))?;
@@ -80,15 +79,13 @@ impl EventDeadLetterRepo for SeaOrmDeadLetterRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn list_dead_letters(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         filter: &DeadLetterFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<DeadLetterRecord>, u64)> {
         let query = dead_letter::Entity::find()
-            .apply_if(tenant_id, |q, t| {
-                q.filter(dead_letter::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(dead_letter::Column::UserId, dead_letter::Column::UserRole, dead_letter::Column::Visibility))
             .apply_if(filter.status.clone(), |q, s| {
                 q.filter(dead_letter::Column::Status.eq(s))
             });
@@ -117,10 +114,9 @@ impl EventDeadLetterRepo for SeaOrmDeadLetterRepo {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn mark_replayed(&self, tenant_id: &str, id: &str) -> Outcome<()> {
+    async fn mark_replayed(&self, id: &str) -> Outcome<()> {
         if let Some(model) = dead_letter::Entity::find()
             .filter(dead_letter::Column::Id.eq(id))
-            .filter(dead_letter::Column::TenantId.eq(tenant_id))
             .one(&self.db)
             .await
             .map_err(|e| Errors::db("failed to find dead letter", Some(Box::new(e))))?
@@ -137,12 +133,10 @@ impl EventDeadLetterRepo for SeaOrmDeadLetterRepo {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn delete_dead_letter(&self, tenant_id: Option<String>, id: &str) -> Outcome<()> {
+    async fn delete_dead_letter(&self, scope: &OwnerScope, id: &str) -> Outcome<()> {
         dead_letter::Entity::delete_many()
             .filter(dead_letter::Column::Id.eq(id))
-            .apply_if(tenant_id, |q, t| {
-                q.filter(dead_letter::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(dead_letter::Column::UserId, dead_letter::Column::UserRole, dead_letter::Column::Visibility))
             .exec(&self.db)
             .await
             .map_err(|e| Errors::db("failed to delete dead letter", Some(Box::new(e))))?;

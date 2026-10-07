@@ -18,6 +18,7 @@
 //! Webhook subscription repository.
 
 use async_trait::async_trait;
+use common::oauth::{Owner, OwnerScope};
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
@@ -43,21 +44,21 @@ impl RepoIntoErrors for SubscriptionRepoError {}
 #[mockall::automock]
 #[async_trait]
 pub trait EventSubscriptionRepo: Send + Sync + 'static {
+    /// Stores a subscription of `owner`.
     async fn create_subscription(
         &self,
-        tenant_id: &str,
+        owner: Owner,
         dto: CreateSubscriptionDto,
     ) -> Outcome<SubscriptionRecord>;
-    /// `tenant_id: None` acts across tenants (admin).
     async fn get_subscription(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &str,
     ) -> Outcome<Option<SubscriptionRecord>>;
-    /// Page of subscriptions; `tenant_id` of `None` lists every tenant.
+    /// Page of the subscriptions in `scope`.
     async fn list_subscriptions(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         filter: &SubscriptionFilter,
         page: &Page,
         sort: &Sort,
@@ -65,15 +66,16 @@ pub trait EventSubscriptionRepo: Send + Sync + 'static {
     /// Changes the fields set in `dto`.
     async fn update_subscription(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &str,
         dto: UpdateSubscriptionDto,
     ) -> Outcome<SubscriptionRecord>;
-    async fn delete_subscription(&self, tenant_id: Option<String>, id: &str) -> Outcome<()>;
-    /// Active subscriptions of the tenant whose pattern matches `topic`.
+    async fn delete_subscription(&self, scope: &OwnerScope, id: &str) -> Outcome<()>;
+    /// Active subscriptions whose pattern matches `topic` and whose owner sees a record of
+    /// `owner`, the one the event is about.
     async fn get_matching_subscriptions(
         &self,
-        tenant_id: &str,
+        owner: &Owner,
         topic: &Topic,
     ) -> Outcome<Vec<SubscriptionRecord>>;
 }

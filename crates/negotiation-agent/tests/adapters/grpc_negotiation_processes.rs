@@ -24,7 +24,7 @@ use chrono::Utc;
 use common::errors::ResourceError;
 use common::grpc::JsonValueExt;
 use common::paginated_spec::Paginated;
-use common::test_utils::grpc::{GrpcRequests, OTHER_TENANT, StubTokenValidator, TENANT};
+use common::test_utils::grpc::{GrpcRequests, StubTokenValidator, TENANT};
 use negotiation_agent::data::entities::negotiation_process;
 use negotiation_agent::grpc::api::negotiation_agent::negotiation_agent_processes_service_server::NegotiationAgentProcessesService;
 use negotiation_agent::grpc::api::negotiation_agent::{
@@ -49,7 +49,9 @@ fn view(n: u32) -> NegotiationProcessView {
     NegotiationProcessView::assemble(
         negotiation_process::Model {
             id: urn(n),
-            tenant_id: TENANT.to_string(),
+            user_id: TENANT.to_string(),
+            user_role: common::oauth::RolePath::root(),
+            visibility: common::oauth::Visibility::Private,
             state: "REQUESTED".into(),
             state_attribute: None,
             associated_agent_peer: "peer".into(),
@@ -77,57 +79,10 @@ fn by_id(id: &str) -> GetNegotiationProcessByIdRequest {
 async fn get_without_token_is_unauthenticated() {
     let g = grpc(MockNegotiationProcessServiceTrait::new());
     let err = g
-        .get_negotiation_process_by_id(GrpcRequests::with_auth(by_id(&urn(1)), None, Some(TENANT)))
+        .get_negotiation_process_by_id(GrpcRequests::with_auth(by_id(&urn(1)), None))
         .await
         .unwrap_err();
     assert_eq!(err.code(), Code::Unauthenticated);
-}
-
-/// A non-admin naming another tenant is PermissionDenied.
-#[tokio::test]
-async fn get_foreign_tenant_without_admin_is_permission_denied() {
-    let g = grpc(MockNegotiationProcessServiceTrait::new());
-    let err = g
-        .get_negotiation_process_by_id(GrpcRequests::with_auth(
-            by_id(&urn(1)),
-            Some("owner"),
-            Some(OTHER_TENANT),
-        ))
-        .await
-        .unwrap_err();
-    assert_eq!(err.code(), Code::PermissionDenied);
-}
-
-/// An admin may act on another tenant, and without tenant header the caller acts on
-/// its own.
-#[tokio::test]
-async fn admin_may_act_on_foreign_tenant_and_missing_header_falls_back() {
-    let mut svc = MockNegotiationProcessServiceTrait::new();
-    svc.expect_get_one()
-        .withf(|scope, _| scope.acting_tenant() == OTHER_TENANT && scope.is_admin())
-        .returning(|_, _| Ok(view(1)));
-    svc.expect_get_one()
-        .withf(|scope, _| scope.acting_tenant() == TENANT && !scope.is_admin())
-        .returning(|_, _| Ok(view(1)));
-    let g = grpc(svc);
-    assert!(
-        g.get_negotiation_process_by_id(GrpcRequests::with_auth(
-            by_id(&urn(1)),
-            Some("admin"),
-            Some(OTHER_TENANT)
-        ))
-        .await
-        .is_ok()
-    );
-    assert!(
-        g.get_negotiation_process_by_id(GrpcRequests::with_auth(
-            by_id(&urn(1)),
-            Some("owner"),
-            None
-        ))
-        .await
-        .is_ok()
-    );
 }
 
 /// A malformed URN is InvalidArgument and the message names the field.
@@ -304,7 +259,7 @@ async fn list_propagates_cursor_total_and_parsed_filters() {
         .withf(|_, filter, page, sort| {
             filter.state.as_deref() == Some("REQUESTED")
                 && filter.role.is_none()
-                && filter.tenant_id.is_none()
+                && filter.user_id.is_none()
                 && page.limit == 5
                 && page.cursor.as_deref() == Some("abc")
                 && sort.as_str() == "updated_at_asc"

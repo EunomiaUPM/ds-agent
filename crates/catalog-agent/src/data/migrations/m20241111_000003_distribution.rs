@@ -37,11 +37,9 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(CatalogDistributions::TenantId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(CatalogDistributions::UserId).string().not_null())
+                    .col(ColumnDef::new(CatalogDistributions::UserRole).string_len(255).not_null())
+                    .col(ColumnDef::new(CatalogDistributions::Visibility).string_len(16).not_null())
                     .col(
                         ColumnDef::new(CatalogDistributions::DctIssued)
                             .timestamp_with_time_zone()
@@ -87,7 +85,9 @@ impl MigrationTrait for Migration {
 pub enum CatalogDistributions {
     Table,
     Id,
-    TenantId,
+    UserId,
+    UserRole,
+    Visibility,
     DctIssued,
     DctModified,
     DctTitle,

@@ -15,21 +15,16 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
-
-use common::auth::OauthTokenValidator;
 use common::boot::BootstrapServiceTrait;
-use common::config::services::{CatalogConfig, CommonConfig};
+use common::config::services::CatalogConfig;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
-use oauth::setup::OAuthModule;
-use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
 use ymir::errors::Outcome;
 
 use crate::setup::{CatalogAgentModule, CatalogPorts};
 
-/// Standalone catalog agent; its module seeds the admin tenant and policy templates.
+/// Standalone catalog agent; its module seeds the main catalog and policy templates.
 pub struct CatalogAgentBoot;
 
 #[async_trait::async_trait]
@@ -38,10 +33,6 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
 
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         CatalogAgentModule::migrations()
-    }
-
-    fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator> {
-        OAuthModule::validator(common, db)
     }
 
     async fn compose(config: &CatalogConfig, root: &RootContext) -> Outcome<ServiceComposer> {

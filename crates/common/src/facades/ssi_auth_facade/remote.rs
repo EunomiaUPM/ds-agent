@@ -22,25 +22,26 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use ymir::config::types::HostType;
 use ymir::errors::Outcome;
+use ymir::services::client::ClientExt;
+use ymir::utils::http_client;
 
-use crate::auth::ServiceHttpClient;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
 use crate::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use crate::facades::VerifyTokenRequest;
 use ymir::data::entities::shared::participant::Model as Mates;
 
-const SSI_AUTH_FACADE_VERIFICATION_URL: &str = "/api/v1/mates/token";
+/// Path of the token verification under the auth agent's API version.
+const SSI_AUTH_FACADE_VERIFICATION_PATH: &str = "/mates/token";
 
 /// Token verification through the auth agent's API.
 pub struct SSIAuthRemoteFacade {
     config: Arc<MinKnownConfig>,
-    client: Arc<ServiceHttpClient>,
 }
 
 impl SSIAuthRemoteFacade {
-    pub fn new(config: Arc<MinKnownConfig>, client: Arc<ServiceHttpClient>) -> Self {
-        Self { config, client }
+    pub fn new(config: Arc<MinKnownConfig>) -> Self {
+        Self { config }
     }
 }
 
@@ -48,15 +49,14 @@ impl SSIAuthRemoteFacade {
 impl SSIAuthFacadeTrait for SSIAuthRemoteFacade {
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth"))]
     async fn verify_token(&self, token: String) -> Outcome<Mates> {
-        let base_url = self.config.get_host(HostType::Http);
-        let url = format!("{base_url}{SSI_AUTH_FACADE_VERIFICATION_URL}");
-        let mate = self
-            .client
-            .post_json::<VerifyTokenRequest, Mates>(
-                url.as_str(),
-                None,
-                &VerifyTokenRequest { token },
-            )
+        let url = format!(
+            "{}{}{}",
+            self.config.get_host(HostType::Http),
+            self.config.get_api_version(),
+            SSI_AUTH_FACADE_VERIFICATION_PATH
+        );
+        let mate = http_client()
+            .post_json::<VerifyTokenRequest, Mates>(url.as_str(), None, &VerifyTokenRequest { token })
             .await?;
         Ok(mate)
     }

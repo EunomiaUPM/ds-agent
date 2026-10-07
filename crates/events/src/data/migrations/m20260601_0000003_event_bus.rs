@@ -35,7 +35,9 @@ impl MigrationName for Migration {
 pub enum Events {
     Table,
     Id,
-    TenantId,
+    UserId,
+    UserRole,
+    Visibility,
     Topic,
     SourceCrate,
     SchemaVersion,
@@ -51,7 +53,9 @@ pub enum Events {
 pub enum EventDeliveries {
     Table,
     Id,
-    TenantId,
+    UserId,
+    UserRole,
+    Visibility,
     EventId,
     SubscriptionId,
     Status,
@@ -69,7 +73,9 @@ pub enum EventDeliveries {
 pub enum DeadLetterQueue {
     Table,
     Id,
-    TenantId,
+    UserId,
+    UserRole,
+    Visibility,
     DeliveryId,
     EventId,
     SubscriptionId,
@@ -93,7 +99,9 @@ impl MigrationTrait for Migration {
                     .table(Events::Table)
                     .if_not_exists()
                     .col(ColumnDef::new(Events::Id).string().not_null().primary_key())
-                    .col(ColumnDef::new(Events::TenantId).string().not_null())
+                    .col(ColumnDef::new(Events::UserId).string().not_null())
+                    .col(ColumnDef::new(Events::UserRole).string_len(255).not_null())
+                    .col(ColumnDef::new(Events::Visibility).string_len(16).not_null())
                     .col(ColumnDef::new(Events::Topic).string().not_null())
                     .col(ColumnDef::new(Events::SourceCrate).string().not_null())
                     .col(
@@ -143,11 +151,9 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(EventDeliveries::TenantId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(EventDeliveries::UserId).string().not_null())
+                    .col(ColumnDef::new(EventDeliveries::UserRole).string_len(255).not_null())
+                    .col(ColumnDef::new(EventDeliveries::Visibility).string_len(16).not_null())
                     .col(ColumnDef::new(EventDeliveries::EventId).string().not_null())
                     .col(
                         ColumnDef::new(EventDeliveries::SubscriptionId)
@@ -212,11 +218,9 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(DeadLetterQueue::TenantId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(DeadLetterQueue::UserId).string().not_null())
+                    .col(ColumnDef::new(DeadLetterQueue::UserRole).string_len(255).not_null())
+                    .col(ColumnDef::new(DeadLetterQueue::Visibility).string_len(16).not_null())
                     .col(ColumnDef::new(DeadLetterQueue::DeliveryId).string())
                     .col(ColumnDef::new(DeadLetterQueue::EventId).string().not_null())
                     .col(

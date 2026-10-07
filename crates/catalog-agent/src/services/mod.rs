@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Management use cases, offerings, peer catalogs and tenant provisioning.
+//! Management use cases, offerings, peer catalogs and the provisioning of the main catalog.
 
 pub mod catalogs;
 pub mod data_services;

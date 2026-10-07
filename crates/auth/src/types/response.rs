@@ -15,24 +15,23 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use serde::{Deserialize, Serialize};
+//! What to do after a GNAP answer.
 
-/// OAuth client an agent authenticates with on service-to-service calls (client_credentials).
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(default)]
-pub struct ServiceClientConfig {
-    pub client_id: String,
-    pub client_secret: String,
-    /// OAuth token endpoint; defaults to `{own http host}/oauth/token` (monolith layout).
-    pub token_url: Option<String>,
+/// Authority's answer: issue over OID4VCI, present over OID4VP, or wait.
+pub enum VcWhatResponse {
+    Issuance(String),
+    Presentation(String),
+    Wait,
 }
 
-impl Default for ServiceClientConfig {
-    fn default() -> Self {
-        Self {
-            client_id: "eunomia-services".to_string(),
-            client_secret: "eunomia-services-secret".to_string(),
-            token_url: None,
-        }
-    }
+/// Peer's answer: done, present over OID4VP, or wait.
+pub enum TokenWhatResponse {
+    Completed,
+    Presentation(String),
+    Wait,
+}
+
+pub enum RotationOutcome {
+    Rotated,
+    Refused,
 }

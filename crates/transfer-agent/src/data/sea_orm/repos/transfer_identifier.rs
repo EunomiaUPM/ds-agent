@@ -105,7 +105,6 @@ impl TransferIdentifierRepoTrait for SeaOrmTransferIdentifierRepo {
         orm::Entity::insert(active)
             .on_conflict(
                 OnConflict::columns([
-                    orm::Column::TenantId,
                     orm::Column::TransferProcessId,
                     orm::Column::Key,
                 ])

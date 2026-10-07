@@ -21,7 +21,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use common::auth::access::AccessScope;
+use common::oauth::{OwnedTrait, Owner, OwnerScope, UserInfo};
 use common::batch_requests::BatchRequests;
 use common::errors::NotFoundExt;
 use common::paginated_spec::Cursor;
@@ -90,11 +90,11 @@ impl NegotiationProcessService {
             self.identifiers_repo
                 .get_identifiers_by_process_id(&process_urn),
             self.messages_repo
-                .get_messages_by_process_id(Some(process.tenant_id.clone()), &process_urn),
+                .get_messages_by_process_id(&OwnerScope::All, &process_urn),
             self.offers_repo
-                .get_offers_by_negotiation_process(Some(process.tenant_id.clone()), &process_urn),
+                .get_offers_by_negotiation_process(&OwnerScope::All, &process_urn),
             self.agreements_repo.get_agreement_by_negotiation_process(
-                Some(process.tenant_id.clone()),
+                &OwnerScope::All,
                 &process_urn
             ),
         )?;
@@ -116,24 +116,20 @@ impl NegotiationProcessService {
 
 #[async_trait::async_trait]
 impl NegotiationProcessServiceTrait for NegotiationProcessService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &NegotiationProcessFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<NegotiationProcessView>> {
-        scope.require_read()?;
         filters.validate()?;
-
-        let mut filters = filters.clone();
-        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
 
         let page = page.clamped();
         let (processes, total) = self
             .process_repo
-            .get_all_negotiation_processes(&filters, &page, sort)
+            .get_all_negotiation_processes(&OwnerScope::seeing(user), filters, &page, sort)
             .await?;
 
         let urns: Vec<Urn> = processes
@@ -177,13 +173,12 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), id = %id)
+        fields(user = %user.id(), id = %id)
     )]
-    async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<NegotiationProcessView> {
-        scope.require_read()?;
+    async fn get_one(&self, user: &UserInfo, id: &Urn) -> Outcome<NegotiationProcessView> {
         let process = self
             .process_repo
-            .get_negotiation_process_by_id(scope.tenant_filter().map(str::to_string), id)
+            .get_negotiation_process_by_id(&OwnerScope::seeing(user), id)
             .await?
             .or_not_found(id, "negotiation process")?;
 
@@ -194,19 +189,18 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), key_id = %key_id, id = %id)
+        fields(user = %user.id(), key_id = %key_id, id = %id)
     )]
     async fn get_by_key_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         key_id: &str,
         id: &Urn,
     ) -> Outcome<NegotiationProcessView> {
-        scope.require_read()?;
         let process = self
             .process_repo
             .get_negotiation_process_by_key_id(
-                scope.tenant_filter().map(str::to_string),
+                &OwnerScope::seeing(user),
                 key_id,
                 id,
             )
@@ -220,30 +214,28 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), value = %value)
+        fields(user = %user.id(), value = %value)
     )]
     async fn get_by_key_value(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         value: &Urn,
     ) -> Outcome<NegotiationProcessView> {
-        scope.require_read()?;
         let process = self
             .process_repo
-            .get_negotiation_process_by_key_value(scope.tenant_filter().map(str::to_string), value)
+            .get_negotiation_process_by_key_value(&OwnerScope::seeing(user), value)
             .await?
             .or_not_found(value, "negotiation process")?;
 
         self.fetch_details(process).await
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn batch(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         req: &BatchRequests,
     ) -> Outcome<Vec<NegotiationProcessView>> {
-        scope.require_read()?;
         if req.ids.len() > MAX_BATCH_IDS {
             return Err(Errors::format(
                 BadFormat::Received,
@@ -257,7 +249,7 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
 
         let processes = self
             .process_repo
-            .get_batch_negotiation_processes(scope.tenant_filter().map(str::to_string), &req.ids)
+            .get_batch_negotiation_processes(&OwnerScope::seeing(user), &req.ids)
             .await?;
 
         let urns: Vec<Urn> = processes
@@ -294,17 +286,15 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
         Ok(views)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn create(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         cmd: &NewNegotiationProcessDto,
     ) -> Outcome<NegotiationProcessView> {
-        let mut cmd = cmd.clone();
-        let tenant_id = scope.resolve_create_tenant(cmd.tenant_id.as_deref())?;
-        cmd.tenant_id = Some(tenant_id.clone());
-
-        let new_process_model: NewNegotiationProcessModel = cmd.clone().into_model(tenant_id);
+        let cmd = cmd.clone();
+        let owner = Owner::for_new(user, cmd.owner.clone(), cmd.visibility.clone());
+        let new_process_model: NewNegotiationProcessModel = cmd.clone().into_model(owner);
         let created_process = self
             .process_repo
             .create_negotiation_process(&new_process_model)
@@ -317,7 +307,7 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
             for (key, urn_value) in identifiers {
                 let new_ident_model = NewNegotiationIdentifierModel {
                     id: None,
-                    tenant_id: created_process.tenant_id.clone(),
+                    owner: created_process.owner(),
                     negotiation_agent_process_id: process_urn.clone(),
                     id_key: key.clone(),
                     id_value: Some(urn_value.to_string()),
@@ -333,7 +323,7 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
             NegotiationProcessView::assemble(created_process, identifiers, vec![], vec![], None);
         events::emit_action!(
             self.event_bus,
-            &view.inner.tenant_id,
+            &view.inner.owner(),
             crate::EVENT_PREFIX,
             "process",
             "create",
@@ -342,19 +332,18 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
         Ok(view)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn edit(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         id: &Urn,
         cmd: &EditNegotiationProcessDto,
     ) -> Outcome<NegotiationProcessView> {
-        scope.require_write()?;
 
         let edit_model: EditNegotiationProcessModel = cmd.clone().into();
         let updated_process = self
             .process_repo
-            .put_negotiation_process(scope.tenant_filter().map(str::to_string), id, &edit_model)
+            .put_negotiation_process(&OwnerScope::acting(user), id, &edit_model)
             .await?;
 
         let process_urn = Urn::from_str(&updated_process.id)
@@ -374,7 +363,7 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
                     self.identifiers_repo
                         .create_identifier(&NewNegotiationIdentifierModel {
                             id: Some(common::utils::get_urn(None)),
-                            tenant_id: updated_process.tenant_id.clone(),
+                            owner: updated_process.owner(),
                             negotiation_agent_process_id: process_urn.clone(),
                             id_key: key.clone(),
                             id_value: Some(urn_value.to_string()),
@@ -395,7 +384,7 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
         let view = self.fetch_details(updated_process).await?;
         events::emit_action!(
             self.event_bus,
-            &view.inner.tenant_id,
+            &view.inner.owner(),
             crate::EVENT_PREFIX,
             "process",
             "edit",
@@ -408,13 +397,12 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
         level = "info",
         skip_all,
         err,
-        fields(tenant = %scope.acting_tenant(), id = %id)
+        fields(user = %user.id(), id = %id)
     )]
-    async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
-        scope.require_write()?;
+    async fn delete(&self, user: &UserInfo, id: &Urn) -> Outcome<()> {
         let owner = self
             .process_repo
-            .delete_negotiation_process(scope.tenant_filter().map(str::to_string), id)
+            .delete_negotiation_process(&OwnerScope::acting(user), id)
             .await?;
         events::emit_action!(
             self.event_bus,

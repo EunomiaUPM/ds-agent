@@ -38,31 +38,31 @@ impl KeystoreClientImpl {
 }
 
 impl KeystoreClientImpl {
-    /// Lookups only read, and only within the tenant that owns the transfer.
-    fn reader_scope(tenant_id: &str) -> common::auth::AccessScope {
-        common::auth::AccessScope::from_role(common::auth::RbacRole::Reader, tenant_id)
+    /// Lookups only read, and only the entries of `user_id` (the keystore is per user).
+    fn reader_scope(user_id: &str) -> common::oauth::UserInfo {
+        common::oauth::acting_as(user_id)
     }
 }
 
 #[async_trait::async_trait]
 impl KeystoreLookup for KeystoreClientImpl {
     #[tracing::instrument(level = "info", skip_all, fields(peer.service = "keystore"))]
-    async fn get_parameter(&self, tenant_id: &str, key: &str) -> Option<serde_json::Value> {
+    async fn get_parameter(&self, user_id: &str, key: &str) -> Option<serde_json::Value> {
         let k = Key::new(key).ok()?;
-        let scope = Self::reader_scope(tenant_id);
+        let user = Self::reader_scope(user_id);
         self.parameter_store
-            .read(&scope, &k)
+            .read(&user, &k)
             .await
             .ok()
             .map(|e| e.value)
     }
 
     #[tracing::instrument(level = "info", skip_all, fields(peer.service = "keystore"))]
-    async fn get_secret(&self, tenant_id: &str, key: &str) -> Option<serde_json::Value> {
+    async fn get_secret(&self, user_id: &str, key: &str) -> Option<serde_json::Value> {
         let k = Key::new(key).ok()?;
-        let scope = Self::reader_scope(tenant_id);
+        let user = Self::reader_scope(user_id);
         self.secret_store
-            .read(&scope, &k)
+            .read(&user, &k)
             .await
             .ok()
             .map(|e| e.value.expose().clone())

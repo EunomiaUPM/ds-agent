@@ -21,7 +21,7 @@ pub mod service;
 
 pub use service::TransferEventsService;
 
-use common::auth::access::AccessScope;
+use common::oauth::UserInfo;
 use common::batch_requests::BatchRequests;
 use common::query::{Page, Paginated, Sort};
 use urn::Urn;
@@ -37,32 +37,32 @@ pub trait TransferEventServiceTrait: Send + Sync + 'static {
     /// Page of events visible to the caller.
     async fn get_all(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &TransferEventFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferEventDto>>;
 
     /// 404 when the event is not visible to the caller.
-    async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<TransferEventDto>;
+    async fn get_one(&self, user: &UserInfo, id: &Urn) -> Outcome<TransferEventDto>;
 
     /// Every event of the process.
     async fn get_by_process_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         process_id: &Urn,
     ) -> Outcome<Vec<TransferEventDto>>;
 
     /// Events found among the requested ids.
     async fn batch(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         req: &BatchRequests,
     ) -> Outcome<Vec<TransferEventDto>>;
 
     async fn create(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         cmd: &NewTransferEventDto,
     ) -> Outcome<TransferEventDto>;
 }

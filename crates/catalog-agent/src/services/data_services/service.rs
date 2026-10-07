@@ -23,7 +23,7 @@ use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::data_services::{DataServiceDto, EditDataServiceDto, NewDataServiceDto};
 use crate::entities::filters::DataServiceFilter;
 use crate::services::data_services::DataServiceServiceTrait;
-use common::auth::AccessScope;
+use common::oauth::{OwnedTrait, Owner, OwnerScope, RoleTrait, UserInfo};
 use common::errors::NotFoundExt;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use common::query::QueryFilter;
@@ -60,24 +60,21 @@ impl DataServiceService {
 
 #[async_trait::async_trait]
 impl DataServiceServiceTrait for DataServiceService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all_data_services(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &DataServiceFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<DataServiceDto>> {
-        scope.require_read()?;
         filters.validate()?;
-        let mut filters = filters.clone();
-        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
         let page = page.clamped();
 
         let (data_services, total) = self
             .repo
             .get_dataservice_repo()
-            .get_all_data_services(&filters, &page, sort)
+            .get_all_data_services(&OwnerScope::seeing(user), filters, &page, sort)
             .await?;
 
         let dtos: Vec<DataServiceDto> = data_services.into_iter().map(Into::into).collect();
@@ -97,17 +94,16 @@ impl DataServiceServiceTrait for DataServiceService {
         }))
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_batch_data_services(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         ids: &[Urn],
     ) -> Outcome<Vec<DataServiceDto>> {
-        scope.require_read()?;
         let data_services = self
             .repo
             .get_dataservice_repo()
-            .get_batch_data_services(scope.tenant_filter().map(str::to_string), ids)
+            .get_batch_data_services(&OwnerScope::seeing(user), ids)
             .await?;
 
         let mut dtos: Vec<DataServiceDto> = Vec::new();
@@ -125,17 +121,16 @@ impl DataServiceServiceTrait for DataServiceService {
         Ok(dtos)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_data_services_by_catalog_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         catalog_id: &Urn,
     ) -> Outcome<Vec<DataServiceDto>> {
-        scope.require_read()?;
         let data_services = self
             .repo
             .get_dataservice_repo()
-            .get_data_services_by_catalog_id(scope.tenant_filter().map(str::to_string), catalog_id)
+            .get_data_services_by_catalog_id(&OwnerScope::seeing(user), catalog_id)
             .await?;
 
         let mut dtos: Vec<DataServiceDto> = Vec::new();
@@ -155,13 +150,12 @@ impl DataServiceServiceTrait for DataServiceService {
         Ok(dtos)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn get_main_data_service(&self, scope: &AccessScope) -> Outcome<Option<DataServiceDto>> {
-        scope.require_read()?;
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn get_main_data_service(&self, user: &UserInfo) -> Outcome<Option<DataServiceDto>> {
         let data_service = self
             .repo
             .get_dataservice_repo()
-            .get_main_data_service(scope.acting_tenant())
+            .get_main_data_service()
             .await?;
         let dto: Option<DataServiceDto> = data_service.map(Into::into);
 
@@ -170,24 +164,23 @@ impl DataServiceServiceTrait for DataServiceService {
                 let _ = self
                     .cache
                     .get_dataservice_cache()
-                    .set_main(&dto.inner.tenant_id, &id, dto)
+                    .set_main(crate::MAIN_CACHE_KEY, &id, dto)
                     .await;
             }
         }
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_data_service_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         data_service_id: &Urn,
     ) -> Outcome<DataServiceDto> {
-        scope.require_read()?;
         let data_service = self
             .repo
             .get_dataservice_repo()
-            .get_data_service_by_id(scope.tenant_filter().map(str::to_string), data_service_id)
+            .get_data_service_by_id(&OwnerScope::seeing(user), data_service_id)
             .await?
             .or_not_found(data_service_id, "data service")?;
 
@@ -201,20 +194,19 @@ impl DataServiceServiceTrait for DataServiceService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn put_data_service_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         data_service_id: &Urn,
         edit_data_service_model: &EditDataServiceDto,
     ) -> Outcome<DataServiceDto> {
-        scope.require_write()?;
         let edit_model = edit_data_service_model.clone().into();
         let data_service = self
             .repo
             .get_dataservice_repo()
             .put_data_service_by_id(
-                scope.tenant_filter().map(str::to_string),
+                &OwnerScope::acting(user),
                 data_service_id,
                 &edit_model,
             )
@@ -231,7 +223,7 @@ impl DataServiceServiceTrait for DataServiceService {
 
         events::emit_action!(
             self.event_bus,
-            &dto.inner.tenant_id,
+            &dto.inner.owner(),
             crate::EVENT_PREFIX,
             "dataservice",
             "edit",
@@ -240,16 +232,16 @@ impl DataServiceServiceTrait for DataServiceService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn create_data_service(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_data_service_model: &NewDataServiceDto,
     ) -> Outcome<DataServiceDto> {
         let mut new_data_service_model = new_data_service_model.clone();
-        let tenant_id = scope.resolve_create_tenant(new_data_service_model.tenant_id.as_deref())?;
-        new_data_service_model.tenant_id = Some(tenant_id.clone());
-        let new_model: NewDataServiceModel = new_data_service_model.into_model(tenant_id);
+        let owner =
+            Owner::for_new(user, new_data_service_model.owner.take(), new_data_service_model.visibility.clone());
+        let new_model: NewDataServiceModel = new_data_service_model.into_model(owner);
         let data_service = self
             .repo
             .get_dataservice_repo()
@@ -272,7 +264,7 @@ impl DataServiceServiceTrait for DataServiceService {
 
         events::emit_action!(
             self.event_bus,
-            &dto.inner.tenant_id,
+            &dto.inner.owner(),
             crate::EVENT_PREFIX,
             "dataservice",
             "create",
@@ -281,16 +273,16 @@ impl DataServiceServiceTrait for DataServiceService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn create_main_data_service(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_data_service_model: &NewDataServiceDto,
     ) -> Outcome<DataServiceDto> {
-        let mut new_data_service_model = new_data_service_model.clone();
-        let tenant_id = scope.resolve_create_tenant(new_data_service_model.tenant_id.as_deref())?;
-        new_data_service_model.tenant_id = Some(tenant_id.clone());
-        let new_model: NewDataServiceModel = new_data_service_model.into_model(tenant_id);
+        // The main data service is the connector's, like the main catalog it belongs to.
+        user.require_root()?;
+        let new_model: NewDataServiceModel =
+            new_data_service_model.clone().into_model(Owner::connector());
         let data_service = self
             .repo
             .get_dataservice_repo()
@@ -302,13 +294,13 @@ impl DataServiceServiceTrait for DataServiceService {
             let _ = self
                 .cache
                 .get_dataservice_cache()
-                .set_main(&dto.inner.tenant_id, &id, &dto)
+                .set_main(crate::MAIN_CACHE_KEY, &id, &dto)
                 .await;
         }
 
         events::emit_action!(
             self.event_bus,
-            &dto.inner.tenant_id,
+            &dto.inner.owner(),
             crate::EVENT_PREFIX,
             "dataservice",
             "create",
@@ -317,17 +309,16 @@ impl DataServiceServiceTrait for DataServiceService {
         Ok(dto)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn delete_data_service_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         data_service_id: &Urn,
     ) -> Outcome<()> {
-        scope.require_write()?;
         let deleted = self
             .repo
             .get_dataservice_repo()
-            .delete_data_service_by_id(scope.tenant_filter().map(str::to_string), data_service_id)
+            .delete_data_service_by_id(&OwnerScope::acting(user), data_service_id)
             .await?;
 
         let cache = self.cache.get_dataservice_cache();
@@ -341,7 +332,7 @@ impl DataServiceServiceTrait for DataServiceService {
 
         events::emit_action!(
             self.event_bus,
-            &deleted.tenant_id,
+            &deleted.owner(),
             crate::EVENT_PREFIX,
             "dataservice",
             "delete",

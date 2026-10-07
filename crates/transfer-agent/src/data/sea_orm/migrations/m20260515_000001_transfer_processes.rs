@@ -39,11 +39,9 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(TransferProcesses::TenantId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(TransferProcesses::UserId).string().not_null())
+                    .col(ColumnDef::new(TransferProcesses::UserRole).string_len(255).not_null())
+                    .col(ColumnDef::new(TransferProcesses::Visibility).string_len(16).not_null())
                     .col(ColumnDef::new(TransferProcesses::Role).string().not_null())
                     .col(
                         ColumnDef::new(TransferProcesses::CreatedAt)
@@ -122,8 +120,8 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .table(TransferProcesses::Table)
-                    .col(TransferProcesses::TenantId)
-                    .name("idx_tp_tenant_id")
+                    .col(TransferProcesses::UserId)
+                    .name("idx_tp_user_id")
                     .to_owned(),
             )
             .await?;
@@ -150,7 +148,9 @@ impl MigrationTrait for Migration {
 pub enum TransferProcesses {
     Table,
     Id,
-    TenantId,
+    UserId,
+    UserRole,
+    Visibility,
     Role,
     CreatedAt,
     UpdatedAt,

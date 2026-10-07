@@ -60,22 +60,17 @@ pub struct DataplanePort {
 }
 
 impl TransferPorts {
-    /// Microservices: every agent is reached through its API with the service token.
+    /// Microservices: every agent is reached through its API.
     pub async fn remote(config: &TransferConfig, root: &RootContext) -> Outcome<Self> {
-        let client = root.service_client.clone();
         Ok(Self {
-            auth: AuthPorts::remote(config.ssi_auth(), root),
-            negotiation: Arc::new(NegotiationRemoteFacade::new(
-                config.contracts(),
-                client.clone(),
-            )),
-            catalog: Arc::new(CatalogRemoteFacade::new(config.catalog(), client)),
+            auth: AuthPorts::remote(config.ssi_auth()),
+            negotiation: Arc::new(NegotiationRemoteFacade::new(config.contracts())),
+            catalog: Arc::new(CatalogRemoteFacade::new(config.catalog())),
             dataplane: Self::dataplane(config, root, &DataplanePorts::remote(config, root)).await?,
         })
     }
 
-    /// Monolith: the owning agents' services, reached in-process. `service_tenant` is the
-    /// service client's tenant, impersonated by cross-tenant lookups.
+    /// Monolith: the owning agents' services, reached in-process.
     #[allow(clippy::too_many_arguments)]
     pub async fn local(
         config: &TransferConfig,
@@ -85,12 +80,11 @@ impl TransferPorts {
         datasets: Arc<dyn DatasetServiceTrait>,
         distributions: Arc<dyn DistributionServiceTrait>,
         connector: Arc<dyn ConnectorInstanceFacadeTrait>,
-        service_tenant: String,
     ) -> Outcome<Self> {
         let dataplane_ports = DataplanePorts::local(connector.clone());
         Ok(Self {
             auth,
-            negotiation: Arc::new(NegotiationLocalFacade::new(agreements, service_tenant)),
+            negotiation: Arc::new(NegotiationLocalFacade::new(agreements)),
             catalog: Arc::new(CatalogLocalFacade::new(datasets, distributions, connector)),
             dataplane: Self::dataplane(config, root, &dataplane_ports).await?,
         })

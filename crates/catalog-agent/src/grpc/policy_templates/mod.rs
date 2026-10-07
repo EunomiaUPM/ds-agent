@@ -28,8 +28,8 @@ use crate::grpc::api::catalog_agent::{
     PolicyTemplateResponse,
 };
 use crate::services::policy_templates::PolicyTemplateServiceTrait;
-use common::auth::grpc::GrpcAuth;
-use common::auth::OauthTokenValidator;
+use common::oauth::grpc::GrpcAuth;
+use common::oauth::OauthTokenValidatorTrait;
 use common::grpc::{IntoStatus, ListParams};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
@@ -43,7 +43,7 @@ pub struct PolicyTemplateEntityGrpc {
 impl PolicyTemplateEntityGrpc {
     pub fn new(
         service: Arc<dyn PolicyTemplateServiceTrait>,
-        validator: Arc<dyn OauthTokenValidator>,
+        validator: Arc<dyn OauthTokenValidatorTrait>,
     ) -> Self {
         Self {
             service,
@@ -58,11 +58,11 @@ impl PolicyTemplateEntityService for PolicyTemplateEntityGrpc {
         &self,
         request: Request<ListPolicyTemplatesRequest>,
     ) -> Result<Response<PolicyTemplateListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let params = ListParams::try_from(request.into_inner())?;
         let result = self
             .service
-            .get_all_policy_templates(&scope, &params.filter, &params.page, &params.sort)
+            .get_all_policy_templates(&user, &params.filter, &params.page, &params.sort)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(result.try_into()?))
@@ -72,11 +72,11 @@ impl PolicyTemplateEntityService for PolicyTemplateEntityGrpc {
         &self,
         request: Request<GetBatchRequest>,
     ) -> Result<Response<PolicyTemplateListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let ids = request.into_inner().ids;
         let dtos = self
             .service
-            .get_batch_policy_templates(&scope, &ids)
+            .get_batch_policy_templates(&user, &ids)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dtos.try_into()?))
@@ -86,11 +86,11 @@ impl PolicyTemplateEntityService for PolicyTemplateEntityGrpc {
         &self,
         request: Request<GetByIdRequest>,
     ) -> Result<Response<PolicyTemplateListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let id = request.into_inner().id;
         let dtos = self
             .service
-            .get_policies_template_by_id(&scope, &id)
+            .get_policies_template_by_id(&user, &id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dtos.try_into()?))
@@ -100,11 +100,11 @@ impl PolicyTemplateEntityService for PolicyTemplateEntityGrpc {
         &self,
         request: Request<GetByVersionRequest>,
     ) -> Result<Response<PolicyTemplateResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let req = request.into_inner();
         let dto = self
             .service
-            .get_policies_template_by_version_and_id(&scope, &req.id, &req.version)
+            .get_policies_template_by_version_and_id(&user, &req.id, &req.version)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dto.try_into()?))
@@ -114,11 +114,11 @@ impl PolicyTemplateEntityService for PolicyTemplateEntityGrpc {
         &self,
         request: Request<CreatePolicyTemplateRequest>,
     ) -> Result<Response<PolicyTemplateResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let dto = request.into_inner().try_into()?;
         let created = self
             .service
-            .create_policy_template(&scope, &dto)
+            .create_policy_template(&user, &dto)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(created.try_into()?))
@@ -128,10 +128,10 @@ impl PolicyTemplateEntityService for PolicyTemplateEntityGrpc {
         &self,
         request: Request<DeleteByVersionRequest>,
     ) -> Result<Response<()>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let req = request.into_inner();
         self.service
-            .delete_policy_template_by_version_and_id(&scope, &req.id, &req.version)
+            .delete_policy_template_by_version_and_id(&user, &req.id, &req.version)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(()))

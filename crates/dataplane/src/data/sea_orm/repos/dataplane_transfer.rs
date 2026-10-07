@@ -17,7 +17,7 @@
 
 //! Process repository.
 
-use sea_orm::QueryTrait;
+use common::oauth::OwnerScope;
 use std::sync::Arc;
 
 use crate::data::repo::dataplane_transfer::{DataplaneTransfersRepo, DataplaneTransfersRepoErrors};
@@ -60,10 +60,12 @@ impl DataplaneTransfersRepoForSql {
 
     fn apply_base_filters(
         mut q: sea_orm::Select<DataplaneTransferEntity>,
+        scope: &OwnerScope,
         filters: &DataplaneTransferFilter,
     ) -> sea_orm::Select<DataplaneTransferEntity> {
-        if let Some(tid) = &filters.tenant_id {
-            q = q.filter(Column::TenantId.eq(tid.as_str()));
+        q = q.filter(scope.condition(Column::UserId, Column::UserRole, Column::Visibility));
+        if let Some(user_id) = &filters.user_id {
+            q = q.filter(Column::UserId.eq(user_id.as_str()));
         }
         if let Some(pid) = &filters.transfer_process_id {
             q = q.filter(Column::TransferProcessId.eq(pid.as_str()));
@@ -92,11 +94,12 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_dataplane_transfers(
         &self,
+        scope: &OwnerScope,
         filters: &DataplaneTransferFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Vec<dataplane_transfers::Model>> {
-        let mut q = Self::apply_base_filters(DataplaneTransferEntity::find(), filters);
+        let mut q = Self::apply_base_filters(DataplaneTransferEntity::find(), scope, filters);
 
         if let Some(cursor) = &page.cursor {
             let cursor_dt = self.decode_cursor(cursor)?;
@@ -125,8 +128,12 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn count_dataplane_transfers(&self, filters: &DataplaneTransferFilter) -> Outcome<u64> {
-        Self::apply_base_filters(DataplaneTransferEntity::find(), filters)
+    async fn count_dataplane_transfers(
+        &self,
+        scope: &OwnerScope,
+        filters: &DataplaneTransferFilter,
+    ) -> Outcome<u64> {
+        Self::apply_base_filters(DataplaneTransferEntity::find(), scope, filters)
             .count(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)
@@ -135,7 +142,7 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_dataplane_transfers(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<dataplane_transfers::Model>> {
         if ids.is_empty() {
@@ -144,7 +151,7 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         let id_strings: Vec<String> = ids.iter().map(|urn| urn.to_string()).collect();
         let transfers = DataplaneTransferEntity::find()
             .filter(Column::Id.is_in(id_strings))
-            .apply_if(tenant_id, |q, t| q.filter(Column::TenantId.eq(t)))
+            .filter(scope.condition(Column::UserId, Column::UserRole, Column::Visibility))
             .all(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?;
@@ -155,11 +162,11 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_dataplane_transfers_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         process_id: &Urn,
     ) -> Outcome<Option<dataplane_transfers::Model>> {
         let transfer = DataplaneTransferEntity::find_by_id(process_id.to_string())
-            .apply_if(tenant_id, |q, t| q.filter(Column::TenantId.eq(t)))
+            .filter(scope.condition(Column::UserId, Column::UserRole, Column::Visibility))
             .one(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?;
@@ -181,12 +188,12 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_by_transfer_process_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         transfer_process_id: &Urn,
     ) -> Outcome<Option<dataplane_transfers::Model>> {
         let transfer = DataplaneTransferEntity::find()
             .filter(Column::TransferProcessId.eq(transfer_process_id.to_string()))
-            .apply_if(tenant_id, |q, t| q.filter(Column::TenantId.eq(t)))
+            .filter(scope.condition(Column::UserId, Column::UserRole, Column::Visibility))
             .one(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?;
@@ -208,12 +215,12 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_dataplane_transfers(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         process_id: &Urn,
         new_dataplane_transfer: &EditDataplaneTransferModel,
     ) -> Outcome<dataplane_transfers::Model> {
         let existing = DataplaneTransferEntity::find_by_id(process_id.to_string())
-            .apply_if(tenant_id, |q, t| q.filter(Column::TenantId.eq(t)))
+            .filter(scope.condition(Column::UserId, Column::UserRole, Column::Visibility))
             .one(self.db.as_ref())
             .await
             .map_err(|e| {
@@ -249,12 +256,12 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_dataplane_transfers(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         process_id: &Urn,
     ) -> Outcome<()> {
         let result = DataplaneTransferEntity::delete_many()
             .filter(Column::Id.eq(process_id.to_string()))
-            .apply_if(tenant_id, |q, t| q.filter(Column::TenantId.eq(t)))
+            .filter(scope.condition(Column::UserId, Column::UserRole, Column::Visibility))
             .exec(self.db.as_ref())
             .await
             .map_err(|e| {

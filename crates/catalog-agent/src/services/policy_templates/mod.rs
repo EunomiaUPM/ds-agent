@@ -21,7 +21,7 @@ pub mod service;
 
 use crate::entities::filters::PolicyTemplateFilter;
 use crate::entities::policy_templates::{NewPolicyTemplateDto, PolicyTemplateDto};
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use common::paginated_spec::{Page, Paginated, Sort};
 use ymir::errors::Outcome;
 
@@ -32,7 +32,7 @@ pub trait PolicyTemplateServiceTrait: Sync + Send {
     /// Page of templates visible to the caller.
     async fn get_all_policy_templates(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &PolicyTemplateFilter,
         page: &Page,
         sort: &Sort,
@@ -40,30 +40,30 @@ pub trait PolicyTemplateServiceTrait: Sync + Send {
     /// Templates found among `ids`.
     async fn get_batch_policy_templates(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         ids: &[String],
     ) -> Outcome<Vec<PolicyTemplateDto>>;
     /// Every version of the template.
     async fn get_policies_template_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         template_id: &str,
     ) -> Outcome<Vec<PolicyTemplateDto>>;
     async fn get_policies_template_by_version_and_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         template_id: &str,
         version_id: &str,
     ) -> Outcome<PolicyTemplateDto>;
     /// Validates the template and stores it.
     async fn create_policy_template(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_policy_template: &NewPolicyTemplateDto,
     ) -> Outcome<PolicyTemplateDto>;
     async fn delete_policy_template_by_version_and_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         template_id: &str,
         version_id: &str,
     ) -> Outcome<()>;

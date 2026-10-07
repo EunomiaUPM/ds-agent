@@ -16,7 +16,7 @@
  */
 
 //! Catalog agent as a composable module: management API, DSP catalog, connector and the
-//! tenant listener, all over one `AppContext`.
+//! seeders of the connector's own records, all over one `AppContext`.
 
 use std::sync::Arc;
 
@@ -25,7 +25,8 @@ use crate::protocols::dsp::setup::DspModule;
 use crate::services::datasets::DatasetServiceTrait;
 use crate::services::distributions::DistributionServiceTrait;
 use crate::services::odrl_policies::OdrlPolicyServiceTrait;
-use crate::services::tenant_provisioning::listener::TenantProvisioningListener;
+// Per-tenant main catalogs are gone (one main catalog per connector); kept out of the tree.
+// use crate::services::tenant_provisioning::listener::TenantProvisioningListener;
 use crate::setup::admin_module::CatalogAdminModule;
 use crate::setup::context::AppContext;
 use crate::setup::ports::CatalogPorts;
@@ -40,6 +41,7 @@ use common::config::types::traits::CommonConfigTrait;
 use common::module_loader::module_group::ModuleGroup;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
+use common::oauth::UserInfo;
 use connector::{ConnectorInstanceFacadeTrait, ConnectorModule, ConnectorPorts};
 use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
@@ -130,28 +132,28 @@ impl ServiceModuleTrait for CatalogAgentModule {
         self.modules.grpc_descriptors()
     }
 
-    /// Tenants born elsewhere are only heard through the shared bus.
+    /// No workers: the connector's main catalog is provisioned once, at boot (the former
+    /// per-tenant listener is kept out of the tree).
     fn workers(&self) -> Vec<Box<dyn BackgroundWorker>> {
-        let Some(bus) = self.ctx.event_bus.clone() else {
-            return vec![];
-        };
-        let listener =
-            TenantProvisioningListener::new(bus, self.ctx.tenant_provisioning_svc.clone());
-        vec![Box::new(listener)]
+        // let Some(bus) = self.ctx.event_bus.clone() else {
+        //     return vec![];
+        // };
+        // let listener =
+        //     TenantProvisioningListener::new(bus, self.ctx.tenant_provisioning_svc.clone());
+        // vec![Box::new(listener)]
+        vec![]
     }
 
-    /// The admin tenant's catalog and the policy template library, on the services in-process.
+    /// The connector's main catalog and the policy template library, on the services
+    /// in-process, as the root: both are the connector's and public.
     fn seeders(&self) -> Vec<Box<dyn BootSeeder>> {
         let config = &self.ctx.config;
-        let tenant = config.admin_seed().tenant_id.clone();
         vec![
             Box::new(AdminTenantProvisioner::new(
                 self.ctx.tenant_provisioning_svc.clone(),
-                tenant.clone(),
             )),
             Box::new(PolicyTemplateLoader::new(
                 self.ctx.policy_template_svc.clone(),
-                tenant,
                 config.get_policy_templates_folder().to_string(),
             )),
         ]

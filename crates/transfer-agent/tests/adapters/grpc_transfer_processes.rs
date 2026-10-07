@@ -18,7 +18,7 @@
 //! TransferProcessGrpc: auth, field parsing, enum and identifier mapping, error mapping and
 //! response shaping.
 
-use common::test_utils::grpc::{GrpcRequests, OTHER_TENANT, StubTokenValidator, TENANT};
+use common::test_utils::grpc::{GrpcRequests, StubTokenValidator, TENANT};
 use std::sync::Arc;
 use transfer_agent::grpc::api::transfer_processes::{
     BatchTransferProcessesRequest, CreateTransferProcessRequest, EditTransferProcessRequest,
@@ -54,7 +54,9 @@ fn grpc(service: MockTransferProcessServiceTrait) -> TransferProcessGrpc {
 fn view() -> TransferProcessView {
     TransferProcessView {
         id: TransferProcessId::generate(),
-        tenant_id: TENANT.to_string(),
+        user_id: TENANT.to_string(),
+        user_role: common::oauth::RolePath::root(),
+        visibility: common::oauth::Visibility::Private,
         role: TransferRole::Provider,
         protocol: ProtocolId::Dsp2025_1,
         state: ProtocolState("REQUESTED".into()),
@@ -95,7 +97,7 @@ fn valid_create() -> CreateTransferProcessRequest {
 async fn get_without_token_is_unauthenticated() {
     let g = grpc(MockTransferProcessServiceTrait::new());
     let err = g
-        .get_transfer_process(GrpcRequests::with_auth(id_request(), None, Some(TENANT)))
+        .get_transfer_process(GrpcRequests::with_auth(id_request(), None))
         .await
         .unwrap_err();
     assert_eq!(err.code(), Code::Unauthenticated);
@@ -106,48 +108,10 @@ async fn get_without_token_is_unauthenticated() {
 async fn get_with_invalid_token_is_unauthenticated() {
     let g = grpc(MockTransferProcessServiceTrait::new());
     let err = g
-        .get_transfer_process(GrpcRequests::with_auth(
-            id_request(),
-            Some("bogus"),
-            Some(TENANT),
-        ))
+        .get_transfer_process(GrpcRequests::with_auth(id_request(), Some("bogus")))
         .await
         .unwrap_err();
     assert_eq!(err.code(), Code::Unauthenticated);
-}
-
-/// A non-admin naming another tenant is PermissionDenied.
-#[tokio::test]
-async fn get_foreign_tenant_without_admin_is_permission_denied() {
-    let g = grpc(MockTransferProcessServiceTrait::new());
-    let err = g
-        .get_transfer_process(GrpcRequests::with_auth(
-            id_request(),
-            Some("owner"),
-            Some(OTHER_TENANT),
-        ))
-        .await
-        .unwrap_err();
-    assert_eq!(err.code(), Code::PermissionDenied);
-}
-
-/// An admin may act on another tenant.
-#[tokio::test]
-async fn admin_may_act_on_foreign_tenant() {
-    let mut svc = MockTransferProcessServiceTrait::new();
-    svc.expect_get_one()
-        .withf(|scope, _| scope.acting_tenant() == OTHER_TENANT && scope.is_admin())
-        .returning(|_, _| Ok(view()));
-    let g = grpc(svc);
-    assert!(
-        g.get_transfer_process(GrpcRequests::with_auth(
-            id_request(),
-            Some("admin"),
-            Some(OTHER_TENANT)
-        ))
-        .await
-        .is_ok()
-    );
 }
 
 /// Without tenant header the caller acts on its token's tenant.
@@ -155,11 +119,11 @@ async fn admin_may_act_on_foreign_tenant() {
 async fn missing_tenant_header_falls_back_to_token_tenant() {
     let mut svc = MockTransferProcessServiceTrait::new();
     svc.expect_get_one()
-        .withf(|scope, _| scope.acting_tenant() == TENANT)
+        .withf(|scope, _| scope.id() == TENANT)
         .returning(|_, _| Ok(view()));
     let g = grpc(svc);
     assert!(
-        g.get_transfer_process(GrpcRequests::with_auth(id_request(), Some("owner"), None))
+        g.get_transfer_process(GrpcRequests::with_auth(id_request(), Some("user")))
             .await
             .is_ok()
     );
@@ -337,7 +301,7 @@ async fn list_propagates_cursor_total_and_parsed_filters() {
         .withf(|_, filter, page, sort| {
             filter.role == Some(TransferRole::Relay)
                 && filter.protocol == Some(ProtocolId::Dsp2024)
-                && filter.tenant_id.is_none()
+                && filter.user_id.is_none()
                 && page.limit == 5
                 && page.cursor.as_deref() == Some("abc")
                 && sort.as_str() == "updated_at_asc"

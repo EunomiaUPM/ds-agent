@@ -15,27 +15,29 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
-
 use axum::http::StatusCode;
 use catalog_agent::OdrlPolicyDto;
-use common::auth::ServiceHttpClient;
 use common::config::types::min_known_config::MinKnownConfig;
 use common::config::types::traits::MinKnownConfigTrait;
 use urn::Urn;
 use ymir::config::types::HostType;
 use ymir::errors::{Errors, Outcome, PetitionFailure};
+use ymir::services::client::ClientExt;
+use ymir::utils::http_client;
 
 use crate::facades::catalog_facade::CatalogFacadeTrait;
 
-/// Offers read from the catalog agent's API with the service token.
+/// Offers read from the catalog agent's API.
+///
+/// The calls carry no user token yet: the catalog agent answers for
+/// whoever its identity provider gives. Propagating the caller is pending (as for the auth
+/// facades).
 pub struct CatalogRemoteFacade {
     offers_url: String,
-    service_client: Arc<ServiceHttpClient>,
 }
 
 impl CatalogRemoteFacade {
-    pub fn new(catalog: &MinKnownConfig, service_client: Arc<ServiceHttpClient>) -> Self {
+    pub fn new(catalog: &MinKnownConfig) -> Self {
         Self {
             offers_url: format!(
                 "{}{}/{}/odrl-policies",
@@ -43,7 +45,6 @@ impl CatalogRemoteFacade {
                 catalog.get_api_version(),
                 catalog_agent::SERVICE_NAME
             ),
-            service_client,
         }
     }
 }
@@ -55,17 +56,17 @@ impl CatalogFacadeTrait for CatalogRemoteFacade {
         level = "info",
         skip_all,
         err,
-        fields(peer.service = "catalog", tenant = %tenant_id)
+        fields(peer.service = "catalog")
     )]
-    async fn get_offer(&self, tenant_id: &str, offer_id: &Urn) -> Outcome<OdrlPolicyDto> {
+    async fn get_offer(&self, offer_id: &Urn) -> Outcome<OdrlPolicyDto> {
         let url = format!("{}/{offer_id}", self.offers_url);
-        match self.service_client.get_json(&url, Some(tenant_id)).await {
+        match http_client().get_json(&url, None).await {
             Err(Errors::PetitionError {
                 failure: PetitionFailure::HttpStatus(StatusCode::NOT_FOUND),
                 ..
             }) => Err(Errors::missing_resource(
                 offer_id.to_string(),
-                "Offer not found in the tenant catalog",
+                "Offer not found in the catalog",
                 None,
             )),
             other => other,

@@ -18,6 +18,7 @@
 //! Loader over the process repository and the resolvers.
 
 use std::sync::Arc;
+use common::oauth::OwnerScope;
 
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
@@ -96,7 +97,7 @@ impl DspDomainLoader {
             })?;
             if let Some(found) = self
                 .process_repo
-                .get_transfer_process_by_key_value(None, &urn)
+                .get_transfer_process_by_key_value(&OwnerScope::All, &urn)
                 .await?
             {
                 return Ok(TransferContextProcessSlot::Existing(found));

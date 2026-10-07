@@ -18,45 +18,47 @@
 //! Catalog repository.
 
 use crate::data::entities::catalog;
+use common::oauth::OwnerScope;
 use crate::data::entities::catalog::{EditCatalogModel, NewCatalogModel};
 use crate::entities::filters::CatalogFilter;
 use common::paginated_spec::{Page, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
-/// Persistence of catalogs; `tenant_id` of `None` reaches every tenant.
+/// Persistence of catalogs, within the owner scope each call gives.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait CatalogRepositoryTrait: Send + Sync {
     /// Page of catalogs matching the filters, with the total.
     async fn get_all_catalogs(
         &self,
+        scope: &OwnerScope,
         filters: &CatalogFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<catalog::Model>, Option<u64>)>;
     async fn get_batch_catalogs(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<catalog::Model>>;
     async fn get_catalog_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         catalog_id: &Urn,
     ) -> Outcome<Option<catalog::Model>>;
-    /// The tenant's main catalog, the one served over DSP.
-    async fn get_main_catalog(&self, tenant_id: &str) -> Outcome<Option<catalog::Model>>;
+    /// The connector's main catalog, the one served over DSP.
+    async fn get_main_catalog(&self) -> Outcome<Option<catalog::Model>>;
 
     async fn put_catalog_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         catalog_id: &Urn,
         edit_catalog_model: &EditCatalogModel,
     ) -> Outcome<catalog::Model>;
     async fn create_catalog(&self, new_catalog_model: &NewCatalogModel) -> Outcome<catalog::Model>;
 
-    /// Stores the catalog as the tenant's main one.
+    /// Stores the catalog as the connector's main one, unless there is one already.
     async fn create_main_catalog(
         &self,
         new_catalog_model: &NewCatalogModel,
@@ -65,7 +67,7 @@ pub trait CatalogRepositoryTrait: Send + Sync {
     /// Deletes and returns the removed row.
     async fn delete_catalog_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         catalog_id: &Urn,
     ) -> Outcome<catalog::Model>;
 }

@@ -16,11 +16,11 @@
  */
 
 use crate::data::entities::connector_distro_relation;
+use common::oauth::{Owner, OwnerScope};
 use crate::data::repo_traits::connector_distro_relation_repo::ConnectorDistroRelationRepoTrait;
 use crate::data::repo_traits::connector_repo_errors::{
     ConnectorAgentRepoErrors, ConnectorDistroRelationRepoErrors,
 };
-use sea_orm::QueryTrait;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };
@@ -41,13 +41,15 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_relation(
         &self,
-        tenant_id: &str,
+        owner: &Owner,
         distro: &str,
         instance: &str,
     ) -> Outcome<connector_distro_relation::Model> {
         let relation = connector_distro_relation::ActiveModel {
             distribution_id: ActiveValue::Set(distro.to_string()),
-            tenant_id: ActiveValue::Set(tenant_id.to_string()),
+            user_id: ActiveValue::Set(owner.user_id.clone()),
+            user_role: ActiveValue::Set(owner.role.clone()),
+            visibility: ActiveValue::Set(owner.visibility.clone()),
             connector_instance_id: ActiveValue::Set(instance.to_string()),
         };
         let instance = connector_distro_relation::Entity::insert(relation)
@@ -65,12 +67,12 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn update_relation(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         distro: &str,
         instance: &str,
     ) -> Outcome<connector_distro_relation::Model> {
         let existing = connector_distro_relation::Entity::find_by_id(distro)
-            .filter(connector_distro_relation::Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(connector_distro_relation::Column::UserId, connector_distro_relation::Column::UserRole, connector_distro_relation::Column::Visibility))
             .one(&self.db_connection)
             .await
             .map_err(|e| {
@@ -99,14 +101,12 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_relation_by_distribution(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         distro: &str,
     ) -> Outcome<Option<connector_distro_relation::Model>> {
         let relation = connector_distro_relation::Entity::find()
             .filter(connector_distro_relation::Column::DistributionId.eq(distro))
-            .apply_if(tenant_id, |q, t| {
-                q.filter(connector_distro_relation::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(connector_distro_relation::Column::UserId, connector_distro_relation::Column::UserRole, connector_distro_relation::Column::Visibility))
             .one(&self.db_connection)
             .await;
         match relation {
@@ -121,12 +121,12 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_relation_by_instance(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         instance: &str,
     ) -> Outcome<Option<connector_distro_relation::Model>> {
         let relation = connector_distro_relation::Entity::find()
             .filter(connector_distro_relation::Column::ConnectorInstanceId.eq(instance))
-            .filter(connector_distro_relation::Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(connector_distro_relation::Column::UserId, connector_distro_relation::Column::UserRole, connector_distro_relation::Column::Visibility))
             .one(&self.db_connection)
             .await;
         match relation {
@@ -139,10 +139,10 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn delete_relation_by_distribution(&self, tenant_id: &str, distro: &str) -> Outcome<()> {
+    async fn delete_relation_by_distribution(&self, scope: &OwnerScope, distro: &str) -> Outcome<()> {
         let result = connector_distro_relation::Entity::delete_many()
             .filter(connector_distro_relation::Column::DistributionId.eq(distro))
-            .filter(connector_distro_relation::Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(connector_distro_relation::Column::UserId, connector_distro_relation::Column::UserRole, connector_distro_relation::Column::Visibility))
             .exec(&self.db_connection)
             .await;
         match result {
@@ -163,14 +163,12 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_relation_by_instance(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         instance: &str,
     ) -> Outcome<()> {
         let result = connector_distro_relation::Entity::delete_many()
             .filter(connector_distro_relation::Column::ConnectorInstanceId.eq(instance))
-            .apply_if(tenant_id, |q, t| {
-                q.filter(connector_distro_relation::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(connector_distro_relation::Column::UserId, connector_distro_relation::Column::UserRole, connector_distro_relation::Column::Visibility))
             .exec(&self.db_connection)
             .await;
         match result {

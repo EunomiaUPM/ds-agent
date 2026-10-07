@@ -34,7 +34,7 @@ service NegotiationAgentProcessesService {
   rpc DeleteNegotiationProcess (DeleteNegotiationProcessRequest) returns (google.protobuf.Empty);
 }
 
-// Auth: `authorization: Bearer <token>` required; `x-tenant-id` metadata defaults to the token tenant.
+// Auth: `authorization: Bearer <token>` required; the caller is the user behind the token.
 // Filter strings: "" = any.
 message ListNegotiationProcessesRequest {
   string state = 1;

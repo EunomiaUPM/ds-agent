@@ -18,6 +18,7 @@
 //! Dead letter queue repository.
 
 use async_trait::async_trait;
+use common::oauth::OwnerScope;
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
@@ -42,21 +43,20 @@ impl RepoIntoErrors for DlqRepoError {}
 #[async_trait]
 pub trait EventDeadLetterRepo: Send + Sync + 'static {
     async fn create_dead_letter(&self, record: &DeadLetterRecord) -> Outcome<DeadLetterRecord>;
-    /// `tenant_id: None` acts across tenants (admin).
     async fn get_dead_letter(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &str,
     ) -> Outcome<Option<DeadLetterRecord>>;
-    /// Page of dead letters; `tenant_id` of `None` lists every tenant.
+    /// Page of the dead letters in `scope`.
     async fn list_dead_letters(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         filter: &DeadLetterFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<DeadLetterRecord>, u64)>;
     /// Marks the dead letter as replayed once a new delivery is queued.
-    async fn mark_replayed(&self, tenant_id: &str, id: &str) -> Outcome<()>;
-    async fn delete_dead_letter(&self, tenant_id: Option<String>, id: &str) -> Outcome<()>;
+    async fn mark_replayed(&self, id: &str) -> Outcome<()>;
+    async fn delete_dead_letter(&self, scope: &OwnerScope, id: &str) -> Outcome<()>;
 }

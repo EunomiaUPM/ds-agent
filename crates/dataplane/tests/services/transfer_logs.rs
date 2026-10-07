@@ -21,7 +21,8 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use chrono::Utc;
-use common::test_utils::scopes::TestScopes;
+use common::oauth::OwnerScope;
+use common::test_utils::scopes::TestUsers;
 use dataplane::data::factory_trait::MockDataplaneRepoTrait;
 use dataplane::data::repo::dataplane_transfer_log::{
     DataplaneTransferLogsRepo, MockDataplaneTransferLogsRepo,
@@ -40,7 +41,9 @@ fn test_urn(n: u32) -> Urn {
 fn make_log_model(n: u32, tenant: &str) -> LogModel {
     LogModel {
         id: test_urn(n).to_string(),
-        tenant_id: tenant.to_string(),
+        user_id: tenant.to_string(),
+        user_role: common::oauth::RolePath::root(),
+        visibility: common::oauth::Visibility::Private,
         dataplane_process_id: test_urn(1).to_string(),
         previous_state: None,
         new_state: TransferState::Init,
@@ -66,12 +69,12 @@ async fn get_logs_passes_acting_tenant_to_repo() {
     let mut logs_repo = MockDataplaneTransferLogsRepo::new();
     logs_repo
         .expect_get_transfer_logs_by_dataplane_process_id()
-        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
+        .withf(|scope, id| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-2")) && id == &test_urn(1))
         .returning(|_, _| Ok(vec![make_log_model(10, "tenant-2")]));
 
     let svc = make_logs_svc(logs_repo);
     let logs = svc
-        .get_transfer_logs_by_dataplane_process_id(&TestScopes::owner("tenant-2"), &test_urn(1))
+        .get_transfer_logs_by_dataplane_process_id(&TestUsers::user("tenant-2", "/admin/tenant-2"), &test_urn(1))
         .await
         .unwrap();
 
@@ -84,12 +87,12 @@ async fn get_logs_reader_role_is_permitted() {
     let mut logs_repo = MockDataplaneTransferLogsRepo::new();
     logs_repo
         .expect_get_transfer_logs_by_dataplane_process_id()
-        .withf(|tenant, id| tenant.as_deref() == Some("tenant-1") && id == &test_urn(1))
+        .withf(|scope, id| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-1")) && id == &test_urn(1))
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_logs_svc(logs_repo);
     let result = svc
-        .get_transfer_logs_by_dataplane_process_id(&TestScopes::reader("tenant-1"), &test_urn(1))
+        .get_transfer_logs_by_dataplane_process_id(&TestUsers::user("tenant-1", "/admin/tenant-1"), &test_urn(1))
         .await;
 
     assert!(result.is_ok());

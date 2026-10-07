@@ -21,6 +21,7 @@ mod core_router;
 mod gaia_self_attester_router;
 mod gatekeeper_router;
 mod participant_router;
+mod path_id;
 mod peer_connector_router;
 mod vc_requester_router;
 mod verifier_router;

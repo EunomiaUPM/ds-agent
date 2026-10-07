@@ -34,6 +34,7 @@
 use crate::entities::auth_config::AuthenticationConfig;
 use crate::entities::connector_template::ConnectorMetadata;
 use crate::entities::interaction::InteractionConfig;
+use common::oauth::Visibility;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use urn::Urn;
@@ -59,8 +60,9 @@ pub struct ConnectorInstantiationDto {
     /// persisted.  Used for pre-flight checks.
     #[serde(default)]
     pub dry_run: bool,
+    /// Who else sees the instance; private by default.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tenant_id: Option<String>,
+    pub visibility: Option<Visibility>,
 }
 
 /// Optional human-readable metadata attached to a connector instance.
@@ -76,6 +78,9 @@ pub struct InstanceMetadataDto {
 #[serde(rename_all = "camelCase")]
 pub struct ConnectorInstanceDto {
     pub id: Urn,
+    /// Who set the instance up: its keystore entries are the ones its parameters resolve.
+    #[serde(default)]
+    pub user_id: String,
     #[serde(flatten)]
     pub metadata: ConnectorMetadata,
     /// Resolved authentication configuration (all placeholders substituted).

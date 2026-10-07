@@ -44,11 +44,9 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(TransferMessages::TenantId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(TransferMessages::UserId).string().not_null())
+                    .col(ColumnDef::new(TransferMessages::UserRole).string_len(255).not_null())
+                    .col(ColumnDef::new(TransferMessages::Visibility).string_len(16).not_null())
                     .col(
                         ColumnDef::new(TransferMessages::Direction)
                             .string()
@@ -102,8 +100,8 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .table(TransferMessages::Table)
-                    .col(TransferMessages::TenantId)
-                    .name("idx_tm_tenant_id")
+                    .col(TransferMessages::UserId)
+                    .name("idx_tm_user_id")
                     .to_owned(),
             )
             .await
@@ -121,7 +119,9 @@ pub enum TransferMessages {
     Table,
     Id,
     TransferProcessId,
-    TenantId,
+    UserId,
+    UserRole,
+    Visibility,
     Direction,
     Protocol,
     MessageType,

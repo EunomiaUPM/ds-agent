@@ -16,6 +16,7 @@
  */
 
 use sea_orm::entity::prelude::*;
+use common::oauth::{RolePath, Visibility};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
@@ -24,7 +25,9 @@ use serde::{Deserialize, Serialize};
 pub struct Model {
     #[sea_orm(primary_key)]
     pub distribution_id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub connector_instance_id: String,
 }
 

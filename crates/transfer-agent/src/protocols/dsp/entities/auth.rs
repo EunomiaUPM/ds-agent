@@ -18,8 +18,8 @@
 //! Who authenticated on a transfer context: an inbound DSP peer, or the user
 //! behind an outbound RPC call.
 
-use oauth::entities::user::User;
-use ymir::data::entities::shared::participant::Model as Mates;
+use common::facades::grants_facade::VerifiedPeer;
+use common::oauth::UserInfo;
 
 /// The auth on any transfer context, whatever the source. Lets shared code read
 /// identity and token without knowing which side authenticated.
@@ -30,8 +30,9 @@ pub trait TransferAuthn {
     fn token_type(&self) -> &str;
     /// Token part of the header.
     fn token_content(&self) -> &str;
-    /// Participant behind the token.
-    fn participant(&self) -> &Mates;
+    // Participant behind the token: unused, and with identity on `UserInfo` the RPC side has no
+    // participant record of its own. Kept as it was.
+    // fn participant(&self) -> &Mates;
 }
 
 /// Inbound DSP: a peer authenticated to us. `associated_participant` is that
@@ -41,7 +42,7 @@ pub struct TransferDSPAuthn {
     pub raw: String,
     pub token_type: String,
     pub token_content: String,
-    pub associated_participant: Mates,
+    pub associated_participant: VerifiedPeer,
 }
 
 impl TransferAuthn for TransferDSPAuthn {
@@ -54,20 +55,19 @@ impl TransferAuthn for TransferDSPAuthn {
     fn token_content(&self) -> &str {
         &self.token_content
     }
-    fn participant(&self) -> &Mates {
-        &self.associated_participant
-    }
+    // fn participant(&self) -> &Mates {
+    //     &self.associated_participant
+    // }
 }
 
-/// Outbound RPC: our own app driving a transfer. `me_participant` is us, and
-/// `me_user` is the acting user behind the RPC call.
+/// Outbound RPC: our own app driving a transfer. `me_user` is the acting user behind the RPC
+/// call, as the OAuth middleware resolved it.
 #[derive(Debug)]
 pub struct TransferRPCAuthn {
     pub raw: String,
     pub token_type: String,
     pub token_content: String,
-    pub me_participant: Mates,
-    pub me_user: User,
+    pub me_user: UserInfo,
 }
 
 impl TransferAuthn for TransferRPCAuthn {
@@ -80,7 +80,7 @@ impl TransferAuthn for TransferRPCAuthn {
     fn token_content(&self) -> &str {
         &self.token_content
     }
-    fn participant(&self) -> &Mates {
-        &self.me_participant
-    }
+    // fn participant(&self) -> &Mates {
+    //     &self.me_participant
+    // }
 }

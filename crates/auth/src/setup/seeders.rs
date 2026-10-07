@@ -19,25 +19,23 @@
 
 use std::sync::Arc;
 
-use common::auth::AccessScope;
+use crate::core::AuthCore;
+use crate::modules::ParticipantModule;
 use common::boot::seeders::{BootPhase, BootSeeder};
 use ymir::errors::{Errors, Outcome};
 use ymir::modules::WalletModuleTrait;
-
-use crate::core::AuthCore;
-use crate::modules::ParticipantModule;
+use ymir::types::oauth::UserInfo;
 
 /// Links the agent's own wallet as a participant when the auth plane does not know it yet.
 #[derive(Clone)]
 pub struct SelfParticipantOnboarder {
     core: Arc<AuthCore>,
-    tenant: String,
 }
 
 impl SelfParticipantOnboarder {
-    /// `tenant` is the seeded admin's tenant, the one the participant is read in.
-    pub fn new(core: Arc<AuthCore>, tenant: String) -> Self {
-        Self { core, tenant }
+    /// Acts on `core` in-process, as `UserInfo::system()`.
+    pub fn new(core: Arc<AuthCore>) -> Self {
+        Self { core }
     }
 }
 
@@ -53,12 +51,12 @@ impl BootSeeder for SelfParticipantOnboarder {
     }
 
     async fn seed(&self) -> Outcome<()> {
-        let scope = AccessScope::service(&self.tenant);
-        let participant = match self.core.get_me(&scope).await {
+        let user = UserInfo::system();
+        let participant = match self.core.get_myself(&user).await {
             Ok(participant) => participant,
             Err(Errors::MissingResourceError { .. }) => {
                 self.core.link().await?;
-                self.core.get_me(&scope).await?
+                self.core.get_myself(&user).await?
             }
             Err(e) => return Err(e),
         };

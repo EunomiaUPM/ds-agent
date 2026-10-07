@@ -20,10 +20,10 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use common::auth::{AccessScope, RbacRole};
+use common::oauth::{RoleTrait, UserInfo};
 use common::facades::mates_facade::MatesFacadeTrait;
 use urn::Urn;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 
 use crate::entities::catalogs::NewCatalogDto;
 use crate::entities::data_services::NewDataServiceDto;
@@ -35,7 +35,7 @@ pub struct TenantProvisioningService {
     catalogs: Arc<dyn CatalogServiceTrait>,
     data_services: Arc<dyn DataServiceServiceTrait>,
     mates: Arc<dyn MatesFacadeTrait>,
-    /// DSP endpoint of this connector; every tenant's main data service points to it.
+    /// DSP endpoint of this connector; the main data service points to it.
     dsp_url: String,
 }
 
@@ -57,37 +57,26 @@ impl TenantProvisioningService {
 
 #[async_trait::async_trait]
 impl TenantProvisioningServiceTrait for TenantProvisioningService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn provision(
-        &self,
-        scope: &AccessScope,
-        tenant_id: &str,
-    ) -> Outcome<ProvisionedTenantDto> {
-        scope.require_write()?;
-        if !scope.permits(tenant_id) {
-            return Err(Errors::forbidden(
-                "forbidden: cannot provision another tenant",
-                None,
-            ));
-        }
-        let owner = AccessScope::from_role(RbacRole::Owner, tenant_id);
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn provision(&self, user: &UserInfo) -> Outcome<ProvisionedTenantDto> {
+        user.require_root()?;
 
-        let catalog = match self.catalogs.get_main_catalog(&owner).await? {
+        let catalog = match self.catalogs.get_main_catalog(user).await? {
             Some(catalog) => catalog,
             None => {
-                // The catalog publishes this connector's identity, shared by all its tenants.
-                let me = self.mates.get_me_mate(tenant_id.to_string()).await?;
+                // The catalog publishes this connector's identity.
+                let me = self.mates.get_me_mate().await?;
                 let new_catalog = NewCatalogDto {
                     dspace_participant_id: Some(me.participant_id),
                     ..NewCatalogDto::default()
                 };
                 self.catalogs
-                    .create_main_catalog(&owner, &new_catalog)
+                    .create_main_catalog(user, &new_catalog)
                     .await?
             }
         };
 
-        let data_service = match self.data_services.get_main_data_service(&owner).await? {
+        let data_service = match self.data_services.get_main_data_service(user).await? {
             Some(data_service) => data_service,
             None => {
                 let new_data_service = NewDataServiceDto {
@@ -96,13 +85,12 @@ impl TenantProvisioningServiceTrait for TenantProvisioningService {
                     ..NewDataServiceDto::default()
                 };
                 self.data_services
-                    .create_main_data_service(&owner, &new_data_service)
+                    .create_main_data_service(user, &new_data_service)
                     .await?
             }
         };
 
         Ok(ProvisionedTenantDto {
-            tenant_id: tenant_id.to_string(),
             catalog,
             data_service,
         })

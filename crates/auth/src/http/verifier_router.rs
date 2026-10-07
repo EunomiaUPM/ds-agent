@@ -24,6 +24,7 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Form, Json, Router};
 use ymir::errors::AppResult;
+use ymir::http::routes::verifier;
 use ymir::types::gnap::InteractionFinishResponse;
 use ymir::types::vcs::VPDef;
 use ymir::types::verification::VerifyPayload;
@@ -38,16 +39,25 @@ pub struct VerifierRouter {
 }
 
 impl VerifierRouter {
+    // ==========================================================================================
+    // Sub-routers
+    // ==========================================================================================
+
     pub fn new(verifier: Arc<dyn VerifierModule>) -> Self {
         Self { verifier }
     }
 
-    pub fn router(self) -> Router {
+    /// OID4VP endpoints called by the peer's wallet; no OAuth guard.
+    pub fn external(self) -> Router {
         Router::new()
-            .route("/pd/{state}", get(Self::vp_definition))
-            .route("/verify/{state}", post(Self::verify))
+            .route(verifier::PD, get(Self::vp_definition))
+            .route(verifier::VERIFY, post(Self::verify))
             .with_state(self.verifier)
     }
+
+    // ==========================================================================================
+    // External requests: peers, authorities and wallets, authenticated by the protocol (no user)
+    // ==========================================================================================
 
     async fn vp_definition(
         State(verifier): State<Arc<dyn VerifierModule>>,

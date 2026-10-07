@@ -16,7 +16,7 @@
  */
 
 use axum::Router;
-use common::auth::OauthTokenValidator;
+use common::oauth::OauthTokenValidatorTrait;
 use std::sync::Arc;
 
 pub mod transfer_message_router;
@@ -28,14 +28,14 @@ impl TransferHttpRouter {
     pub fn build(
         process_router: Router,
         message_router: Router,
-        validator: Arc<dyn OauthTokenValidator>,
+        validator: Arc<dyn OauthTokenValidatorTrait>,
     ) -> Router {
         Router::new()
             .merge(process_router)
             .merge(message_router)
             .route_layer(axum::middleware::from_fn_with_state(
                 validator,
-                common::auth::http::AuthHttpMiddleware::run,
+                ymir::http::OauthHttpMiddleware::run,
             ))
     }
 }

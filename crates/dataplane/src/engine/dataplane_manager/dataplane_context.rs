@@ -32,7 +32,7 @@ use crate::engine::dataplane_manager::conform_dataplane_forward_url;
 use crate::errors::DataplaneError;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use crate::DataplaneAddress;
-use common::auth::{AccessScope, RbacRole};
+use common::oauth::UserInfo;
 use common::config::services::TransferConfig;
 use connector::{ConnectorInstanceDto, ConnectorInstanceFacadeTrait};
 use serde_json::json;
@@ -102,12 +102,11 @@ impl DataplaneContext {
         };
 
         // db access
-        let scope = AccessScope::from_role(RbacRole::Owner, init.tenant_id());
         let dataplane_process = dataplane_service
             .create(
-                &scope,
+                &Self::actor(),
                 &NewDataplaneTransferDto {
-                    tenant_id: init.tenant_id().to_string(),
+                    owner: Some(init.owner().clone()),
                     id: Some(id),
                     transfer_process_id: transfer_id.to_string(),
                     role: transfer_role,
@@ -142,10 +141,7 @@ impl DataplaneContext {
     ) -> Outcome<Self> {
         // db access
         let dataplane_process = match dataplane_service
-            .get_by_process_id(
-                &AccessScope::from_role(RbacRole::Owner, &continuation.tenant_id),
-                &continuation.transfer_dto_urn,
-            )
+            .get_by_process_id(&Self::actor(), &continuation.transfer_dto_urn)
             .await
         {
             Err(Errors::MissingResourceError { .. }) => {
@@ -162,7 +158,7 @@ impl DataplaneContext {
             Some(connector_id) => {
                 let connector_urn = Urn::from_str(connector_id)?;
                 connector_service
-                    .get_instance_by_id(&dataplane_process.inner.tenant_id, &connector_urn)
+                    .get_instance_by_id(&connector_urn)
                     .await?
             }
             None => None,
@@ -262,9 +258,14 @@ impl DataplaneContext {
         &self.dataplane_process
     }
 
-    /// Scope the engine acts under: owner of the tenant that owns this transfer.
-    pub fn tenant_scope(&self) -> AccessScope {
-        AccessScope::from_role(RbacRole::Owner, &self.dataplane_process.inner.tenant_id)
+    /// Who the engine acts as on this transfer's records: an in-process flow that already knows
+    /// which process it wants, so no owner is checked (the process keeps its owner).
+    pub fn engine_actor(&self) -> UserInfo {
+        Self::actor()
+    }
+
+    fn actor() -> UserInfo {
+        UserInfo::system()
     }
 
     pub fn dataplane_process_state(&self) -> TransferState {

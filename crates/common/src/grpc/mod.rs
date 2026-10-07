@@ -21,7 +21,7 @@
 //! same service the HTTP adapter calls, and maps the result back. This module covers the
 //! parts every adapter repeats: [`ProtoField`] for proto3 string fields, [`ListParams`] for
 //! list requests, [`PageMeta`] for list responses, [`JsonStruct`] for `google.protobuf.Struct`
-//! payloads and [`IntoStatus`] for errors. Authentication lives in `crate::auth::grpc`.
+//! payloads and [`IntoStatus`] for errors. Authentication lives in `crate::oauth::grpc`.
 //!
 //! ## 1. A handler
 //!

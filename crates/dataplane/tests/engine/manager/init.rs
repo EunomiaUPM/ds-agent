@@ -58,7 +58,7 @@ async fn set_init_consumer_pull() {
     )
     .execute_command(DataplaneCommand::SetInit(
         DataplaneInitCommandTypes::AsConsumer {
-            tenant_id: "tenant-1".to_string(),
+            owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
             transfer_process_id,
             direction: DataplaneInitCommandDirection::Pull {
                 data_address: Some(dummy_dataplane_forward_address()),
@@ -129,7 +129,7 @@ async fn set_init_consumer_push() {
     )
     .execute_command(DataplaneCommand::SetInit(
         DataplaneInitCommandTypes::AsConsumer {
-            tenant_id: "tenant-1".to_string(),
+            owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
             transfer_process_id: tp_id,
             direction: DataplaneInitCommandDirection::Push {
                 data_address: Some(DataplaneAddress {
@@ -228,7 +228,7 @@ async fn set_init_provider_pull() {
     )
     .execute_command(DataplaneCommand::SetInit(
         DataplaneInitCommandTypes::AsProvider {
-            tenant_id: "tenant-1".to_string(),
+            owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
             transfer_process_id: tp_id,
             connector_instance: connector,
             direction: DataplaneInitCommandDirection::Pull {

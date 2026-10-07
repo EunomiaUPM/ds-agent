@@ -85,8 +85,8 @@
 //!
 //! A process is touched either by a peer over the protocol or by a local user over the RPC
 //! API. [`DspActor`] captures which one, and `authorize` checks it against the process owner:
-//! a peer must be the process counterparty in the tenant it onboarded into, a user must be
-//! allowed on the owning tenant. A refusal looks like a missing process.
+//! a peer must be the process counterparty, a user must act on the process's owner (its own,
+//! below its role, or opened by a peer for its role). A refusal looks like a missing process.
 //!
 //! ```rust,ignore
 //! use common::dsp_common::DspActor;
@@ -94,7 +94,7 @@
 //! let actor = DspActor::peer(mate);        // protocol endpoint, after SSI auth
 //! let actor = DspActor::user(&scope);      // RPC endpoint, after OAuth
 //!
-//! actor.authorize(&process.tenant_id, &process.associated_agent_peer, pid)?;
+//! actor.authorize(&process.owner(), &process.associated_agent_peer, pid)?;
 //! ```
 //!
 //! ## 5. Message rules

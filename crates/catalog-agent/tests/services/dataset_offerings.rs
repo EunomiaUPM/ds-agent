@@ -31,7 +31,7 @@ use catalog_agent::services::dataset_offerings::DatasetOfferingServiceTrait;
 use catalog_agent::services::datasets::MockDatasetServiceTrait;
 use catalog_agent::services::distributions::MockDistributionServiceTrait;
 use catalog_agent::services::odrl_policies::MockOdrlPolicyServiceTrait;
-use common::test_utils::scopes::TestScopes;
+use common::test_utils::scopes::TestUsers;
 use serde_json::json;
 use ymir::errors::Errors;
 
@@ -92,16 +92,6 @@ fn offering(
     }
 }
 
-/// A reader cannot publish an offering.
-#[tokio::test]
-async fn reader_cannot_create_an_offering() {
-    let result = Deps::default()
-        .service()
-        .create_offering(&TestScopes::reader("tenant-1"), &offering(None, None, None))
-        .await;
-    assert!(result.is_err());
-}
-
 /// Without ids the dataset goes to the main catalog and the distribution to the main data
 /// service, with the default conformance and format.
 #[tokio::test]
@@ -134,7 +124,7 @@ async fn defaults_to_the_main_catalog_and_data_service() {
 
     let created = deps
         .service()
-        .create_offering(&TestScopes::owner("tenant-1"), &offering(None, None, None))
+        .create_offering(&TestUsers::user("tenant-1", "/admin/tenant-1"), &offering(None, None, None))
         .await
         .unwrap();
 
@@ -159,7 +149,7 @@ async fn explicit_ids_skip_the_main_lookups() {
     let result = deps
         .service()
         .create_offering(
-            &TestScopes::owner("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin/tenant-1"),
             &offering(Some(&urn(5)), Some("urn:svc:explicit"), None),
         )
         .await;
@@ -176,7 +166,7 @@ async fn missing_main_catalog_is_not_found() {
 
     let result = deps
         .service()
-        .create_offering(&TestScopes::owner("tenant-1"), &offering(None, None, None))
+        .create_offering(&TestUsers::user("tenant-1", "/admin/tenant-1"), &offering(None, None, None))
         .await;
     assert!(result.is_err());
 }
@@ -187,7 +177,7 @@ async fn malformed_catalog_id_is_rejected() {
     let result = Deps::default()
         .service()
         .create_offering(
-            &TestScopes::owner("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin/tenant-1"),
             &offering(Some("not a urn"), None, None),
         )
         .await;
@@ -227,7 +217,7 @@ async fn policy_becomes_an_offer_on_the_dataset() {
     let created = deps
         .service()
         .create_offering(
-            &TestScopes::owner("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin/tenant-1"),
             &offering(Some(&urn(1)), Some("urn:svc:x"), Some(policy)),
         )
         .await
@@ -251,7 +241,7 @@ async fn failure_after_the_dataset_removes_it() {
     let result = deps
         .service()
         .create_offering(
-            &TestScopes::owner("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin/tenant-1"),
             &offering(Some(&urn(1)), Some("urn:svc:x"), None),
         )
         .await;

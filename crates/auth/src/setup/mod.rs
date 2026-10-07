@@ -19,7 +19,6 @@
 
 mod boot;
 mod composition;
-pub mod context;
 mod seeders;
 
 pub use boot::AuthBoot;

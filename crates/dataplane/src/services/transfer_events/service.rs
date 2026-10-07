@@ -19,7 +19,7 @@
 
 use std::sync::Arc;
 
-use common::auth::access::AccessScope;
+use common::oauth::{Owner, OwnerScope, UserInfo};
 use common::batch_requests::BatchRequests;
 use common::errors::NotFoundExt;
 use common::paginated_spec::Cursor;
@@ -50,26 +50,23 @@ impl TransferEventsService {
 
 #[async_trait::async_trait]
 impl TransferEventServiceTrait for TransferEventsService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &TransferEventFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferEventDto>> {
-        scope.require_read()?;
         filters.validate()?;
 
-        let mut filters = filters.clone();
-        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
-
+        let scope = OwnerScope::seeing(user);
         let page = page.clamped();
 
         let repo = self.repo();
         let (events, total) = tokio::try_join!(
-            repo.get_all_transfer_events(&filters, &page, sort),
-            repo.count_transfer_events(&filters),
+            repo.get_all_transfer_events(&scope, filters, &page, sort),
+            repo.count_transfer_events(&scope, filters),
         )?;
 
         let items: Vec<TransferEventDto> = events
@@ -82,31 +79,29 @@ impl TransferEventServiceTrait for TransferEventsService {
         }))
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<TransferEventDto> {
-        scope.require_read()?;
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn get_one(&self, user: &UserInfo, id: &Urn) -> Outcome<TransferEventDto> {
 
         let event = self
             .repo()
-            .get_transfer_event_by_id(scope.tenant_filter().map(str::to_string), id)
+            .get_transfer_event_by_id(&OwnerScope::seeing(user), id)
             .await?
             .or_not_found(id, "transfer event")?;
 
         Ok(TransferEventDto { inner: event })
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_by_process_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         process_id: &Urn,
     ) -> Outcome<Vec<TransferEventDto>> {
-        scope.require_read()?;
 
         let events = self
             .repo()
             .get_all_transfer_events_by_process_id(
-                scope.tenant_filter().map(str::to_string),
+                &OwnerScope::seeing(user),
                 process_id,
             )
             .await?;
@@ -117,13 +112,12 @@ impl TransferEventServiceTrait for TransferEventsService {
             .collect())
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn batch(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         req: &BatchRequests,
     ) -> Outcome<Vec<TransferEventDto>> {
-        scope.require_read()?;
 
         if req.ids.len() > MAX_BATCH_IDS {
             return Err(Errors::format(
@@ -139,7 +133,7 @@ impl TransferEventServiceTrait for TransferEventsService {
 
         let events = self
             .repo()
-            .get_batch_transfer_events(scope.tenant_filter().map(str::to_string), &req.ids)
+            .get_batch_transfer_events(&OwnerScope::seeing(user), &req.ids)
             .await?;
 
         Ok(events
@@ -148,16 +142,14 @@ impl TransferEventServiceTrait for TransferEventsService {
             .collect())
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn create(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         cmd: &NewTransferEventDto,
     ) -> Outcome<TransferEventDto> {
-        let mut cmd = cmd.clone();
-        cmd.tenant_id = scope.resolve_create_tenant(Some(&cmd.tenant_id))?;
-
-        let new_model: NewTransferEvent = cmd.into();
+        let owner = Owner::requested_by(user, cmd.owner.clone());
+        let new_model: NewTransferEvent = cmd.clone().into_model(owner);
         let event = self.repo().create_transfer_event(&new_model).await?;
 
         Ok(TransferEventDto { inner: event })

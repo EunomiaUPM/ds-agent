@@ -16,87 +16,50 @@
  */
 
 use crate::entities::filters::SentGrantFilter;
-use crate::services::{HasCallback, HasPeerConnector, HasRepo};
+use crate::services::{HasCallback, HasPeerConnector, HasRepo, MayHaveEventBus};
 use crate::types::entities::ReachProvider;
-use crate::types::response::TokenWhatResponse;
+use crate::types::events::{sent_owner, GrantEvent, VerificationEvent};
+use crate::types::response::{RotationOutcome, TokenWhatResponse};
+use crate::types::token_lifetimes::EXPIRY_MARGIN_SECS;
 use async_trait::async_trait;
-use chrono::Utc;
-use common::auth::AccessScope;
+use chrono::{DateTime, Duration, Utc};
+use common::facades::grants_facade::PeerToken;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use serde_json::{json, Value};
-use ymir::data::entities::sent::{grant, verification};
-use ymir::errors::Outcome;
+use ymir::data::entities::sent::{grant, interaction, verification};
+use ymir::errors::{Errors, Outcome};
 use ymir::services::HasWallet;
+use ymir::types::gnap::grant_request::interact::InteractAction;
 use ymir::types::gnap::grant_request::GrantKind;
+use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody, GrantStatus};
 use ymir::types::listing::{GrantSort, SentGrantListFilter};
+use ymir::types::oauth::{UserInfo, UserTrait};
+use ymir::types::participants::Visibility;
 use ymir::types::verification::VerificationStatus;
 use ymir::types::wallet::OidcUri;
 
 /// Onboarding with a peer through GNAP, presenting our credentials over OID4VP when asked.
 #[async_trait]
 pub trait PeerConnectorModule:
-    HasPeerConnector + HasRepo + HasCallback + HasWallet + Send + Sync + 'static
+    HasPeerConnector + HasRepo + HasCallback + HasWallet + MayHaveEventBus + Send + Sync + 'static
 {
-    /// Sends a grant request to the peer and follows its answer.
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn req_peer_connection(
-        &self,
-        scope: &AccessScope,
-        payload: ReachProvider,
-    ) -> Outcome<()> {
-        scope.require_write()?;
-        let tenant_id = scope.acting_tenant();
-        let actions = payload.actions.clone();
-        let grant = self.peer_connector().build_grant_plan(tenant_id, payload);
-        let interaction = self
-            .peer_connector()
-            .build_interaction_plan(tenant_id, &grant.id);
-        let resource_req = self
-            .peer_connector()
-            .build_resource_req_plan(tenant_id, &grant.id, actions);
-
-        let mut grant = self.repo().sent_grant().create(grant).await?;
-        let mut interaction = self.repo().sent_interaction().create(interaction).await?;
-        let resource_req = self.repo().resource_req().create(resource_req).await?;
-
-        let grant_resp = self
-            .peer_connector()
-            .send_grant_req(&grant, &interaction, &resource_req)
-            .await?;
-
-        let what_response =
-            self.peer_connector()
-                .manage_grant_resp(grant_resp, &mut grant, &mut interaction);
-
-        let grant = self.repo().sent_grant().update(grant).await?;
-        let _interaction = self.repo().sent_interaction().update(interaction).await?;
-
-        self.manage_what_resp(grant, what_response).await
-    }
-
-    /// Handles the peer's callback: continues on approval, marks the grant rejected otherwise.
-    #[tracing::instrument(level = "info", skip_all, err)]
-    async fn manage_interaction_finish(&self, id: String, payload: CallbackBody) -> Outcome<()> {
-        match payload {
-            CallbackBody::Approved(payload) => self.req_peer_continuation(id, payload).await,
-            CallbackBody::Rejected(_payload) => self.manage_rejection(id).await,
-        }
-    }
+    // ==========================================================================================
+    // Sent grants: queries
+    // ==========================================================================================
 
     /// Page of grants sent to peers, visible to the caller.
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_all(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filter: &SentGrantFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<grant::Model>> {
         let list_page = page.list_page(sort, GrantSort::Created, GrantSort::Updated)?;
         let list_filter = SentGrantListFilter {
-            tenant_id: scope.tenant_filter().map(str::to_string),
-            kind: filter.kind.clone().unwrap_or(GrantKind::AccessToken),
+            tenant: user.clone(),
             participant_id_contains: filter.participant_id.clone(),
             nick_contains: filter.participant_nick.clone(),
             status: filter.status.clone(),
@@ -108,9 +71,10 @@ pub trait PeerConnectorModule:
             .sent_grant()
             .find_page(&list_filter, &list_page)
             .await?;
+        let items = listed.items.into_iter().map(|g| g.seen_by(user)).collect();
         let sort_field = list_page.sort;
         Ok(Paginated::from_page(
-            listed.items,
+            items,
             &page.clamped(),
             Some(listed.total),
             |last| {
@@ -123,20 +87,32 @@ pub trait PeerConnectorModule:
         ))
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn get_by_id(&self, scope: &AccessScope, id: String) -> Outcome<grant::Model> {
-        let grant = self.repo().sent_grant().get_by_id(&id).await?;
-        scope.ensure_visible(&grant.tenant_id, &id)?;
-        Ok(grant)
+    /// The access-token grant `id` as `user` may get it (see `grant::Model::seen_by`), if it
+    /// sees the grant; missing-resource error otherwise.
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn get_by_id(&self, user: &UserInfo, id: &str) -> Outcome<grant::Model> {
+        let grant = self.get_access_grant(id).await?;
+        user.ensure_sees(&grant.user_id, &grant.role, &grant.visibility, id)?;
+        Ok(grant.seen_by(user))
     }
 
-    /// The grant with its interaction and verification.
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn get_by_id_with_details(&self, scope: &AccessScope, id: String) -> Outcome<Value> {
-        let grant = self.get_by_id(scope, id.clone()).await?;
-        let resource_req = self.repo().resource_req().get_by_id(&id).await?;
-        let interaction = self.repo().sent_interaction().get_by_id(&id).await.ok();
-        let verification = self.repo().sent_verification().get_by_id(&id).await.ok();
+    /// The grant with its resource request, as `user` may get it. Its interaction and
+    /// verification, which carry the GNAP continuation token, only for who reaches the grant.
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn get_by_id_with_details(&self, user: &UserInfo, id: &str) -> Outcome<Value> {
+        let grant = self.get_access_grant(id).await?;
+        user.ensure_sees(&grant.user_id, &grant.role, &grant.visibility, id)?;
+        let reaches = user.reaches(&grant.user_id, &grant.role);
+        let resource_req = self.repo().resource_req().get_by_id(id).await?;
+        let (interaction, verification) = if reaches {
+            (
+                self.repo().sent_interaction().get_by_id(id).await.ok(),
+                self.repo().sent_verification().get_by_id(id).await.ok(),
+            )
+        } else {
+            (None, None)
+        };
+        let grant = grant.seen_by(user);
         Ok(json!({
             "grant": grant,
             "resource_req": resource_req,
@@ -145,43 +121,397 @@ pub trait PeerConnectorModule:
         }))
     }
 
-    /// Answers a pending presentation request through the wallet.
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn process_oid4vp(
+    // ==========================================================================================
+    // Sent grants: for the other agents (grants facade)
+    // ==========================================================================================
+
+    /// The token `user` presents to `participant_id`: the one of its own latest approved grant
+    /// with that peer, even if a colleague has another. Without one, a grant is requested on the
+    /// user's behalf and the answer is `Pending` until it completes.
+    ///
+    /// A token about to expire is rotated, and a grant about to reach its lifetime is renewed with
+    /// a new grant request.
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn peer_token(
         &self,
-        scope: &AccessScope,
-        id: String,
-        payload: OidcUri,
-    ) -> Outcome<()> {
-        scope.require_write()?;
-        let mut verification = self.repo().sent_verification().get_by_id(&id).await?;
-        scope.ensure_visible(&verification.tenant_id, &id)?;
-        match self.wallet().process_oid4vp(&payload.uri).await {
-            Ok(_) => verification.status = VerificationStatus::Verified,
-            Err(_) => {
-                verification.status = VerificationStatus::Failed;
+        user: &UserInfo,
+        participant_id: &str,
+        requested: bool,
+    ) -> Outcome<PeerToken> {
+        match self.current_token(user, participant_id).await? {
+            Some(token) => Ok(PeerToken::Ready(token)),
+            None => self.obtain_access(user, participant_id, requested).await,
+        }
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn refresh_peer_token(
+        &self,
+        user: &UserInfo,
+        participant_id: &str,
+        requested: bool,
+    ) -> Outcome<PeerToken> {
+        let active = self
+            .repo()
+            .sent_grant()
+            .get_active_access(user.id(), participant_id)
+            .await?;
+        if let Some(grant) = active {
+            self.finalize_sent(grant).await?;
+        }
+        self.obtain_access(user, participant_id, requested).await
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn current_token(
+        &self,
+        user: &UserInfo,
+        participant_id: &str,
+    ) -> Outcome<Option<String>> {
+        let Some(grant) = self
+            .repo()
+            .sent_grant()
+            .get_active_access(user.id(), participant_id)
+            .await?
+        else {
+            return Ok(None);
+        };
+
+        let now = Utc::now();
+        let margin = Duration::seconds(EXPIRY_MARGIN_SECS);
+        let grant_ending = expires_within(grant.managing_expires_at, margin, now);
+        let token_ending = expires_within(grant.final_expires_at, margin, now);
+
+        if grant_ending || (grant.managing_uri.is_none() && token_ending) {
+            return self.renew_access(user, participant_id, grant, now).await;
+        }
+        if token_ending {
+            return self.rotate_access(user, participant_id, grant, now).await;
+        }
+        Ok(grant.final_token)
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn sweep_expired(&self, now: DateTime<Utc>) -> Outcome<u64> {
+        self.repo().sent_grant().finalize_expired(now).await
+    }
+
+    // ==========================================================================================
+    // Flow entry points, called by the routers
+    // ==========================================================================================
+
+    /// Sends a grant request to the peer and follows its answer.
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn req_peer_connection(&self, user: &UserInfo, payload: ReachProvider) -> Outcome<()> {
+        let actions = payload.actions.clone();
+        let grant = self.peer_connector().build_grant_plan(user, payload);
+        let interaction = self.peer_connector().build_interaction_plan(&grant.id);
+        let resource_req = self
+            .peer_connector()
+            .build_resource_req_plan(&grant.id, actions);
+
+        let grant = self.repo().sent_grant().create(grant).await?;
+        let interaction = self.repo().sent_interaction().create(interaction).await?;
+        let resource_req = self.repo().resource_req().create(resource_req).await?;
+        self.peer_event(&grant, "requested").await;
+
+        let grant_resp = self
+            .peer_connector()
+            .send_grant_req(&grant, &interaction, &resource_req)
+            .await?;
+
+        self.manage_what_resp(grant_resp, grant, interaction).await
+    }
+
+    /// Handles the peer's callback: continues on approval, marks the grant rejected otherwise.
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn manage_interaction_finish(&self, id: &str, payload: CallbackBody) -> Outcome<()> {
+        match payload {
+            CallbackBody::Approved(payload) => self.req_peer_continuation(id, payload).await,
+            CallbackBody::Rejected(_payload) => self.manage_rejection(id).await,
+        }
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn disconnect(&self, user: &UserInfo, id: &str) -> Outcome<()> {
+        let grant = self.get_access_grant(id).await?;
+        user.ensure_reaches(&grant.user_id, &grant.role, id)?;
+        if grant.status == GrantStatus::Approved && grant.managing_uri.is_some() {
+            if let Err(e) = self.peer_connector().send_revocation_req(&grant).await {
+                e.log();
             }
         }
-        verification.ended_at = Some(Utc::now());
-        self.repo().sent_verification().update(verification).await?;
+        let grant = self.finalize_sent(grant).await?;
+        self.peer_event(&grant, "disconnected").await;
         Ok(())
     }
 
-    /// Stores the peer once the grant completes, or starts the presentation it asks for.
+    /// Answers the pending presentation request of grant `id` through the wallet, if `user`
+    /// reaches the grant: acting needs more than seeing it (the verification shares its id).
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn process_oid4vp(&self, user: &UserInfo, id: &str, payload: OidcUri) -> Outcome<()> {
+        let grant = self.get_access_grant(id).await?;
+        user.ensure_reaches(&grant.user_id, &grant.role, id)?;
+        let verification = self.repo().sent_verification().get_by_id(id).await?;
+        self.manage_oid4vp(verification, &payload.uri).await
+    }
+
+    // ==========================================================================================
+    // Internal steps of the flow
+    // ==========================================================================================
+
+    /// The access-token grant `id`, whole; missing-resource error also for a VC request, which
+    /// shares the table but is not served here. Visibility is up to the caller.
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn get_access_grant(&self, id: &str) -> Outcome<grant::Model> {
+        let grant = self.repo().sent_grant().get_by_id(id).await?;
+        if grant.kind != GrantKind::AccessToken {
+            return Err(Errors::missing_resource(id, "grant not found", None));
+        }
+        Ok(grant)
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn rotate_access(
+        &self,
+        user: &UserInfo,
+        participant_id: &str,
+        grant: grant::Model,
+        now: DateTime<Utc>,
+    ) -> Outcome<Option<String>> {
+        let usable = is_valid_at(grant.final_expires_at, now);
+        let rotation = match self.peer_connector().send_rotation_req(&grant).await {
+            Ok(response) => {
+                let mut rotated = grant.clone();
+                self.peer_connector()
+                    .apply_rotation_resp(response, &mut rotated)
+                    .map(|outcome| (outcome, rotated))
+            }
+            Err(e) => Err(e),
+        };
+
+        match rotation {
+            Ok((RotationOutcome::Rotated, rotated)) => {
+                let rotated = self.repo().sent_grant().update(rotated).await?;
+                self.peer_event(&rotated, "rotated").await;
+                Ok(rotated.final_token)
+            }
+            Ok((RotationOutcome::Refused, _)) => {
+                let current = self.repo().sent_grant().get_by_id(&grant.id).await?;
+                if current.status == GrantStatus::Approved
+                    && current.final_token != grant.final_token
+                {
+                    return Ok(current.final_token);
+                }
+                self.renew_access(user, participant_id, grant, now).await
+            }
+            Err(e) if usable => {
+                e.log();
+                Ok(grant.final_token)
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn renew_access(
+        &self,
+        user: &UserInfo,
+        participant_id: &str,
+        grant: grant::Model,
+        now: DateTime<Utc>,
+    ) -> Outcome<Option<String>> {
+        let processing_since = now - Duration::seconds(EXPIRY_MARGIN_SECS);
+        let open = self
+            .repo()
+            .sent_grant()
+            .has_open_access(user.id(), participant_id, processing_since)
+            .await?;
+        if !open {
+            match self.renew_grant(user, &grant).await {
+                Ok(()) => self.peer_event(&grant, "renewing").await,
+                Err(e) => e.log(),
+            }
+        }
+
+        let latest = self
+            .repo()
+            .sent_grant()
+            .get_active_access(user.id(), participant_id)
+            .await?;
+        if let Some(latest) = latest {
+            if latest.id != grant.id && is_valid_at(latest.final_expires_at, now) {
+                return Ok(latest.final_token);
+            }
+        }
+        if is_valid_at(grant.final_expires_at, now) {
+            return Ok(grant.final_token);
+        }
+        Ok(None)
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn obtain_access(
+        &self,
+        user: &UserInfo,
+        participant_id: &str,
+        requested: bool,
+    ) -> Outcome<PeerToken> {
+        let processing_since = Utc::now() - Duration::seconds(EXPIRY_MARGIN_SECS);
+        let open = self
+            .repo()
+            .sent_grant()
+            .has_open_access(user.id(), participant_id, processing_since)
+            .await?;
+        if open {
+            return Ok(PeerToken::Pending);
+        }
+
+        let mate = self
+            .repo()
+            .participant()
+            .get_by_id(participant_id)
+            .await
+            .map_err(|e| {
+                Errors::missing_resource(participant_id, "unknown peer", Some(Box::new(e)))
+            })?;
+        let url = self.peer_connector().discover_gate(&mate.base_url).await?;
+        let payload = ReachProvider {
+            id: mate.participant_id,
+            nick: mate.participant_nick,
+            url,
+            actions: vec![InteractAction::Talk],
+            visibility: Visibility::Private,
+            auto: Some(true),
+            requested: Some(requested),
+        };
+        self.req_peer_connection(user, payload).await?;
+        Ok(PeerToken::Pending)
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn renew_grant(&self, user: &UserInfo, grant: &grant::Model) -> Outcome<()> {
+        let resource_req = self.repo().resource_req().get_by_id(&grant.id).await?;
+        let payload = ReachProvider {
+            id: grant.participant_id.clone(),
+            nick: grant.participant_nick.clone(),
+            url: grant.grant_endpoint.clone(),
+            actions: resource_req.actions,
+            visibility: grant.visibility.clone(),
+            auto: Some(grant.auto),
+            requested: Some(grant.requested),
+        };
+        self.req_peer_connection(user, payload).await
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn finalize_sent(&self, mut grant: grant::Model) -> Outcome<grant::Model> {
+        grant.status = GrantStatus::Finalized;
+        grant.ended_at = Some(Utc::now());
+        self.repo().sent_grant().update(grant).await
+    }
+
+    async fn peer_event(&self, grant: &grant::Model, action: &str) {
+        let owner = sent_owner(grant);
+        let payload = GrantEvent::from(grant);
+        events::emit_action!(
+            self.event_bus(),
+            &owner,
+            crate::EVENT_PREFIX,
+            "peer",
+            action,
+            &payload
+        );
+    }
+
+    async fn peer_presented_event(&self, verification: &verification::Model) {
+        if self.event_bus().is_none() {
+            return;
+        }
+        let grant = match self.repo().sent_grant().get_by_id(&verification.id).await {
+            Ok(grant) => grant,
+            Err(e) => {
+                tracing::warn!("No grant for presentation {}: {e}", verification.id);
+                return;
+            }
+        };
+        let owner = sent_owner(&grant);
+        let payload = VerificationEvent::from(verification);
+        events::emit_action!(
+            self.event_bus(),
+            &owner,
+            crate::EVENT_PREFIX,
+            "peer",
+            "presented",
+            &payload
+        );
+    }
+
+    /// Checks the callback, sends the GNAP continuation and follows its answer.
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn req_peer_continuation(&self, id: &str, payload: ApprovedCallbackBody) -> Outcome<()> {
+        let mut interaction = self.repo().sent_interaction().get_by_id(id).await?;
+        let grant = self.repo().sent_grant().get_by_id(id).await?;
+        self.callback().apply_callback(&mut interaction, &payload);
+
+        let result = self.callback().check_callback(&interaction, &grant);
+        let interaction = self.repo().sent_interaction().update(interaction).await?;
+        result?;
+
+        let grant_resp = self.callback().send_continue_req(&interaction).await?;
+
+        self.manage_what_resp(grant_resp, grant, interaction).await
+    }
+
+    /// Applies the peer's answer to the grant and its interaction and stores both, even when
+    /// the answer is an error. Then, once the grant completes, stores the peer (if new; an
+    /// existing one is left as it is) and the relation of the user who sent the grant with it;
+    /// otherwise starts the presentation the peer asks for, or waits.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_what_resp(
         &self,
-        grant: grant::Model,
-        vc_what_response: Outcome<TokenWhatResponse>,
+        grant_resp: GrantResponse,
+        mut grant: grant::Model,
+        mut interaction: interaction::Model,
     ) -> Outcome<()> {
-        match vc_what_response? {
+        let what_response =
+            self.peer_connector()
+                .manage_grant_resp(grant_resp, &mut grant, &mut interaction);
+        let grant = self.repo().sent_grant().update(grant).await?;
+        let _interaction = self.repo().sent_interaction().update(interaction).await?;
+        if grant.status == GrantStatus::Rejected {
+            self.peer_event(&grant, "rejected").await;
+        }
+
+        match what_response? {
             TokenWhatResponse::Completed => {
                 let mate = self.peer_connector().build_mate_plan(&grant);
-                self.repo().participant().force_update(mate).await?;
+                self.repo().participant().create_if_absent(mate).await?;
+                let relation = self.peer_connector().build_mate_relation(&grant);
+                self.repo()
+                    .participant_relation()
+                    .force_update(relation)
+                    .await?;
+                self.peer_event(&grant, "approved").await;
                 Ok(())
             }
             TokenWhatResponse::Presentation(uri) => self.manage_auto_oid4vp(&grant, &uri).await,
             TokenWhatResponse::Wait => Ok(()),
+        }
+    }
+
+    /// Records the presentation request; presents right away when the grant is automatic.
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn manage_auto_oid4vp(&self, grant: &grant::Model, uri: &str) -> Outcome<()> {
+        let verification = self
+            .peer_connector()
+            .build_verification_plan(uri, &grant.id)?;
+        let verification = self.repo().sent_verification().create(verification).await?;
+
+        if grant.auto {
+            self.manage_oid4vp(verification, uri).await
+        } else {
+            Ok(())
         }
     }
 
@@ -195,58 +525,33 @@ pub trait PeerConnectorModule:
             }
         }
         verification.ended_at = Some(Utc::now());
-        self.repo().sent_verification().update(verification).await?;
+        let verification = self.repo().sent_verification().update(verification).await?;
+        self.peer_presented_event(&verification).await;
         Ok(())
     }
 
-    /// Records the presentation request; presents right away when the grant is automatic.
+    /// Marks grant `id` rejected, as the peer answered.
     #[tracing::instrument(level = "info", skip_all, err)]
-    async fn manage_auto_oid4vp(&self, grant: &grant::Model, uri: &str) -> Outcome<()> {
-        let verification =
-            self.peer_connector()
-                .build_verification_plan(&grant.tenant_id, uri, &grant.id)?;
-        let verification = self.repo().sent_verification().create(verification).await?;
-
-        if grant.auto {
-            self.manage_oid4vp(verification, uri).await
-        } else {
-            Ok(())
-        }
-    }
-
-    /// Checks the callback, sends the GNAP continuation and follows its answer.
-    #[tracing::instrument(level = "info", skip_all, err)]
-    async fn req_peer_continuation(
-        &self,
-        id: String,
-        payload: ApprovedCallbackBody,
-    ) -> Outcome<()> {
-        let mut interaction = self.repo().sent_interaction().get_by_id(&id).await?;
-        let mut grant = self.repo().sent_grant().get_by_id(&id).await?;
-        self.callback().apply_callback(&mut interaction, &payload);
-
-        let result = self.callback().check_callback(&interaction, &grant);
-        let mut interaction = self.repo().sent_interaction().update(interaction).await?;
-        result?;
-
-        let grant_resp = self.callback().send_continue_req(&interaction).await?;
-
-        let what_response =
-            self.peer_connector()
-                .manage_grant_resp(grant_resp, &mut grant, &mut interaction);
-
-        let grant = self.repo().sent_grant().update(grant).await?;
-        let _interaction = self.repo().sent_interaction().update(interaction).await?;
-
-        self.manage_what_resp(grant, what_response).await
-    }
-
-    #[tracing::instrument(level = "info", skip_all, err)]
-    async fn manage_rejection(&self, id: String) -> Outcome<()> {
-        let mut grant = self.repo().sent_grant().get_by_id(&id).await?;
+    async fn manage_rejection(&self, id: &str) -> Outcome<()> {
+        let mut grant = self.repo().sent_grant().get_by_id(id).await?;
         grant.status = GrantStatus::Rejected;
         grant.ended_at = Some(Utc::now());
-        self.repo().sent_grant().update(grant).await?;
+        let grant = self.repo().sent_grant().update(grant).await?;
+        self.peer_event(&grant, "rejected").await;
         Ok(())
+    }
+}
+
+fn expires_within(at: Option<DateTime<Utc>>, margin: Duration, now: DateTime<Utc>) -> bool {
+    match at {
+        Some(at) => at - margin <= now,
+        None => false,
+    }
+}
+
+fn is_valid_at(at: Option<DateTime<Utc>>, now: DateTime<Utc>) -> bool {
+    match at {
+        Some(at) => at > now,
+        None => true,
     }
 }

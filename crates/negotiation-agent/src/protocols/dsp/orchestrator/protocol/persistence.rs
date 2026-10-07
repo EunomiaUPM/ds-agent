@@ -42,7 +42,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
-use ymir::data::entities::shared::participant::Model as Mates;
+use common::facades::grants_facade::VerifiedPeer;
+use common::oauth::{OwnedTrait, Owner, UserInfo};
 use ymir::errors::{Errors, Outcome};
 
 pub struct OrchestrationPersistenceForProtocol {
@@ -74,7 +75,7 @@ impl OrchestrationPersistenceForProtocol {
     pub async fn create_new(
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessView> {
         let mut process = self.create_process(payload, mate).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
@@ -83,7 +84,7 @@ impl OrchestrationPersistenceForProtocol {
             .await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
         let offer = self
-            .create_offer(&process_id, &message_id, payload, &process.inner.tenant_id)
+            .create_offer(&process_id, &message_id, payload, &process.inner.owner())
             .await?;
         process.messages.push(message.inner);
         process.offers.push(offer.inner);
@@ -95,12 +96,12 @@ impl OrchestrationPersistenceForProtocol {
         &self,
         identifier: &str,
         payload: &dyn NegotiationProcessMessageTrait,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessView> {
         let process = self.fetch_process(identifier, mate).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
         let mut new_process = self
-            .update_process(&process_id, payload, &process.inner.tenant_id)
+            .update_process(&process_id, payload, &process.inner.owner())
             .await?;
         let message = self.create_message(&process_id, payload, &process).await?;
         new_process.messages.push(message.inner);
@@ -112,12 +113,12 @@ impl OrchestrationPersistenceForProtocol {
         &self,
         identifier: &str,
         payload: &dyn NegotiationProcessMessageTrait,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessView> {
         let process = self.fetch_process(identifier, mate).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
         let mut new_process = self
-            .update_process(&process_id, payload, &process.inner.tenant_id)
+            .update_process(&process_id, payload, &process.inner.owner())
             .await?;
         let message = self.create_message(&process_id, payload, &process).await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
@@ -126,7 +127,7 @@ impl OrchestrationPersistenceForProtocol {
                 &process_id,
                 &message_id,
                 payload,
-                &new_process.inner.tenant_id,
+                &new_process.inner.owner(),
             )
             .await?;
         new_process.messages.push(message.inner);
@@ -139,13 +140,13 @@ impl OrchestrationPersistenceForProtocol {
         &self,
         identifier: &str,
         payload: &dyn NegotiationProcessMessageTrait,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessView> {
         let process = self.fetch_process(identifier, mate).await?;
         let associated_agent_peer = process.inner.associated_agent_peer.clone();
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
         let mut new_process = self
-            .update_process(&process_id, payload, &process.inner.tenant_id)
+            .update_process(&process_id, payload, &process.inner.owner())
             .await?;
         let message = self.create_message(&process_id, payload, &process).await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
@@ -155,7 +156,7 @@ impl OrchestrationPersistenceForProtocol {
                 &message_id,
                 &associated_agent_peer,
                 payload,
-                &process.inner.tenant_id,
+                &process.inner.owner(),
             )
             .await?;
         new_process.messages.push(message.inner);
@@ -168,17 +169,17 @@ impl OrchestrationPersistenceForProtocol {
         &self,
         identifier: &str,
         payload: &dyn NegotiationProcessMessageTrait,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessView> {
         let process = self.fetch_process(identifier, mate).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
         let mut new_process = self
-            .update_process(&process_id, payload, &process.inner.tenant_id)
+            .update_process(&process_id, payload, &process.inner.owner())
             .await?;
         let message = self.create_message(&process_id, payload, &process).await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
         let agreement = self
-            .update_agreement(&process_id, &message_id, payload, &process.inner.tenant_id)
+            .update_agreement(&process_id, &message_id, payload, &process.inner.owner())
             .await?;
         new_process.messages.push(message.inner);
         new_process.agreement = Some(agreement.inner);
@@ -207,7 +208,7 @@ impl OrchestrationExtractors for OrchestrationPersistenceForProtocol {
 impl OrchestrationPersistenceForProtocol {
     /// Loads the process behind a pid, provided `mate` is its counterparty.
     #[tracing::instrument(level = "info", skip_all, err)]
-    pub async fn fetch_process(&self, id: &str, mate: &Mates) -> Outcome<NegotiationProcessView> {
+    pub async fn fetch_process(&self, id: &str, mate: &VerifiedPeer) -> Outcome<NegotiationProcessView> {
         let urn = self.convert_str_to_urn(id)?;
         self.resolver.resolve(&urn, &DspActor::peer(mate)).await
     }
@@ -215,7 +216,7 @@ impl OrchestrationPersistenceForProtocol {
     async fn create_process(
         &self,
         message: &dyn NegotiationProcessMessageTrait,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessView> {
         let id = self.create_entity_urn("negotiation-process")?;
         let message_type = self.get_dsp_message_safely(message)?;
@@ -255,14 +256,17 @@ impl OrchestrationPersistenceForProtocol {
             self.create_entity_urn(not_key_identifier_id)?.to_string(),
         );
 
-        let scope = NegotiationProcessResolver::owner_scope(&mate.tenant_id);
+        // A process a peer opens has no local user behind it: it is handled by the role of the
+        // peer's grant and seen as the grant says.
+        let user = NegotiationProcessResolver::actor();
         let new_process = self
             .process_service
             .create(
-                &scope,
+                &user,
                 &NewNegotiationProcessDto {
                     id: Some(id),
-                    tenant_id: Some(mate.tenant_id.clone()),
+                    visibility: None,
+                    owner: Some(mate.owner()),
                     state: state.to_string(),
                     state_attribute: None, // O el valor por defecto que corresponda
                     associated_agent_peer: mate.participant_id.clone(),
@@ -313,14 +317,15 @@ impl OrchestrationPersistenceForProtocol {
             );
         }
 
-        let scope = NegotiationProcessResolver::owner_scope(&process.inner.tenant_id);
+        let scope = NegotiationProcessResolver::actor();
         let new_message = self
             .message_service
             .create(
                 &scope,
                 &NewNegotiationMessageDto {
                     id: Some(id),
-                    tenant_id: Some(process.inner.tenant_id.clone()),
+                    visibility: None,
+                    owner: Some(process.inner.owner()),
                     negotiation_agent_process_id: process_id.clone(),
                     direction: "INBOUND".to_string(),
                     protocol: "DSP".to_string(),
@@ -339,7 +344,7 @@ impl OrchestrationPersistenceForProtocol {
         process_id: &Urn,
         message_id: &Urn,
         message: &dyn NegotiationProcessMessageTrait,
-        tenant_id: &str,
+        owner: &Owner,
     ) -> Outcome<OfferView> {
         let id = self.create_entity_urn("offer")?;
         let offer_content = self.get_dsp_offer_safely(message)?;
@@ -350,14 +355,15 @@ impl OrchestrationPersistenceForProtocol {
         }
         .to_string();
 
-        let scope = NegotiationProcessResolver::owner_scope(tenant_id);
+        let scope = NegotiationProcessResolver::actor();
         let new_offer = self
             .offer_service
             .create(
                 &scope,
                 &NewOfferDto {
                     id: Some(id),
-                    tenant_id: Some(tenant_id.to_string()),
+                    visibility: None,
+                    owner: Some(owner.clone()),
                     negotiation_agent_process_id: process_id.clone(),
                     negotiation_agent_message_id: message_id.clone(),
                     offer_id,
@@ -374,19 +380,20 @@ impl OrchestrationPersistenceForProtocol {
         mid: &Urn,
         peer: &str,
         message: &dyn NegotiationProcessMessageTrait,
-        tenant_id: &str,
+        owner: &Owner,
     ) -> Outcome<AgreementView> {
         let agreement = self.get_dsp_agreement_safely(message)?;
         let id = agreement.clone().id;
         let target = agreement.clone().target;
-        let scope = NegotiationProcessResolver::owner_scope(tenant_id);
+        let scope = NegotiationProcessResolver::actor();
         let agr = self
             .agreement_service
             .create(
                 &scope,
                 &NewAgreementDto {
                     id: Some(id),
-                    tenant_id: Some(tenant_id.to_string()),
+                    visibility: None,
+                    owner: Some(owner.clone()),
                     negotiation_agent_process_id: pid.clone(),
                     negotiation_agent_message_id: mid.clone(),
                     consumer_participant_id: agreement.assignee.clone(),
@@ -404,9 +411,9 @@ impl OrchestrationPersistenceForProtocol {
         pid: &Urn,
         _mid: &Urn,
         _message: &dyn NegotiationProcessMessageTrait,
-        tenant_id: &str,
+        owner: &Owner,
     ) -> Outcome<AgreementView> {
-        let scope = NegotiationProcessResolver::owner_scope(tenant_id);
+        let scope = NegotiationProcessResolver::actor();
         let fetching_agreement = self.agreement_service.get_by_process(&scope, pid).await?;
         let agreement_urn = self.convert_string_to_urn(&fetching_agreement.inner.id)?;
         let agreement = self
@@ -426,14 +433,14 @@ impl OrchestrationPersistenceForProtocol {
         &self,
         pid: &Urn,
         message: &dyn NegotiationProcessMessageTrait,
-        tenant_id: &str,
+        owner: &Owner,
     ) -> Outcome<NegotiationProcessView> {
         let message_type = self.get_dsp_message_safely(message)?;
         let state: NegotiationProcessState = message_type.clone().into();
         let process = self
             .process_service
             .edit(
-                &NegotiationProcessResolver::owner_scope(tenant_id),
+                &NegotiationProcessResolver::actor(),
                 pid,
                 &EditNegotiationProcessDto {
                     state: Some(state.to_string()),

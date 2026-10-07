@@ -25,7 +25,7 @@ use serde::Serialize;
 /// Who created and changed an entry, when, and its current version.
 #[derive(Clone, Debug, Serialize)]
 pub struct Metadata {
-    pub tenant_id: String,
+    pub user_id: String,
     pub key: Key,
     pub version: Version,
     pub created_at: DateTime<Utc>,

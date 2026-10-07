@@ -27,7 +27,7 @@ use catalog_agent::grpc::catalogs::CatalogEntityGrpc;
 use catalog_agent::services::catalogs::MockCatalogServiceTrait;
 use common::errors::ResourceError;
 use common::paginated_spec::Paginated;
-use common::test_utils::grpc::{GrpcRequests, StubTokenValidator, OTHER_TENANT, TENANT};
+use common::test_utils::grpc::{GrpcRequests, StubTokenValidator, TENANT};
 use tonic::Code;
 use ymir::errors::Errors;
 
@@ -47,43 +47,10 @@ fn by_id(id: &str) -> GetByIdRequest {
 async fn get_without_token_is_unauthenticated() {
     let g = grpc(MockCatalogServiceTrait::new());
     let err = g
-        .get_catalog_by_id(GrpcRequests::with_auth(by_id(&urn(1)), None, Some(TENANT)))
+        .get_catalog_by_id(GrpcRequests::with_auth(by_id(&urn(1)), None))
         .await
         .unwrap_err();
     assert_eq!(err.code(), Code::Unauthenticated);
-}
-
-/// A non-admin naming another tenant is PermissionDenied.
-#[tokio::test]
-async fn get_foreign_tenant_without_admin_is_permission_denied() {
-    let g = grpc(MockCatalogServiceTrait::new());
-    let err = g
-        .get_catalog_by_id(GrpcRequests::with_auth(
-            by_id(&urn(1)),
-            Some("owner"),
-            Some(OTHER_TENANT),
-        ))
-        .await
-        .unwrap_err();
-    assert_eq!(err.code(), Code::PermissionDenied);
-}
-
-/// An admin may act on another tenant.
-#[tokio::test]
-async fn admin_may_act_on_foreign_tenant() {
-    let mut svc = MockCatalogServiceTrait::new();
-    svc.expect_get_catalog_by_id()
-        .withf(|scope, _| scope.acting_tenant() == OTHER_TENANT && scope.is_admin())
-        .returning(|_, _| Ok(catalog_dto(1)));
-    let g = grpc(svc);
-    assert!(g
-        .get_catalog_by_id(GrpcRequests::with_auth(
-            by_id(&urn(1)),
-            Some("admin"),
-            Some(OTHER_TENANT)
-        ))
-        .await
-        .is_ok());
 }
 
 /// Without tenant header the caller acts on its token's tenant.
@@ -91,11 +58,11 @@ async fn admin_may_act_on_foreign_tenant() {
 async fn missing_tenant_header_falls_back_to_token_tenant() {
     let mut svc = MockCatalogServiceTrait::new();
     svc.expect_get_catalog_by_id()
-        .withf(|scope, _| scope.acting_tenant() == TENANT)
+        .withf(|scope, _| scope.id() == TENANT)
         .returning(|_, _| Ok(catalog_dto(1)));
     let g = grpc(svc);
     assert!(g
-        .get_catalog_by_id(GrpcRequests::with_auth(by_id(&urn(1)), Some("owner"), None))
+        .get_catalog_by_id(GrpcRequests::with_auth(by_id(&urn(1)), Some("user")))
         .await
         .is_ok());
 }
@@ -162,7 +129,7 @@ async fn create_parses_optional_id_and_passes_fields() {
         .withf(|_, dto| {
             dto.id.as_ref().map(|u| u.to_string()) == Some(urn(9))
                 && dto.dct_title.as_deref() == Some("t")
-                && dto.tenant_id.is_none()
+                && dto.owner.is_none()
         })
         .returning(|_, _| Ok(catalog_dto(9)));
     let g = grpc(svc);
@@ -253,7 +220,7 @@ async fn list_propagates_cursor_total_and_parsed_filters() {
             filter.title.as_deref() == Some("x")
                 && filter.with_main_catalog == Some(true)
                 && filter.creator.is_none()
-                && filter.tenant_id.is_none()
+                && filter.user_id.is_none()
                 && page.limit == 5
                 && page.cursor.as_deref() == Some("abc")
                 && sort.as_str() == "created_at_asc"

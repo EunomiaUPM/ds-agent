@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { formatUrn } from "shared/src/lib/utils.ts";
+import { encodePathId } from "shared/src/lib/utils";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
@@ -40,7 +41,7 @@ function RouteComponent() {
     isLoading: isParticipantLoading,
     isError: isParticipantError,
     error: participantError,
-  } = useGetParticipantById(participantId);
+  } = useGetParticipantById(encodePathId(participantId));
   const {
     data: agreements,
     isLoading: isAgreementsLoading,

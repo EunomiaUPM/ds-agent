@@ -26,8 +26,8 @@ use crate::grpc::api::transfer_processes::{
     transfer_processes_ref_server::TransferProcessesRef,
 };
 use crate::services::transfer_process::TransferProcessServiceTrait;
-use common::auth::OauthTokenValidator;
-use common::auth::grpc::GrpcAuth;
+use common::oauth::OauthTokenValidatorTrait;
+use common::oauth::grpc::GrpcAuth;
 use common::batch_requests::BatchRequests;
 use common::grpc::{IntoStatus, ListParams, ProtoField};
 use tonic::{Request, Response, Status};
@@ -41,7 +41,7 @@ pub struct TransferProcessGrpc {
 impl TransferProcessGrpc {
     pub fn new(
         service: Arc<dyn TransferProcessServiceTrait>,
-        validator: Arc<dyn OauthTokenValidator>,
+        validator: Arc<dyn OauthTokenValidatorTrait>,
     ) -> Self {
         Self {
             service,
@@ -56,11 +56,11 @@ impl TransferProcessesRef for TransferProcessGrpc {
         &self,
         request: Request<ListTransferProcessesRequest>,
     ) -> Result<Response<TransferProcessListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let params = ListParams::try_from(request.into_inner())?;
         let result = self
             .service
-            .get_all(&scope, &params.filter, &params.page, &params.sort)
+            .get_all(&user, &params.filter, &params.page, &params.sort)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(result.into()))
@@ -70,11 +70,11 @@ impl TransferProcessesRef for TransferProcessGrpc {
         &self,
         request: Request<ResourceIdRequest>,
     ) -> Result<Response<TransferProcessResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let id = request.into_inner().id.urn("id")?;
         let view = self
             .service
-            .get_one(&scope, &id)
+            .get_one(&user, &id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(view.into()))
@@ -84,11 +84,11 @@ impl TransferProcessesRef for TransferProcessGrpc {
         &self,
         request: Request<BatchTransferProcessesRequest>,
     ) -> Result<Response<TransferProcessListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let batch = BatchRequests::try_from(request.into_inner())?;
         let views = self
             .service
-            .batch(&scope, &batch)
+            .batch(&user, &batch)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(views.into()))
@@ -98,11 +98,11 @@ impl TransferProcessesRef for TransferProcessGrpc {
         &self,
         request: Request<CreateTransferProcessRequest>,
     ) -> Result<Response<TransferProcessResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let cmd = request.into_inner().try_into()?;
         let view = self
             .service
-            .create(&scope, &cmd)
+            .create(&user, &cmd)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(view.into()))
@@ -112,13 +112,13 @@ impl TransferProcessesRef for TransferProcessGrpc {
         &self,
         request: Request<EditTransferProcessRequest>,
     ) -> Result<Response<TransferProcessResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let req = request.into_inner();
         let id = req.id.urn("id")?;
         let cmd = req.try_into()?;
         let view = self
             .service
-            .edit(&scope, &id, &cmd)
+            .edit(&user, &id, &cmd)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(view.into()))
@@ -128,10 +128,10 @@ impl TransferProcessesRef for TransferProcessGrpc {
         &self,
         request: Request<ResourceIdRequest>,
     ) -> Result<Response<DeleteResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let id = request.into_inner().id.urn("id")?;
         self.service
-            .delete(&scope, &id)
+            .delete(&user, &id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(DeleteResponse {}))

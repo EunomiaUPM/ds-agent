@@ -1055,8 +1055,8 @@ export const useReplayDeadLetter = <TError = ErrorType<UnauthorizedResponse | Fo
     }
     /**
  * Unnamed server-sent events, one `EventEnvelope` JSON per `data:` line, with a keep-alive
-every 15 s. Browsers cannot set headers on `EventSource`, so `tenant` replaces
-`x-tenant-id`.
+every 15 s, about the records the session's user sees. The session travels as the
+proxy's cookie, like any other request.
 
  * @summary Live event stream (SSE)
  */

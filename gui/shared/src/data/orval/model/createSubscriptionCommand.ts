@@ -13,13 +13,11 @@ are calls the GUI still makes to routes the backend no longer serves.
  * OpenAPI spec version: 1.0.0
  */
 import type { CreateSubscriptionCommandHeaders } from './createSubscriptionCommandHeaders';
+import type { Visibility } from './visibility';
 
 export interface CreateSubscriptionCommand {
-  /**
-   * Ignored; the subscription belongs to the acting tenant.
-   * @nullable
-   */
-  tenant_id?: string | null;
+  /** Who else sees it; private by default. */
+  visibility?: Visibility;
   callback_address: string;
   topic_pattern: string;
   /** @nullable */

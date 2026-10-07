@@ -15,26 +15,24 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
-
-use common::auth::ServiceHttpClient;
 use common::config::types::min_known_config::MinKnownConfig;
 use common::config::types::traits::MinKnownConfigTrait;
 use negotiation_agent::AgreementView;
 use urn::Urn;
 use ymir::config::types::HostType;
+use ymir::services::client::ClientExt;
+use ymir::utils::http_client;
 use ymir::errors::Outcome;
 
 use crate::protocols::dsp::facades::negotiation_facade::NegotiationFacadeTrait;
 
-/// Agreements read from the negotiation agent's API with the service token.
+/// Agreements read from the negotiation agent's API.
 pub struct NegotiationRemoteFacade {
     agreements_url: String,
-    service_client: Arc<ServiceHttpClient>,
 }
 
 impl NegotiationRemoteFacade {
-    pub fn new(contracts: &MinKnownConfig, service_client: Arc<ServiceHttpClient>) -> Self {
+    pub fn new(contracts: &MinKnownConfig) -> Self {
         Self {
             agreements_url: format!(
                 "{}{}/{}/agreements",
@@ -42,17 +40,15 @@ impl NegotiationRemoteFacade {
                 contracts.get_api_version(),
                 negotiation_agent::SERVICE_NAME
             ),
-            service_client,
         }
     }
 }
 
 #[async_trait::async_trait]
 impl NegotiationFacadeTrait for NegotiationRemoteFacade {
-    /// No `x-tenant-id`: the service token then reads across tenants.
-    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "negotiation"))]
+        #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "negotiation"))]
     async fn get_agreement(&self, agreement_id: &Urn) -> Outcome<AgreementView> {
         let url = format!("{}/{agreement_id}", self.agreements_url);
-        self.service_client.get_json(&url, None).await
+        http_client().get_json(&url, None).await
     }
 }

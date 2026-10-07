@@ -28,10 +28,9 @@ export interface SSIAuthContextType {
   ownWalletOnboarded: boolean;
   // Own DID
   ownDid: string | null;
-  // Temp Peer; `tenant` is the peer tenant to onboard into
+  // Temp Peer
   tempPeer: {
     url: string | null;
-    tenant: string | null;
     did: string | null;
     didDocument: Object | null;
   };
@@ -67,7 +66,7 @@ export interface SSIAuthContextType {
   // Actions
   onboardInWallet: () => Promise<void>;
   fetchAuthDid: (url: string) => Promise<void>;
-  fetchPeerDid: (url: string, tenant: string) => Promise<void>;
+  fetchPeerDid: (url: string) => Promise<void>;
   requestVCtoAuthority: () => Promise<void>;
   fetchAuthRequests: () => Promise<void>;
   pollAuthRequests: () => Promise<void>;
@@ -82,7 +81,6 @@ export const SSIAuthContext = createContext<SSIAuthContextType>({
   ownDid: null,
   tempPeer: {
     url: null,
-    tenant: null,
     did: null,
     didDocument: null,
   },
@@ -109,7 +107,7 @@ export const SSIAuthContext = createContext<SSIAuthContextType>({
   },
   onboardInWallet: async () => {},
   fetchAuthDid: async (url: string) => {},
-  fetchPeerDid: async (url: string, tenant: string) => {},
+  fetchPeerDid: async (_url: string) => {},
   requestVCtoAuthority: async () => {},
   fetchAuthRequests: async () => {},
   pollAuthRequests: async () => {},
@@ -125,7 +123,6 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
   const [isContextWorking, setIsContextWorking] = useState<boolean>(false);
   const [tempPeer, setTempPeer] = useState<SSIAuthContextType["tempPeer"]>({
     url: null,
-    tenant: null,
     did: null,
     didDocument: null,
   });
@@ -194,7 +191,7 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
     }
   };
 
-  const fetchPeerDid = async (url: string, tenant: string) => {
+  const fetchPeerDid = async (url: string) => {
     setIsFetchingPeerDid(true);
     try {
       const cleanUrl = url.replace(/\/$/, "");
@@ -202,7 +199,6 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
       if (response.status === 200) {
         setTempPeer({
           url: cleanUrl,
-          tenant,
           did: response.data.id,
           didDocument: response.data,
         });
@@ -346,14 +342,14 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
   const setOidc4VpRequestUri = async () => {
     setIsFetchingAuthRequests(true);
     try {
-      if (!tempPeer.url || !tempPeer.did || !tempPeer.tenant) {
-        throw new Error("No Temp Peer DID or tenant found");
+      if (!tempPeer.url || !tempPeer.did) {
+        throw new Error("No Temp Peer URL or DID found");
       }
       await connectToPeer({
         data: {
           id: tempPeer.did,
           nick: "peer",
-          url: `${tempPeer.url}/api/v1/gate/${encodeURIComponent(tempPeer.tenant)}/access`,
+          url: `${tempPeer.url}/api/v1/gate/access`,
           actions: ["talk"],
           auto: false,
         },

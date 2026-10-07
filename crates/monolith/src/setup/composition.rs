@@ -23,7 +23,6 @@ use bff::BffModule;
 use catalog_agent::setup::{CatalogAgentModule, CatalogPorts};
 use common::boot::seeders::BootSeeder;
 use common::boot::workers::BackgroundWorker;
-use common::config::types::traits::CommonConfigTrait;
 use common::config::ApplicationConfig;
 use common::facades::AuthPorts;
 use common::module_loader::module_group::ModuleGroup;
@@ -32,7 +31,8 @@ use common::module_loader::service_module::ServiceModuleTrait;
 use events::setup::EventsModule;
 use keystore::KeystoreModule;
 use negotiation_agent::setup::{NegotiationAgentModule, NegotiationPorts};
-use oauth::setup::OAuthModule;
+// The built-in OAuth crate is disabled (identity from Keycloak or the static user).
+// use oauth::setup::OAuthModule;
 use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
 use transfer_agent::setup::{TransferAgentModule, TransferPorts};
@@ -51,7 +51,7 @@ impl MonolithModule {
     pub async fn compose(config: &ApplicationConfig, root: &RootContext) -> Outcome<Self> {
         let events = EventsModule::compose(root);
         let bus = Some(events.event_bus());
-        let auth = AuthModule::compose(config.ssi_auth()?, root).await?;
+        let auth = AuthModule::compose(config.ssi_auth()?, root, bus.clone()).await?;
         let auth_ports = auth.local_ports();
         let self_participant = auth.self_participant_onboarder();
         let catalog_ports = CatalogPorts::local(auth_ports.clone());
@@ -75,14 +75,13 @@ impl MonolithModule {
             catalog.dataset_service(),
             catalog.distribution_service(),
             catalog.local_connector_instances(),
-            config.common().admin_seed.tenant_id.clone(),
         )
         .await?;
         let modules = ModuleGroup::new("monolith")
             .register(catalog)
             .register(auth)
             .register(negotiation)
-            .register(OAuthModule::compose(config.common(), root, bus.clone()))
+            // .register(OAuthModule::compose(config.common(), root, bus.clone()))
             .register(TransferAgentModule::compose(
                 config.transfer()?,
                 root,
@@ -111,7 +110,7 @@ impl MonolithModule {
             NegotiationAgentModule::migrations(),
             EventsModule::migrations(),
             AuthModule::migrations(),
-            OAuthModule::migrations(),
+            // OAuthModule::migrations(),
             TransferAgentModule::migrations(),
             KeystoreModule::migrations(),
         ]

@@ -16,49 +16,49 @@
  */
 
 //! PeerConnectorModule: onboarding with a peer through GNAP, presenting over OID4VP when the
-//! peer asks, and following the peer's callback.
+//! peer asks, following the peer's callback, and the token a user presents to a peer.
 
 use auth::modules::PeerConnectorModule;
 use auth::types::response::TokenWhatResponse;
-use common::test_utils::scopes::TestScopes;
+use common::facades::grants_facade::PeerToken;
+use common::test_utils::scopes::TestUsers;
 use ymir::errors::Errors;
 use ymir::types::gnap::grant_request::interact::InteractAction;
-use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody, GrantStatus, RejectedCallbackBody};
 use ymir::types::verification::VerificationStatus;
 use ymir::types::wallet::OidcUri;
 
 use crate::support::builders::{
-    participant, participant_plan, reach_provider, resource_req, sent_grant, sent_grant_plan,
-    sent_interaction, sent_interaction_plan, sent_verification, sent_verification_plan,
+    issued_token_response, participant, participant_plan, reach_provider, relation, resource_req,
+    sent_grant, sent_grant_plan, sent_interaction, sent_interaction_plan, sent_verification,
+    sent_verification_plan,
 };
 use crate::support::mocks::Doubles;
 
-/// Grant `g-1` sent to the peer for `tenant-1`, which answers `what`.
+/// Grant `g-1` Ana (`/admin/upm`) sends to the peer, which answers `what`.
 fn connection(d: &mut Doubles, auto: bool, what: TokenWhatResponse) {
     d.peer_connector
         .expect_build_grant_plan()
-        .withf(|tenant, reach| tenant == "tenant-1" && reach.id == "did:web:peer")
-        .returning(|tenant, _| sent_grant_plan(tenant, "g-1"));
+        .withf(|user, reach| user.id() == "ana" && reach.id == "did:web:peer")
+        .returning(|user, _| sent_grant_plan(user.id(), user.role().as_str(), "g-1"));
     d.peer_connector
         .expect_build_interaction_plan()
         .returning(sent_interaction_plan);
     d.peer_connector
         .expect_build_resource_req_plan()
-        .withf(|_, _, actions| actions == &[InteractAction::Talk])
-        .returning(|tenant, id, _| resource_req(tenant, id));
-    d.repos
-        .sent_grant
-        .expect_create()
-        .returning(move |plan| Ok(sent_grant(&plan.tenant_id, &plan.id, auto)));
+        .withf(|_, actions| actions == &[InteractAction::Talk])
+        .returning(|id, _| resource_req(id));
+    d.repos.sent_grant.expect_create().returning(move |plan| {
+        Ok(sent_grant(&plan.user_id, plan.role.as_str(), &plan.id, auto))
+    });
     d.repos
         .sent_interaction
         .expect_create()
-        .returning(|plan| Ok(sent_interaction(&plan.tenant_id, &plan.id)));
+        .returning(|plan| Ok(sent_interaction(&plan.id)));
     d.repos.resource_req.expect_create().returning(Ok);
     d.peer_connector
         .expect_send_grant_req()
-        .returning(|_, _, req| Ok(GrantResponse::token_approved("peer-token", req)));
+        .returning(|_, _, req| Ok(issued_token_response("peer-token", req)));
     d.peer_connector
         .expect_manage_grant_resp()
         .return_once(move |_, _, _| Ok(what));
@@ -70,32 +70,49 @@ fn connection(d: &mut Doubles, auto: bool, what: TokenWhatResponse) {
 fn presentation_requested(d: &mut Doubles) {
     d.peer_connector
         .expect_build_verification_plan()
-        .withf(|tenant, uri, id| tenant == "tenant-1" && uri == "openid4vp://peer" && id == "g-1")
-        .returning(|tenant, _, id| Ok(sent_verification_plan(tenant, id)));
+        .withf(|uri, id| uri == "openid4vp://peer" && id == "g-1")
+        .returning(|_, id| Ok(sent_verification_plan(id)));
     d.repos
         .sent_verification
         .expect_create()
         .times(1)
-        .returning(|plan| Ok(sent_verification(&plan.tenant_id, &plan.id)));
+        .returning(|plan| Ok(sent_verification(&plan.id)));
 }
 
-/// A peer that grants access right away is stored as a participant.
+fn ana() -> ymir::types::oauth::UserInfo {
+    TestUsers::user("ana", "/admin/upm")
+}
+
+// ==========================================================================================
+// Onboarding (users)
+// ==========================================================================================
+
+/// A peer that grants access right away is stored (if new) with Ana's relation to it.
 #[tokio::test]
-async fn completed_grant_stores_the_peer() {
+async fn completed_grant_stores_the_peer_and_the_users_relation() {
     let mut d = Doubles::default();
     connection(&mut d, true, TokenWhatResponse::Completed);
     d.peer_connector
         .expect_build_mate_plan()
-        .returning(|grant| participant_plan(&grant.tenant_id, &grant.participant_id));
+        .returning(|grant| participant_plan(&grant.participant_id));
     d.repos
         .participant
-        .expect_force_update()
-        .withf(|plan| plan.tenant_id == "tenant-1" && plan.participant_id == "did:web:peer")
+        .expect_create_if_absent()
+        .withf(|plan| plan.participant_id == "did:web:peer")
         .times(1)
-        .returning(|plan| Ok(participant(&plan.tenant_id, &plan.participant_id)));
+        .returning(|plan| Ok(participant(&plan.participant_id)));
+    d.peer_connector
+        .expect_build_mate_relation()
+        .returning(|grant| relation(&grant.user_id, grant.role.as_str(), &grant.participant_id));
+    d.repos
+        .participant_relation
+        .expect_force_update()
+        .withf(|relation| relation.user_id == "ana" && relation.role.as_str() == "/admin/upm")
+        .times(1)
+        .returning(Ok);
 
     d.core()
-        .req_peer_connection(&TestScopes::owner("tenant-1"), reach_provider())
+        .req_peer_connection(&ana(), reach_provider())
         .await
         .unwrap();
 }
@@ -123,7 +140,7 @@ async fn automatic_grant_presents_through_the_wallet() {
         .returning(Ok);
 
     d.core()
-        .req_peer_connection(&TestScopes::owner("tenant-1"), reach_provider())
+        .req_peer_connection(&ana(), reach_provider())
         .await
         .unwrap();
 }
@@ -140,19 +157,9 @@ async fn manual_grant_waits_for_the_presentation() {
     presentation_requested(&mut d);
 
     d.core()
-        .req_peer_connection(&TestScopes::owner("tenant-1"), reach_provider())
+        .req_peer_connection(&ana(), reach_provider())
         .await
         .unwrap();
-}
-
-/// A reader cannot start an onboarding.
-#[tokio::test]
-async fn reader_cannot_connect() {
-    let result = Doubles::default()
-        .core()
-        .req_peer_connection(&TestScopes::reader("tenant-1"), reach_provider())
-        .await;
-    assert!(result.is_err());
 }
 
 /// A wallet failure marks the presentation as failed instead of failing the request.
@@ -160,9 +167,13 @@ async fn reader_cannot_connect() {
 async fn wallet_failure_marks_the_presentation_failed() {
     let mut d = Doubles::default();
     d.repos
+        .sent_grant
+        .expect_get_by_id()
+        .returning(|id| Ok(sent_grant("ana", "/admin/upm", id, true)));
+    d.repos
         .sent_verification
         .expect_get_by_id()
-        .returning(|id| Ok(sent_verification("tenant-1", id)));
+        .returning(|id| Ok(sent_verification(id)));
     d.wallet
         .expect_process_oid4vp()
         .returning(|_| Err(Errors::crazy("wallet down", None)));
@@ -175,8 +186,8 @@ async fn wallet_failure_marks_the_presentation_failed() {
 
     PeerConnectorModule::process_oid4vp(
         &d.core(),
-        &TestScopes::owner("tenant-1"),
-        "g-1".to_string(),
+        &ana(),
+        "g-1",
         OidcUri {
             uri: "openid4vp://peer".to_string(),
         },
@@ -185,19 +196,20 @@ async fn wallet_failure_marks_the_presentation_failed() {
     .unwrap();
 }
 
-/// A presentation of another tenant is not found, and the wallet is not used.
+/// A grant of a colleague with the same role is not reached: its presentation is refused and
+/// the wallet is not used.
 #[tokio::test]
-async fn presentation_of_another_tenant_is_not_visible() {
+async fn presentation_of_a_colleagues_grant_is_refused() {
     let mut d = Doubles::default();
     d.repos
-        .sent_verification
+        .sent_grant
         .expect_get_by_id()
-        .returning(|id| Ok(sent_verification("tenant-2", id)));
+        .returning(|id| Ok(sent_grant("bea", "/admin/upm", id, true)));
 
     let result = PeerConnectorModule::process_oid4vp(
         &d.core(),
-        &TestScopes::owner("tenant-1"),
-        "g-1".to_string(),
+        &ana(),
+        "g-1",
         OidcUri {
             uri: "openid4vp://peer".to_string(),
         },
@@ -207,6 +219,10 @@ async fn presentation_of_another_tenant_is_not_visible() {
     assert!(result.is_err());
 }
 
+// ==========================================================================================
+// Callbacks (the peer)
+// ==========================================================================================
+
 /// A rejection callback closes the grant as rejected.
 #[tokio::test]
 async fn rejection_callback_rejects_the_grant() {
@@ -214,7 +230,7 @@ async fn rejection_callback_rejects_the_grant() {
     d.repos
         .sent_grant
         .expect_get_by_id()
-        .returning(|id| Ok(sent_grant("tenant-1", id, true)));
+        .returning(|id| Ok(sent_grant("ana", "/admin/upm", id, true)));
     d.repos
         .sent_grant
         .expect_update()
@@ -224,7 +240,7 @@ async fn rejection_callback_rejects_the_grant() {
 
     PeerConnectorModule::manage_interaction_finish(
         &d.core(),
-        "g-1".to_string(),
+        "g-1",
         CallbackBody::Rejected(RejectedCallbackBody {
             rejected: "no".to_string(),
         }),
@@ -240,11 +256,11 @@ async fn forged_callback_is_not_continued() {
     d.repos
         .sent_interaction
         .expect_get_by_id()
-        .returning(|id| Ok(sent_interaction("tenant-1", id)));
+        .returning(|id| Ok(sent_interaction(id)));
     d.repos
         .sent_grant
         .expect_get_by_id()
-        .returning(|id| Ok(sent_grant("tenant-1", id, true)));
+        .returning(|id| Ok(sent_grant("ana", "/admin/upm", id, true)));
     d.callback
         .expect_apply_callback()
         .returning(|interaction, body| {
@@ -262,7 +278,7 @@ async fn forged_callback_is_not_continued() {
 
     let result = PeerConnectorModule::manage_interaction_finish(
         &d.core(),
-        "g-1".to_string(),
+        "g-1",
         CallbackBody::Approved(ApprovedCallbackBody {
             interact_ref: "ref-1".to_string(),
             hash: "forged".to_string(),
@@ -271,4 +287,54 @@ async fn forged_callback_is_not_continued() {
     .await;
 
     assert!(result.is_err());
+}
+
+// ==========================================================================================
+// Token towards a peer (other agents, through the grants facade)
+// ==========================================================================================
+
+/// The token a user presents to a peer is the one of its own approved grant with it.
+#[tokio::test]
+async fn peer_token_is_the_one_of_the_users_own_grant() {
+    let mut d = Doubles::default();
+    d.repos
+        .sent_grant
+        .expect_get_active_access()
+        .withf(|user_id, peer| user_id == "ana" && peer == "did:web:peer")
+        .returning(|_, _| {
+            let mut grant = sent_grant("ana", "/admin/upm", "g-1", true);
+            grant.status = GrantStatus::Approved;
+            grant.final_token = Some("peer-token".to_string());
+            Ok(Some(grant))
+        });
+
+    let token = d
+        .core()
+        .peer_token(&ana(), "did:web:peer", true)
+        .await
+        .unwrap();
+
+    assert_eq!(token, PeerToken::Ready("peer-token".to_string()));
+}
+
+/// Without a grant of its own with the peer, the user waits for the one in progress.
+#[tokio::test]
+async fn no_own_grant_waits_for_the_one_in_progress() {
+    let mut d = Doubles::default();
+    d.repos
+        .sent_grant
+        .expect_get_active_access()
+        .returning(|_, _| Ok(None));
+    d.repos
+        .sent_grant
+        .expect_has_open_access()
+        .returning(|_, _, _| Ok(true));
+
+    let token = d
+        .core()
+        .peer_token(&ana(), "did:web:peer", true)
+        .await
+        .unwrap();
+
+    assert_eq!(token, PeerToken::Pending);
 }

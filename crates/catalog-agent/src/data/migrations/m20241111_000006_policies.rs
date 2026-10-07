@@ -37,11 +37,9 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(CatalogODRLOffers::TenantId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(CatalogODRLOffers::UserId).string().not_null())
+                    .col(ColumnDef::new(CatalogODRLOffers::UserRole).string_len(255).not_null())
+                    .col(ColumnDef::new(CatalogODRLOffers::Visibility).string_len(16).not_null())
                     .col(
                         ColumnDef::new(CatalogODRLOffers::ODRLOffer)
                             .json_binary()
@@ -82,14 +80,15 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // sea-query cannot express a column-subset SET NULL, needed because tenant_id is NOT NULL.
+        // Templates are unique by id and version, whoever owns them (and an offer may come from
+        // a template of someone else it sees, like the connector's library).
         manager
             .get_connection()
             .execute_unprepared(
                 "ALTER TABLE catalog_odrl_offers \
                  ADD CONSTRAINT fk_odrl_offers_template_source \
-                 FOREIGN KEY (tenant_id, source_template_id, source_template_version) \
-                 REFERENCES policy_templates (tenant_id, id, version) \
+                 FOREIGN KEY (source_template_id, source_template_version) \
+                 REFERENCES policy_templates (id, version) \
                  ON DELETE SET NULL (source_template_id, source_template_version) \
                  ON UPDATE CASCADE",
             )
@@ -108,7 +107,9 @@ impl MigrationTrait for Migration {
 pub enum CatalogODRLOffers {
     Table,
     Id,
-    TenantId,
+    UserId,
+    UserRole,
+    Visibility,
     ODRLOffer,
     Entity,
     EntityType,

@@ -21,6 +21,7 @@ pub mod types;
 pub mod validator;
 
 use crate::data::entities::policy_template;
+use common::oauth::{Owner, RolePath, Visibility};
 use crate::data::entities::policy_template::{Model, NewPolicyTemplateModel};
 use crate::entities::policy_templates::types::{LocalizedText, ParameterDefinition};
 use common::dsp_common::odrl::OdrlPolicyInfo;
@@ -42,7 +43,9 @@ pub enum PolicyTemplateAllowedDefaultValues {
 #[serde(rename_all = "camelCase")]
 pub struct PolicyTemplateDto {
     pub id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub version: String,
     pub date: DateTimeWithTimeZone,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -62,8 +65,12 @@ pub struct PolicyTemplateDto {
 pub struct NewPolicyTemplateDto {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
+    /// Who else sees it; private by default.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tenant_id: Option<String>,
+    pub visibility: Option<Visibility>,
+    /// Owner an in-process flow asks for; only honoured for the root.
+    #[serde(skip)]
+    pub owner: Option<Owner>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -79,12 +86,14 @@ pub struct NewPolicyTemplateDto {
     pub parameters: HashMap<String, ParameterDefinition>,
 }
 
+common::impl_owned!(PolicyTemplateDto);
+
 impl NewPolicyTemplateDto {
-    /// Row for `tenant_id`; fails when content or parameters cannot be serialized.
-    pub fn into_model(self, tenant_id: String) -> Outcome<NewPolicyTemplateModel> {
+    /// Row owned by `owner`; fails when content or parameters cannot be serialized.
+    pub fn into_model(self, owner: Owner) -> Outcome<NewPolicyTemplateModel> {
         Ok(NewPolicyTemplateModel {
             id: self.id,
-            tenant_id,
+            owner,
             version: self.version,
             date: self.date,
             author: self.author,
@@ -102,7 +111,9 @@ impl TryFrom<policy_template::Model> for PolicyTemplateDto {
     fn try_from(value: Model) -> Result<Self, Self::Error> {
         Ok(Self {
             id: value.id,
-            tenant_id: value.tenant_id,
+            user_id: value.user_id,
+            user_role: value.user_role,
+            visibility: value.visibility,
             version: value.version,
             date: value.date,
             title: value.title.map(serde_json::from_value).transpose()?,

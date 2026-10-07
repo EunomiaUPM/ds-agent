@@ -16,6 +16,7 @@
  */
 
 use sea_orm::entity::prelude::*;
+use common::oauth::{Owner, RolePath, Visibility};
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as Json;
@@ -29,7 +30,9 @@ pub struct Model {
     pub name: String,
     #[sea_orm(primary_key, auto_increment = false)]
     pub version: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub author: String,
     pub created_at: DateTimeWithTimeZone,
     pub spec: Json,
@@ -49,9 +52,11 @@ impl Related<super::connector_instances::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+common::impl_owned!(Model);
+
 #[derive(Clone)]
 pub struct NewConnectorTemplateModel {
-    pub tenant_id: String,
+    pub owner: Owner,
     pub name: Option<String>,
     pub version: Option<String>,
     pub author: Option<String>,
@@ -70,7 +75,9 @@ impl From<NewConnectorTemplateModel> for ActiveModel {
         Self {
             name: ActiveValue::Set(dto.name.clone().unwrap_or(new_urn.to_string()).to_string()),
             version: ActiveValue::Set(dto.version.unwrap_or_else(|| "1.0".to_string())),
-            tenant_id: ActiveValue::Set(dto.tenant_id),
+            user_id: ActiveValue::Set(dto.owner.user_id),
+            user_role: ActiveValue::Set(dto.owner.role),
+            visibility: ActiveValue::Set(dto.owner.visibility),
             author: ActiveValue::Set(dto.author.unwrap_or_else(|| "admin".to_string())),
             created_at: ActiveValue::Set(chrono::Utc::now().into()),
             spec: ActiveValue::Set(dto.spec),

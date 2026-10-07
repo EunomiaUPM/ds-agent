@@ -15,19 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
-
-use common::auth::OauthTokenValidator;
+use crate::setup::composition::AuthModule;
 use common::boot::BootstrapServiceTrait;
-use common::config::services::{CommonConfig, SsiAuthConfig};
+use common::config::services::SsiAuthConfig;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
-use oauth::setup::OAuthModule;
-use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
 use ymir::errors::Outcome;
-
-use crate::setup::composition::AuthModule;
 
 /// Standalone SSI auth agent: wallet, GNAP gatekeeper, verifier and issuer.
 pub struct AuthBoot;
@@ -40,12 +34,8 @@ impl BootstrapServiceTrait for AuthBoot {
         AuthModule::migrations()
     }
 
-    fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator> {
-        OAuthModule::validator(common, db)
-    }
-
     async fn compose(config: &SsiAuthConfig, root: &RootContext) -> Outcome<ServiceComposer> {
-        let auth = AuthModule::compose(config, root).await?;
+        let auth = AuthModule::compose(config, root, None).await?;
         let ports = auth.local_ports();
         Ok(ServiceComposer::new().register(auth).with_auth_ports(ports))
     }

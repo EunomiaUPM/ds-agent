@@ -41,7 +41,7 @@ impl TryFrom<ListTransferMessagesRequest> for ListParams<TransferMessageFilter> 
 
     fn try_from(req: ListTransferMessagesRequest) -> Result<Self, Status> {
         let filter = TransferMessageFilter {
-            tenant_id: None,
+            user_id: None,
             direction: req.direction.opt_parsed::<Direction>("direction")?,
             protocol: req.protocol.opt_parsed::<ProtocolId>("protocol")?,
             state_transition_to: req
@@ -101,7 +101,8 @@ impl TryFrom<CreateTransferMessageRequest> for NewTransferMessageCommand {
             transfer_process_id: TransferProcessId::new(
                 req.transfer_process_id.urn("transfer_process_id")?,
             ),
-            tenant_id: None,
+            visibility: None,
+            owner: None,
             direction: req
                 .direction
                 .proto_enum::<ProtoDirection>("direction")?
@@ -120,7 +121,9 @@ impl From<TransferMessageView> for TransferMessageResponse {
         Self {
             id: view.id.to_string(),
             transfer_process_id: view.transfer_process_id.to_string(),
-            tenant_id: view.tenant_id,
+            user_id: view.user_id,
+            user_role: view.user_role.to_string(),
+            visibility: sea_orm::ActiveEnum::to_value(&view.visibility),
             direction: ProtoDirection::from(view.direction) as i32,
             protocol: view.protocol.to_string(),
             message_type: view.message_type.0.to_string(),

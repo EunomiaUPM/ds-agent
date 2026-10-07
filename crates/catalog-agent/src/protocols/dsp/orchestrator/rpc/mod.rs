@@ -26,19 +26,19 @@ pub mod persistence;
 pub mod rpc;
 pub mod types;
 
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 
 #[async_trait::async_trait]
 pub trait RPCOrchestratorTrait: Send + Sync + 'static {
     async fn setup_catalog_request_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcCatalogRequestMessageDto,
     ) -> Outcome<RpcCatalogResponseMessageDto<RpcCatalogRequestMessageDto, Catalog>>;
 
     async fn setup_dataset_request_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcDatasetRequestMessageDto,
     ) -> Outcome<RpcCatalogResponseMessageDto<RpcDatasetRequestMessageDto, Dataset>>;
 }

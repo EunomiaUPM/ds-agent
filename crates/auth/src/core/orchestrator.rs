@@ -21,6 +21,7 @@ use crate::modules::{
     GaiaSelfAttesterModule, GateKeeperModule, ParticipantModule, PeerConnectorModule,
     VcRequesterModule, VerifierModule,
 };
+use crate::services::HasConfig;
 
 /// Every capability module at once, as one trait object for the routers.
 pub trait AuthOrchestratorTrait:
@@ -31,6 +32,7 @@ pub trait AuthOrchestratorTrait:
     + VerifierModule
     + VcRequesterModule
     + GateKeeperModule
+    + HasConfig
     + Send
     + Sync
     + 'static

@@ -24,7 +24,7 @@ use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationTerminationMessageDto, RpcNegotiationVerificationMessageDto,
 };
 use crate::services::negotiation_process::views::NegotiationProcessView;
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
@@ -60,38 +60,38 @@ impl BFFRPCOrchestratorService {
 
 #[async_trait::async_trait]
 impl BFFRPCOrchestratorTrait for BFFRPCOrchestratorService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn setup_negotiation_request_init_bff_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationRequestInitMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationRequestInitMessageDto>> {
         self.rpc_service
-            .setup_negotiation_request_init_rpc(scope, input)
+            .setup_negotiation_request_init_rpc(user, input)
             .await
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn setup_negotiation_offer_init_bff_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationOfferInitMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationOfferInitMessageDto>> {
         self.rpc_service
-            .setup_negotiation_offer_init_rpc(scope, input)
+            .setup_negotiation_offer_init_rpc(user, input)
             .await
     }
 
     // From ACCEPTED through AGREED and VERIFIED to FINALIZED; the provider runs it in one call.
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn setup_negotiation_agreement_bff_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationAgreementMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationEventFinalizedMessageDto>> {
         let agreement = self
             .rpc_service
-            .setup_negotiation_agreement_rpc(scope, input)
+            .setup_negotiation_agreement_rpc(user, input)
             .await?;
 
         let (consumer_pid, provider_pid) = self.extract_pids(&agreement.negotiation_agent_model)?;
@@ -99,36 +99,36 @@ impl BFFRPCOrchestratorTrait for BFFRPCOrchestratorService {
         let verification_input =
             RpcNegotiationVerificationMessageDto::new(consumer_pid.clone(), provider_pid.clone());
         self.rpc_service
-            .setup_negotiation_agreement_verification_rpc(scope, &verification_input)
+            .setup_negotiation_agreement_verification_rpc(user, &verification_input)
             .await?;
 
         let finalized_input =
             RpcNegotiationEventFinalizedMessageDto::new(consumer_pid, provider_pid);
         self.rpc_service
-            .setup_negotiation_event_finalized_rpc(scope, &finalized_input)
+            .setup_negotiation_event_finalized_rpc(user, &finalized_input)
             .await
     }
 
     // Moves an OFFERED negotiation to ACCEPTED.
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn setup_negotiation_event_accepted_bff_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationEventAcceptedMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationEventAcceptedMessageDto>> {
         self.rpc_service
-            .setup_negotiation_event_accepted_rpc(scope, input)
+            .setup_negotiation_event_accepted_rpc(user, input)
             .await
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn setup_negotiation_termination_bff_rpc(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         input: &RpcNegotiationTerminationMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationTerminationMessageDto>> {
         self.rpc_service
-            .setup_negotiation_termination_rpc(scope, input)
+            .setup_negotiation_termination_rpc(user, input)
             .await
     }
 }

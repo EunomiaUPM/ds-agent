@@ -36,7 +36,7 @@ impl TryFrom<ListOffersRequest> for ListParams<OfferFilter> {
     fn try_from(req: ListOffersRequest) -> Result<Self, Status> {
         let filter = OfferFilter {
             id: None,
-            tenant_id: None,
+            user_id: None,
             process_id: req.process_id.non_empty().map(str::to_owned),
             offer_id: req.offer_id.non_empty().map(str::to_owned),
             target: req.target.non_empty().map(str::to_owned),
@@ -63,7 +63,8 @@ impl TryFrom<CreateOfferRequest> for NewOfferDto {
     fn try_from(req: CreateOfferRequest) -> Result<Self, Status> {
         Ok(Self {
             id: req.id.as_deref().unwrap_or_default().opt_urn("id")?,
-            tenant_id: None,
+            visibility: None,
+            owner: None,
             negotiation_agent_process_id: req
                 .negotiation_agent_process_id
                 .urn("negotiation_agent_process_id")?,

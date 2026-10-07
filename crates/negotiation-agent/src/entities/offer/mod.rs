@@ -18,6 +18,7 @@
 //! Offers.
 
 use crate::data::entities::offer::NewOfferModel;
+use common::oauth::{Owner, Visibility};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 
@@ -27,8 +28,12 @@ use urn::Urn;
 #[serde(deny_unknown_fields)]
 pub struct NewOfferDto {
     pub id: Option<Urn>,
+    /// Who else sees it; private by default.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tenant_id: Option<String>,
+    pub visibility: Option<Visibility>,
+    /// Owner an in-process flow asks for; only honoured for the root.
+    #[serde(skip)]
+    pub owner: Option<Owner>,
     pub negotiation_agent_process_id: Urn,
     pub negotiation_agent_message_id: Urn,
     pub offer_id: String,
@@ -36,11 +41,11 @@ pub struct NewOfferDto {
 }
 
 impl NewOfferDto {
-    /// Row for `tenant_id`.
-    pub fn into_model(self, tenant_id: String) -> NewOfferModel {
+    /// Row owned by `owner`.
+    pub fn into_model(self, owner: Owner) -> NewOfferModel {
         NewOfferModel {
             id: self.id,
-            tenant_id,
+            owner,
             negotiation_agent_process_id: self.negotiation_agent_process_id,
             negotiation_agent_message_id: self.negotiation_agent_message_id,
             offer_id: self.offer_id,

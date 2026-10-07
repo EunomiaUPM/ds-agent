@@ -79,7 +79,9 @@ fn dummy_dataplane_transfer_dto(
 ) -> DataplaneTransferDto {
     DataplaneTransferDto {
         inner: dataplane_transfers::Model {
-            tenant_id: "tenant-1".to_string(),
+            user_id: "tenant-1".to_string(),
+            user_role: common::oauth::RolePath::root(),
+            visibility: common::oauth::Visibility::Private,
             id: id.to_string(),
             transfer_process_id: tp_id.to_string(),
             role,
@@ -100,6 +102,7 @@ fn dummy_dataplane_transfer_dto(
 fn dummy_pull_connector(urn: &Urn) -> ConnectorInstanceDto {
     ConnectorInstanceDto {
         id: urn.clone(),
+        user_id: "user-1".to_string(),
         metadata: ConnectorMetadata {
             name: None,
             author: None,
@@ -123,6 +126,7 @@ fn dummy_pull_connector(urn: &Urn) -> ConnectorInstanceDto {
 fn dummy_push_connector(urn: &Urn) -> ConnectorInstanceDto {
     ConnectorInstanceDto {
         id: urn.clone(),
+        user_id: "user-1".to_string(),
         metadata: ConnectorMetadata {
             name: None,
             author: None,

@@ -16,6 +16,7 @@
  */
 
 use crate::data::entities::negotiation_process;
+use common::oauth::{OwnedTrait, Owner, OwnerScope};
 use crate::data::entities::negotiation_process::{
     EditNegotiationProcessModel, Model, NewNegotiationProcessModel,
 };
@@ -26,7 +27,6 @@ use crate::data::repo_traits::negotiation_process_repo::{
 use crate::entities::filters::NegotiationProcessFilter;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use common::query::FilterApplier;
-use sea_orm::QueryTrait;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, JoinType,
     PaginatorTrait, QueryFilter, QuerySelect, RelationTrait, Select,
@@ -42,8 +42,8 @@ impl FilterApplier<Select<negotiation_process::Entity>> for NegotiationProcessFi
         if let Some(ref id) = self.id {
             q = q.filter(negotiation_process::Column::Id.eq(id));
         }
-        if let Some(ref tenant_id) = self.tenant_id {
-            q = q.filter(negotiation_process::Column::TenantId.eq(tenant_id));
+        if let Some(ref user_id) = self.user_id {
+            q = q.filter(negotiation_process::Column::UserId.eq(user_id));
         }
         if let Some(ref state) = self.state {
             let normalized = state.replace("dspace:", "");
@@ -94,11 +94,16 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_negotiation_processes(
         &self,
+        scope: &OwnerScope,
         filters: &NegotiationProcessFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<Model>, Option<u64>)> {
-        let mut q = negotiation_process::Entity::find();
+        let mut q = negotiation_process::Entity::find().filter(scope.condition(
+            negotiation_process::Column::UserId,
+            negotiation_process::Column::UserRole,
+            negotiation_process::Column::Visibility,
+        ));
         q = filters.apply_to(q);
 
         let total = q.clone().count(&self.db_connection).await.map_err(|e| {
@@ -125,14 +130,12 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_negotiation_processes(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<Model>> {
         let negotiation_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let negotiation_process = negotiation_process::Entity::find()
-            .apply_if(tenant_id, |q, t| {
-                q.filter(negotiation_process::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(negotiation_process::Column::UserId, negotiation_process::Column::UserRole, negotiation_process::Column::Visibility))
             .filter(negotiation_process::Column::Id.is_in(negotiation_ids))
             .all(&self.db_connection)
             .await;
@@ -148,14 +151,12 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_negotiation_process_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<Model>> {
         let pid = id.to_string();
         let negotiation_process = negotiation_process::Entity::find_by_id(pid)
-            .apply_if(tenant_id, |q, t| {
-                q.filter(negotiation_process::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(negotiation_process::Column::UserId, negotiation_process::Column::UserRole, negotiation_process::Column::Visibility))
             .one(&self.db_connection)
             .await;
         match negotiation_process {
@@ -170,7 +171,7 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_negotiation_process_by_key_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         key_id: &str,
         id: &Urn,
     ) -> Outcome<Option<Model>> {
@@ -182,9 +183,11 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
             )
             .filter(negotiation_process_identifier::Column::IdKey.eq(key_id))
             .filter(negotiation_process_identifier::Column::IdValue.eq(id_str));
-        if let Some(ref t) = tenant_id {
-            q = q.filter(negotiation_process::Column::TenantId.eq(t));
-        }
+        q = q.filter(scope.condition(
+                negotiation_process::Column::UserId,
+                negotiation_process::Column::UserRole,
+                negotiation_process::Column::Visibility,
+            ));
         let negotiation_process = q.one(&self.db_connection).await;
         match negotiation_process {
             Ok(negotiation_process) => Ok(negotiation_process),
@@ -198,7 +201,7 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_negotiation_process_by_key_value(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<Model>> {
         let id_str = id.to_string();
@@ -212,9 +215,11 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
                     .eq(&id_str)
                     .or(negotiation_process_identifier::Column::IdValue.eq(&id_str)),
             );
-        if let Some(ref t) = tenant_id {
-            q = q.filter(negotiation_process::Column::TenantId.eq(t));
-        }
+        q = q.filter(scope.condition(
+                negotiation_process::Column::UserId,
+                negotiation_process::Column::UserRole,
+                negotiation_process::Column::Visibility,
+            ));
         let negotiation_process = q.one(&self.db_connection).await;
         match negotiation_process {
             Ok(negotiation_process) => Ok(negotiation_process),
@@ -246,15 +251,13 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_negotiation_process(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
         edit_model: &EditNegotiationProcessModel,
     ) -> Outcome<Model> {
         let id_str = id.to_string();
         let old_model = negotiation_process::Entity::find_by_id(&id_str)
-            .apply_if(tenant_id, |q, t| {
-                q.filter(negotiation_process::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(negotiation_process::Column::UserId, negotiation_process::Column::UserRole, negotiation_process::Column::Visibility))
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -296,22 +299,20 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_negotiation_process(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
-    ) -> Outcome<String> {
+    ) -> Outcome<Owner> {
         let id_str = id.to_string();
         let delete_result = negotiation_process::Entity::delete_many()
             .filter(negotiation_process::Column::Id.eq(&id_str))
-            .apply_if(tenant_id, |q, t| {
-                q.filter(negotiation_process::Column::TenantId.eq(t))
-            })
+            .filter(scope.condition(negotiation_process::Column::UserId, negotiation_process::Column::UserRole, negotiation_process::Column::Visibility))
             .exec_with_returning(&self.db_connection)
             .await;
         match delete_result {
             Ok(rows) => rows
                 .into_iter()
                 .next()
-                .map(|row| row.tenant_id)
+                .map(|row| row.owner())
                 .ok_or_else(|| {
                     NegotiationProcessRepoErrors::NegotiationProcessNotFound.into_errors()
                 }),

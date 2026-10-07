@@ -18,7 +18,7 @@
 use std::sync::Arc;
 
 use axum::Router;
-use common::auth::OauthTokenValidator;
+use common::oauth::OauthTokenValidatorTrait;
 use common::boot::workers::BackgroundWorker;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
@@ -32,7 +32,7 @@ use crate::SERVICE_NAME;
 /// Events service module integrating migrations and HTTP routes into the modular host.
 pub struct EventsModule {
     ctx: Arc<AppContext>,
-    validator: Arc<dyn OauthTokenValidator>,
+    validator: Arc<dyn OauthTokenValidatorTrait>,
 }
 
 impl EventsModule {

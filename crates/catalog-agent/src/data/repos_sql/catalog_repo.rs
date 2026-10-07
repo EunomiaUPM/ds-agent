@@ -16,6 +16,7 @@
  */
 
 use crate::data::entities::catalog;
+use common::oauth::OwnerScope;
 use crate::data::entities::catalog::{EditCatalogModel, NewCatalogModel};
 use crate::data::repo_traits::catalog_db_errors::{CatalogAgentRepoErrors, CatalogRepoErrors};
 use crate::data::repo_traits::catalog_repo::CatalogRepositoryTrait;
@@ -32,8 +33,8 @@ use ymir::errors::{Outcome, RepoIntoErrors};
 
 impl FilterApplier<Select<catalog::Entity>> for CatalogFilter {
     fn apply_to(&self, mut q: Select<catalog::Entity>) -> Select<catalog::Entity> {
-        if let Some(ref tenant_id) = self.tenant_id {
-            q = q.filter(catalog::Column::TenantId.eq(tenant_id));
+        if let Some(ref user_id) = self.user_id {
+            q = q.filter(catalog::Column::UserId.eq(user_id));
         }
         if let Some(ref title) = self.title {
             q = q.filter(catalog::Column::DctTitle.contains(title));
@@ -72,11 +73,18 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_catalogs(
         &self,
+        scope: &OwnerScope,
         filters: &CatalogFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<catalog::Model>, Option<u64>)> {
-        let q = filters.apply_to(catalog::Entity::find());
+        let q = filters
+            .apply_to(catalog::Entity::find())
+            .filter(scope.condition(
+                catalog::Column::UserId,
+                catalog::Column::UserRole,
+                catalog::Column::Visibility,
+            ));
 
         let total = q.clone().count(&self.db_connection).await.map_err(|err| {
             CatalogAgentRepoErrors::CatalogRepoErrors(CatalogRepoErrors::ErrorFetchingCatalog(
@@ -107,12 +115,12 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_catalogs(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<catalog::Model>> {
         let catalog_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let catalog_process = catalog::Entity::find()
-            .apply_if(tenant_id, |q, t| q.filter(catalog::Column::TenantId.eq(t)))
+            .filter(scope.condition(catalog::Column::UserId, catalog::Column::UserRole, catalog::Column::Visibility))
             .filter(catalog::Column::Id.is_in(catalog_ids))
             .all(&self.db_connection)
             .await;
@@ -128,12 +136,12 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_catalog_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         catalog_id: &Urn,
     ) -> Outcome<Option<catalog::Model>> {
         let catalog_id = catalog_id.to_string();
         let catalog = catalog::Entity::find_by_id(catalog_id)
-            .apply_if(tenant_id, |q, t| q.filter(catalog::Column::TenantId.eq(t)))
+            .filter(scope.condition(catalog::Column::UserId, catalog::Column::UserRole, catalog::Column::Visibility))
             .one(&self.db_connection)
             .await;
         match catalog {
@@ -146,9 +154,8 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn get_main_catalog(&self, tenant_id: &str) -> Outcome<Option<catalog::Model>> {
+    async fn get_main_catalog(&self) -> Outcome<Option<catalog::Model>> {
         let catalog = catalog::Entity::find()
-            .filter(catalog::Column::TenantId.eq(tenant_id))
             .filter(catalog::Column::DspaceMainCatalog.eq(true))
             .one(&self.db_connection)
             .await
@@ -164,13 +171,13 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_catalog_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         catalog_id: &Urn,
         edit_catalog_model: &EditCatalogModel,
     ) -> Outcome<catalog::Model> {
         let catalog_id = catalog_id.to_string();
         let old_model = catalog::Entity::find_by_id(catalog_id)
-            .apply_if(tenant_id, |q, t| q.filter(catalog::Column::TenantId.eq(t)))
+            .filter(scope.condition(catalog::Column::UserId, catalog::Column::UserRole, catalog::Column::Visibility))
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -218,7 +225,7 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
 
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_catalog(&self, new_catalog_model: &NewCatalogModel) -> Outcome<catalog::Model> {
-        let main_catalog = self.get_main_catalog(&new_catalog_model.tenant_id).await?;
+        let main_catalog = self.get_main_catalog().await?;
         if main_catalog.is_none() {
             return Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                 CatalogRepoErrors::ErrorCreatingCatalog(
@@ -245,7 +252,7 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         &self,
         new_catalog_model: &NewCatalogModel,
     ) -> Outcome<catalog::Model> {
-        if let Some(main_catalog) = self.get_main_catalog(&new_catalog_model.tenant_id).await? {
+        if let Some(main_catalog) = self.get_main_catalog().await? {
             return Ok(main_catalog);
         }
 
@@ -266,12 +273,12 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_catalog_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         catalog_id: &Urn,
     ) -> Outcome<catalog::Model> {
         let deleted = catalog::Entity::delete_many()
             .filter(catalog::Column::Id.eq(catalog_id.to_string()))
-            .apply_if(tenant_id, |q, t| q.filter(catalog::Column::TenantId.eq(t)))
+            .filter(scope.condition(catalog::Column::UserId, catalog::Column::UserRole, catalog::Column::Visibility))
             .exec_with_returning(&self.db_connection)
             .await
             .map_err(|err| {

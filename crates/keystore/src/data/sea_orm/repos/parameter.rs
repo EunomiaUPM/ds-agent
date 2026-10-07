@@ -42,8 +42,8 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_parameters(&self, filter: &PrefixFilter) -> Outcome<Vec<Entry<Self::Value>>> {
         let mut query = parameter::Entity::find().filter(parameter::Column::DeletedAt.is_null());
-        if let Some(tenant_id) = &filter.tenant_id {
-            query = query.filter(parameter::Column::TenantId.eq(tenant_id));
+        if let Some(user_id) = &filter.user_id {
+            query = query.filter(parameter::Column::UserId.eq(user_id));
         }
         if let Some(prefix) = &filter.prefix {
             if !prefix.is_empty() {
@@ -68,8 +68,8 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
     async fn count_parameters(&self, filter: &PrefixFilter) -> Outcome<u64> {
         use sea_orm::PaginatorTrait;
         let mut query = parameter::Entity::find().filter(parameter::Column::DeletedAt.is_null());
-        if let Some(tenant_id) = &filter.tenant_id {
-            query = query.filter(parameter::Column::TenantId.eq(tenant_id));
+        if let Some(user_id) = &filter.user_id {
+            query = query.filter(parameter::Column::UserId.eq(user_id));
         }
         if let Some(prefix) = &filter.prefix {
             if !prefix.is_empty() {
@@ -85,12 +85,12 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_parameters(
         &self,
-        tenant_id: &str,
+        user_id: &str,
         keys: &[Key],
     ) -> Outcome<Vec<Entry<Self::Value>>> {
         let key_strs: Vec<&str> = keys.iter().map(|k| k.as_str()).collect();
         let rows = parameter::Entity::find()
-            .filter(parameter::Column::TenantId.eq(tenant_id))
+            .filter(parameter::Column::UserId.eq(user_id))
             .filter(parameter::Column::Key.is_in(key_strs))
             .filter(parameter::Column::DeletedAt.is_null())
             .all(&self.db)
@@ -109,10 +109,10 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_parameter_by_key(
         &self,
-        tenant_id: &str,
+        user_id: &str,
         key: &Key,
     ) -> Outcome<Option<Entry<Self::Value>>> {
-        let row = parameter::Entity::find_by_id((tenant_id.to_string(), key.as_str().to_string()))
+        let row = parameter::Entity::find_by_id((user_id.to_string(), key.as_str().to_string()))
             .filter(parameter::Column::DeletedAt.is_null())
             .one(&self.db)
             .await
@@ -128,12 +128,12 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_parameter(
         &self,
-        tenant_id: &str,
+        user_id: &str,
         cmd: &NewParameterCommand<Self::Value>,
     ) -> Outcome<Entry<Self::Value>> {
         // Reject if an active (non-deleted) entry already exists.
         let exists =
-            parameter::Entity::find_by_id((tenant_id.to_string(), cmd.key.as_str().to_string()))
+            parameter::Entity::find_by_id((user_id.to_string(), cmd.key.as_str().to_string()))
                 .filter(parameter::Column::DeletedAt.is_null())
                 .one(&self.db)
                 .await
@@ -144,7 +144,7 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
             return Err(ParameterRepoErrors::ParameterAlreadyExists.into_errors());
         }
 
-        let active = parameter::ActiveModel::from_new_cmd(tenant_id, cmd);
+        let active = parameter::ActiveModel::from_new_cmd(user_id, cmd);
         let model = parameter::Entity::insert(active)
             .exec_with_returning(&self.db)
             .await
@@ -158,12 +158,12 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_parameter(
         &self,
-        tenant_id: &str,
+        user_id: &str,
         key: &Key,
         cmd: &EditParameterCommand<Self::Value>,
     ) -> Outcome<Entry<Self::Value>> {
         let current =
-            parameter::Entity::find_by_id((tenant_id.to_string(), key.as_str().to_string()))
+            parameter::Entity::find_by_id((user_id.to_string(), key.as_str().to_string()))
                 .filter(parameter::Column::DeletedAt.is_null())
                 .one(&self.db)
                 .await
@@ -194,9 +194,9 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn delete_parameter(&self, tenant_id: &str, key: &Key) -> Outcome<()> {
+    async fn delete_parameter(&self, user_id: &str, key: &Key) -> Outcome<()> {
         let result =
-            parameter::Entity::delete_by_id((tenant_id.to_string(), key.as_str().to_string()))
+            parameter::Entity::delete_by_id((user_id.to_string(), key.as_str().to_string()))
                 .exec(&self.db)
                 .await
                 .map_err(|e| ParameterRepoErrors::ErrorDeletingParameter(e.into()).into_errors())?;

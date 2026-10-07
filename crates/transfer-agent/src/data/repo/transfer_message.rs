@@ -16,6 +16,7 @@
  */
 
 use crate::entities::commands::NewTransferMessageCommand;
+use common::oauth::{Owner, OwnerScope};
 use crate::entities::filters::TransferMessageFilter;
 use crate::entities::transfer_message::TransferMessage;
 use common::query::{Page, Sort};
@@ -28,14 +29,16 @@ use ymir::errors::{Outcome, RepoIntoErrors};
 pub trait TransferMessageRepoTrait: Send + Sync {
     async fn get_all_transfer_messages(
         &self,
+        scope: &OwnerScope,
         filters: &TransferMessageFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Vec<TransferMessage>>;
-    async fn count_transfer_messages(&self, filters: &TransferMessageFilter) -> Outcome<u64>;
+    async fn count_transfer_messages(&self, scope: &OwnerScope, filters: &TransferMessageFilter) -> Outcome<u64>;
 
     async fn get_messages_by_process_id(
         &self,
+        scope: &OwnerScope,
         process_id: &Urn,
         filters: &TransferMessageFilter,
         page: &Page,
@@ -44,7 +47,7 @@ pub trait TransferMessageRepoTrait: Send + Sync {
 
     async fn get_transfer_message_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<TransferMessage>>;
 
@@ -53,9 +56,9 @@ pub trait TransferMessageRepoTrait: Send + Sync {
         cmd: &NewTransferMessageCommand,
     ) -> Outcome<TransferMessage>;
 
-    /// Returns the tenant of the removed record.
-    async fn delete_transfer_message(&self, tenant_id: Option<String>, id: &Urn)
-    -> Outcome<String>;
+    /// Returns the owner of the removed record.
+    async fn delete_transfer_message(&self, scope: &OwnerScope, id: &Urn)
+    -> Outcome<Owner>;
 }
 
 #[derive(Debug, Error)]

@@ -18,7 +18,7 @@
 //! GaiaSelfAttesterModule: issuing the connector's own Gaia-X credentials into its wallet.
 
 use auth::modules::GaiaSelfAttesterModule;
-use common::test_utils::scopes::TestScopes;
+use common::test_utils::scopes::TestUsers;
 use ymir::types::issuance::VcBody;
 
 use crate::support::builders::{stored_vc, vc_claims};
@@ -26,7 +26,7 @@ use crate::support::mocks::Doubles;
 
 /// Both credentials are signed and stored in the wallet as JWTs.
 #[tokio::test]
-async fn admin_signs_and_stores_both_credentials() {
+async fn root_signs_and_stores_both_credentials() {
     let mut d = Doubles::default();
     d.gaia
         .expect_generate_legal_person()
@@ -45,17 +45,17 @@ async fn admin_signs_and_stores_both_credentials() {
         .returning(|_| Ok(stored_vc()));
 
     d.core()
-        .generate_gaia_vcs(&TestScopes::admin())
+        .generate_gaia_vcs(&TestUsers::root())
         .await
         .unwrap();
 }
 
-/// The credentials attest the shared connector identity, so a tenant owner cannot issue them.
+/// The credentials attest the shared connector identity, so only the root issues them.
 #[tokio::test]
-async fn owner_cannot_issue_them() {
+async fn other_users_cannot_issue_them() {
     let result = Doubles::default()
         .core()
-        .generate_gaia_vcs(&TestScopes::owner("tenant-1"))
+        .generate_gaia_vcs(&TestUsers::user("ana", "/admin/upm"))
         .await;
     assert!(result.is_err());
 }

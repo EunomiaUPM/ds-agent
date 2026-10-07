@@ -15,6 +15,7 @@ import * as z from "zod";
 import QRCode from "react-qr-code";
 import { useState } from "react";
 import { FormatDate } from "shared/src/components/ui/format-date";
+import { grantBadgeState } from "shared/src/lib/utils";
 import {
   AlertCircle,
   ArrowLeft,
@@ -39,11 +40,16 @@ interface SentGrant {
   grant_endpoint: string;
   kind: string;
   status: string;
-  token?: string | null;
+  final_token?: string | null;
+  final_expires_at?: string | null;
+  managing_uri?: string | null;
+  managing_token?: string | null;
+  managing_expires_at?: string | null;
   vc_type_config?: string[] | null;
   vc_uri?: string | null;
   as_assigned_id?: string | null;
   auto: boolean;
+  requested: boolean;
   created_at: string;
   ended_at?: string | null;
 }
@@ -56,9 +62,9 @@ interface SentInteraction {
   client_nonce: string;
   hash_method: any;
   hints?: string | null;
-  continue_endpoint?: string | null;
-  continue_token?: string | null;
-  continue_wait?: number | null;
+  continuation_endpoint?: string | null;
+  continuation_token?: string | null;
+  continuation_wait?: number | null;
   as_nonce?: string | null;
   oidc_vp_uri?: string | null;
   interact_ref?: string | null;
@@ -152,6 +158,21 @@ function SentRequestDetails() {
     }
   };
 
+  const handleDisconnect = async () => {
+    if (!grant) return;
+    setIsProcessing(true);
+    try {
+      await customInstance(`/peer-connection/request/${encodeURIComponent(grant.id)}`, {
+        method: "DELETE",
+      });
+      await queryClient.invalidateQueries({ queryKey });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <PageSection>
@@ -190,7 +211,19 @@ function SentRequestDetails() {
             Back to Sent
           </Button>
         </Link>
-        <div className="text-xs text-muted-foreground font-mono">ID: {grant.id}</div>
+        <div className="flex items-center gap-3">
+          {grant.status === "Approved" && (
+            <Button
+              variant="outline_destructive"
+              size="sm"
+              disabled={isProcessing}
+              onClick={handleDisconnect}
+            >
+              Disconnect
+            </Button>
+          )}
+          <div className="text-xs text-muted-foreground font-mono">ID: {grant.id}</div>
+        </div>
       </div>
 
       <PageSection title={`Connection: ${grant.participant_nick || "Provider"}`}>
@@ -207,7 +240,7 @@ function SentRequestDetails() {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
                 <DetailItem label="Status">
-                  <Badge variant={"status"} state={grant.status}>
+                  <Badge variant={"status"} state={grantBadgeState(grant.status)}>
                     {grant.status || "-"}
                   </Badge>
                 </DetailItem>
@@ -234,8 +267,24 @@ function SentRequestDetails() {
                 <DetailItem label="AS Assigned ID">
                   <SecretField value={grant.as_assigned_id} />
                 </DetailItem>
+                <DetailItem label="Origin">
+                  <Badge variant="info">{grant.requested ? "Request" : "Response"}</Badge>
+                </DetailItem>
                 <DetailItem label="Access Token">
-                  <SecretField value={grant.token} />
+                  <SecretField value={grant.final_token} />
+                </DetailItem>
+                <DetailItem label="Token Expires">
+                  {grant.final_expires_at ? <FormatDate date={grant.final_expires_at} /> : "-"}
+                </DetailItem>
+                <DetailItem label="Managing Token">
+                  <SecretField value={grant.managing_token} />
+                </DetailItem>
+                <DetailItem label="Grant Valid Until">
+                  {grant.managing_expires_at ? (
+                    <FormatDate date={grant.managing_expires_at} />
+                  ) : (
+                    "-"
+                  )}
                 </DetailItem>
                 <DetailItem label="Created At">
                   {grant.created_at ? <FormatDate date={grant.created_at} /> : "-"}
@@ -278,7 +327,7 @@ function SentRequestDetails() {
                     <span className="text-muted-foreground font-semibold uppercase tracking-wider text-xs">
                       Current State:
                     </span>
-                    <Badge variant={"status"} state={grant.status}>
+                    <Badge variant={"status"} state={grantBadgeState(grant.status)}>
                       {grant.status}
                     </Badge>
                   </div>
@@ -327,9 +376,9 @@ function SentRequestDetails() {
                     {interaction.callback_uri}
                   </span>
                 </DetailItem>
-                <DetailItem label="Continue Endpoint">
+                <DetailItem label="Continuation Endpoint">
                   <span className="font-mono text-xs break-all">
-                    {interaction.continue_endpoint || "—"}
+                    {interaction.continuation_endpoint || "—"}
                   </span>
                 </DetailItem>
                 <DetailItem label="Hash Method">
@@ -339,8 +388,8 @@ function SentRequestDetails() {
                       : (Object.keys(interaction.hash_method ?? {})[0] ?? "—")}
                   </span>
                 </DetailItem>
-                <DetailItem label="Continue Wait">
-                  <span className="font-mono text-xs">{interaction.continue_wait ?? "—"}</span>
+                <DetailItem label="Continuation Wait">
+                  <span className="font-mono text-xs">{interaction.continuation_wait ?? "—"}</span>
                 </DetailItem>
                 <DetailItem label="Interact Ref">
                   <SecretField value={interaction.interact_ref} />

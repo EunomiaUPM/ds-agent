@@ -18,7 +18,7 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use connector::CatalogFacadeTrait;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
@@ -42,23 +42,23 @@ impl CatalogFacadeTrait for CatalogLocalFacade {
         level = "info",
         skip_all,
         err,
-        fields(peer.service = "catalog", tenant = %tenant_id)
+        fields(peer.service = "catalog", user = %user.id())
     )]
     async fn resolve_distribution_by_id(
         &self,
-        tenant_id: &str,
+        user: &UserInfo,
         distribution_id: &str,
     ) -> Outcome<()> {
         let urn = Urn::from_str(distribution_id)?;
         match self
             .distributions
-            .get_distribution_by_id(&AccessScope::service(tenant_id), &urn)
+            .get_distribution_by_id(user, &urn)
             .await
         {
             Ok(_) => Ok(()),
             Err(Errors::MissingResourceError { .. }) => Err(Errors::missing_resource(
                 distribution_id,
-                "Distribution not found in the tenant catalog",
+                "Distribution not found among those the user sees",
                 None,
             )),
             Err(e) => Err(e),

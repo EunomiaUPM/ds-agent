@@ -30,10 +30,10 @@ use crate::services::negotiation_process::NegotiationProcessServiceTrait;
 use crate::services::negotiation_process::service::NegotiationProcessService;
 use crate::services::offer::OfferServiceTrait;
 use crate::services::offer::service::OfferService;
-use common::auth::OauthTokenValidator;
+use common::oauth::OauthTokenValidatorTrait;
 use common::config::services::ContractsConfig;
 use common::facades::mates_facade::MatesFacadeTrait;
-use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
+use common::facades::grants_facade::GrantsFacadeTrait;
 use common::module_loader::root_context::RootContext;
 
 use crate::facades::catalog_facade::CatalogFacadeTrait;
@@ -47,11 +47,11 @@ pub struct AppContext {
     pub message_svc: Arc<dyn NegotiationMessageServiceTrait>,
     pub offer_svc: Arc<dyn OfferServiceTrait>,
     pub agreement_svc: Arc<dyn AgreementServiceTrait>,
-    pub ssi_auth_facade: Arc<dyn SSIAuthFacadeTrait>,
+    pub grants_facade: Arc<dyn GrantsFacadeTrait>,
     pub mates_facade: Arc<dyn MatesFacadeTrait>,
     /// Offer checks against the provider catalog, for contract-request validation.
     pub catalog_facade: Arc<dyn CatalogFacadeTrait>,
-    pub oauth_validator: Arc<dyn OauthTokenValidator>,
+    pub oauth_validator: Arc<dyn OauthTokenValidatorTrait>,
 }
 
 impl AppContext {
@@ -94,7 +94,7 @@ impl AppContext {
             message_svc,
             offer_svc,
             agreement_svc,
-            ssi_auth_facade: ports.auth.ssi_auth.clone(),
+            grants_facade: ports.auth.grants.clone(),
             mates_facade: ports.auth.mates.clone(),
             catalog_facade: ports.catalog.clone(),
             oauth_validator: root.validator.clone(),

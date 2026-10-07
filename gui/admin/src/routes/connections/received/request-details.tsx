@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import {
@@ -26,13 +26,15 @@ import {
   Key,
   Layers,
 } from "lucide-react";
-import { getFriendlyVCType } from "shared/src/lib/utils";
+import { getFriendlyVCType, grantBadgeState } from "shared/src/lib/utils";
 
 interface RecvGrant {
   id: string;
   participant_nick: string;
   kind: string;
-  token?: string | null;
+  final_token_hash?: string | null;
+  final_expires_at?: string | null;
+  managing_expires_at?: string | null;
   vc_type_config?: string[] | null;
   status: string;
   created_at: string;
@@ -48,10 +50,10 @@ interface RecvInteraction {
   client_nonce: string;
   hash_method: any;
   hints?: string | null;
-  continue_endpoint: string;
-  continue_id: string;
-  continue_token: string;
-  continue_wait?: number | null;
+  continuation_endpoint: string;
+  continuation_id: string;
+  continuation_token: string;
+  continuation_wait?: number | null;
   as_nonce: string;
   interact_ref: string;
   hash: string;
@@ -105,9 +107,12 @@ export const Route = createFileRoute("/connections/received/request-details")({
 
 function ReceivedRequestDetails() {
   const { requestId } = Route.useSearch();
+  const queryClient = useQueryClient();
+  const [isProcessing, setIsProcessing] = useState(false);
 
+  const queryKey = ["gate-received-details", requestId];
   const { data: response, isLoading } = useQuery({
-    queryKey: ["gate-received-details", requestId],
+    queryKey,
     queryFn: () =>
       customInstance<DetailsResponse>(`/gate/request/${encodeURIComponent(requestId)}/details`, {
         method: "GET",
@@ -121,6 +126,21 @@ function ReceivedRequestDetails() {
   const interaction = details?.interaction ?? null;
   const verification = details?.verification ?? null;
   const timelineData = grant ? getTimelineData(grant) : null;
+
+  const handleDisconnect = async () => {
+    if (!grant) return;
+    setIsProcessing(true);
+    try {
+      await customInstance(`/gate/request/${encodeURIComponent(grant.id)}`, {
+        method: "DELETE",
+      });
+      await queryClient.invalidateQueries({ queryKey });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -160,7 +180,19 @@ function ReceivedRequestDetails() {
             Back to Received
           </Button>
         </Link>
-        <div className="text-xs text-muted-foreground font-mono">ID: {grant.id}</div>
+        <div className="flex items-center gap-3">
+          {grant.status === "Approved" && (
+            <Button
+              variant="outline_destructive"
+              size="sm"
+              disabled={isProcessing}
+              onClick={handleDisconnect}
+            >
+              Disconnect
+            </Button>
+          )}
+          <div className="text-xs text-muted-foreground font-mono">ID: {grant.id}</div>
+        </div>
       </div>
 
       <PageSection title={`Incoming: ${grant.participant_nick || "Peer"}`}>
@@ -177,7 +209,7 @@ function ReceivedRequestDetails() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
                 <DetailItem label="Status">
-                  <Badge variant={"status"} state={grant.status}>
+                  <Badge variant={"status"} state={grantBadgeState(grant.status)}>
                     {grant.status || "-"}
                   </Badge>
                 </DetailItem>
@@ -187,8 +219,18 @@ function ReceivedRequestDetails() {
                   </Badge>
                 </DetailItem>
                 <DetailItem label="Peer Nick">{grant.participant_nick || "-"}</DetailItem>
-                <DetailItem label="Issued Token">
-                  <SecretField value={grant.token} />
+                <DetailItem label="Hash of Token">
+                  <SecretField value={grant.final_token_hash} />
+                </DetailItem>
+                <DetailItem label="Token Expires">
+                  {grant.final_expires_at ? <FormatDate date={grant.final_expires_at} /> : "-"}
+                </DetailItem>
+                <DetailItem label="Grant Valid Until">
+                  {grant.managing_expires_at ? (
+                    <FormatDate date={grant.managing_expires_at} />
+                  ) : (
+                    "-"
+                  )}
                 </DetailItem>
                 <DetailItem label="VC Types Requested">
                   {(grant.vc_type_config ?? []).length === 0 ? (
@@ -244,7 +286,7 @@ function ReceivedRequestDetails() {
                     <span className="text-muted-foreground font-semibold uppercase tracking-wider text-xs">
                       Current State:
                     </span>
-                    <Badge variant={"status"} state={grant.status}>
+                    <Badge variant={"status"} state={grantBadgeState(grant.status)}>
                       {grant.status}
                     </Badge>
                   </div>
@@ -291,9 +333,9 @@ function ReceivedRequestDetails() {
                     {interaction.callback_uri}
                   </span>
                 </DetailItem>
-                <DetailItem label="Continue Endpoint">
+                <DetailItem label="Continuation Endpoint">
                   <span className="font-mono text-xs break-all">
-                    {interaction.continue_endpoint}
+                    {interaction.continuation_endpoint}
                   </span>
                 </DetailItem>
                 <DetailItem label="Hash Method">
@@ -303,8 +345,8 @@ function ReceivedRequestDetails() {
                       : (Object.keys(interaction.hash_method ?? {})[0] ?? "—")}
                   </span>
                 </DetailItem>
-                <DetailItem label="Continue Wait">
-                  <span className="font-mono text-xs">{interaction.continue_wait ?? "—"}</span>
+                <DetailItem label="Continuation Wait">
+                  <span className="font-mono text-xs">{interaction.continuation_wait ?? "—"}</span>
                 </DetailItem>
                 <DetailItem label="Interact Ref">
                   <SecretField value={interaction.interact_ref} />

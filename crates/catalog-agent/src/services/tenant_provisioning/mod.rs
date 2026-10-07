@@ -15,33 +15,32 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Bringing a tenant to a usable state: its main catalog and the main data service behind it.
+//! Bringing the connector to a usable state: its main catalog and the main data service behind
+//! it, one of each for the whole connector (the root's, public). Every user publishes in it
+//! and creates the sub-catalogs it wants; each peer sees the ones it may.
 
-pub mod listener;
+// Provisioned one tenant per user created in the former OAuth module; with one main catalog
+// per connector there is nothing to provision per user. Kept as it was, out of the tree.
+// pub mod listener;
 pub mod service;
 
 use crate::entities::catalogs::CatalogDto;
 use crate::entities::data_services::DataServiceDto;
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use serde::Serialize;
 use ymir::errors::Outcome;
 
-/// Main catalog and data service of a provisioned tenant.
+/// Main catalog and data service of the connector.
 #[derive(Debug, Clone, Serialize)]
 pub struct ProvisionedTenantDto {
-    pub tenant_id: String,
     pub catalog: CatalogDto,
     pub data_service: DataServiceDto,
 }
 
-/// Giving a tenant its main catalog and data service.
+/// Giving the connector its main catalog and data service.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait TenantProvisioningServiceTrait: Send + Sync {
-    /// Idempotent: existing main entities are kept, missing ones are created.
-    async fn provision(
-        &self,
-        scope: &AccessScope,
-        tenant_id: &str,
-    ) -> Outcome<ProvisionedTenantDto>;
+    /// Idempotent: existing main entities are kept, missing ones are created. The root only.
+    async fn provision(&self, user: &UserInfo) -> Outcome<ProvisionedTenantDto>;
 }

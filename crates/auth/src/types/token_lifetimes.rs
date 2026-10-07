@@ -15,15 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! HTTP transport adapters for authentication and identity extraction.
-
-pub mod extractors;
-pub mod middleware;
-
-pub use extractors::{AuthClaims, ExtractedHeaders};
-pub use middleware::AuthHttpMiddleware;
-/// Short name kept for existing imports.
-pub type AuthMiddleware = AuthHttpMiddleware;
-
-#[cfg(test)]
-mod tests;
+pub const FINAL_TOKEN_TTL_SECS: i64 = 3_600;
+pub const MANAGING_TOKEN_TTL_SECS: i64 = 604_800;
+pub const EXPIRY_MARGIN_SECS: i64 = 60;
+pub const SWEEP_INTERVAL_SECS: u64 = 300;

@@ -27,11 +27,9 @@ use crate::dsp_common::well_known_types::{DSPProtocolVersions, VersionPath, Vers
 /// Version used to pick a peer's endpoint.
 pub const DSP_CURRENT_VERSION: DSPProtocolVersions = DSPProtocolVersions::V2025_1;
 
-/// Peer to look up, named by its participant id in a tenant.
+/// Peer to look up in the connector's participant registry.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WellKnownRPCRequest {
-    /// Tenant whose participant registry holds `participant_id`.
-    pub tenant_id: String,
     pub participant_id: String,
 }
 /// Reading a peer's version document.

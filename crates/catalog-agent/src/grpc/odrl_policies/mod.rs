@@ -28,8 +28,8 @@ use crate::grpc::api::catalog_agent::{
     OdrlPolicyResponse,
 };
 use crate::services::odrl_policies::OdrlPolicyServiceTrait;
-use common::auth::grpc::GrpcAuth;
-use common::auth::OauthTokenValidator;
+use common::oauth::grpc::GrpcAuth;
+use common::oauth::OauthTokenValidatorTrait;
 use common::grpc::{IntoStatus, ListParams, ProtoField, ProtoFieldList};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
@@ -43,7 +43,7 @@ pub struct OdrlPolicyEntityGrpc {
 impl OdrlPolicyEntityGrpc {
     pub fn new(
         service: Arc<dyn OdrlPolicyServiceTrait>,
-        validator: Arc<dyn OauthTokenValidator>,
+        validator: Arc<dyn OauthTokenValidatorTrait>,
     ) -> Self {
         Self {
             service,
@@ -58,11 +58,11 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
         &self,
         request: Request<ListOdrlPoliciesRequest>,
     ) -> Result<Response<OdrlPolicyListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let params = ListParams::try_from(request.into_inner())?;
         let result = self
             .service
-            .get_all_odrl_offers(&scope, &params.filter, &params.page, &params.sort)
+            .get_all_odrl_offers(&user, &params.filter, &params.page, &params.sort)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(result.into()))
@@ -72,11 +72,11 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
         &self,
         request: Request<GetBatchRequest>,
     ) -> Result<Response<OdrlPolicyListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let ids = request.into_inner().ids.urns("ids")?;
         let dtos = self
             .service
-            .get_batch_odrl_offers(&scope, &ids)
+            .get_batch_odrl_offers(&user, &ids)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dtos.into()))
@@ -86,11 +86,11 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
         &self,
         request: Request<GetByEntityIdRequest>,
     ) -> Result<Response<OdrlPolicyListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let entity_id = request.into_inner().entity_id.urn("entity_id")?;
         let dtos = self
             .service
-            .get_all_odrl_offers_by_entity(&scope, &entity_id)
+            .get_all_odrl_offers_by_entity(&user, &entity_id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dtos.into()))
@@ -100,11 +100,11 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
         &self,
         request: Request<GetByIdRequest>,
     ) -> Result<Response<OdrlPolicyResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let id = request.into_inner().id.urn("id")?;
         let dto = self
             .service
-            .get_odrl_offer_by_id(&scope, &id)
+            .get_odrl_offer_by_id(&user, &id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dto.into()))
@@ -114,11 +114,11 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
         &self,
         request: Request<CreateOdrlPolicyRequest>,
     ) -> Result<Response<OdrlPolicyResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let dto = request.into_inner().try_into()?;
         let created = self
             .service
-            .create_odrl_offer(&scope, &dto)
+            .create_odrl_offer(&user, &dto)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(created.into()))
@@ -128,10 +128,10 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
         &self,
         request: Request<DeleteByIdRequest>,
     ) -> Result<Response<()>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let id = request.into_inner().id.urn("id")?;
         self.service
-            .delete_odrl_offer_by_id(&scope, &id)
+            .delete_odrl_offer_by_id(&user, &id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(()))
@@ -141,10 +141,10 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
         &self,
         request: Request<DeleteByEntityIdRequest>,
     ) -> Result<Response<()>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let entity_id = request.into_inner().entity_id.urn("entity_id")?;
         self.service
-            .delete_odrl_offers_by_entity(&scope, &entity_id)
+            .delete_odrl_offers_by_entity(&user, &entity_id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(()))

@@ -77,12 +77,12 @@ impl DataServiceEntityRouter {
 
     async fn handle_get_all_data_services(
         State(state): State<DataServiceEntityRouter>,
-        scope: common::auth::AccessScope,
+        user: common::oauth::UserInfo,
         Query(query): Query<DataServiceQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_data_services(&scope, &query.filter, &query.page, &query.sort)
+            .get_all_data_services(&user, &query.filter, &query.page, &query.sort)
             .await
         {
             Ok(data_services) => (StatusCode::OK, Json(ToCamelCase(data_services))).into_response(),
@@ -91,7 +91,7 @@ impl DataServiceEntityRouter {
     }
     async fn handle_get_batch_data_services(
         State(state): State<DataServiceEntityRouter>,
-        scope: common::auth::AccessScope,
+        user: common::oauth::UserInfo,
         input: Result<Json<BatchRequests>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
@@ -100,7 +100,7 @@ impl DataServiceEntityRouter {
         };
         match state
             .service
-            .get_batch_data_services(&scope, &input.ids)
+            .get_batch_data_services(&user, &input.ids)
             .await
         {
             Ok(data_services) => (StatusCode::OK, Json(ToCamelCase(data_services))).into_response(),
@@ -109,7 +109,7 @@ impl DataServiceEntityRouter {
     }
     async fn handle_get_data_services_by_catalog_id(
         State(state): State<DataServiceEntityRouter>,
-        scope: common::auth::AccessScope,
+        user: common::oauth::UserInfo,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
@@ -118,7 +118,7 @@ impl DataServiceEntityRouter {
         };
         match state
             .service
-            .get_data_services_by_catalog_id(&scope, &id_urn)
+            .get_data_services_by_catalog_id(&user, &id_urn)
             .await
         {
             Ok(data_services) => (StatusCode::OK, Json(ToCamelCase(data_services))).into_response(),
@@ -127,14 +127,14 @@ impl DataServiceEntityRouter {
     }
     async fn handle_get_data_service_by_id(
         State(state): State<DataServiceEntityRouter>,
-        scope: common::auth::AccessScope,
+        user: common::oauth::UserInfo,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
             Err(resp) => return resp.into_response(),
         };
-        match state.service.get_data_service_by_id(&scope, &id_urn).await {
+        match state.service.get_data_service_by_id(&user, &id_urn).await {
             Ok(data_service) => (StatusCode::OK, Json(ToCamelCase(data_service))).into_response(),
             Err(e) => e.into_response(),
         }
@@ -142,9 +142,9 @@ impl DataServiceEntityRouter {
 
     async fn handle_get_main_data_service(
         State(state): State<DataServiceEntityRouter>,
-        scope: common::auth::AccessScope,
+        user: common::oauth::UserInfo,
     ) -> impl IntoResponse {
-        match state.service.get_main_data_service(&scope).await {
+        match state.service.get_main_data_service(&user).await {
             Ok(Some(data_service)) => {
                 (StatusCode::OK, Json(ToCamelCase(data_service))).into_response()
             }
@@ -158,7 +158,7 @@ impl DataServiceEntityRouter {
 
     async fn handle_put_data_service_by_id(
         State(state): State<DataServiceEntityRouter>,
-        scope: common::auth::AccessScope,
+        user: common::oauth::UserInfo,
         Path(id): Path<String>,
         input: Result<Json<EditDataServiceDto>, JsonRejection>,
     ) -> impl IntoResponse {
@@ -172,7 +172,7 @@ impl DataServiceEntityRouter {
         };
         match state
             .service
-            .put_data_service_by_id(&scope, &id_urn, &input)
+            .put_data_service_by_id(&user, &id_urn, &input)
             .await
         {
             Ok(data_service) => (StatusCode::OK, Json(ToCamelCase(data_service))).into_response(),
@@ -181,14 +181,14 @@ impl DataServiceEntityRouter {
     }
     async fn handle_create_data_service(
         State(state): State<DataServiceEntityRouter>,
-        scope: common::auth::AccessScope,
+        user: common::oauth::UserInfo,
         input: Result<Json<NewDataServiceDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.create_data_service(&scope, &input).await {
+        match state.service.create_data_service(&user, &input).await {
             Ok(data_service) => (StatusCode::OK, Json(ToCamelCase(data_service))).into_response(),
             Err(e) => e.into_response(),
         }
@@ -196,14 +196,14 @@ impl DataServiceEntityRouter {
 
     async fn handle_create_main_data_service(
         State(state): State<DataServiceEntityRouter>,
-        scope: common::auth::AccessScope,
+        user: common::oauth::UserInfo,
         input: Result<Json<NewDataServiceDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.create_main_data_service(&scope, &input).await {
+        match state.service.create_main_data_service(&user, &input).await {
             Ok(data_service) => (StatusCode::OK, Json(ToCamelCase(data_service))).into_response(),
             Err(e) => e.into_response(),
         }
@@ -211,7 +211,7 @@ impl DataServiceEntityRouter {
 
     async fn handle_delete_data_service_by_id(
         State(state): State<DataServiceEntityRouter>,
-        scope: common::auth::AccessScope,
+        user: common::oauth::UserInfo,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
@@ -220,7 +220,7 @@ impl DataServiceEntityRouter {
         };
         match state
             .service
-            .delete_data_service_by_id(&scope, &id_urn)
+            .delete_data_service_by_id(&user, &id_urn)
             .await
         {
             Ok(_) => StatusCode::ACCEPTED.into_response(),

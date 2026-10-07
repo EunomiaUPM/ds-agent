@@ -20,12 +20,14 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
+use common::oauth::Visibility;
 use serde::{Deserialize, Serialize};
 
-/// New webhook subscription; `tenant_id` is only honoured for admins.
+/// New webhook subscription of the caller; private unless `visibility` says otherwise.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateSubscriptionDto {
-    pub tenant_id: Option<String>,
+    #[serde(default)]
+    pub visibility: Option<Visibility>,
     pub callback_address: String,
     pub topic_pattern: String,
     pub secret: Option<String>,
@@ -46,10 +48,12 @@ pub struct UpdateSubscriptionDto {
     pub expiration_time: Option<DateTime<Utc>>,
 }
 
-/// Event published through the HTTP API; the source defaults to `events`.
+/// Event published through the HTTP API, about a record of the caller (private unless
+/// `visibility` says otherwise); the source defaults to `events`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PublishEventRequest {
-    pub tenant_id: Option<String>,
+    #[serde(default)]
+    pub visibility: Option<Visibility>,
     pub topic: String,
     pub source_crate: Option<String>,
     pub schema_version: Option<u32>,

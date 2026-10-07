@@ -19,7 +19,7 @@
 
 use std::sync::Arc;
 
-use common::auth::OauthTokenValidator;
+use common::oauth::OauthTokenValidatorTrait;
 use common::config::services::TransferConfig;
 use common::config::types::traits::CacheConfigTrait;
 use common::module_loader::root_context::RootContext;
@@ -45,7 +45,7 @@ pub struct AppContext {
     pub events_svc: Arc<TransferEventsService>,
     pub keystore_lookup: Arc<KeystoreClientImpl>,
     pub manager: Arc<DataplaneManager>,
-    pub oauth_validator: Arc<dyn OauthTokenValidator>,
+    pub oauth_validator: Arc<dyn OauthTokenValidatorTrait>,
 }
 
 impl AppContext {

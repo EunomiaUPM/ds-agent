@@ -45,7 +45,7 @@ async fn set_subscribing_provider_push() {
     mock_connector
         .expect_get_instance_by_id()
         .times(1)
-        .returning(move |_, _| Ok(Some(dummy_push_connector(&connector_urn))));
+        .returning(move |_| Ok(Some(dummy_push_connector(&connector_urn))));
 
     let mut mock_factory = MockDataplaneDriverFactoryTrait::new();
     mock_factory
@@ -93,7 +93,6 @@ async fn set_subscribing_provider_push() {
     .with_driver_factory(Arc::new(mock_factory))
     .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
         transfer_dto_urn: tp_id,
-        tenant_id: "tenant-1".to_string(),
     }))
     .await;
 
@@ -126,7 +125,7 @@ async fn set_unsubscribing_provider_push() {
     mock_connector
         .expect_get_instance_by_id()
         .times(1)
-        .returning(move |_, _| Ok(Some(dummy_push_connector(&connector_urn))));
+        .returning(move |_| Ok(Some(dummy_push_connector(&connector_urn))));
 
     let mut mock_factory = MockDataplaneDriverFactoryTrait::new();
     mock_factory
@@ -174,7 +173,6 @@ async fn set_unsubscribing_provider_push() {
     .with_driver_factory(Arc::new(mock_factory))
     .execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
         transfer_dto_urn: tp_id,
-        tenant_id: "tenant-1".to_string(),
     }))
     .await;
 

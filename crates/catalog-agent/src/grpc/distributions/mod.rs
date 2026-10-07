@@ -28,8 +28,8 @@ use crate::grpc::api::catalog_agent::{
     ListDistributionsRequest, PutDistributionRequest,
 };
 use crate::services::distributions::DistributionServiceTrait;
-use common::auth::grpc::GrpcAuth;
-use common::auth::OauthTokenValidator;
+use common::oauth::grpc::GrpcAuth;
+use common::oauth::OauthTokenValidatorTrait;
 use common::grpc::{IntoStatus, ListParams, ProtoField, ProtoFieldList};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
@@ -43,7 +43,7 @@ pub struct DistributionEntityGrpc {
 impl DistributionEntityGrpc {
     pub fn new(
         service: Arc<dyn DistributionServiceTrait>,
-        validator: Arc<dyn OauthTokenValidator>,
+        validator: Arc<dyn OauthTokenValidatorTrait>,
     ) -> Self {
         Self {
             service,
@@ -58,11 +58,11 @@ impl DistributionEntityService for DistributionEntityGrpc {
         &self,
         request: Request<ListDistributionsRequest>,
     ) -> Result<Response<DistributionListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let params = ListParams::try_from(request.into_inner())?;
         let result = self
             .service
-            .get_all_distributions(&scope, &params.filter, &params.page, &params.sort)
+            .get_all_distributions(&user, &params.filter, &params.page, &params.sort)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(result.into()))
@@ -72,11 +72,11 @@ impl DistributionEntityService for DistributionEntityGrpc {
         &self,
         request: Request<GetBatchRequest>,
     ) -> Result<Response<DistributionListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let ids = request.into_inner().ids.urns("ids")?;
         let dtos = self
             .service
-            .get_batch_distributions(&scope, &ids)
+            .get_batch_distributions(&user, &ids)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dtos.into()))
@@ -86,11 +86,11 @@ impl DistributionEntityService for DistributionEntityGrpc {
         &self,
         request: Request<GetByParentIdRequest>,
     ) -> Result<Response<DistributionListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let dataset_id = request.into_inner().parent_id.urn("parent_id")?;
         let dtos = self
             .service
-            .get_distributions_by_dataset_id(&scope, &dataset_id)
+            .get_distributions_by_dataset_id(&user, &dataset_id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dtos.into()))
@@ -100,12 +100,12 @@ impl DistributionEntityService for DistributionEntityGrpc {
         &self,
         request: Request<GetDistributionByFormatRequest>,
     ) -> Result<Response<DistributionResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let req = request.into_inner();
         let dataset_id = req.dataset_id.urn("dataset_id")?;
         let dto = self
             .service
-            .get_distribution_by_dataset_id_and_dct_format(&scope, &dataset_id, &req.dct_formats)
+            .get_distribution_by_dataset_id_and_dct_format(&user, &dataset_id, &req.dct_formats)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dto.into()))
@@ -115,11 +115,11 @@ impl DistributionEntityService for DistributionEntityGrpc {
         &self,
         request: Request<GetByIdRequest>,
     ) -> Result<Response<DistributionResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let id = request.into_inner().id.urn("id")?;
         let dto = self
             .service
-            .get_distribution_by_id(&scope, &id)
+            .get_distribution_by_id(&user, &id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dto.into()))
@@ -129,11 +129,11 @@ impl DistributionEntityService for DistributionEntityGrpc {
         &self,
         request: Request<CreateDistributionRequest>,
     ) -> Result<Response<DistributionResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let dto = request.into_inner().try_into()?;
         let created = self
             .service
-            .create_distribution(&scope, &dto)
+            .create_distribution(&user, &dto)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(created.into()))
@@ -143,12 +143,12 @@ impl DistributionEntityService for DistributionEntityGrpc {
         &self,
         request: Request<PutDistributionRequest>,
     ) -> Result<Response<DistributionResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let req = request.into_inner();
         let id = req.id.urn("id")?;
         let updated = self
             .service
-            .put_distribution_by_id(&scope, &id, &req.into())
+            .put_distribution_by_id(&user, &id, &req.into())
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(updated.into()))
@@ -158,10 +158,10 @@ impl DistributionEntityService for DistributionEntityGrpc {
         &self,
         request: Request<DeleteByIdRequest>,
     ) -> Result<Response<()>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let id = request.into_inner().id.urn("id")?;
         self.service
-            .delete_distribution_by_id(&scope, &id)
+            .delete_distribution_by_id(&user, &id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(()))

@@ -32,7 +32,7 @@ use chrono::Utc;
 use common::errors::ResourceError;
 use common::grpc::JsonValueExt;
 use common::paginated_spec::Paginated;
-use common::test_utils::grpc::{GrpcRequests, StubTokenValidator, OTHER_TENANT, TENANT};
+use common::test_utils::grpc::{GrpcRequests, StubTokenValidator, TENANT};
 use prost_types::value::Kind;
 use serde_json::json;
 use tonic::Code;
@@ -44,7 +44,9 @@ fn grpc(service: MockPolicyTemplateServiceTrait) -> PolicyTemplateEntityGrpc {
 fn dto(version: &str) -> PolicyTemplateDto {
     PolicyTemplateDto {
         id: "tpl".into(),
-        tenant_id: TENANT.to_string(),
+        user_id: TENANT.into(),
+        user_role: common::oauth::RolePath::root(),
+        visibility: common::oauth::Visibility::Public,
         version: version.into(),
         date: Utc::now().into(),
         title: Some(LocalizedText::Single("Title".into())),
@@ -80,29 +82,10 @@ fn valid_create() -> CreatePolicyTemplateRequest {
 async fn get_without_token_is_unauthenticated() {
     let g = grpc(MockPolicyTemplateServiceTrait::new());
     let err = g
-        .get_policy_template_by_version(GrpcRequests::with_auth(
-            by_version("tpl", "1"),
-            None,
-            Some(TENANT),
-        ))
+        .get_policy_template_by_version(GrpcRequests::with_auth(by_version("tpl", "1"), None))
         .await
         .unwrap_err();
     assert_eq!(err.code(), Code::Unauthenticated);
-}
-
-/// A non-admin naming another tenant is PermissionDenied.
-#[tokio::test]
-async fn get_foreign_tenant_without_admin_is_permission_denied() {
-    let g = grpc(MockPolicyTemplateServiceTrait::new());
-    let err = g
-        .get_policy_template_by_version(GrpcRequests::with_auth(
-            by_version("tpl", "1"),
-            Some("owner"),
-            Some(OTHER_TENANT),
-        ))
-        .await
-        .unwrap_err();
-    assert_eq!(err.code(), Code::PermissionDenied);
 }
 
 /// Missing content, a bad date or a non-text title is InvalidArgument naming the field.

@@ -27,8 +27,8 @@ use crate::grpc::api::catalog_agent::{
     GetByIdRequest, ListCatalogsRequest, PutCatalogRequest,
 };
 use crate::services::catalogs::CatalogServiceTrait;
-use common::auth::grpc::GrpcAuth;
-use common::auth::OauthTokenValidator;
+use common::oauth::grpc::GrpcAuth;
+use common::oauth::OauthTokenValidatorTrait;
 use common::grpc::{IntoStatus, ListParams, ProtoField, ProtoFieldList};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
@@ -42,7 +42,7 @@ pub struct CatalogEntityGrpc {
 impl CatalogEntityGrpc {
     pub fn new(
         service: Arc<dyn CatalogServiceTrait>,
-        validator: Arc<dyn OauthTokenValidator>,
+        validator: Arc<dyn OauthTokenValidatorTrait>,
     ) -> Self {
         Self {
             service,
@@ -57,11 +57,11 @@ impl CatalogEntityService for CatalogEntityGrpc {
         &self,
         request: Request<ListCatalogsRequest>,
     ) -> Result<Response<CatalogListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let params = ListParams::try_from(request.into_inner())?;
         let result = self
             .service
-            .get_all_catalogs(&scope, &params.filter, &params.page, &params.sort)
+            .get_all_catalogs(&user, &params.filter, &params.page, &params.sort)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(result.into()))
@@ -71,11 +71,11 @@ impl CatalogEntityService for CatalogEntityGrpc {
         &self,
         request: Request<GetBatchRequest>,
     ) -> Result<Response<CatalogListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let ids = request.into_inner().ids.urns("ids")?;
         let dtos = self
             .service
-            .get_batch_catalogs(&scope, &ids)
+            .get_batch_catalogs(&user, &ids)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dtos.into()))
@@ -85,11 +85,11 @@ impl CatalogEntityService for CatalogEntityGrpc {
         &self,
         request: Request<GetByIdRequest>,
     ) -> Result<Response<CatalogResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let id = request.into_inner().id.urn("id")?;
         let dto = self
             .service
-            .get_catalog_by_id(&scope, &id)
+            .get_catalog_by_id(&user, &id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dto.into()))
@@ -99,10 +99,10 @@ impl CatalogEntityService for CatalogEntityGrpc {
         &self,
         request: Request<()>,
     ) -> Result<Response<CatalogResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let dto = self
             .service
-            .get_main_catalog(&scope)
+            .get_main_catalog(&user)
             .await
             .map_err(Errors::into_status)?
             .ok_or_else(|| Status::not_found("main catalog not configured"))?;
@@ -113,11 +113,11 @@ impl CatalogEntityService for CatalogEntityGrpc {
         &self,
         request: Request<CreateCatalogRequest>,
     ) -> Result<Response<CatalogResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let dto = request.into_inner().try_into()?;
         let created = self
             .service
-            .create_catalog(&scope, &dto)
+            .create_catalog(&user, &dto)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(created.into()))
@@ -127,11 +127,11 @@ impl CatalogEntityService for CatalogEntityGrpc {
         &self,
         request: Request<CreateCatalogRequest>,
     ) -> Result<Response<CatalogResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let dto = request.into_inner().try_into()?;
         let created = self
             .service
-            .create_main_catalog(&scope, &dto)
+            .create_main_catalog(&user, &dto)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(created.into()))
@@ -141,12 +141,12 @@ impl CatalogEntityService for CatalogEntityGrpc {
         &self,
         request: Request<PutCatalogRequest>,
     ) -> Result<Response<CatalogResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let req = request.into_inner();
         let id = req.id.urn("id")?;
         let updated = self
             .service
-            .put_catalog_by_id(&scope, &id, &req.into())
+            .put_catalog_by_id(&user, &id, &req.into())
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(updated.into()))
@@ -156,10 +156,10 @@ impl CatalogEntityService for CatalogEntityGrpc {
         &self,
         request: Request<DeleteByIdRequest>,
     ) -> Result<Response<()>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let id = request.into_inner().id.urn("id")?;
         self.service
-            .delete_catalog_by_id(&scope, &id)
+            .delete_catalog_by_id(&user, &id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(()))

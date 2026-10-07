@@ -21,7 +21,7 @@ pub mod service;
 
 use crate::entities::datasets::{DatasetDto, EditDatasetDto, NewDatasetDto};
 use crate::entities::filters::DatasetFilter;
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -33,7 +33,7 @@ pub trait DatasetServiceTrait: Send + Sync {
     /// Page of datasets visible to the caller.
     async fn get_all_datasets(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &DatasetFilter,
         page: &Page,
         sort: &Sort,
@@ -41,30 +41,30 @@ pub trait DatasetServiceTrait: Send + Sync {
     /// Datasets found among `ids`.
     async fn get_batch_datasets(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         ids: &[Urn],
     ) -> Outcome<Vec<DatasetDto>>;
     /// Datasets of the catalog.
     async fn get_datasets_by_catalog_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         catalog_id: &Urn,
     ) -> Outcome<Vec<DatasetDto>>;
     /// 404 when the dataset is not visible to the caller.
-    async fn get_dataset_by_id(&self, scope: &AccessScope, dataset_id: &Urn)
+    async fn get_dataset_by_id(&self, user: &UserInfo, dataset_id: &Urn)
         -> Outcome<DatasetDto>;
 
     async fn put_dataset_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         dataset_id: &Urn,
         edit_dataset_model: &EditDatasetDto,
     ) -> Outcome<DatasetDto>;
     async fn create_dataset(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_dataset_model: &NewDatasetDto,
     ) -> Outcome<DatasetDto>;
 
-    async fn delete_dataset_by_id(&self, scope: &AccessScope, dataset_id: &Urn) -> Outcome<()>;
+    async fn delete_dataset_by_id(&self, user: &UserInfo, dataset_id: &Urn) -> Outcome<()>;
 }

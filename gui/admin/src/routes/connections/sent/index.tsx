@@ -6,7 +6,7 @@ import { PageSection } from "shared/src/components/layout/PageSection";
 import { Badge } from "shared/src/components/ui/badge";
 import { Button } from "shared/src/components/ui/button";
 import { FormatDate } from "shared/src/components/ui/format-date";
-import { formatUrn } from "shared/src/lib/utils";
+import { formatUrn, grantBadgeState } from "shared/src/lib/utils";
 import { customInstance } from "shared/src/data/orval-mutator";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -22,7 +22,8 @@ export interface SentGrant {
   grant_endpoint: string;
   kind: string;
   status: string;
-  token?: string | null;
+  final_token?: string | null;
+  requested?: boolean;
   vc_type_config?: string[] | null;
   vc_uri?: string | null;
   as_assigned_id?: string | null;
@@ -101,9 +102,11 @@ function SentConnectionsPage() {
               accessorKey: "status",
               options: [
                 { label: "All Statuses", value: "all" },
-                { label: "Approved", value: "Approved" },
+                { label: "Processing", value: "Processing" },
                 { label: "Pending", value: "Pending" },
+                { label: "Approved", value: "Approved" },
                 { label: "Rejected", value: "Rejected" },
+                { label: "Finalized", value: "Finalized" },
               ],
             },
           ]}
@@ -133,10 +136,19 @@ function SentConnectionsPage() {
                 ),
             },
             {
+              header: "Origin",
+              accessorKey: "requested",
+              cell: (r) => (
+                <Badge variant="info" className="text-xs">
+                  {r.requested === false ? "Response" : "Request"}
+                </Badge>
+              ),
+            },
+            {
               header: "Status",
               accessorKey: "status",
               cell: (r) => (
-                <Badge variant="status" state={r.status}>
+                <Badge variant="status" state={grantBadgeState(r.status)}>
                   {r.status || "-"}
                 </Badge>
               ),

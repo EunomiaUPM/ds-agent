@@ -17,6 +17,7 @@
 
 use crate::entities::commands::EditTransferProcessCommand;
 use crate::entities::ids::TransferProcessId;
+use common::oauth::Owner;
 use crate::entities::protocol::{
     ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
 };
@@ -28,7 +29,7 @@ use common::utils::json_merge;
 pub struct TransferProcess {
     // Common
     transfer_id: TransferProcessId,
-    tenant_id: String,
+    owner: Owner,
     role: TransferRole,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
@@ -48,7 +49,7 @@ pub struct TransferProcess {
 impl TransferProcess {
     /// TransferProcess entity constructor
     pub fn new(
-        tenant_id: String,
+        owner: Owner,
         role: TransferRole,
         protocol: ProtocolId,
         protocol_state: ProtocolState,
@@ -57,7 +58,7 @@ impl TransferProcess {
         let now = Utc::now();
         Self {
             transfer_id: TransferProcessId::generate(),
-            tenant_id,
+            owner,
             role,
             created_at: now,
             updated_at: now,
@@ -77,7 +78,7 @@ impl TransferProcess {
     #[allow(clippy::too_many_arguments)]
     pub fn rehydrate(
         transfer_id: TransferProcessId,
-        tenant_id: String,
+        owner: Owner,
         role: TransferRole,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
@@ -91,7 +92,7 @@ impl TransferProcess {
     ) -> Self {
         Self {
             transfer_id,
-            tenant_id,
+            owner,
             role,
             created_at,
             updated_at,
@@ -133,8 +134,8 @@ impl TransferProcess {
     pub fn id(&self) -> &TransferProcessId {
         &self.transfer_id
     }
-    pub fn tenant_id(&self) -> &String {
-        &self.tenant_id
+    pub fn owner(&self) -> &Owner {
+        &self.owner
     }
     pub fn protocol(&self) -> &ProtocolId {
         &self.protocol
@@ -167,8 +168,8 @@ impl TransferProcess {
         self.updated_at
     }
 
-    pub fn belongs_to(&self, tenant: &String) -> bool {
-        &self.tenant_id == tenant
+    pub fn belongs_to(&self, owner: &Owner) -> bool {
+        &self.owner == owner
     }
     pub fn uses_protocol(&self, protocol: &ProtocolId) -> bool {
         &self.protocol == protocol

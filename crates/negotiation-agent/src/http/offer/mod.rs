@@ -26,8 +26,8 @@ use axum::extract::{FromRef, Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use common::auth::access::AccessScope;
-use common::auth::http::ExtractedHeaders;
+use common::oauth::UserInfo;
+use common::http_tracing::ExtractedHeaders;
 use common::batch_requests::BatchRequests;
 use common::query::{Paginated, QuerySpec, Sort};
 use std::sync::Arc;
@@ -67,19 +67,19 @@ impl NegotiationAgentOffersRouter {
 
     async fn handle_get_all(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Query(q): Query<OfferQuery>,
     ) -> AppResult<(HeaderMap, Json<Paginated<OfferView>>)> {
         let (filter, page, sort) = q.into_domain();
-        let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
+        let result = state.service.get_all(&user, &filter, &page, &sort).await?;
         let response_headers = headers.response_headers_paged(result.total);
         Ok((response_headers, Json(result)))
     }
 
     async fn handle_get_by_process(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Path(process_id): Path<String>,
         Query(q): Query<OfferQuery>,
@@ -87,68 +87,68 @@ impl NegotiationAgentOffersRouter {
         let process_urn = extract_path_urn(&process_id)?;
         let (mut filter, page, sort) = q.into_domain();
         filter.process_id = Some(process_urn.to_string());
-        let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
+        let result = state.service.get_all(&user, &filter, &page, &sort).await?;
         let response_headers = headers.response_headers_paged(result.total);
         Ok((response_headers, Json(result)))
     }
 
     async fn handle_get_by_offer_id(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Path(offer_id): Path<String>,
         Query(q): Query<OfferQuery>,
     ) -> AppResult<(HeaderMap, Json<Paginated<OfferView>>)> {
         let (mut filter, page, sort) = q.into_domain();
         filter.offer_id = Some(offer_id);
-        let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
+        let result = state.service.get_all(&user, &filter, &page, &sort).await?;
         let response_headers = headers.response_headers_paged(result.total);
         Ok((response_headers, Json(result)))
     }
 
     async fn handle_batch(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         payload: Result<Json<BatchRequests>, JsonRejection>,
     ) -> AppResult<(HeaderMap, Json<Vec<OfferView>>)> {
         let payload = extract_payload(payload)?;
-        let views = state.service.batch(&scope, &payload).await?;
+        let views = state.service.batch(&user, &payload).await?;
         let count = views.len() as u64;
         Ok((headers.response_headers_paged(Some(count)), Json(views)))
     }
 
     async fn handle_get_one(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Path(id): Path<String>,
     ) -> AppResult<(HeaderMap, Json<OfferView>)> {
         let urn = extract_path_urn(&id)?;
-        let view = state.service.get_one(&scope, &urn).await?;
+        let view = state.service.get_one(&user, &urn).await?;
         Ok((headers.response_headers(), Json(view)))
     }
 
     async fn handle_create(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         payload: Result<Json<NewOfferDto>, JsonRejection>,
     ) -> AppResult<(StatusCode, HeaderMap, Json<OfferView>)> {
         let payload = extract_payload(payload)?;
-        let view = state.service.create(&scope, &payload).await?;
+        let view = state.service.create(&user, &payload).await?;
         let response_headers = headers.response_headers();
         Ok((StatusCode::CREATED, response_headers, Json(view)))
     }
 
     async fn handle_delete(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Path(id): Path<String>,
     ) -> AppResult<(StatusCode, HeaderMap)> {
         let urn = extract_path_urn(&id)?;
-        state.service.delete(&scope, &urn).await?;
+        state.service.delete(&user, &urn).await?;
         Ok((StatusCode::NO_CONTENT, headers.response_headers()))
     }
 }

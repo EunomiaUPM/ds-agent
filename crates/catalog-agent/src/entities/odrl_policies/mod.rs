@@ -18,6 +18,7 @@
 //! ODRL offers attached to catalog entities.
 
 use crate::data::entities::odrl_offer;
+use common::oauth::{Owner, Visibility};
 use crate::data::entities::odrl_offer::NewOdrlOfferModel;
 use common::dsp_common::odrl::OdrlPolicyInfo;
 use serde::{Deserialize, Serialize};
@@ -47,8 +48,12 @@ pub enum CatalogEntityTypes {
 #[serde(deny_unknown_fields)]
 pub struct NewOdrlPolicyDto {
     pub id: Option<Urn>,
+    /// Who else sees it; private by default.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tenant_id: Option<String>,
+    pub visibility: Option<Visibility>,
+    /// Owner an in-process flow asks for; only honoured for the root.
+    #[serde(skip)]
+    pub owner: Option<Owner>,
     pub odrl_offer: OdrlPolicyInfo,
     pub entity_id: Urn,
     pub entity_type: CatalogEntityTypes,
@@ -90,11 +95,11 @@ impl Display for CatalogEntityTypes {
 }
 
 impl NewOdrlPolicyDto {
-    /// Row for `tenant_id`.
-    pub fn into_model(self, tenant_id: String) -> NewOdrlOfferModel {
+    /// Row owned by `owner`.
+    pub fn into_model(self, owner: Owner) -> NewOdrlOfferModel {
         NewOdrlOfferModel {
             id: self.id,
-            tenant_id,
+            owner,
             odrl_offer: self.odrl_offer,
             entity_id: self.entity_id,
             entity_type: self.entity_type,

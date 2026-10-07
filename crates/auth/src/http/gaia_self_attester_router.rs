@@ -21,8 +21,9 @@ use crate::modules::GaiaSelfAttesterModule;
 use axum::extract::State;
 use axum::routing::post;
 use axum::Router;
-use common::auth::AccessScope;
+use common::routes::auth::gaia;
 use ymir::errors::AppResult;
+use ymir::types::oauth::UserInfo;
 
 /// Routes of the Gaia-X self-attestation.
 pub struct GaiaSelfAttesterRouter {
@@ -30,20 +31,29 @@ pub struct GaiaSelfAttesterRouter {
 }
 
 impl GaiaSelfAttesterRouter {
+    // ==========================================================================================
+    // Sub-routers
+    // ==========================================================================================
+
     pub fn new(gaia: Arc<dyn GaiaSelfAttesterModule>) -> Self {
         GaiaSelfAttesterRouter { gaia }
     }
 
-    pub fn router(self) -> Router {
+    /// Gaia-X self-attestation; mounted behind the OAuth guard.
+    pub fn internal(self) -> Router {
         Router::new()
-            .route("/generate", post(Self::generate))
+            .route(gaia::GENERATE, post(Self::generate))
             .with_state(self.gaia)
     }
 
+    // ==========================================================================================
+    // Internal requests: users, behind the OAuth guard (actions)
+    // ==========================================================================================
+
     async fn generate(
         State(gaia): State<Arc<dyn GaiaSelfAttesterModule>>,
-        scope: AccessScope,
+        user: UserInfo,
     ) -> AppResult<()> {
-        gaia.generate_gaia_vcs(&scope).await
+        gaia.generate_gaia_vcs(&user).await
     }
 }

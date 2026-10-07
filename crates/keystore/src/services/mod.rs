@@ -17,6 +17,29 @@
 
 //! Parameter and secret stores.
 
+//!
+//! Entries belong to one user: each caller reads and writes its own, and only the root lists
+//! everyone's (or one user's, with the `user_id` filter).
+
+use common::oauth::{RoleTrait, UserInfo};
+use ymir::errors::{Errors, Outcome};
+
 pub mod config;
 pub mod parameters;
 pub mod secrets;
+
+/// Owner a listing filters by: for the root, the one it asks for (`None`, everyone); for the
+/// rest, always its own, and a forbidden error if it asks for someone else's.
+pub(crate) fn owner_for_list(user: &UserInfo, requested: Option<&str>) -> Outcome<Option<String>> {
+    let requested = requested.filter(|owner| !owner.trim().is_empty());
+    if user.is_root() {
+        return Ok(requested.map(str::to_string));
+    }
+    match requested {
+        Some(owner) if owner != user.id() => Err(Errors::forbidden(
+            "forbidden: cannot query another user's entries",
+            None,
+        )),
+        _ => Ok(Some(user.id().to_string())),
+    }
+}

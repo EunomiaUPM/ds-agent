@@ -28,8 +28,8 @@ use common::query::{QueryFilter, validate_date_range};
 /// Filter for `TransferProcess` related requests
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct TransferProcessFilter {
-    /// `None` means no tenant restriction (admin queries). `Some` restricts to that tenant.
-    pub tenant_id: Option<String>,
+    /// Only the records of this user, among those the caller sees.
+    pub user_id: Option<String>,
     pub protocol: Option<ProtocolId>,
     pub state: Option<ProtocolState>,
     pub role: Option<TransferRole>,
@@ -48,8 +48,8 @@ impl QueryFilter for TransferProcessFilter {
 /// Filter for `TransferMessage` related requests
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct TransferMessageFilter {
-    /// `None` means no tenant restriction (admin queries). `Some` restricts to that tenant.
-    pub tenant_id: Option<String>,
+    /// Only the records of this user, among those the caller sees.
+    pub user_id: Option<String>,
     pub direction: Option<Direction>,
     pub protocol: Option<ProtocolId>,
     pub state_transition_to: Option<ProtocolState>,

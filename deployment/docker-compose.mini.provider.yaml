@@ -27,7 +27,7 @@ services:
 
   fafnir-setup:
     container_name: "provider-fafnir-setup"
-    image: "rmenendez8/fafnir:v0.2.0"
+    image: "rmenendez8/fafnir:v0.2.1"
     depends_on:
       provider-db:
         condition: service_healthy

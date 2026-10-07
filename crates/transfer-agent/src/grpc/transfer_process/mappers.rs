@@ -46,7 +46,7 @@ impl TryFrom<ListTransferProcessesRequest> for ListParams<TransferProcessFilter>
 
     fn try_from(req: ListTransferProcessesRequest) -> Result<Self, Status> {
         let filter = TransferProcessFilter {
-            tenant_id: None,
+            user_id: None,
             protocol: req.protocol.opt_parsed::<ProtocolId>("protocol")?,
             state: req.state.non_empty().map(|s| ProtocolState(s.into())),
             role: req.role.opt_parsed::<TransferRole>("role")?,
@@ -83,7 +83,8 @@ impl TryFrom<CreateTransferProcessRequest> for NewTransferProcessCommand {
             .transpose()?;
         Ok(Self {
             id: None,
-            tenant_id: None,
+            visibility: None,
+            owner: None,
             role: req.role.proto_enum::<ProtoTransferRole>("role")?.into(),
             protocol: req
                 .protocol
@@ -140,7 +141,9 @@ impl From<TransferProcessView> for TransferProcessResponse {
     fn from(view: TransferProcessView) -> Self {
         Self {
             id: view.id.to_string(),
-            tenant_id: view.tenant_id,
+            user_id: view.user_id,
+            user_role: view.user_role.to_string(),
+            visibility: sea_orm::ActiveEnum::to_value(&view.visibility),
             role: ProtoTransferRole::from(view.role) as i32,
             protocol: ProtoProtocolId::from(view.protocol) as i32,
             state: view.state.0.to_string(),

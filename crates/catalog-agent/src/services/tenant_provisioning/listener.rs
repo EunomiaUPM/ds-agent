@@ -19,7 +19,7 @@
 
 use std::sync::Arc;
 
-use common::auth::{AccessScope, RbacRole};
+use common::oauth::acting_as;
 use common::boot::workers::BackgroundWorker;
 use common::telemetry::TraceParent;
 use events::EventBus;
@@ -81,10 +81,10 @@ impl BackgroundWorker for TenantProvisioningListener {
             );
             TraceParent::link(&span, envelope.trace_context.as_deref());
             let tenant_id = envelope.tenant_id;
-            let scope = AccessScope::from_role(RbacRole::Owner, &tenant_id);
+            let user = acting_as(&tenant_id);
             match self
                 .service
-                .provision(&scope, &tenant_id)
+                .provision(&user, &tenant_id)
                 .instrument(span)
                 .await
             {

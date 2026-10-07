@@ -23,11 +23,12 @@ use axum::middleware::from_fn_with_state;
 use axum::response::Response;
 use axum::routing::{any, get};
 use axum::Router;
-use common::auth::http::AuthHttpMiddleware;
+use ymir::http::OauthHttpMiddleware;
 use tower_http::cors::{Any, CorsLayer};
 
 use crate::gateway::discovery::DiscoveryHandlers;
 use crate::gateway::frontend::FrontendHandlers;
+use crate::gateway::session::SessionHandlers;
 use crate::setup::context::AppContext;
 
 /// Gateway routes. Proxied calls are authenticated by the agents they reach.
@@ -65,22 +66,24 @@ impl GatewayHttpRouter {
             .route("/well-known/rpc/{*extra}", any(Self::proxy_well_known_rpc))
             .route("/{service_prefix}", any(Self::proxy))
             .route("/{service_prefix}/{*extra}", any(Self::proxy_with_extra))
-            .merge(self.discovery_router())
+            .merge(self.guarded_router())
             .with_state(self.ctx.clone())
     }
 
-    /// Discovery fetches arbitrary URLs, so it only exists for authenticated callers.
-    fn discovery_router(&self) -> Router<Arc<AppContext>> {
+    /// Routes for authenticated callers only: who the session is, and discovery, which fetches
+    /// arbitrary URLs.
+    fn guarded_router(&self) -> Router<Arc<AppContext>> {
         let Some(validator) = self.ctx.oauth_validator.clone() else {
             return Router::new();
         };
         Router::new()
+            .route("/me", get(SessionHandlers::me))
             .route("/did-json/{url}", get(DiscoveryHandlers::did_json))
             .route(
                 "/federated-catalog/{url}",
                 get(DiscoveryHandlers::federated_catalog),
             )
-            .route_layer(from_fn_with_state(validator, AuthHttpMiddleware::run))
+            .route_layer(from_fn_with_state(validator, OauthHttpMiddleware::run))
     }
 
     async fn proxy(

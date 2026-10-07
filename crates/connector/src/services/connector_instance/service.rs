@@ -80,6 +80,7 @@ impl ConnectorInstanceService {
 
         Ok(ConnectorInstanceDto {
             id: urn,
+            user_id: model.user_id.clone(),
             metadata: ConnectorMetadata {
                 name: Some(model.template_name),
                 author: instance_meta.owner_id, // Not available in instance model
@@ -94,40 +95,38 @@ impl ConnectorInstanceService {
     }
 }
 
-use common::auth::AccessScope;
+use common::oauth::{OwnedTrait, Owner, OwnerScope, UserInfo};
 
 #[async_trait::async_trait]
 impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_instance_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         id: &Urn,
     ) -> Outcome<Option<ConnectorInstanceDto>> {
-        scope.require_read()?;
         let id_str = id.to_string();
         let instance = self
             .repo
             .get_instances_repo()
-            .get_instance_by_id(scope.tenant_filter().map(str::to_string), &id_str)
+            .get_instance_by_id(&OwnerScope::seeing(user), &id_str)
             .await?;
 
         instance.map(Self::map_model_to_dto).transpose()
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_instance_by_distribution(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         distribution_id: &Urn,
     ) -> Outcome<Option<ConnectorInstanceDto>> {
-        scope.require_read()?;
         let dist_id_str = distribution_id.to_string();
 
         let relation = self
             .repo
             .get_distro_relation_repo()
-            .get_relation_by_distribution(scope.tenant_filter().map(str::to_string), &dist_id_str)
+            .get_relation_by_distribution(&OwnerScope::seeing(user), &dist_id_str)
             .await?;
 
         let relation = match relation {
@@ -139,7 +138,7 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
             .repo
             .get_instances_repo()
             .get_instance_by_id(
-                scope.tenant_filter().map(str::to_string),
+                &OwnerScope::seeing(user),
                 &relation.connector_instance_id,
             )
             .await?;
@@ -147,21 +146,20 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
         result.map(Self::map_model_to_dto).transpose()
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn upsert_instance(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         instance_dto: &mut ConnectorInstantiationDto,
     ) -> Outcome<ConnectorInstanceDto> {
-        let target_tenant = scope.resolve_create_tenant(instance_dto.tenant_id.as_deref())?;
-        instance_dto.tenant_id = Some(target_tenant.clone());
+        let owner = Owner::of(user, instance_dto.visibility.clone());
 
-        // Templates belong to the tenant; there is no shared tenant to fall back to.
+        // Any template the user sees, the public ones included.
         let template_model = self
             .repo
             .get_templates_repo()
             .get_template_by_name_and_version(
-                &target_tenant,
+                &OwnerScope::seeing(user),
                 &instance_dto.template_name,
                 &instance_dto.template_version,
             )
@@ -183,7 +181,7 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
         let distribution_id = instance_dto.distribution_id.to_string();
         let _ = self
             .distribution_facade
-            .resolve_distribution_by_id(&target_tenant, &distribution_id)
+            .resolve_distribution_by_id(user, &distribution_id)
             .await?;
 
         // validate instance parameters
@@ -215,6 +213,7 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
         if instance_dto.dry_run {
             return Ok(ConnectorInstanceDto {
                 id: Urn::from_str("urn:conector-instance:dry-run")?,
+                user_id: owner.user_id.clone(),
                 metadata: metadata_json,
                 authentication_config: authentication,
                 interaction,
@@ -225,7 +224,7 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
         // persist instance
         let new_instance = connector_instances::NewConnectorInstanceModel {
             id: None,
-            tenant_id: target_tenant.clone(),
+            owner: owner.clone(),
             template_name: instance_dto.template_name.clone(),
             template_version: instance_dto.template_version.clone(),
             distribution_id: distribution_id.clone(),
@@ -244,28 +243,28 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
         let instance_distro_relation = self
             .repo
             .get_distro_relation_repo()
-            .get_relation_by_distribution(Some(target_tenant.clone()), &distribution_id)
+            .get_relation_by_distribution(&OwnerScope::acting(user), &distribution_id)
             .await?;
         match instance_distro_relation {
             None => {
                 self.repo
                     .get_distro_relation_repo()
-                    .create_relation(&target_tenant, &distribution_id, &saved_model.id)
+                    .create_relation(&owner, &distribution_id, &saved_model.id)
                     .await?
             }
             Some(_) => {
                 self.repo
                     .get_distro_relation_repo()
-                    .update_relation(&target_tenant, &distribution_id, &saved_model.id)
+                    .update_relation(&OwnerScope::acting(user), &distribution_id, &saved_model.id)
                     .await?
             }
         };
 
-        let tenant_id = saved_model.tenant_id.clone();
+        let owner = saved_model.owner();
         let result = Self::map_model_to_dto(saved_model)?;
         events::emit_action!(
             self.event_bus,
-            &tenant_id,
+            &owner,
             crate::EVENT_PREFIX,
             "instance",
             "create",
@@ -274,21 +273,20 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
         Ok(result)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
-    async fn delete_instance_by_id(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
-        scope.require_write()?;
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn delete_instance_by_id(&self, user: &UserInfo, id: &Urn) -> Outcome<()> {
         let id_str = id.to_string();
 
         let _ = self
             .repo
             .get_distro_relation_repo()
-            .delete_relation_by_instance(scope.tenant_filter().map(str::to_string), &id_str)
+            .delete_relation_by_instance(&OwnerScope::acting(user), &id_str)
             .await;
 
         let owner = self
             .repo
             .get_instances_repo()
-            .delete_instance_by_id(scope.tenant_filter().map(str::to_string), &id_str)
+            .delete_instance_by_id(&OwnerScope::acting(user), &id_str)
             .await?;
         let deleted = events::EntityDeletedDto::new(id_str);
         events::emit_action!(

@@ -15,60 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Axum request extractors for authenticated identity, claims, and tracing headers.
+//! Request tracing headers, read as an axum extractor and echoed on the response.
 
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum::http::{HeaderMap, HeaderName, HeaderValue};
 use ymir::errors::Errors;
 
-use crate::auth::access::AccessScope;
-use crate::auth::claims::Claims;
-use crate::auth::TENANT_HEADER;
-
-/// Extractor extracting validated JWT claims from request extensions.
-#[derive(Debug, Clone)]
-pub struct AuthClaims(pub Claims);
-
-impl std::ops::Deref for AuthClaims {
-    type Target = Claims;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<S: Send + Sync> FromRequestParts<S> for AuthClaims {
-    type Rejection = Errors;
-
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        parts
-            .extensions
-            .get::<Claims>()
-            .cloned()
-            .map(AuthClaims)
-            .ok_or_else(|| Errors::unauthorized("authentication required: missing claims", None))
-    }
-}
-
-/// Automatic Axum extractor for authenticated `AccessScope`.
-/// Delegates the tenant-boundary rule to `AccessScope::from_tenant_header`.
-impl<S: Send + Sync> FromRequestParts<S> for AccessScope {
-    type Rejection = Errors;
-
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let claims =
-            parts.extensions.get::<Claims>().cloned().ok_or_else(|| {
-                Errors::unauthorized("authentication required: missing claims", None)
-            })?;
-
-        let requested = parts
-            .headers
-            .get(TENANT_HEADER)
-            .and_then(|v| v.to_str().ok());
-
-        AccessScope::from_tenant_header(&claims, requested)
-    }
-}
 
 /// Request tracing headers extracted for propagation and response echoing.
 #[derive(Debug, Clone)]

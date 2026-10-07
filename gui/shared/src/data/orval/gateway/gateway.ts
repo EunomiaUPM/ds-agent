@@ -33,7 +33,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  FeConfig
+  FeConfig,
+  SessionUser,
+  UnauthorizedResponse
 } from '.././model';
 
 import { customInstance } from '../../orval-mutator';
@@ -216,6 +218,198 @@ export function useGetFeConfig<TData = Awaited<ReturnType<typeof getFeConfig>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
   const queryOptions = getGetFeConfigQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+/**
+ * The user the gateway's identity provider gives for this session (with Keycloak, the one
+oauth2-proxy signed in; in `static` mode, the configured user). 401 when there is no
+session: the console then sends the browser to the proxy's sign-in (`/oauth2/start`).
+
+ * @summary Who the browser's session is
+ */
+export type getSessionUserResponse200 = {
+  data: SessionUser
+  status: 200
+}
+
+export type getSessionUserResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+    
+export type getSessionUserResponseSuccess = (getSessionUserResponse200) & {
+  headers: Headers;
+};
+export type getSessionUserResponseError = (getSessionUserResponse401) & {
+  headers: Headers;
+};
+
+export type getSessionUserResponse = (getSessionUserResponseSuccess | getSessionUserResponseError)
+
+export const getGetSessionUserUrl = () => {
+
+
+  
+
+  return `/me`
+}
+
+export const getSessionUser = async ( options?: RequestInit): Promise<getSessionUserResponse> => {
+  
+  return customInstance<getSessionUserResponse>(getGetSessionUserUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetSessionUserInfiniteQueryKey = () => {
+    return [
+    'infinite', `/me`
+    ] as const;
+    }
+
+export const getGetSessionUserQueryKey = () => {
+    return [
+    `/me`
+    ] as const;
+    }
+
+    
+export const getGetSessionUserInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getSessionUser>>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSessionUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSessionUserInfiniteQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSessionUser>>> = ({ signal }) => getSessionUser({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn,   ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSessionUser>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetSessionUserInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getSessionUser>>>
+export type GetSessionUserInfiniteQueryError = ErrorType<UnauthorizedResponse>
+
+
+export function useGetSessionUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getSessionUser>>>, TError = ErrorType<UnauthorizedResponse>>(
+  options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSessionUser>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSessionUser>>,
+          TError,
+          Awaited<ReturnType<typeof getSessionUser>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetSessionUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getSessionUser>>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSessionUser>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSessionUser>>,
+          TError,
+          Awaited<ReturnType<typeof getSessionUser>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetSessionUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getSessionUser>>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSessionUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Who the browser's session is
+ */
+
+export function useGetSessionUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getSessionUser>>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSessionUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getGetSessionUserInfiniteQueryOptions(options)
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+export const getGetSessionUserQueryOptions = <TData = Awaited<ReturnType<typeof getSessionUser>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSessionUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSessionUserQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSessionUser>>> = ({ signal }) => getSessionUser({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn,   ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSessionUser>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetSessionUserQueryResult = NonNullable<Awaited<ReturnType<typeof getSessionUser>>>
+export type GetSessionUserQueryError = ErrorType<UnauthorizedResponse>
+
+
+export function useGetSessionUser<TData = Awaited<ReturnType<typeof getSessionUser>>, TError = ErrorType<UnauthorizedResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSessionUser>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSessionUser>>,
+          TError,
+          Awaited<ReturnType<typeof getSessionUser>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetSessionUser<TData = Awaited<ReturnType<typeof getSessionUser>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSessionUser>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSessionUser>>,
+          TError,
+          Awaited<ReturnType<typeof getSessionUser>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetSessionUser<TData = Awaited<ReturnType<typeof getSessionUser>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSessionUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Who the browser's session is
+ */
+
+export function useGetSessionUser<TData = Awaited<ReturnType<typeof getSessionUser>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSessionUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getGetSessionUserQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 

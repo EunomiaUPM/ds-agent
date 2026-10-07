@@ -4,7 +4,7 @@ import { PageSection } from "shared/src/components/layout/PageSection";
 import { Badge } from "shared/src/components/ui/badge";
 import { Button } from "shared/src/components/ui/button";
 import { FormatDate } from "shared/src/components/ui/format-date";
-import { formatUrn } from "shared/src/lib/utils";
+import { formatUrn, grantBadgeState } from "shared/src/lib/utils";
 import { customInstance } from "shared/src/data/orval-mutator";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -17,7 +17,7 @@ export interface RecvGrant {
   id: string;
   participant_nick: string;
   kind: string;
-  token?: string | null;
+  final_token_hash?: string | null;
   vc_type_config?: string[] | null;
   status: string;
   created_at: string;
@@ -69,9 +69,9 @@ function ReceivedConnectionsPage() {
             accessorKey: "status",
             options: [
               { label: "All Statuses", value: "all" },
-              { label: "Approved", value: "Approved" },
               { label: "Pending", value: "Pending" },
-              { label: "Rejected", value: "Rejected" },
+              { label: "Approved", value: "Approved" },
+              { label: "Finalized", value: "Finalized" },
             ],
           },
         ]}
@@ -90,7 +90,7 @@ function ReceivedConnectionsPage() {
             header: "Status",
             accessorKey: "status",
             cell: (r) => (
-              <Badge variant="status" state={r.status}>
+              <Badge variant="status" state={grantBadgeState(r.status)}>
                 {r.status || "-"}
               </Badge>
             ),

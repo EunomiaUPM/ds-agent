@@ -18,11 +18,11 @@
 //! Event store repository.
 
 use async_trait::async_trait;
+use common::oauth::OwnerScope;
 use common::paginated_spec::{Page, Sort};
 use sea_orm::sea_query::{BinOper, Expr};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryTrait,
 };
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
@@ -59,12 +59,12 @@ impl EventStoreRepo for SeaOrmEventRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_event_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Option<EventEnvelope>> {
         let model = event::Entity::find()
             .filter(event::Column::Id.eq(id.to_string()))
-            .apply_if(tenant_id, |q, t| q.filter(event::Column::TenantId.eq(t)))
+            .filter(scope.condition(event::Column::UserId, event::Column::UserRole, event::Column::Visibility))
             .one(&self.db)
             .await
             .map_err(|e| Errors::db("failed to query event", Some(Box::new(e))))?;
@@ -78,13 +78,13 @@ impl EventStoreRepo for SeaOrmEventRepo {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn list_events(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         filter: &EventFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<EventEnvelope>, u64)> {
         let mut query = event::Entity::find()
-            .apply_if(tenant_id, |q, t| q.filter(event::Column::TenantId.eq(t)));
+            .filter(scope.condition(event::Column::UserId, event::Column::UserRole, event::Column::Visibility));
         if let Some(pattern) = filter.topic_pattern()? {
             query = query.filter(
                 Expr::col((event::Entity, event::Column::Topic))

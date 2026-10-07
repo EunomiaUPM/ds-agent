@@ -20,6 +20,7 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
+use common::oauth::Owner;
 use serde::{Deserialize, Serialize};
 
 use crate::entities::topic::Topic;
@@ -29,7 +30,9 @@ use crate::entities::topic_pattern::TopicPattern;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubscriptionRecord {
     pub id: String,
-    pub tenant_id: String,
+    /// Who the record belongs to: the subscriber.
+    #[serde(flatten)]
+    pub owner: Owner,
     pub callback_address: String,
     pub topic_pattern: TopicPattern,
     pub secret: Option<String>,

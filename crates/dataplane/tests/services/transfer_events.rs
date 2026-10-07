@@ -23,7 +23,8 @@ use std::sync::Arc;
 use chrono::Utc;
 use common::batch_requests::BatchRequests;
 use common::query::{Page, Sort};
-use common::test_utils::scopes::TestScopes;
+use common::oauth::OwnerScope;
+use common::test_utils::scopes::TestUsers;
 use dataplane::data::factory_trait::MockDataplaneRepoTrait;
 use dataplane::data::repo::transfer_event::{MockTransferEventRepo, TransferEventRepo};
 use dataplane::data::sea_orm::orm::transfer_event::{LogLevel, Model as EventModel};
@@ -39,7 +40,9 @@ fn test_urn(n: u32) -> Urn {
 fn make_event_model(n: u32, tenant: &str) -> EventModel {
     EventModel {
         id: test_urn(n).to_string(),
-        tenant_id: tenant.to_string(),
+        user_id: tenant.to_string(),
+        user_role: common::oauth::RolePath::root(),
+        visibility: common::oauth::Visibility::Private,
         transfer_id: test_urn(1).to_string(),
         level: LogLevel::Info,
         component: "Driver".to_string(),
@@ -51,7 +54,7 @@ fn make_event_model(n: u32, tenant: &str) -> EventModel {
 
 fn make_new_event_dto() -> NewTransferEventDto {
     NewTransferEventDto {
-        tenant_id: "tenant-default".to_string(),
+        owner: Some(TestUsers::owner("tenant-default")),
         transfer_id: test_urn(1),
         level: LogLevel::Info,
         component: "Driver".to_string(),
@@ -76,36 +79,43 @@ fn make_events_svc(repo: MockTransferEventRepo) -> TransferEventsService {
 async fn get_one_foreign_tenant_returns_not_found() {
     let mut repo = MockTransferEventRepo::new();
     repo.expect_get_transfer_event_by_id()
-        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
+        .withf(|scope, id| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-2")) && id == &test_urn(1))
         .returning(|_, _| Ok(None));
 
     let svc = make_events_svc(repo);
     let result = svc
-        .get_one(&TestScopes::owner("tenant-2"), &test_urn(1))
+        .get_one(&TestUsers::user("tenant-2", "/admin/tenant-2"), &test_urn(1))
         .await;
     assert!(result.is_err());
 }
 
-/// A non-admin listing another tenant is rejected before touching the repository.
+/// Narrowing a listing to another user stays within what the caller sees.
 #[tokio::test]
-async fn get_all_foreign_tenant_query_rejected_with_forbidden() {
-    let repo = MockTransferEventRepo::new();
+async fn get_all_of_another_user_stays_within_what_the_caller_sees() {
+    let mut repo = MockTransferEventRepo::new();
+    repo.expect_get_all_transfer_events()
+        .withf(|scope, f, _, _| {
+            *scope == OwnerScope::seeing(&TestUsers::alone("tenant-1"))
+                && f.user_id.as_deref() == Some("tenant-foreign")
+        })
+        .returning(|_, _, _, _| Ok(vec![]));
+    repo.expect_count_transfer_events().returning(|_, _| Ok(0));
     let svc = make_events_svc(repo);
 
     let filter = TransferEventFilter {
-        tenant_id: Some("tenant-foreign".to_string()),
+        user_id: Some("tenant-foreign".to_string()),
         ..Default::default()
     };
 
     let result = svc
         .get_all(
-            &TestScopes::owner("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin/tenant-1"),
             &filter,
             &Page::default(),
             &Sort::default(),
         )
         .await;
-    assert!(result.is_err());
+    assert!(result.unwrap().items.is_empty());
 }
 
 /// Events of a transfer process are looked up in the caller's tenant.
@@ -113,12 +123,12 @@ async fn get_all_foreign_tenant_query_rejected_with_forbidden() {
 async fn get_by_process_id_passes_acting_tenant() {
     let mut repo = MockTransferEventRepo::new();
     repo.expect_get_all_transfer_events_by_process_id()
-        .withf(|tenant, pid| tenant.as_deref() == Some("tenant-2") && pid == &test_urn(10))
+        .withf(|scope, pid| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-2")) && pid == &test_urn(10))
         .returning(|_, _| Ok(vec![make_event_model(1, "tenant-2")]));
 
     let svc = make_events_svc(repo);
     let events = svc
-        .get_by_process_id(&TestScopes::owner("tenant-2"), &test_urn(10))
+        .get_by_process_id(&TestUsers::user("tenant-2", "/admin/tenant-2"), &test_urn(10))
         .await
         .unwrap();
 
@@ -130,13 +140,13 @@ async fn get_by_process_id_passes_acting_tenant() {
 async fn batch_filters_out_foreign_tenant_records() {
     let mut repo = MockTransferEventRepo::new();
     repo.expect_get_batch_transfer_events()
-        .withf(|tenant, ids| tenant.as_deref() == Some("tenant-2") && ids == [test_urn(1)])
+        .withf(|scope, ids| *scope == OwnerScope::seeing(&TestUsers::alone("tenant-2")) && ids == [test_urn(1)])
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_events_svc(repo);
     let views = svc
         .batch(
-            &TestScopes::owner("tenant-2"),
+            &TestUsers::user("tenant-2", "/admin/tenant-2"),
             &BatchRequests {
                 ids: vec![test_urn(1)],
             },
@@ -152,11 +162,13 @@ async fn batch_filters_out_foreign_tenant_records() {
 async fn create_forces_caller_tenant_for_non_admin() {
     let mut repo = MockTransferEventRepo::new();
     repo.expect_create_transfer_event()
-        .withf(|cmd| cmd.tenant_id == "tenant-2")
+        .withf(|cmd| cmd.owner == TestUsers::owner("tenant-2"))
         .returning(|cmd| {
             Ok(EventModel {
                 id: test_urn(10).to_string(),
-                tenant_id: cmd.tenant_id.clone(),
+                user_id: cmd.owner.user_id.clone(),
+                user_role: common::oauth::RolePath::root(),
+                visibility: common::oauth::Visibility::Private,
                 transfer_id: cmd.transfer_id.clone(),
                 level: cmd.level.clone(),
                 component: cmd.component.clone(),
@@ -168,13 +180,13 @@ async fn create_forces_caller_tenant_for_non_admin() {
 
     let svc = make_events_svc(repo);
     let mut cmd = make_new_event_dto();
-    cmd.tenant_id = "tenant-foreign".to_string();
+    cmd.owner = Some(TestUsers::owner("tenant-foreign"));
 
     let created = svc
-        .create(&TestScopes::owner("tenant-2"), &cmd)
+        .create(&TestUsers::user("tenant-2", "/admin/tenant-2"), &cmd)
         .await
         .unwrap();
-    assert_eq!(created.inner.tenant_id, "tenant-2");
+    assert_eq!(created.inner.user_id, "tenant-2");
 }
 
 /// An admin without a tenant filter lists every tenant.
@@ -182,14 +194,14 @@ async fn create_forces_caller_tenant_for_non_admin() {
 async fn admin_can_query_all_or_specific_tenant() {
     let mut repo = MockTransferEventRepo::new();
     repo.expect_get_all_transfer_events()
-        .withf(|filter, _, _| filter.tenant_id.is_none())
-        .returning(|_, _, _| Ok(vec![make_event_model(1, "tenant-1")]));
-    repo.expect_count_transfer_events().returning(|_| Ok(1));
+        .withf(|scope, _, _, _| *scope == OwnerScope::All)
+        .returning(|_, _, _, _| Ok(vec![make_event_model(1, "tenant-1")]));
+    repo.expect_count_transfer_events().returning(|_, _| Ok(1));
 
     let svc = make_events_svc(repo);
     let paginated = svc
         .get_all(
-            &TestScopes::admin(),
+            &TestUsers::user("admin-tenant", "/admin"),
             &TransferEventFilter::default(),
             &Page::default(),
             &Sort::default(),
@@ -198,16 +210,4 @@ async fn admin_can_query_all_or_specific_tenant() {
         .unwrap();
 
     assert_eq!(paginated.items.len(), 1);
-}
-
-/// A reader cannot record an event.
-#[tokio::test]
-async fn reader_cannot_create_event() {
-    let repo = MockTransferEventRepo::new();
-    let svc = make_events_svc(repo);
-
-    let result = svc
-        .create(&TestScopes::reader("tenant-1"), &make_new_event_dto())
-        .await;
-    assert!(result.is_err());
 }

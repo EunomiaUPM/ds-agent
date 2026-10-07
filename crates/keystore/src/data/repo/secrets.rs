@@ -25,31 +25,31 @@ use crate::entities::version::Version;
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
-/// Persistence of secrets, keyed by tenant and path.
+/// Persistence of secrets, keyed by user and path.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait SecretRepoTrait: Send + Sync {
     /// Secrets whose key starts with the filter's prefix.
     async fn get_all_secrets(&self, filter: &PrefixFilter) -> Outcome<Vec<SecretEntry>>;
     async fn count_secrets(&self, filter: &PrefixFilter) -> Outcome<u64>;
-    /// Secrets of the tenant found among `keys`; missing ones are left out.
-    async fn get_batch_secrets(&self, tenant_id: &str, keys: &[Key]) -> Outcome<Vec<SecretEntry>>;
-    async fn get_secret_by_key(&self, tenant_id: &str, key: &Key) -> Outcome<Option<SecretEntry>>;
-    /// Fails when the key already exists for the tenant.
+    /// Secrets of the user found among `keys`; missing ones are left out.
+    async fn get_batch_secrets(&self, user_id: &str, keys: &[Key]) -> Outcome<Vec<SecretEntry>>;
+    async fn get_secret_by_key(&self, user_id: &str, key: &Key) -> Outcome<Option<SecretEntry>>;
+    /// Fails when the key already exists for the user.
     async fn create_secret(
         &self,
-        tenant_id: &str,
+        user_id: &str,
         new_model: &NewSecretCommand,
     ) -> Outcome<SecretEntry>;
     /// Replaces the value if `expected_version` matches, and bumps the version.
     async fn put_secret(
         &self,
-        tenant_id: &str,
+        user_id: &str,
         key: &Key,
         edit_model: &EditSecretCommand,
     ) -> Outcome<SecretEntry>;
     /// Fails when the key does not exist.
-    async fn delete_secret(&self, tenant_id: &str, key: &Key) -> Outcome<()>;
+    async fn delete_secret(&self, user_id: &str, key: &Key) -> Outcome<()>;
 }
 
 /// Failures of the secret repository, mapped onto `Errors`.

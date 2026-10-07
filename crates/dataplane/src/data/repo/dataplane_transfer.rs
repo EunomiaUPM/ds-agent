@@ -21,6 +21,7 @@ use crate::data::sea_orm::orm::dataplane_transfers::{
     self, EditDataplaneTransferModel, NewDataplaneTransferModel,
 };
 use crate::entities::filters::DataplaneTransferFilter;
+use common::oauth::OwnerScope;
 use common::query::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
@@ -33,29 +34,30 @@ pub trait DataplaneTransfersRepo: Send + Sync + 'static {
     /// Page of processes matching the filters.
     async fn get_all_dataplane_transfers(
         &self,
+        scope: &OwnerScope,
         filters: &DataplaneTransferFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Vec<dataplane_transfers::Model>>;
 
-    async fn count_dataplane_transfers(&self, filters: &DataplaneTransferFilter) -> Outcome<u64>;
+    async fn count_dataplane_transfers(&self, scope: &OwnerScope, filters: &DataplaneTransferFilter) -> Outcome<u64>;
 
-    /// Processes found among `ids`; `tenant_id` of `None` searches every tenant.
+    /// Processes found among `ids`, within `scope`.
     async fn get_batch_dataplane_transfers(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         ids: &[Urn],
     ) -> Outcome<Vec<dataplane_transfers::Model>>;
 
-    /// `tenant_id` of `None` searches every tenant.
+    /// The process `id`, within `scope`.
     async fn get_dataplane_transfers_by_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         process_id: &Urn,
     ) -> Outcome<Option<dataplane_transfers::Model>>;
 
-    /// Looks a transfer up by id in any tenant. Only for callers that hold the id as a
-    /// capability (the data proxy); everything else must go through a tenant scope.
+    /// Looks a transfer up by id whoever owns it. Only for callers that hold the id as a
+    /// capability (the data proxy); everything else must go through an owner scope.
     async fn find_dataplane_transfer_by_id(
         &self,
         id: &Urn,
@@ -64,7 +66,7 @@ pub trait DataplaneTransfersRepo: Send + Sync + 'static {
     /// Process serving the given control-plane transfer process.
     async fn get_by_transfer_process_id(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         transfer_process_id: &Urn,
     ) -> Outcome<Option<dataplane_transfers::Model>>;
 
@@ -76,14 +78,14 @@ pub trait DataplaneTransfersRepo: Send + Sync + 'static {
     /// Changes the fields set in the edit model.
     async fn put_dataplane_transfers(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         process_id: &Urn,
         new_dataplane_transfer: &EditDataplaneTransferModel,
     ) -> Outcome<dataplane_transfers::Model>;
 
     async fn delete_dataplane_transfers(
         &self,
-        tenant_id: Option<String>,
+        scope: &OwnerScope,
         process_id: &Urn,
     ) -> Outcome<()>;
 }

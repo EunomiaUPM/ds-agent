@@ -64,6 +64,7 @@ fn dummy_interaction() -> InteractionConfig {
 fn dummy_connector(auth: AuthenticationConfig) -> ConnectorInstanceDto {
     ConnectorInstanceDto {
         id: Urn::from_str("urn:connector:test-1").unwrap(),
+        user_id: "user-1".to_string(),
         metadata: ConnectorMetadata {
             name: Some("test".to_string()),
             author: None,
@@ -80,7 +81,9 @@ fn dummy_connector(auth: AuthenticationConfig) -> ConnectorInstanceDto {
 fn provider_dto(state: TransferState) -> DataplaneTransferDto {
     DataplaneTransferDto {
         inner: dataplane_transfers::Model {
-            tenant_id: "tenant-1".to_string(),
+            user_id: "tenant-1".to_string(),
+            user_role: common::oauth::RolePath::root(),
+            visibility: common::oauth::Visibility::Private,
             id: "urn:dataplane-transfer:test-1".to_string(),
             transfer_process_id: tp_urn().to_string(),
             role: TransferRole::Provider,
@@ -124,7 +127,7 @@ async fn provider_context(auth: AuthenticationConfig) -> DataplaneContext {
         Arc::new(MockConnectorInstance::new()),
         transfer_config_fixture(),
         DataplaneInitCommandTypes::AsProvider {
-            tenant_id: "tenant-1".to_string(),
+            owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
             transfer_process_id: tp_urn(),
             connector_instance: connector,
             direction: DataplaneInitCommandDirection::Pull {
@@ -218,7 +221,7 @@ pub async fn consumer_context() -> DataplaneContext {
         Arc::new(MockConnectorInstance::new()),
         transfer_config_fixture(),
         DataplaneInitCommandTypes::AsConsumer {
-            tenant_id: "tenant-1".to_string(),
+            owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
             transfer_process_id: tp_urn(),
             direction: DataplaneInitCommandDirection::Pull {
                 data_address: Some(forward_address()),

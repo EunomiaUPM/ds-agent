@@ -20,7 +20,7 @@
 use crate::data::repo_traits::negotiation_process_repo::NegotiationProcessRepoTrait;
 use crate::services::negotiation_process::NegotiationProcessServiceTrait;
 use crate::services::negotiation_process::views::NegotiationProcessView;
-use common::auth::{AccessScope, RbacRole};
+use common::oauth::{OwnedTrait, OwnerScope, UserInfo};
 use common::dsp_common::DspActor;
 use common::errors::NotFoundExt;
 use std::str::FromStr;
@@ -44,25 +44,26 @@ impl NegotiationProcessResolver {
         }
     }
 
-    /// Scope the protocol acts under for a record: owner of the record's tenant, never global.
-    pub fn owner_scope(tenant_id: &str) -> AccessScope {
-        AccessScope::from_role(RbacRole::Owner, tenant_id)
+    /// Who the protocol acts as on records it already resolved and authorized: an in-process
+    /// flow, so no owner is checked again (records keep their owner).
+    pub fn actor() -> UserInfo {
+        UserInfo::system()
     }
 
-    /// Finds a process by one of its pids across tenants, since pids are global and the tenant is
+    /// Finds a process by one of its pids whoever owns it, since pids are global and the owner is
     /// unknown until found, then checks that `actor` may act on it.
     #[tracing::instrument(level = "info", skip_all, err, fields(pid = %pid))]
     pub async fn resolve(&self, pid: &Urn, actor: &DspActor) -> Outcome<NegotiationProcessView> {
         let process = self
             .process_repo
-            .get_negotiation_process_by_key_value(None, pid)
+            .get_negotiation_process_by_key_value(&OwnerScope::All, pid)
             .await?
             .or_not_found(pid, "negotiation process")?;
-        actor.authorize(&process.tenant_id, &process.associated_agent_peer, pid)?;
+        actor.authorize(&process.owner(), &process.associated_agent_peer, pid)?;
         let id = Urn::from_str(&process.id)
             .map_err(|e| Errors::format(BadFormat::Received, e.to_string(), None))?;
         self.process_service
-            .get_one(&Self::owner_scope(&process.tenant_id), &id)
+            .get_one(&Self::actor(), &id)
             .await
     }
 }

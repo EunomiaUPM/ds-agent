@@ -32,7 +32,7 @@ impl TryFrom<ListCatalogsRequest> for ListParams<CatalogFilter> {
 
     fn try_from(req: ListCatalogsRequest) -> Result<Self, Status> {
         let filter = CatalogFilter {
-            tenant_id: None,
+            user_id: None,
             title: req.title.non_empty().map(str::to_owned),
             creator: req.creator.non_empty().map(str::to_owned),
             participant_id: req.participant_id.non_empty().map(str::to_owned),
@@ -50,7 +50,8 @@ impl TryFrom<CreateCatalogRequest> for NewCatalogDto {
     fn try_from(req: CreateCatalogRequest) -> Result<Self, Status> {
         Ok(Self {
             id: req.id.as_deref().unwrap_or_default().opt_urn("id")?,
-            tenant_id: None,
+            visibility: None,
+            owner: None,
             foaf_home_page: req.foaf_home_page,
             dct_conforms_to: req.dct_conforms_to,
             dct_creator: req.dct_creator,

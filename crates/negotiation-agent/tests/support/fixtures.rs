@@ -29,7 +29,9 @@ pub fn urn(n: u32) -> String {
 pub fn message_row(n: u32) -> negotiation_message::Model {
     negotiation_message::Model {
         id: urn(n),
-        tenant_id: TENANT.to_string(),
+        user_id: TENANT.to_string(),
+        user_role: common::oauth::RolePath::root(),
+        visibility: common::oauth::Visibility::Private,
         negotiation_agent_process_id: urn(100),
         created_at: Utc::now().into(),
         direction: "inbound".into(),
@@ -44,7 +46,9 @@ pub fn message_row(n: u32) -> negotiation_message::Model {
 pub fn offer_row(n: u32) -> offer::Model {
     offer::Model {
         id: urn(n),
-        tenant_id: TENANT.to_string(),
+        user_id: TENANT.to_string(),
+        user_role: common::oauth::RolePath::root(),
+        visibility: common::oauth::Visibility::Private,
         negotiation_agent_process_id: urn(100),
         negotiation_agent_message_id: urn(200),
         offer_id: format!("offer-{n}"),
@@ -56,7 +60,9 @@ pub fn offer_row(n: u32) -> offer::Model {
 pub fn agreement_row(n: u32) -> agreement::Model {
     agreement::Model {
         id: urn(n),
-        tenant_id: TENANT.to_string(),
+        user_id: TENANT.to_string(),
+        user_role: common::oauth::RolePath::root(),
+        visibility: common::oauth::Visibility::Private,
         negotiation_agent_process_id: urn(100),
         negotiation_agent_message_id: urn(200),
         consumer_participant_id: "consumer".into(),

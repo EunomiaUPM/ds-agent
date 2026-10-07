@@ -45,27 +45,26 @@ impl UserView {
     }
 }
 
-/// OIDC user info: `sub`, email, role and the extra fields at the top level.
-#[derive(Debug, Clone, Serialize)]
-pub struct UserInfo {
-    pub sub: String,
-    pub email: String,
-    pub role: RbacRole,
-    #[serde(flatten)]
-    pub extra: serde_json::Map<String, serde_json::Value>,
-}
+// #[derive(Debug, Clone, Serialize)]
+// pub struct UserInfo {
+//     pub sub: String,
+//     pub email: String,
+//     pub role: RbacRole,
+//     #[serde(flatten)]
+//     pub extra: serde_json::Map<String, serde_json::Value>,
+// }
 
-impl UserInfo {
-    pub fn assemble(u: User) -> Self {
-        let extra = match u.extra_fields {
-            serde_json::Value::Object(m) => m,
-            _ => serde_json::Map::new(),
-        };
-        Self {
-            sub: u.tenant_id,
-            email: u.email,
-            role: u.role,
-            extra,
-        }
-    }
-}
+// impl UserInfo {
+//     pub fn assemble(u: User) -> Self {
+//         let extra = match u.extra_fields {
+//             serde_json::Value::Object(m) => m,
+//             _ => serde_json::Map::new(),
+//         };
+//         Self {
+//             sub: u.tenant_id,
+//             email: u.email,
+//             role: u.role,
+//             extra,
+//         }
+//     }
+// }

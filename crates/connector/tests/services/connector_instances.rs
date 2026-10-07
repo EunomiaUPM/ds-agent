@@ -16,9 +16,10 @@
  */
 
 //! ConnectorInstanceService with mocked repositories and catalog facade: instantiation from a
-//! template, tenant isolation and role checks.
+//! template, owner isolation and role checks.
 
-use common::test_utils::scopes::TestScopes;
+use common::oauth::{Owner, OwnerScope, RolePath, UserInfo, Visibility};
+use common::test_utils::scopes::TestUsers;
 use connector::data::entities::{
     connector_distro_relation, connector_instances, connector_templates,
 };
@@ -43,6 +44,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::RepoIntoErrors;
+
+fn tenant_2() -> UserInfo {
+    TestUsers::user("tenant-2", "/admin/tenant-2")
+}
 
 fn get_template_fixture_dto() -> ConnectorTemplateDto {
     let json_dto = json!({
@@ -80,7 +85,9 @@ fn get_template_fixture_model() -> connector_templates::Model {
     connector_templates::Model {
         name: "template_name".to_string(),
         version: "1.0".to_string(),
-        tenant_id: "test-tenant".to_string(),
+        user_id: "system".to_string(),
+        user_role: RolePath::root(),
+        visibility: Visibility::Public,
         author: "admin".to_string(),
         created_at: chrono::Utc::now().into(),
         spec: serde_json::to_value(get_template_fixture_dto()).unwrap(),
@@ -100,7 +107,9 @@ fn mock_service() -> ConnectorInstanceService {
         .returning(|model| {
             Ok(connector_instances::Model {
                 id: "urn:connector-instance:fake".to_string(),
-                tenant_id: model.tenant_id.clone(),
+                user_id: model.owner.user_id.clone(),
+                user_role: model.owner.role.clone(),
+                visibility: model.owner.visibility.clone(),
                 template_name: model.template_name.clone(),
                 template_version: model.template_version.clone(),
                 distribution_id: model.distribution_id.clone(),
@@ -122,7 +131,9 @@ fn mock_service() -> ConnectorInstanceService {
         .returning(|_, _, _| {
             Ok(connector_distro_relation::Model {
                 distribution_id: "".to_string(),
-                tenant_id: "test-tenant".to_string(),
+                user_id: "system".to_string(),
+        user_role: RolePath::root(),
+        visibility: Visibility::Public,
                 connector_instance_id: "".to_string(),
             })
         });
@@ -168,7 +179,7 @@ async fn upsert_instantiates_the_template_and_links_the_distribution() {
     let service = mock_service();
     let result = service
         .upsert_instance(
-            &TestScopes::owner("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin/tenant-1"),
             &mut ConnectorInstantiationDto {
                 template_name: "".to_string(),
                 template_version: "".to_string(),
@@ -185,7 +196,7 @@ async fn upsert_instantiates_the_template_and_links_the_distribution() {
                 ]),
                 metadata: None,
                 dry_run: false,
-                tenant_id: None,
+                visibility: None,
             },
         )
         .await;
@@ -216,7 +227,7 @@ fn build_service(
     )
 }
 
-/// Reading an instance of another tenant finds nothing.
+/// Reading an instance the caller does not see finds nothing.
 #[tokio::test]
 async fn get_instance_foreign_tenant_returns_none() {
     let template_repo = MockConnectorTemplateRepoTrait::new();
@@ -229,19 +240,19 @@ async fn get_instance_foreign_tenant_returns_none() {
 
     instance_repo
         .expect_get_instance_by_id()
-        .withf(move |tenant, id| tenant.as_deref() == Some("tenant-2") && *id == urn_str)
+        .withf(move |scope, id| *scope == OwnerScope::seeing(&tenant_2()) && *id == urn_str)
         .times(1)
         .returning(|_, _| Ok(None));
 
     let svc = build_service(template_repo, instance_repo, distro_repo, distro_facade);
     let res = svc
-        .get_instance_by_id(&TestScopes::owner("tenant-2"), &urn)
+        .get_instance_by_id(&tenant_2(), &urn)
         .await
         .unwrap();
     assert!(res.is_none());
 }
 
-/// Looking up by distribution in another tenant finds nothing.
+/// Looking up by distribution among what the caller does not see finds nothing.
 #[tokio::test]
 async fn get_instance_by_distribution_foreign_tenant_returns_none() {
     let template_repo = MockConnectorTemplateRepoTrait::new();
@@ -254,19 +265,19 @@ async fn get_instance_by_distribution_foreign_tenant_returns_none() {
 
     distro_repo
         .expect_get_relation_by_distribution()
-        .withf(move |tenant, distro| tenant.as_deref() == Some("tenant-2") && *distro == distro_str)
+        .withf(move |scope, distro| *scope == OwnerScope::seeing(&tenant_2()) && *distro == distro_str)
         .times(1)
         .returning(|_, _| Ok(None));
 
     let svc = build_service(template_repo, instance_repo, distro_repo, distro_facade);
     let res = svc
-        .get_instance_by_distribution(&TestScopes::owner("tenant-2"), &distro_urn)
+        .get_instance_by_distribution(&tenant_2(), &distro_urn)
         .await
         .unwrap();
     assert!(res.is_none());
 }
 
-/// Deleting an instance of another tenant is not found.
+/// Deleting an instance the caller does not act on is not found.
 #[tokio::test]
 async fn delete_instance_foreign_tenant_returns_not_found() {
     let template_repo = MockConnectorTemplateRepoTrait::new();
@@ -283,36 +294,40 @@ async fn delete_instance_foreign_tenant_returns_not_found() {
 
     instance_repo
         .expect_delete_instance_by_id()
-        .withf(move |tenant, id| tenant.as_deref() == Some("tenant-2") && *id == urn_str)
+        .withf(move |scope, id| *scope == OwnerScope::acting(&tenant_2()) && *id == urn_str)
         .times(1)
         .returning(|_, _| Err(ConnectorInstanceRepoErrors::InstanceNotFound.into_errors()));
 
     let svc = build_service(template_repo, instance_repo, distro_repo, distro_facade);
     let res = svc
-        .delete_instance_by_id(&TestScopes::owner("tenant-2"), &urn)
+        .delete_instance_by_id(&tenant_2(), &urn)
         .await;
     assert!(res.is_err());
 }
 
-/// A non-admin always instantiates in its own tenant, whatever the DTO says.
+/// The caller owns what it instantiates, from a template it sees.
 #[tokio::test]
-async fn upsert_forces_caller_tenant_for_non_admin() {
+async fn upsert_belongs_to_the_caller() {
     let mut template_repo = MockConnectorTemplateRepoTrait::new();
     template_repo
         .expect_get_template_by_name_and_version()
-        .withf(|tenant, name, ver| tenant == "tenant-2" && name == "template_name" && ver == "1.0")
+        .withf(|scope, name, ver| {
+            *scope == OwnerScope::seeing(&tenant_2()) && name == "template_name" && ver == "1.0"
+        })
         .times(1)
         .returning(|_, _, _| Ok(Some(get_template_fixture_model())));
 
     let mut instance_repo = MockConnectorInstanceRepoTrait::new();
     instance_repo
         .expect_create_instance()
-        .withf(|m| m.tenant_id == "tenant-2")
+        .withf(|m| m.owner == Owner::private(&tenant_2()))
         .times(1)
         .returning(|model| {
             Ok(connector_instances::Model {
                 id: "urn:connector-instance:fake".to_string(),
-                tenant_id: model.tenant_id.clone(),
+                user_id: model.owner.user_id.clone(),
+                user_role: model.owner.role.clone(),
+                visibility: model.owner.visibility.clone(),
                 template_name: model.template_name.clone(),
                 template_version: model.template_version.clone(),
                 distribution_id: model.distribution_id.clone(),
@@ -327,17 +342,19 @@ async fn upsert_forces_caller_tenant_for_non_admin() {
     let mut distro_repo = MockConnectorDistroRelationRepoTrait::new();
     distro_repo
         .expect_get_relation_by_distribution()
-        .withf(|tenant, _| tenant.as_deref() == Some("tenant-2"))
+        .withf(|scope, _| *scope == OwnerScope::acting(&tenant_2()))
         .times(1)
         .returning(|_, _| Ok(None));
     distro_repo
         .expect_create_relation()
-        .withf(|tenant, _, _| tenant == "tenant-2")
+        .withf(|owner, _, _| *owner == Owner::private(&tenant_2()))
         .times(1)
         .returning(|_, _, _| {
             Ok(connector_distro_relation::Model {
                 distribution_id: "".to_string(),
-                tenant_id: "tenant-2".to_string(),
+                user_id: "tenant-2".to_string(),
+                user_role: "/admin/tenant-2".parse().unwrap(),
+                visibility: Visibility::Private,
                 connector_instance_id: "".to_string(),
             })
         });
@@ -345,7 +362,7 @@ async fn upsert_forces_caller_tenant_for_non_admin() {
     let mut distro_facade = MockCatalogFacadeTrait::new();
     distro_facade
         .expect_resolve_distribution_by_id()
-        .withf(|tenant, _| tenant == "tenant-2")
+        .withf(|user, _| user.id() == "tenant-2")
         .times(1)
         .returning(|_, _| Ok(()));
 
@@ -362,52 +379,24 @@ async fn upsert_forces_caller_tenant_for_non_admin() {
         ]),
         metadata: None,
         dry_run: false,
-        tenant_id: Some("tenant-1".to_string()),
+        visibility: None,
     };
 
     let result = svc
-        .upsert_instance(&TestScopes::owner("tenant-2"), &mut dto)
+        .upsert_instance(&tenant_2(), &mut dto)
         .await;
-    assert!(result.is_ok());
-    assert_eq!(dto.tenant_id.as_deref(), Some("tenant-2"));
+    assert_eq!(result.unwrap().user_id, "tenant-2");
 }
 
-/// A reader can neither upsert nor delete an instance.
+/// A template the caller does not see is a 404.
 #[tokio::test]
-async fn reader_cannot_upsert_or_delete() {
-    let template_repo = MockConnectorTemplateRepoTrait::new();
-    let instance_repo = MockConnectorInstanceRepoTrait::new();
-    let distro_repo = MockConnectorDistroRelationRepoTrait::new();
-    let distro_facade = MockCatalogFacadeTrait::new();
-
-    let svc = build_service(template_repo, instance_repo, distro_repo, distro_facade);
-    let reader = TestScopes::reader("tenant-1");
-
-    let mut dto = ConnectorInstantiationDto {
-        template_name: "template_name".to_string(),
-        template_version: "1.0".to_string(),
-        distribution_id: Urn::from_str("urn:uuid:1").unwrap(),
-        parameters: HashMap::new(),
-        metadata: None,
-        dry_run: false,
-        tenant_id: None,
-    };
-
-    let upsert_res = svc.upsert_instance(&reader, &mut dto).await;
-    assert!(upsert_res.is_err());
-
-    let urn = Urn::from_str("urn:uuid:f47ac10b-58cc-4372-a567-0e02b2c3d479").unwrap();
-    let delete_res = svc.delete_instance_by_id(&reader, &urn).await;
-    assert!(delete_res.is_err());
-}
-
-/// A template missing from the caller's tenant is a 404; no other tenant is searched.
-#[tokio::test]
-async fn upsert_with_template_missing_in_tenant_is_not_found() {
+async fn upsert_with_template_not_visible_is_not_found() {
     let mut template_repo = MockConnectorTemplateRepoTrait::new();
     template_repo
         .expect_get_template_by_name_and_version()
-        .withf(|tenant, name, ver| tenant == "tenant-1" && name == "template_name" && ver == "1.0")
+        .withf(|scope, name, ver| {
+            *scope == OwnerScope::seeing(&tenant_2()) && name == "template_name" && ver == "1.0"
+        })
         .times(1)
         .returning(|_, _, _| Ok(None));
 
@@ -419,7 +408,7 @@ async fn upsert_with_template_missing_in_tenant_is_not_found() {
     );
     let err = svc
         .upsert_instance(
-            &TestScopes::owner("tenant-1"),
+            &tenant_2(),
             &mut ConnectorInstantiationDto {
                 template_name: "template_name".to_string(),
                 template_version: "1.0".to_string(),
@@ -427,7 +416,7 @@ async fn upsert_with_template_missing_in_tenant_is_not_found() {
                 parameters: HashMap::new(),
                 metadata: None,
                 dry_run: false,
-                tenant_id: None,
+                visibility: None,
             },
         )
         .await

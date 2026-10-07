@@ -40,9 +40,9 @@ pub trait UtilsCacheTrait: Send + Sync {
         format!("{}:{}:{}", self.key_namespace(), entity, id)
     }
 
-    /// Key for the main pointer: `<namespace>:<entity>:main:<tenant>`
-    fn format_key_name_main(&self, entity: &str, tenant_id: &str) -> String {
-        format!("{}:{}:main:{}", self.key_namespace(), entity, tenant_id)
+    /// Key for the main pointer: `<namespace>:<entity>:main:<key>`
+    fn format_key_name_main(&self, entity: &str, key: &str) -> String {
+        format!("{}:{}:main:{}", self.key_namespace(), entity, key)
     }
 
     /// Key for the all-entities set: `<namespace>:<entity>:all`

@@ -42,7 +42,7 @@ impl TryFrom<ListOdrlPoliciesRequest> for ListParams<OdrlPolicyFilter> {
             other => Some(CatalogEntityTypes::try_from(other)?.to_string()),
         };
         let filter = OdrlPolicyFilter {
-            tenant_id: None,
+            user_id: None,
             entity: req.entity_id.non_empty().map(str::to_owned),
             entity_type,
             source_template_id: req.source_template_id.non_empty().map(str::to_owned),
@@ -69,7 +69,8 @@ impl TryFrom<CreateOdrlPolicyRequest> for NewOdrlPolicyDto {
             .proto_enum::<CatalogEntityType>("entity_type")?;
         Ok(Self {
             id: req.id.as_deref().unwrap_or_default().opt_urn("id")?,
-            tenant_id: None,
+            visibility: None,
+            owner: None,
             odrl_offer: offer.into_typed::<OdrlPolicyInfo>("odrl_offer")?,
             entity_id: req.entity_id.urn("entity_id")?,
             entity_type: CatalogEntityTypes::try_from(entity_type)?,

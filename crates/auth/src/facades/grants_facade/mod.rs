@@ -15,18 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! What to do after a GNAP answer.
+//! In-process adapter of `common::facades::grants_facade`.
 
-/// Authority's answer: issue over OID4VCI, present over OID4VP, or wait.
-pub enum VcWhatResponse {
-    Issuance(String),
-    Presentation(String),
-    Wait,
-}
-
-/// Peer's answer: done, present over OID4VP, or wait.
-pub enum TokenWhatResponse {
-    Completed,
-    Presentation(String),
-    Wait,
-}
+pub mod local;

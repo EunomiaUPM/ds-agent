@@ -20,7 +20,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use common::auth::AccessScope;
+use common::oauth::AccessScope;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use common::facades::VerifyTokenRequest;
 use ymir::data::entities::shared::participant::Model as Mates;

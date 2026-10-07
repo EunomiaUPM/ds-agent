@@ -21,7 +21,6 @@
 mod keys;
 mod versions;
 
-use chrono::Utc;
 use transfer_agent::entities::protocol::ProtocolId;
 use transfer_agent::protocols::dsp::entities::auth::TransferDSPAuthn;
 use transfer_agent::protocols::dsp::entities::context_common::TransferContextRaw;
@@ -29,26 +28,18 @@ use transfer_agent::protocols::dsp::entities::context_dsp::TransferDSPContextTyp
 use transfer_agent::protocols::dsp::entities::message_types::TransferDSPMessageType;
 
 use axum::extract::Request;
-use serde_json::Value;
 use transfer_agent::protocols::dsp::entities::context_dsp::TransferDSPContextParsed;
 use transfer_agent::protocols::dsp::entities::idempotency::*;
-use ymir::data::entities::shared::participant::Model as Mates;
-use ymir::types::participants::ParticipantType;
+use common::facades::grants_facade::VerifiedPeer;
+use common::oauth::RolePath;
 
 const CTX: &str = "https://w3id.org/dspace/2025/1/context.jsonld";
 
-fn mate(participant_id: &str) -> Mates {
-    let t = Utc::now();
-    Mates {
-        tenant_id: "default".to_string(),
+fn mate(participant_id: &str) -> VerifiedPeer {
+    VerifiedPeer {
         participant_id: participant_id.into(),
-        participant_type: ParticipantType::Agent,
-        participant_nick: "peer".to_string(),
-        base_url: "http://127.0.0.1:1100".to_string(),
-        token: None,
-        saved_at: t,
-        last_interaction: t,
-        extra_fields: Value::Null,
+        role: RolePath::root(),
+        visibility: common::oauth::Visibility::Public,
     }
 }
 

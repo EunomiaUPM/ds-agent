@@ -21,7 +21,7 @@ pub mod views;
 use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::filters::TransferMessageFilter;
 use crate::services::transfer_message::views::TransferMessageView;
-use common::auth::access::AccessScope;
+use common::oauth::UserInfo;
 use common::query::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -31,7 +31,7 @@ use ymir::errors::Outcome;
 pub trait TransferMessageServiceTrait: Send + Sync + 'static {
     async fn get_all(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &TransferMessageFilter,
         page: &Page,
         sort: &Sort,
@@ -39,20 +39,20 @@ pub trait TransferMessageServiceTrait: Send + Sync + 'static {
 
     async fn get_all_by_process(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         process_id: &Urn,
         filters: &TransferMessageFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferMessageView>>;
 
-    async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<TransferMessageView>;
+    async fn get_one(&self, user: &UserInfo, id: &Urn) -> Outcome<TransferMessageView>;
 
     async fn create(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         cmd: &NewTransferMessageCommand,
     ) -> Outcome<TransferMessageView>;
 
-    async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()>;
+    async fn delete(&self, user: &UserInfo, id: &Urn) -> Outcome<()>;
 }

@@ -17,6 +17,7 @@
 
 //! Traits implemented by domain event payloads published into the bus.
 
+use common::oauth::Owner;
 use serde::Serialize;
 use urn::Urn;
 
@@ -47,8 +48,8 @@ pub trait Event: Serialize + Send + Sync + 'static {
         None
     }
 
-    /// Tenant owning the record the event is about.
-    fn tenant_id(&self) -> &str;
+    /// Owner of the record the event is about.
+    fn owner(&self) -> &Owner;
 
     fn into_envelope(self) -> EventEnvelope;
 }
@@ -66,8 +67,8 @@ pub trait IntoEvent: Sized {
         None
     }
 
-    /// Tenant owning the record the event is about.
-    fn tenant_id(&self) -> &str;
+    /// Owner of the record the event is about.
+    fn owner(&self) -> &Owner;
 
     fn into_envelope(self) -> EventEnvelope;
 }

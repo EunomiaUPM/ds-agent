@@ -27,6 +27,7 @@ pub mod remote;
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait CatalogFacadeTrait: Send + Sync {
-    /// Fails with a missing-resource error unless `tenant_id`'s catalog holds the offer.
-    async fn get_offer(&self, tenant_id: &str, offer_id: &Urn) -> Outcome<OdrlPolicyDto>;
+    /// Fails with a missing-resource error unless the catalog holds the offer (by id, whoever
+    /// owns it: an offer a peer refers to is one it was shown).
+    async fn get_offer(&self, offer_id: &Urn) -> Outcome<OdrlPolicyDto>;
 }

@@ -20,6 +20,7 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
+use common::oauth::Owner;
 use serde::{Deserialize, Serialize};
 
 use crate::entities::dead_letter::DeadLetterRecord;
@@ -57,7 +58,8 @@ impl EventView {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubscriptionView {
     pub id: String,
-    pub tenant_id: String,
+    #[serde(flatten)]
+    pub owner: Owner,
     pub callback_address: String,
     pub topic_pattern: String,
     pub secret: Option<String>,
@@ -75,7 +77,7 @@ impl SubscriptionView {
     pub fn assemble(record: SubscriptionRecord) -> Self {
         Self {
             id: record.id,
-            tenant_id: record.tenant_id,
+            owner: record.owner,
             callback_address: record.callback_address,
             topic_pattern: record.topic_pattern.to_string(),
             secret: record.secret.map(|_| Self::MASKED_SECRET.to_string()),

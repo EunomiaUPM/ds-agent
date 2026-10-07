@@ -24,22 +24,20 @@ pub mod local;
 pub mod remote;
 
 /// The catalog agent, as transfer needs it: datasets, distributions and the connector
-/// instances it hosts.
+/// instances it hosts, looked up by id whoever owns them (the agreement already fixed them).
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait CatalogFacadeTrait: Send + Sync {
-    async fn get_dataset(&self, tenant_id: &str, dataset_id: &Urn) -> Outcome<DatasetDto>;
+    async fn get_dataset(&self, dataset_id: &Urn) -> Outcome<DatasetDto>;
 
     async fn get_distribution_by_format(
         &self,
-        tenant_id: &str,
         dataset_id: &Urn,
         dct_format: &str,
     ) -> Outcome<DistributionDto>;
 
     async fn get_instance_by_distribution(
         &self,
-        tenant_id: &str,
         distribution_id: &Urn,
     ) -> Outcome<Option<ConnectorInstanceDto>>;
 }

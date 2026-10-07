@@ -18,6 +18,7 @@
 //! Negotiation processes table.
 
 use sea_orm::prelude::{DateTimeWithTimeZone, Json};
+use common::oauth::{Owner, RolePath, Visibility};
 use sea_orm::{
     ActiveModelBehavior, ActiveValue, DeriveEntityModel, DerivePrimaryKey, DeriveRelation,
     EntityTrait, EnumIter, PrimaryKeyTrait, Related, RelationDef, RelationTrait,
@@ -32,7 +33,9 @@ use urn::{Urn, UrnBuilder};
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub state: String,
     pub state_attribute: Option<String>,
     pub associated_agent_peer: String,
@@ -83,10 +86,12 @@ impl Related<super::agreement::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+common::impl_owned!(Model);
+
 #[derive(Clone, Debug)]
 pub struct NewNegotiationProcessModel {
     pub id: Option<Urn>,
-    pub tenant_id: String,
+    pub owner: Owner,
     pub state: String,
     pub state_attribute: Option<String>,
     pub associated_agent_peer: String,
@@ -101,7 +106,8 @@ impl Default for NewNegotiationProcessModel {
     fn default() -> Self {
         Self {
             id: None,
-            tenant_id: "".to_string(),
+            // Placeholder; every creation stamps the real owner.
+            owner: Owner::team(RolePath::root(), Visibility::Private),
             state: "".to_string(),
             state_attribute: None,
             associated_agent_peer: "".to_string(),
@@ -125,7 +131,9 @@ impl From<NewNegotiationProcessModel> for ActiveModel {
 
         Self {
             id: ActiveValue::Set(value.id.unwrap_or(new_urn).to_string()),
-            tenant_id: ActiveValue::Set(value.tenant_id),
+            user_id: ActiveValue::Set(value.owner.user_id.clone()),
+            user_role: ActiveValue::Set(value.owner.role.clone()),
+            visibility: ActiveValue::Set(value.owner.visibility.clone()),
             state: ActiveValue::Set(value.state),
             state_attribute: ActiveValue::Set(value.state_attribute),
             associated_agent_peer: ActiveValue::Set(value.associated_agent_peer),

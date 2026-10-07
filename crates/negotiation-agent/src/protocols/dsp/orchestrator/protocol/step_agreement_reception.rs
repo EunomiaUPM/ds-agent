@@ -26,7 +26,7 @@ use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDs
 use crate::services::negotiation_process::views::NegotiationProcessView;
 use common::dsp_common::DspActor;
 use std::sync::Arc;
-use ymir::data::entities::shared::participant::Model as Mates;
+use common::facades::grants_facade::VerifiedPeer;
 use ymir::errors::Outcome;
 
 /// Handles an inbound `ContractAgreementMessage` from the Provider.
@@ -46,7 +46,7 @@ impl NegotiationProtocolStep for AgreementReceptionStep {
         validator: &Arc<dyn ValidationDspSteps>,
         id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<()> {
         validator
             .on_contract_agreement(&DspActor::peer(mate), id, input)
@@ -56,7 +56,7 @@ impl NegotiationProtocolStep for AgreementReceptionStep {
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn prepare_context(
         id: &str,
-        mate: &Mates,
+        mate: &VerifiedPeer,
         _input: &NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>,
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
     ) -> Outcome<(
@@ -73,7 +73,7 @@ impl NegotiationProtocolStep for AgreementReceptionStep {
         _id: &str,
         ctx: &NegotiationContinuationContext,
         input: &NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>,
-        mate: &Mates,
+        mate: &VerifiedPeer,
     ) -> Outcome<NegotiationProcessView> {
         persistence
             .update_with_new_agreement(ctx.id.as_str(), &input.dto, mate)

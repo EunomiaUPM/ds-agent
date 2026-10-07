@@ -16,16 +16,8 @@
  */
 
 use crate::config::services::CommonConfig;
-use crate::config::types::AdminSeedConfig;
 
 /// Access to the common section of a config.
 pub trait CommonConfigTrait {
     fn common(&self) -> &CommonConfig;
-    /// HS256 secret that signs every token.
-    fn jwt_secret(&self) -> &str {
-        &self.common().jwt_secret
-    }
-    fn admin_seed(&self) -> &AdminSeedConfig {
-        &self.common().admin_seed
-    }
 }

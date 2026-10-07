@@ -18,6 +18,7 @@
 //! Process identifiers table (pids under their keys).
 
 use sea_orm::ActiveValue;
+use common::oauth::{Owner, RolePath, Visibility};
 use sea_orm::{
     ActiveModelBehavior, DeriveEntityModel, DerivePrimaryKey, DeriveRelation, EntityTrait,
     EnumIter, PrimaryKeyTrait, Related, RelationDef, RelationTrait,
@@ -32,7 +33,9 @@ use urn::{Urn, UrnBuilder};
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
-    pub tenant_id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     pub negotiation_agent_process_id: String,
     pub id_key: String,
     pub id_value: Option<String>,
@@ -57,10 +60,12 @@ impl Related<super::negotiation_process::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+common::impl_owned!(Model);
+
 #[derive(Clone)]
 pub struct NewNegotiationIdentifierModel {
     pub id: Option<Urn>,
-    pub tenant_id: String,
+    pub owner: Owner,
     pub negotiation_agent_process_id: Urn,
     pub id_key: String,
     pub id_value: Option<String>,
@@ -76,7 +81,9 @@ impl From<NewNegotiationIdentifierModel> for ActiveModel {
         .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(dto.id.unwrap_or(new_urn).to_string()),
-            tenant_id: ActiveValue::Set(dto.tenant_id),
+            user_id: ActiveValue::Set(dto.owner.user_id.clone()),
+            user_role: ActiveValue::Set(dto.owner.role.clone()),
+            visibility: ActiveValue::Set(dto.owner.visibility.clone()),
             negotiation_agent_process_id: ActiveValue::Set(
                 dto.negotiation_agent_process_id.to_string(),
             ),

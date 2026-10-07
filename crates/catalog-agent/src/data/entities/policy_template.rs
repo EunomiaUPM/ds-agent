@@ -18,6 +18,7 @@
 //! Policy templates table.
 
 use sea_orm::entity::prelude::*;
+use common::oauth::{Owner, RolePath, Visibility};
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::UrnBuilder;
@@ -27,9 +28,10 @@ use urn::UrnBuilder;
 #[sea_orm(table_name = "policy_templates")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub tenant_id: String,
-    #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
+    pub user_id: String,
+    pub user_role: RolePath,
+    pub visibility: Visibility,
     #[sea_orm(primary_key, auto_increment = false)]
     pub version: String,
     pub date: DateTimeWithTimeZone,
@@ -54,10 +56,12 @@ impl Related<super::odrl_offer::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+common::impl_owned!(Model);
+
 #[derive(Clone)]
 pub struct NewPolicyTemplateModel {
     pub id: Option<String>,
-    pub tenant_id: String,
+    pub owner: Owner,
     pub version: Option<String>,
     pub date: Option<DateTimeWithTimeZone>,
     pub author: Option<String>,
@@ -82,7 +86,9 @@ impl From<NewPolicyTemplateModel> for ActiveModel {
                     .unwrap_or(new_urn.clone().to_string())
                     .to_string(),
             ),
-            tenant_id: ActiveValue::Set(dto.tenant_id),
+            user_id: ActiveValue::Set(dto.owner.user_id.clone()),
+            user_role: ActiveValue::Set(dto.owner.role.clone()),
+            visibility: ActiveValue::Set(dto.owner.visibility.clone()),
             version: ActiveValue::Set(dto.version.unwrap_or("1.0".to_string())),
             date: ActiveValue::Set(dto.date.unwrap_or(chrono::Utc::now().into())),
             author: ActiveValue::Set(dto.author.unwrap_or("".to_string())),

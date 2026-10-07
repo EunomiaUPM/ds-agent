@@ -19,6 +19,7 @@
 
 mod discovery;
 mod frontend;
+mod session;
 pub mod router;
 
 pub use router::GatewayHttpRouter;

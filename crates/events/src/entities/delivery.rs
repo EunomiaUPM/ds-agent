@@ -18,13 +18,16 @@
 //! Delivery attempts.
 
 use chrono::{DateTime, Utc};
+use common::oauth::Owner;
 use serde::{Deserialize, Serialize};
 
 /// One delivery of an event to a subscription, with its attempts and retry schedule.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventDeliveryRecord {
     pub id: String,
-    pub tenant_id: String,
+    /// Who the record belongs to: the subscriber.
+    #[serde(flatten)]
+    pub owner: Owner,
     pub event_id: String,
     pub subscription_id: String,
     pub status: DeliveryStatus,

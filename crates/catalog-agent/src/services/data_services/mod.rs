@@ -21,7 +21,7 @@ pub mod service;
 
 use crate::entities::data_services::{DataServiceDto, EditDataServiceDto, NewDataServiceDto};
 use crate::entities::filters::DataServiceFilter;
-use common::auth::AccessScope;
+use common::oauth::UserInfo;
 use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -33,7 +33,7 @@ pub trait DataServiceServiceTrait: Send + Sync {
     /// Page of data services visible to the caller.
     async fn get_all_data_services(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &DataServiceFilter,
         page: &Page,
         sort: &Sort,
@@ -41,45 +41,45 @@ pub trait DataServiceServiceTrait: Send + Sync {
     /// Data services found among `ids`.
     async fn get_batch_data_services(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         ids: &[Urn],
     ) -> Outcome<Vec<DataServiceDto>>;
 
     /// Data services of the catalog.
     async fn get_data_services_by_catalog_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         catalog_id: &Urn,
     ) -> Outcome<Vec<DataServiceDto>>;
 
-    /// The acting tenant's main data service, if it has one.
-    async fn get_main_data_service(&self, scope: &AccessScope) -> Outcome<Option<DataServiceDto>>;
+    /// The connector's main data service, if it has one (whoever asks).
+    async fn get_main_data_service(&self, user: &UserInfo) -> Outcome<Option<DataServiceDto>>;
     /// 404 when the data service is not visible to the caller.
     async fn get_data_service_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         data_service_id: &Urn,
     ) -> Outcome<DataServiceDto>;
     async fn put_data_service_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         data_service_id: &Urn,
         edit_data_service_model: &EditDataServiceDto,
     ) -> Outcome<DataServiceDto>;
     async fn create_data_service(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_data_service_model: &NewDataServiceDto,
     ) -> Outcome<DataServiceDto>;
-    /// Creates the acting tenant's main data service.
+    /// Creates the connector's main data service (the root only), unless there is one already.
     async fn create_main_data_service(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         new_data_service_model: &NewDataServiceDto,
     ) -> Outcome<DataServiceDto>;
     async fn delete_data_service_by_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         data_service_id: &Urn,
     ) -> Outcome<()>;
 }

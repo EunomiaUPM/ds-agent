@@ -67,10 +67,11 @@ use crate::services::negotiation_message::NegotiationMessageServiceTrait;
 use crate::services::negotiation_process::NegotiationProcessServiceTrait;
 use crate::services::offer::OfferServiceTrait;
 use axum::Router;
-use common::auth::OauthTokenValidator;
+use common::oauth::OauthTokenValidatorTrait;
 use common::config::services::ContractsConfig;
 use common::facades::mates_facade::MatesFacadeTrait;
-use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
+use common::facades::AuthPorts;
+use common::facades::grants_facade::GrantsFacadeTrait;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
@@ -81,9 +82,9 @@ pub struct NegotiationDSP {
     offer_service: Arc<dyn OfferServiceTrait>,
     agreement_service: Arc<dyn AgreementServiceTrait>,
     config: Arc<ContractsConfig>,
-    ssi_auth_service: Arc<dyn SSIAuthFacadeTrait>,
+    grants_service: Arc<dyn GrantsFacadeTrait>,
     mates_service: Arc<dyn MatesFacadeTrait>,
-    oauth_validator: Arc<dyn OauthTokenValidator>,
+    oauth_validator: Arc<dyn OauthTokenValidatorTrait>,
 }
 
 impl NegotiationDSP {
@@ -94,9 +95,9 @@ impl NegotiationDSP {
         offer_service: Arc<dyn OfferServiceTrait>,
         agreement_service: Arc<dyn AgreementServiceTrait>,
         config: Arc<ContractsConfig>,
-        ssi_auth_service: Arc<dyn SSIAuthFacadeTrait>,
+        grants_service: Arc<dyn GrantsFacadeTrait>,
         mates_service: Arc<dyn MatesFacadeTrait>,
-        oauth_validator: Arc<dyn OauthTokenValidator>,
+        oauth_validator: Arc<dyn OauthTokenValidatorTrait>,
     ) -> Self {
         Self {
             process_repo,
@@ -105,7 +106,7 @@ impl NegotiationDSP {
             offer_service,
             agreement_service,
             config,
-            ssi_auth_service,
+            grants_service,
             mates_service,
             oauth_validator,
         }
@@ -183,7 +184,10 @@ impl ProtocolPluginTrait for NegotiationDSP {
             rpc_validator.clone(),
             persistence_rpc_service,
             self.config.clone(),
-            self.mates_service.clone(),
+            AuthPorts {
+                mates: self.mates_service.clone(),
+                grants: self.grants_service.clone(),
+            },
         ));
         let bff_rpc_orchestator = Arc::new(BFFRPCOrchestratorService::new(rpc_orchestator.clone()));
         let orchestrator_service = Arc::new(OrchestratorService::new(
@@ -196,7 +200,7 @@ impl ProtocolPluginTrait for NegotiationDSP {
         let dsp_router = DspRouter::new(
             orchestrator_service.clone(),
             self.config.clone(),
-            self.ssi_auth_service.clone(),
+            self.grants_service.clone(),
         );
         let rcp_router = RpcRouter::new(orchestrator_service.clone(), self.config.clone());
         let bff_rcp_router = BffRpcRouter::new(orchestrator_service.clone(), self.config.clone());
@@ -207,7 +211,7 @@ impl ProtocolPluginTrait for NegotiationDSP {
             .merge(bff_rcp_router.router())
             .route_layer(axum::middleware::from_fn_with_state(
                 self.oauth_validator.clone(),
-                common::auth::http::AuthHttpMiddleware::run,
+                ymir::http::OauthHttpMiddleware::run,
             ));
 
         Ok(Router::new().merge(dsp_router.router()).merge(user_router))

@@ -1280,16 +1280,10 @@ paths:
       summary: Live event stream (SSE)
       description: |
         Unnamed server-sent events, one `EventEnvelope` JSON per `data:` line, with a keep-alive
-        every 15 s. Browsers cannot set headers on `EventSource`, so `tenant` replaces
-        `x-tenant-id`.
+        every 15 s, about the records the session's user sees. The session travels as the
+        proxy's cookie, like any other request.
       parameters:
       - $ref: '#/components/parameters/TopicPattern'
-      - name: tenant
-        in: query
-        required: false
-        description: Tenant to follow. Non-admins may only name their own tenant.
-        schema:
-          type: string
       responses:
         '200':
           description: Event stream
@@ -8220,11 +8214,9 @@ components:
       - callback_address
       - topic_pattern
       properties:
-        tenant_id:
-          type:
-          - string
-          - 'null'
-          description: Ignored; the subscription belongs to the acting tenant.
+        visibility:
+          $ref: '#/components/schemas/Visibility'
+          description: Who else sees it; private by default.
         callback_address:
           type: string
           format: uri
@@ -9103,7 +9095,9 @@ components:
       type: object
       required:
       - id
-      - tenant_id
+      - user_id
+      - role
+      - visibility
       - topic
       - source_crate
       - schema_version
@@ -9114,8 +9108,16 @@ components:
           type: string
           examples:
           - urn:uuid:8a4e1f0c-7d4b-4a52-9f0e-2a6c5b1d3e47
-        tenant_id:
+        user_id:
           type: string
+          description: Owner of the record ("system" if a peer opened it).
+        role:
+          type: string
+          description: Role the record was created under (or that handles it).
+          examples:
+          - /admin/upm
+        visibility:
+          $ref: '#/components/schemas/Visibility'
         topic:
           type: string
           examples:
@@ -9139,7 +9141,9 @@ components:
       type: object
       required:
       - id
-      - tenant_id
+      - user_id
+      - role
+      - visibility
       - callback_address
       - topic_pattern
       - active
@@ -9147,8 +9151,16 @@ components:
       properties:
         id:
           type: string
-        tenant_id:
+        user_id:
           type: string
+          description: Owner of the record ("system" if a peer opened it).
+        role:
+          type: string
+          description: Role the record was created under (or that handles it).
+          examples:
+          - /admin/upm
+        visibility:
+          $ref: '#/components/schemas/Visibility'
         callback_address:
           type: string
           format: uri
@@ -12538,6 +12550,15 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Version'
+    Visibility:
+      type: string
+      description: |
+        Who else sees a record beyond those its role lets in: nobody (Private), everyone without
+        its author (Anonymous), or everyone (Public).
+      enum:
+      - Private
+      - Anonymous
+      - Public
     WalletCredential:
       type: object
       required:

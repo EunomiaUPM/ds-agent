@@ -29,8 +29,8 @@ use axum::extract::{FromRef, Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
-use common::auth::access::AccessScope;
-use common::auth::http::ExtractedHeaders;
+use common::oauth::UserInfo;
+use common::http_tracing::ExtractedHeaders;
 use common::batch_requests::BatchRequests;
 use common::query::{Paginated, QuerySpec, Sort};
 use ymir::errors::AppResult;
@@ -43,6 +43,9 @@ pub type DataplaneTransferQuery = QuerySpec<DataplaneTransferFilter, Sort>;
 #[derive(Clone)]
 pub struct DataPlaneProcessesRouter {
     service: Arc<dyn DataplaneTransferServiceTrait>,
+    /// Public base URL of the agent; the proxy ingress URL is built from it, not from the
+    /// request's `Host`, which behind a proxy is an internal address.
+    public_base_url: String,
 }
 
 impl FromRef<DataPlaneProcessesRouter> for Arc<dyn DataplaneTransferServiceTrait> {
@@ -52,8 +55,11 @@ impl FromRef<DataPlaneProcessesRouter> for Arc<dyn DataplaneTransferServiceTrait
 }
 
 impl DataPlaneProcessesRouter {
-    pub fn new(service: Arc<dyn DataplaneTransferServiceTrait>) -> Self {
-        Self { service }
+    pub fn new(service: Arc<dyn DataplaneTransferServiceTrait>, public_base_url: String) -> Self {
+        Self {
+            service,
+            public_base_url,
+        }
     }
 
     pub fn router(self) -> Router {
@@ -80,63 +86,63 @@ impl DataPlaneProcessesRouter {
 
     async fn handle_get_all_dataplane_transfers(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Query(q): Query<DataplaneTransferQuery>,
     ) -> AppResult<(HeaderMap, Json<Paginated<DataplaneTransferDto>>)> {
         let (filter, page, sort) = q.into_domain();
-        let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
+        let result = state.service.get_all(&user, &filter, &page, &sort).await?;
         let response_headers = headers.response_headers_paged(result.total);
         Ok((response_headers, Json(result)))
     }
 
     async fn handle_get_data_plane_by_id(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Path(dataplane_id): Path<String>,
     ) -> AppResult<(HeaderMap, Json<DataplaneTransferDto>)> {
         let data_plane_id = extract_path_urn(&dataplane_id)?;
-        let transfer = state.service.get_one(&scope, &data_plane_id).await?;
+        let transfer = state.service.get_one(&user, &data_plane_id).await?;
         Ok((headers.response_headers(), Json(transfer)))
     }
 
     async fn handle_get_batch_dataplane_transfers(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         payload: Result<Json<BatchRequests>, JsonRejection>,
     ) -> AppResult<(HeaderMap, Json<Vec<DataplaneTransferDto>>)> {
         let input = extract_payload(payload)?;
-        let transfers = state.service.batch(&scope, &input).await?;
+        let transfers = state.service.batch(&user, &input).await?;
         let count = transfers.len() as u64;
         Ok((headers.response_headers_paged(Some(count)), Json(transfers)))
     }
 
     async fn handle_get_dataplane_transfer_by_process_id(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Path(transfer_process_id): Path<String>,
     ) -> AppResult<(HeaderMap, Json<DataplaneTransferDto>)> {
         let process_urn = extract_path_urn(&transfer_process_id)?;
         let transfer = state
             .service
-            .get_by_process_id(&scope, &process_urn)
+            .get_by_process_id(&user, &process_urn)
             .await?;
         Ok((headers.response_headers(), Json(transfer)))
     }
 
     async fn handle_create_dataplane_transfer(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         payload: Result<Json<NewDataplaneTransferDto>, JsonRejection>,
     ) -> AppResult<(StatusCode, HeaderMap, Json<DataplaneTransferDto>)> {
         let new_dataplane_transfer = extract_payload(payload)?;
         let transfer = state
             .service
-            .create(&scope, &new_dataplane_transfer)
+            .create(&user, &new_dataplane_transfer)
             .await?;
         Ok((
             StatusCode::CREATED,
@@ -147,7 +153,7 @@ impl DataPlaneProcessesRouter {
 
     async fn handle_put_dataplane_transfer_by_id(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Path(dataplane_id): Path<String>,
         payload: Result<Json<EditDataplaneTransferDto>, JsonRejection>,
@@ -156,38 +162,34 @@ impl DataPlaneProcessesRouter {
         let edit_dataplane_transfer = extract_payload(payload)?;
         let transfer = state
             .service
-            .edit(&scope, &data_plane_id, &edit_dataplane_transfer)
+            .edit(&user, &data_plane_id, &edit_dataplane_transfer)
             .await?;
         Ok((headers.response_headers(), Json(transfer)))
     }
 
     async fn handle_delete_dataplane_transfer(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Path(dataplane_id): Path<String>,
     ) -> AppResult<(StatusCode, HeaderMap)> {
         let data_plane_id = extract_path_urn(&dataplane_id)?;
-        state.service.delete(&scope, &data_plane_id).await?;
+        state.service.delete(&user, &data_plane_id).await?;
         Ok((StatusCode::NO_CONTENT, headers.response_headers()))
     }
 
+    /// Transfer summary; pull transfers also carry the public proxy URL peers must call.
     async fn handle_get_dataplane_info(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Path(dataplane_id): Path<String>,
-        req_headers: HeaderMap,
     ) -> AppResult<(HeaderMap, Json<DataplaneInfoResponse>)> {
         let data_plane_id = extract_path_urn(&dataplane_id)?;
-        let transfer = state.service.get_one(&scope, &data_plane_id).await?;
+        let transfer = state.service.get_one(&user, &data_plane_id).await?;
 
-        let mut ingress_url = None;
-        if transfer.inner.interaction_mode == InteractionMode::Pull {
-            if let Some(host) = req_headers.get("host").and_then(|h| h.to_str().ok()) {
-                ingress_url = Some(format!("{host}/dataplane/proxy/{data_plane_id}"));
-            }
-        }
+        let ingress_url = (transfer.inner.interaction_mode == InteractionMode::Pull)
+            .then(|| format!("{}/dataplane/proxy/{data_plane_id}", state.public_base_url));
 
         let response = DataplaneInfoResponse {
             id: transfer.inner.id,

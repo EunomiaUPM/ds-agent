@@ -34,7 +34,7 @@ async fn create_without_identifiers_does_not_call_upsert() {
 
     let svc = make_svc(proc_repo, id_repo);
     let view = svc
-        .create(&TestScopes::admin_of("tenant-1"), &make_new_cmd(None))
+        .create(&TestUsers::user("tenant-1", "/admin"), &make_new_cmd(None))
         .await
         .unwrap();
 
@@ -66,7 +66,7 @@ async fn create_with_one_identifier_upserts_once() {
 
     let svc = make_svc(proc_repo, id_repo);
     let view = svc
-        .create(&TestScopes::admin_of("tenant-1"), &make_new_cmd(Some(ids)))
+        .create(&TestUsers::user("tenant-1", "/admin"), &make_new_cmd(Some(ids)))
         .await
         .unwrap();
 
@@ -108,7 +108,7 @@ async fn create_with_multiple_identifiers_upserts_each() {
     let svc = make_svc(proc_repo, id_repo);
     let view = svc
         .create(
-            &TestScopes::admin_of("tenant-1"),
+            &TestUsers::user("tenant-1", "/admin"),
             &make_new_cmd(Some(ids.clone())),
         )
         .await
@@ -133,7 +133,7 @@ async fn create_propagates_process_repo_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.create(&TestScopes::admin_of("tenant-1"), &make_new_cmd(None))
+        svc.create(&TestUsers::user("tenant-1", "/admin"), &make_new_cmd(None))
             .await
             .is_err()
     );
@@ -157,7 +157,7 @@ async fn create_propagates_identifier_upsert_error() {
     ids.insert("k".to_string(), "v".to_string());
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.create(&TestScopes::admin_of("tenant-1"), &make_new_cmd(Some(ids)))
+        svc.create(&TestUsers::user("tenant-1", "/admin"), &make_new_cmd(Some(ids)))
             .await
             .is_err()
     );
@@ -170,12 +170,12 @@ async fn delete_happy_path() {
     proc_repo
         .expect_delete_transfer_process()
         .times(1)
-        .returning(|_, _| Ok("tenant-1".to_string()));
+        .returning(|_, _| Ok(common::test_utils::scopes::TestUsers::owner("tenant-1")));
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.delete(&TestScopes::admin_of("tenant-1"), &p_urn(1))
+        svc.delete(&TestUsers::user("tenant-1", "/admin"), &p_urn(1))
             .await
             .is_ok()
     );
@@ -194,7 +194,7 @@ async fn delete_propagates_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.delete(&TestScopes::admin_of("tenant-1"), &p_urn(1))
+        svc.delete(&TestUsers::user("tenant-1", "/admin"), &p_urn(1))
             .await
             .is_err()
     );

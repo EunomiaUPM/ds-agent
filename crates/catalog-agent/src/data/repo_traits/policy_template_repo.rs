@@ -18,6 +18,7 @@
 //! Policy template repository.
 
 use crate::data::entities::policy_template;
+use common::oauth::OwnerScope;
 use crate::data::entities::policy_template::NewPolicyTemplateModel;
 use crate::entities::filters::PolicyTemplateFilter;
 use common::paginated_spec::{Page, Sort};
@@ -30,24 +31,25 @@ pub trait PolicyTemplatesRepositoryTrait: Send + Sync {
     /// Page of templates matching the filters, with the total.
     async fn get_all_policy_templates(
         &self,
+        scope: &OwnerScope,
         filters: &PolicyTemplateFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<policy_template::Model>, Option<u64>)>;
     async fn get_batch_policy_templates(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         ids: &[String],
     ) -> Outcome<Vec<policy_template::Model>>;
     /// Every version of the template.
     async fn get_policy_templates_by_id(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         template_id: &str,
     ) -> Outcome<Vec<policy_template::Model>>;
     async fn get_policy_template_by_id_and_version(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         template_id: &str,
         version: &str,
     ) -> Outcome<Option<policy_template::Model>>;
@@ -57,7 +59,7 @@ pub trait PolicyTemplatesRepositoryTrait: Send + Sync {
     ) -> Outcome<policy_template::Model>;
     async fn delete_policy_template_by_id_and_version(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         template_id: &str,
         version: &str,
     ) -> Outcome<()>;

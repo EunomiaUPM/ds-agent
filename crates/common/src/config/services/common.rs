@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::config::types::{AdminSeedConfig, ServiceClientConfig};
+use crate::config::oauth::OauthConfig;
 use serde::{Deserialize, Serialize};
 use ymir::config::traits::{
     ApiConfigTrait, ConnectionConfigTrait, DatabaseConfigTrait, HostsConfigTrait,
@@ -25,28 +25,12 @@ use ymir::config::types::{ApiConfig, CommonHostsConfig, ConnectionConfig, Databa
 /// Hosts, database, API, connection flags and auth settings every agent section embeds.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommonConfig {
-    pub hosts: CommonHostsConfig,
-    pub db: DatabaseConfig,
-    pub api: ApiConfig,
-    pub connection: ConnectionConfig,
+    hosts: CommonHostsConfig,
+    db: DatabaseConfig,
+    api: ApiConfig,
+    connection: ConnectionConfig,
     #[serde(default)]
-    pub jwt_secret: String,
-    #[serde(default = "default_access_token_ttl")]
-    pub access_token_ttl: i64,
-    #[serde(default = "default_refresh_token_ttl")]
-    pub refresh_token_ttl: i64,
-    #[serde(default)]
-    pub admin_seed: AdminSeedConfig,
-    #[serde(default)]
-    pub service_client: ServiceClientConfig,
-}
-
-fn default_access_token_ttl() -> i64 {
-    3_600
-}
-
-fn default_refresh_token_ttl() -> i64 {
-    2_592_000
+    pub oauth: OauthConfig,
 }
 
 impl HostsConfigTrait for CommonConfig {

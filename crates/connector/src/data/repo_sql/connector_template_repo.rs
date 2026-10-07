@@ -16,6 +16,7 @@
  */
 
 use crate::data::entities::connector_templates;
+use common::oauth::OwnerScope;
 use crate::data::entities::connector_templates::NewConnectorTemplateModel;
 use crate::data::repo_traits::connector_repo_errors::{
     ConnectorAgentRepoErrors, ConnectorTemplateRepoErrors,
@@ -32,8 +33,8 @@ impl FilterApplier<Select<connector_templates::Entity>> for ConnectorTemplateFil
         &self,
         mut select: Select<connector_templates::Entity>,
     ) -> Select<connector_templates::Entity> {
-        if let Some(tenant_id) = &self.tenant_id {
-            select = select.filter(connector_templates::Column::TenantId.eq(tenant_id));
+        if let Some(user_id) = &self.user_id {
+            select = select.filter(connector_templates::Column::UserId.eq(user_id));
         }
         if let Some(name) = &self.name {
             select = select.filter(connector_templates::Column::Name.eq(name));
@@ -88,12 +89,12 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_templates_by_name(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         template_name: &str,
     ) -> Outcome<Vec<connector_templates::Model>> {
         let result = connector_templates::Entity::find()
             .filter(connector_templates::Column::Name.eq(template_name))
-            .filter(connector_templates::Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(connector_templates::Column::UserId, connector_templates::Column::UserRole, connector_templates::Column::Visibility))
             .all(&self.db_connection)
             .await;
 
@@ -109,13 +110,13 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_template_by_name_and_version(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         name: &str,
         version: &str,
     ) -> Outcome<Option<connector_templates::Model>> {
         let result =
             connector_templates::Entity::find_by_id((name.to_string(), version.to_string()))
-                .filter(connector_templates::Column::TenantId.eq(tenant_id))
+                .filter(scope.condition(connector_templates::Column::UserId, connector_templates::Column::UserRole, connector_templates::Column::Visibility))
                 .one(&self.db_connection)
                 .await;
         match result {
@@ -130,11 +131,18 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_templates(
         &self,
+        scope: &OwnerScope,
         filters: &ConnectorTemplateFilter,
         page: &Page,
         sort: Sort,
     ) -> Outcome<(Vec<connector_templates::Model>, Option<u64>)> {
-        let q = filters.apply_to(connector_templates::Entity::find());
+        let q = filters
+            .apply_to(connector_templates::Entity::find())
+            .filter(scope.condition(
+                connector_templates::Column::UserId,
+                connector_templates::Column::UserRole,
+                connector_templates::Column::Visibility,
+            ));
         let total = q.clone().count(&self.db_connection).await.map_err(|err| {
             ConnectorAgentRepoErrors::ConnectorTemplateRepoErrors(
                 ConnectorTemplateRepoErrors::ErrorFetchingTemplate(err.to_string()),
@@ -164,14 +172,14 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_template_by_name_and_version(
         &self,
-        tenant_id: &str,
+        scope: &OwnerScope,
         name: &str,
         version: &str,
     ) -> Outcome<()> {
         let result = connector_templates::Entity::delete_many()
             .filter(connector_templates::Column::Name.eq(name))
             .filter(connector_templates::Column::Version.eq(version))
-            .filter(connector_templates::Column::TenantId.eq(tenant_id))
+            .filter(scope.condition(connector_templates::Column::UserId, connector_templates::Column::UserRole, connector_templates::Column::Visibility))
             .exec(&self.db_connection)
             .await;
 

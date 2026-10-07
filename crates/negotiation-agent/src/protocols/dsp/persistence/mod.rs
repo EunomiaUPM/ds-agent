@@ -19,6 +19,7 @@ pub mod persistence_rpc;
 pub mod process_resolver;
 
 use crate::protocols::dsp::orchestrator::rpc::types::RpcNegotiationProcessMessageTrait;
+use common::oauth::Owner;
 use crate::protocols::dsp::protocol_types::NegotiationProcessMessageTrait;
 use crate::services::negotiation_process::views::NegotiationProcessView;
 use crate::services::offer::views::OfferView;
@@ -62,10 +63,10 @@ pub trait NegotiationRpcPersistenceTrait: Send + Sync {
     /// Loads the process behind a pid, provided `actor` may act on it.
     async fn fetch_process(&self, id: &str, actor: &DspActor) -> Outcome<NegotiationProcessView>;
     async fn fetch_last_offer(&self, process: &NegotiationProcessView) -> Outcome<OfferView>;
-    /// Records a process the local user opened; `tenant_id` is the target peer's, already checked.
+    /// Records a process the local user opened, owned by `owner` (the user, private).
     async fn create_new(
         &self,
-        tenant_id: &str,
+        owner: &Owner,
         payload: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
         response: &dyn NegotiationProcessMessageTrait,

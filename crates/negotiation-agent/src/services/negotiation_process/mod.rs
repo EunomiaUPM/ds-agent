@@ -23,7 +23,7 @@ pub mod views;
 use crate::entities::filters::NegotiationProcessFilter;
 use crate::entities::negotiation_process::{EditNegotiationProcessDto, NewNegotiationProcessDto};
 use crate::services::negotiation_process::views::NegotiationProcessView;
-use common::auth::access::AccessScope;
+use common::oauth::UserInfo;
 use common::batch_requests::BatchRequests;
 use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
@@ -36,19 +36,19 @@ pub trait NegotiationProcessServiceTrait: Send + Sync + 'static {
     /// Page of processes visible to the caller.
     async fn get_all(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &NegotiationProcessFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<NegotiationProcessView>>;
 
     /// 404 when the process is not visible to the caller.
-    async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<NegotiationProcessView>;
+    async fn get_one(&self, user: &UserInfo, id: &Urn) -> Outcome<NegotiationProcessView>;
 
     /// Process whose identifier under `key_id` equals `id`.
     async fn get_by_key_id(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         key_id: &str,
         id: &Urn,
     ) -> Outcome<NegotiationProcessView>;
@@ -56,31 +56,31 @@ pub trait NegotiationProcessServiceTrait: Send + Sync + 'static {
     /// Process whose own id or any identifier equals `value`.
     async fn get_by_key_value(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         value: &Urn,
     ) -> Outcome<NegotiationProcessView>;
 
     /// Processes found among the requested ids.
     async fn batch(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         req: &BatchRequests,
     ) -> Outcome<Vec<NegotiationProcessView>>;
 
     /// Stores the process with its identifiers.
     async fn create(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         cmd: &NewNegotiationProcessDto,
     ) -> Outcome<NegotiationProcessView>;
 
     /// Changes the fields set in `cmd`.
     async fn edit(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         id: &Urn,
         cmd: &EditNegotiationProcessDto,
     ) -> Outcome<NegotiationProcessView>;
 
-    async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()>;
+    async fn delete(&self, user: &UserInfo, id: &Urn) -> Outcome<()>;
 }

@@ -26,8 +26,8 @@ use axum::extract::{FromRef, Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::get;
 use axum::{Json, Router};
-use common::auth::access::AccessScope;
-use common::auth::http::ExtractedHeaders;
+use common::oauth::UserInfo;
+use common::http_tracing::ExtractedHeaders;
 use common::query::{Paginated, QuerySpec, Sort};
 use ymir::errors::AppResult;
 use ymir::utils::{extract_path_urn, extract_payload};
@@ -61,19 +61,19 @@ impl TransferMessageRouter {
 
     async fn handle_get_all(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Query(q): Query<QuerySpec<TransferMessageFilter, Sort>>,
     ) -> AppResult<(HeaderMap, Json<Paginated<TransferMessageView>>)> {
         let (filter, page, sort) = q.into_domain();
-        let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
+        let result = state.service.get_all(&user, &filter, &page, &sort).await?;
         let response_headers = headers.response_headers_paged(result.total);
         Ok((response_headers, Json(result)))
     }
 
     async fn handle_get_by_process(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Path(process_id): Path<String>,
         Query(q): Query<QuerySpec<TransferMessageFilter, Sort>>,
@@ -82,7 +82,7 @@ impl TransferMessageRouter {
         let (filter, page, sort) = q.into_domain();
         let result = state
             .service
-            .get_all_by_process(&scope, &process_urn, &filter, &page, &sort)
+            .get_all_by_process(&user, &process_urn, &filter, &page, &sort)
             .await?;
         let response_headers = headers.response_headers_paged(result.total);
         Ok((response_headers, Json(result)))
@@ -90,35 +90,35 @@ impl TransferMessageRouter {
 
     async fn handle_get_one(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Path(id): Path<String>,
     ) -> AppResult<(HeaderMap, Json<TransferMessageView>)> {
         let urn = extract_path_urn(&id)?;
-        let view = state.service.get_one(&scope, &urn).await?;
+        let view = state.service.get_one(&user, &urn).await?;
         Ok((headers.response_headers(), Json(view)))
     }
 
     async fn handle_create(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         payload: Result<Json<NewTransferMessageCommand>, JsonRejection>,
     ) -> AppResult<(StatusCode, HeaderMap, Json<TransferMessageView>)> {
         let payload = extract_payload(payload)?;
-        let view = state.service.create(&scope, &payload).await?;
+        let view = state.service.create(&user, &payload).await?;
         let response_headers = headers.response_headers();
         Ok((StatusCode::CREATED, response_headers, Json(view)))
     }
 
     async fn handle_delete(
         State(state): State<Self>,
-        scope: AccessScope,
+        user: UserInfo,
         headers: ExtractedHeaders,
         Path(id): Path<String>,
     ) -> AppResult<(StatusCode, HeaderMap)> {
         let urn = extract_path_urn(&id)?;
-        state.service.delete(&scope, &urn).await?;
+        state.service.delete(&user, &urn).await?;
         Ok((StatusCode::NO_CONTENT, headers.response_headers()))
     }
 }

@@ -23,7 +23,7 @@ mod list;
 mod single;
 
 use common::query::{Page, Sort};
-use common::test_utils::scopes::TestScopes;
+use common::test_utils::scopes::TestUsers;
 use transfer_agent::entities::commands::NewTransferMessageCommand;
 use transfer_agent::entities::filters::TransferMessageFilter;
 use urn::Urn;
@@ -62,7 +62,7 @@ fn make_message(n: u32) -> TransferMessage {
     TransferMessage {
         id: MessageId::new(p_urn(n + 1000)),
         transfer_process_id: TransferProcessId::new(p_urn(1)),
-        tenant_id: "tenant-1".to_string(),
+        owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
         direction: Direction::Inbound,
         protocol: ProtocolId::Dsp2024,
         message_type: ProtocolMessageType(CompactString::from("TransferRequestMessage")),
@@ -75,7 +75,7 @@ fn make_message(n: u32) -> TransferMessage {
 
 fn empty_filter() -> TransferMessageFilter {
     TransferMessageFilter {
-        tenant_id: None,
+        user_id: None,
         direction: None,
         protocol: None,
         state_transition_to: None,
@@ -92,7 +92,8 @@ fn make_cmd() -> NewTransferMessageCommand {
     NewTransferMessageCommand {
         id: None,
         transfer_process_id: TransferProcessId::new(p_urn(1)),
-        tenant_id: Some("tenant-1".to_string()),
+        visibility: None,
+        owner: Some(common::test_utils::scopes::TestUsers::owner("tenant-1")),
         direction: Direction::Inbound,
         protocol: ProtocolId::Dsp2024,
         message_type: ProtocolMessageType(CompactString::from("TransferRequestMessage")),

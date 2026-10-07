@@ -27,8 +27,8 @@ use crate::grpc::api::catalog_agent::{
     GetByIdRequest, GetByParentIdRequest, ListDatasetsRequest, PutDatasetRequest,
 };
 use crate::services::datasets::DatasetServiceTrait;
-use common::auth::grpc::GrpcAuth;
-use common::auth::OauthTokenValidator;
+use common::oauth::grpc::GrpcAuth;
+use common::oauth::OauthTokenValidatorTrait;
 use common::grpc::{IntoStatus, ListParams, ProtoField, ProtoFieldList};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
@@ -42,7 +42,7 @@ pub struct DatasetEntityGrpc {
 impl DatasetEntityGrpc {
     pub fn new(
         service: Arc<dyn DatasetServiceTrait>,
-        validator: Arc<dyn OauthTokenValidator>,
+        validator: Arc<dyn OauthTokenValidatorTrait>,
     ) -> Self {
         Self {
             service,
@@ -57,11 +57,11 @@ impl DatasetEntityService for DatasetEntityGrpc {
         &self,
         request: Request<ListDatasetsRequest>,
     ) -> Result<Response<DatasetListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let params = ListParams::try_from(request.into_inner())?;
         let result = self
             .service
-            .get_all_datasets(&scope, &params.filter, &params.page, &params.sort)
+            .get_all_datasets(&user, &params.filter, &params.page, &params.sort)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(result.into()))
@@ -71,11 +71,11 @@ impl DatasetEntityService for DatasetEntityGrpc {
         &self,
         request: Request<GetBatchRequest>,
     ) -> Result<Response<DatasetListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let ids = request.into_inner().ids.urns("ids")?;
         let dtos = self
             .service
-            .get_batch_datasets(&scope, &ids)
+            .get_batch_datasets(&user, &ids)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dtos.into()))
@@ -85,11 +85,11 @@ impl DatasetEntityService for DatasetEntityGrpc {
         &self,
         request: Request<GetByParentIdRequest>,
     ) -> Result<Response<DatasetListResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let catalog_id = request.into_inner().parent_id.urn("parent_id")?;
         let dtos = self
             .service
-            .get_datasets_by_catalog_id(&scope, &catalog_id)
+            .get_datasets_by_catalog_id(&user, &catalog_id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dtos.into()))
@@ -99,11 +99,11 @@ impl DatasetEntityService for DatasetEntityGrpc {
         &self,
         request: Request<GetByIdRequest>,
     ) -> Result<Response<DatasetResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let id = request.into_inner().id.urn("id")?;
         let dto = self
             .service
-            .get_dataset_by_id(&scope, &id)
+            .get_dataset_by_id(&user, &id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(dto.into()))
@@ -113,11 +113,11 @@ impl DatasetEntityService for DatasetEntityGrpc {
         &self,
         request: Request<CreateDatasetRequest>,
     ) -> Result<Response<DatasetResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let dto = request.into_inner().try_into()?;
         let created = self
             .service
-            .create_dataset(&scope, &dto)
+            .create_dataset(&user, &dto)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(created.into()))
@@ -127,12 +127,12 @@ impl DatasetEntityService for DatasetEntityGrpc {
         &self,
         request: Request<PutDatasetRequest>,
     ) -> Result<Response<DatasetResponse>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let req = request.into_inner();
         let id = req.id.urn("id")?;
         let updated = self
             .service
-            .put_dataset_by_id(&scope, &id, &req.into())
+            .put_dataset_by_id(&user, &id, &req.into())
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(updated.into()))
@@ -142,10 +142,10 @@ impl DatasetEntityService for DatasetEntityGrpc {
         &self,
         request: Request<DeleteByIdRequest>,
     ) -> Result<Response<()>, Status> {
-        let scope = self.auth.scope(request.metadata()).await?;
+        let user = self.auth.user(request.metadata()).await?;
         let id = request.into_inner().id.urn("id")?;
         self.service
-            .delete_dataset_by_id(&scope, &id)
+            .delete_dataset_by_id(&user, &id)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(()))

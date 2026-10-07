@@ -23,7 +23,7 @@ pub mod views;
 use crate::entities::filters::NegotiationMessageFilter;
 use crate::entities::negotiation_message::NewNegotiationMessageDto;
 use crate::services::negotiation_message::views::NegotiationMessageView;
-use common::auth::access::AccessScope;
+use common::oauth::UserInfo;
 use common::batch_requests::BatchRequests;
 use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
@@ -36,27 +36,27 @@ pub trait NegotiationMessageServiceTrait: Send + Sync + 'static {
     /// Page of messages visible to the caller.
     async fn get_all(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         filters: &NegotiationMessageFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<NegotiationMessageView>>;
 
     /// 404 when the message is not visible to the caller.
-    async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<NegotiationMessageView>;
+    async fn get_one(&self, user: &UserInfo, id: &Urn) -> Outcome<NegotiationMessageView>;
 
     /// Messages found among the requested ids.
     async fn batch(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         req: &BatchRequests,
     ) -> Outcome<Vec<NegotiationMessageView>>;
 
     async fn create(
         &self,
-        scope: &AccessScope,
+        user: &UserInfo,
         cmd: &NewNegotiationMessageDto,
     ) -> Outcome<NegotiationMessageView>;
 
-    async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()>;
+    async fn delete(&self, user: &UserInfo, id: &Urn) -> Outcome<()>;
 }

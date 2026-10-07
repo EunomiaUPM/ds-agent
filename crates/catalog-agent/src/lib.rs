@@ -44,6 +44,8 @@ pub const SERVICE_BIG_NAME: &str = "Catalog Agent";
 pub const EVENT_DOMAIN: &str = "catalog";
 /// Topic prefix of the catalog events.
 pub const EVENT_PREFIX: &str = "catalog:";
+/// Cache key of the connector's main catalog and data service (there is one of each).
+pub const MAIN_CACHE_KEY: &str = "connector";
 
 pub use data::migrations::get_catalog_migrations;
 pub use data::repo_traits::catalog_repo::CatalogRepositoryTrait;

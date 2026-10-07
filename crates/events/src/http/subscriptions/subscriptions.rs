@@ -23,7 +23,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::routing::get;
 use axum::{Json, Router};
-use common::auth::AccessScope;
+use common::oauth::{Owner, OwnerScope, UserInfo};
 use common::paginated_spec::{Cursor, Paginated};
 use common::query::QuerySpec;
 use ymir::errors::{AppResult, Errors};
@@ -61,23 +61,23 @@ impl SubscriptionsRouter {
 
     async fn handle_create(
         State(repo): State<Arc<dyn EventSubscriptionRepo>>,
-        scope: AccessScope,
+        user: UserInfo,
         Json(dto): Json<CreateSubscriptionDto>,
     ) -> AppResult<(StatusCode, Json<SubscriptionView>)> {
-        let tenant_id = scope.resolve_create_tenant(None)?;
-        let sub = repo.create_subscription(&tenant_id, dto).await?;
+        let owner = Owner::of(&user, dto.visibility.clone());
+        let sub = repo.create_subscription(owner, dto).await?;
         Ok((StatusCode::CREATED, Json(SubscriptionView::assemble(sub))))
     }
 
     async fn handle_list(
         State(repo): State<Arc<dyn EventSubscriptionRepo>>,
-        scope: AccessScope,
+        user: UserInfo,
         Query(query): Query<SubscriptionsQuery>,
     ) -> AppResult<Json<Paginated<SubscriptionView>>> {
         let page = query.page.clamped();
         let (subs, total) = repo
             .list_subscriptions(
-                scope.tenant_filter().map(str::to_string),
+                &OwnerScope::seeing(&user),
                 &query.filter,
                 &page,
                 &query.sort,
@@ -93,11 +93,11 @@ impl SubscriptionsRouter {
 
     async fn handle_get(
         State(repo): State<Arc<dyn EventSubscriptionRepo>>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(id): Path<String>,
     ) -> AppResult<Json<SubscriptionView>> {
         let sub = repo
-            .get_subscription(scope.tenant_filter().map(str::to_string), &id)
+            .get_subscription(&OwnerScope::seeing(&user), &id)
             .await?
             .ok_or_else(|| Errors::missing_resource(&id, "subscription not found", None))?;
         Ok(Json(SubscriptionView::assemble(sub)))
@@ -105,24 +105,22 @@ impl SubscriptionsRouter {
 
     async fn handle_update(
         State(repo): State<Arc<dyn EventSubscriptionRepo>>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(id): Path<String>,
         Json(dto): Json<UpdateSubscriptionDto>,
     ) -> AppResult<Json<SubscriptionView>> {
-        scope.require_write()?;
         let sub = repo
-            .update_subscription(scope.tenant_filter().map(str::to_string), &id, dto)
+            .update_subscription(&OwnerScope::acting(&user), &id, dto)
             .await?;
         Ok(Json(SubscriptionView::assemble(sub)))
     }
 
     async fn handle_delete(
         State(repo): State<Arc<dyn EventSubscriptionRepo>>,
-        scope: AccessScope,
+        user: UserInfo,
         Path(id): Path<String>,
     ) -> AppResult<StatusCode> {
-        scope.require_write()?;
-        repo.delete_subscription(scope.tenant_filter().map(str::to_string), &id)
+        repo.delete_subscription(&OwnerScope::acting(&user), &id)
             .await?;
         Ok(StatusCode::NO_CONTENT)
     }

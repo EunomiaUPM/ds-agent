@@ -6,7 +6,7 @@ import { PageSection } from "shared/src/components/layout/PageSection";
 import { Badge } from "shared/src/components/ui/badge";
 import { Button } from "shared/src/components/ui/button";
 import { FormatDate } from "shared/src/components/ui/format-date";
-import { formatUrn } from "shared/src/lib/utils";
+import { formatUrn, grantBadgeState } from "shared/src/lib/utils";
 import { customInstance } from "shared/src/data/orval-mutator";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -146,7 +146,7 @@ function SentConnectionsPage() {
               header: "Status",
               accessorKey: "status",
               cell: (r) => (
-                <Badge variant="status" state={r.status}>
+                <Badge variant="status" state={grantBadgeState(r.status)}>
                   {r.status || "-"}
                 </Badge>
               ),

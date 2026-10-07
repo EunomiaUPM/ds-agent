@@ -197,7 +197,9 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
                 }
             };
             for plan in listed {
-                if plan.participant_id == myself.participant_id {
+                if plan.participant_id == myself.participant_id
+                    || plan.participant_id == authority.participant_id
+                {
                     continue;
                 }
                 if self.sync_participant(plan).await? {

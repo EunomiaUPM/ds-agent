@@ -15,6 +15,7 @@ import * as z from "zod";
 import QRCode from "react-qr-code";
 import { useState } from "react";
 import { FormatDate } from "shared/src/components/ui/format-date";
+import { grantBadgeState } from "shared/src/lib/utils";
 import {
   AlertCircle,
   ArrowLeft,
@@ -239,7 +240,7 @@ function SentRequestDetails() {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
                 <DetailItem label="Status">
-                  <Badge variant={"status"} state={grant.status}>
+                  <Badge variant={"status"} state={grantBadgeState(grant.status)}>
                     {grant.status || "-"}
                   </Badge>
                 </DetailItem>
@@ -326,7 +327,7 @@ function SentRequestDetails() {
                     <span className="text-muted-foreground font-semibold uppercase tracking-wider text-xs">
                       Current State:
                     </span>
-                    <Badge variant={"status"} state={grant.status}>
+                    <Badge variant={"status"} state={grantBadgeState(grant.status)}>
                       {grant.status}
                     </Badge>
                   </div>

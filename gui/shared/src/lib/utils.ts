@@ -185,3 +185,6 @@ export const encodePathId = (id: string): string => {
   bytes.forEach((b) => (binary += String.fromCharCode(b)));
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 };
+
+export const grantBadgeState = (status: string | undefined): string | undefined =>
+  status === "Finalized" ? "expired" : status;

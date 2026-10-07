@@ -26,7 +26,7 @@ import {
   Key,
   Layers,
 } from "lucide-react";
-import { getFriendlyVCType } from "shared/src/lib/utils";
+import { getFriendlyVCType, grantBadgeState } from "shared/src/lib/utils";
 
 interface RecvGrant {
   id: string;
@@ -209,7 +209,7 @@ function ReceivedRequestDetails() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
                 <DetailItem label="Status">
-                  <Badge variant={"status"} state={grant.status}>
+                  <Badge variant={"status"} state={grantBadgeState(grant.status)}>
                     {grant.status || "-"}
                   </Badge>
                 </DetailItem>
@@ -286,7 +286,7 @@ function ReceivedRequestDetails() {
                     <span className="text-muted-foreground font-semibold uppercase tracking-wider text-xs">
                       Current State:
                     </span>
-                    <Badge variant={"status"} state={grant.status}>
+                    <Badge variant={"status"} state={grantBadgeState(grant.status)}>
                       {grant.status}
                     </Badge>
                   </div>

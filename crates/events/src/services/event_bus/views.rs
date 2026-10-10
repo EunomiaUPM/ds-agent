@@ -21,6 +21,7 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use common::oauth::Owner;
+use common::secret::Secret;
 use serde::{Deserialize, Serialize};
 
 use crate::entities::dead_letter::DeadLetterRecord;
@@ -62,7 +63,7 @@ pub struct SubscriptionView {
     pub owner: Owner,
     pub callback_address: String,
     pub topic_pattern: String,
-    pub secret: Option<String>,
+    pub secret: Option<Secret<String>>,
     pub headers: Option<HashMap<String, String>>,
     pub retry_limit: Option<u32>,
     pub active: bool,
@@ -72,15 +73,13 @@ pub struct SubscriptionView {
 }
 
 impl SubscriptionView {
-    pub const MASKED_SECRET: &'static str = "*****";
-
     pub fn assemble(record: SubscriptionRecord) -> Self {
         Self {
             id: record.id,
             owner: record.owner,
             callback_address: record.callback_address,
             topic_pattern: record.topic_pattern.to_string(),
-            secret: record.secret.map(|_| Self::MASKED_SECRET.to_string()),
+            secret: record.secret,
             headers: record.headers,
             retry_limit: record.retry_limit,
             active: record.active,

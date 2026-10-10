@@ -197,7 +197,7 @@ impl RetryWorker {
             .dispatch(
                 &sub.callback_address,
                 &event,
-                sub.secret.as_deref(),
+                sub.secret.as_ref().map(|s| s.expose().as_str()),
                 sub.headers.as_ref(),
             )
             .await

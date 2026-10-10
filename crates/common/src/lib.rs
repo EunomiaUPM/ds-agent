@@ -27,7 +27,7 @@
 //! - Errors and data: [`errors`], [`paginated_spec`], [`query`], [`validation`], [`cache`],
 //!   [`batch_requests`].
 //! - Linked data and DSP: [`rdf`], [`dsp_common`].
-//! - Utilities: [`utils`], [`serde_utils`], [`id_mac`], [`test_utils`].
+//! - Utilities: [`utils`], [`serde_utils`], [`secret`], [`id_mac`], [`test_utils`].
 
 pub mod batch_requests;
 pub mod boot;
@@ -48,6 +48,7 @@ pub mod paginated_spec;
 pub mod query;
 pub mod rdf;
 pub mod routes;
+pub mod secret;
 pub mod serde_utils;
 pub mod telemetry;
 pub mod test_utils;

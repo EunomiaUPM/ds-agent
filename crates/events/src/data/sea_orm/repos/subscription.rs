@@ -21,6 +21,7 @@ use async_trait::async_trait;
 use common::oauth::{Owner, OwnerScope};
 use chrono::Utc;
 use common::paginated_spec::{Page, Sort};
+use common::secret::Secret;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
     QueryFilter, QueryTrait,
@@ -72,7 +73,7 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
             visibility: ActiveValue::Set(owner.visibility.clone()),
             callback_address: ActiveValue::Set(dto.callback_address.clone()),
             topic_pattern: ActiveValue::Set(dto.topic_pattern),
-            secret: ActiveValue::Set(dto.secret.clone()),
+            secret: ActiveValue::Set(dto.secret.clone().map(Secret::into_exposed)),
             headers: ActiveValue::Set(headers_val),
             retry_limit: ActiveValue::Set(dto.retry_limit.map(|r| r as i32)),
             active: ActiveValue::Set(true),
@@ -181,7 +182,7 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
             active.topic_pattern = ActiveValue::Set(pat);
         }
         if dto.secret.is_some() {
-            active.secret = ActiveValue::Set(dto.secret);
+            active.secret = ActiveValue::Set(dto.secret.map(Secret::into_exposed));
         }
         if let Some(headers) = dto.headers {
             active.headers =

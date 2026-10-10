@@ -23,6 +23,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use chrono::Utc;
 use common::oauth::{Owner, OwnerScope};
+use common::secret::Secret;
 use tokio::sync::broadcast;
 use tracing::Instrument;
 use tracing::{error, info, warn};
@@ -188,7 +189,7 @@ impl EventBus {
             .dispatch(
                 &sub.callback_address,
                 &event,
-                sub.secret.as_deref(),
+                sub.secret.as_ref().map(|s| s.expose().as_str()),
                 sub.headers.as_ref(),
             )
             .await
@@ -279,7 +280,7 @@ impl EventBus {
         sub_id: String,
         sub_owner: Owner,
         callback_address: String,
-        secret: Option<String>,
+        secret: Option<Secret<String>>,
         headers: Option<std::collections::HashMap<String, String>>,
         retry_limit: u32,
     ) {
@@ -295,7 +296,7 @@ impl EventBus {
                 .dispatch(
                     &callback_address,
                     &event,
-                    secret.as_deref(),
+                    secret.as_ref().map(|s| s.expose().as_str()),
                     headers.as_ref(),
                 )
                 .await

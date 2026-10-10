@@ -21,6 +21,7 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use common::oauth::Owner;
+use common::secret::Secret;
 use serde::{Deserialize, Serialize};
 
 use crate::entities::topic::Topic;
@@ -35,7 +36,7 @@ pub struct SubscriptionRecord {
     pub owner: Owner,
     pub callback_address: String,
     pub topic_pattern: TopicPattern,
-    pub secret: Option<String>,
+    pub secret: Option<Secret<String>>,
     pub headers: Option<HashMap<String, String>>,
     pub retry_limit: Option<u32>,
     pub active: bool,

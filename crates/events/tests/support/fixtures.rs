@@ -21,6 +21,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use common::oauth::{Owner, Visibility};
+use common::secret::Secret;
 use events::data::repo::{
     MockEventDeadLetterRepo, MockEventDeliveryRepo, MockEventStoreRepo, MockEventSubscriptionRepo,
 };
@@ -59,7 +60,7 @@ pub fn subscription(
         owner: owner(),
         callback_address: callback_address.to_string(),
         topic_pattern: TopicPattern::match_all(),
-        secret: secret.map(str::to_string),
+        secret: secret.map(|s| Secret::new(s.to_string())),
         headers: None,
         retry_limit,
         active: true,

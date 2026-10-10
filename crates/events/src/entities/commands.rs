@@ -21,6 +21,7 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use common::oauth::Visibility;
+use common::secret::Secret;
 use serde::{Deserialize, Serialize};
 
 /// New webhook subscription of the caller; private unless `visibility` says otherwise.
@@ -30,7 +31,7 @@ pub struct CreateSubscriptionDto {
     pub visibility: Option<Visibility>,
     pub callback_address: String,
     pub topic_pattern: String,
-    pub secret: Option<String>,
+    pub secret: Option<Secret<String>>,
     pub headers: Option<HashMap<String, String>>,
     pub retry_limit: Option<u32>,
     pub expiration_time: Option<DateTime<Utc>>,
@@ -41,7 +42,7 @@ pub struct CreateSubscriptionDto {
 pub struct UpdateSubscriptionDto {
     pub callback_address: Option<String>,
     pub topic_pattern: Option<String>,
-    pub secret: Option<String>,
+    pub secret: Option<Secret<String>>,
     pub headers: Option<HashMap<String, String>>,
     pub retry_limit: Option<u32>,
     pub active: Option<bool>,

@@ -22,6 +22,7 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use common::oauth::{Owner, RolePath, Visibility};
+use common::secret::Secret;
 use sea_orm::ActiveValue;
 use ymir::errors::{Errors, Outcome};
 
@@ -76,7 +77,7 @@ impl Model {
             owner: Owner::new(self.user_id, self.user_role, self.visibility),
             callback_address: self.callback_address,
             topic_pattern,
-            secret: self.secret,
+            secret: self.secret.map(Secret::new),
             headers,
             retry_limit: self.retry_limit.map(|n| n as u32),
             active: self.active,
@@ -100,7 +101,7 @@ impl ActiveModel {
             visibility: ActiveValue::Set(entity.owner.visibility.clone()),
             callback_address: ActiveValue::Set(entity.callback_address.clone()),
             topic_pattern: ActiveValue::Set(entity.topic_pattern.to_string()),
-            secret: ActiveValue::Set(entity.secret.clone()),
+            secret: ActiveValue::Set(entity.secret.clone().map(Secret::into_exposed)),
             headers: ActiveValue::Set(
                 entity
                     .headers

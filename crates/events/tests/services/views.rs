@@ -28,10 +28,7 @@ fn subscription_view_masks_the_secret() {
     let view = SubscriptionView::assemble(record);
     let json = serde_json::to_string(&view).unwrap();
 
-    assert_eq!(
-        view.secret.as_deref(),
-        Some(SubscriptionView::MASKED_SECRET)
-    );
+    assert!(json.contains(r#""secret":"*****""#));
     assert!(!json.contains("s3cr3t"));
 }
 
@@ -42,6 +39,6 @@ fn subscription_view_without_secret_stays_empty() {
 
     let view = SubscriptionView::assemble(record);
 
-    assert_eq!(view.secret, None);
+    assert!(view.secret.is_none());
     assert_eq!(view.retry_limit, Some(3));
 }

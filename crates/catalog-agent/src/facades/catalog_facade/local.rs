@@ -19,73 +19,62 @@
 
 use std::sync::Arc;
 
-use common::facades::catalog::{
-    CatalogDataset, CatalogDistribution, CatalogFacadeTrait, CatalogOffer,
-};
-use ymir::types::oauth::UserInfo;
+use common::facades::catalog::{CatalogDataset, CatalogDistribution, CatalogFacadeTrait, CatalogOffer};
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
+use ymir::types::oauth::UserInfo;
 
-use crate::entities::datasets::DatasetDto;
-use crate::entities::distributions::DistributionDto;
-use crate::entities::odrl_policies::OdrlPolicyDto;
-use crate::services::datasets::DatasetServiceTrait;
-use crate::services::distributions::DistributionServiceTrait;
-use crate::services::odrl_policies::OdrlPolicyServiceTrait;
+use crate::entities::odrl_offer::OdrlOffer;
+use crate::entities::resource::CatalogResource;
+use crate::entities::resource_kind::ResourceKind;
+use crate::entities::vocab::Vocab;
+use crate::setup::context::AppContext;
 
 /// The catalog for the agents and the connector sharing its process.
 pub struct CatalogLocalFacade {
-    datasets: Arc<dyn DatasetServiceTrait>,
-    distributions: Arc<dyn DistributionServiceTrait>,
-    offers: Arc<dyn OdrlPolicyServiceTrait>,
+    ctx: Arc<AppContext>,
 }
 
 impl CatalogLocalFacade {
-    pub fn new(
-        datasets: Arc<dyn DatasetServiceTrait>,
-        distributions: Arc<dyn DistributionServiceTrait>,
-        offers: Arc<dyn OdrlPolicyServiceTrait>,
-    ) -> Self {
-        Self {
-            datasets,
-            distributions,
-            offers,
-        }
+    pub fn new(ctx: Arc<AppContext>) -> Self {
+        Self { ctx }
     }
 
     /// A missing record keeps its missing-resource error, with `why` as the reason.
     fn not_found<T>(result: Outcome<T>, id: &Urn, why: &str) -> Outcome<T> {
         match result {
-            Err(Errors::MissingResourceError { .. }) => {
-                Err(Errors::missing_resource(id.to_string(), why, None))
-            }
+            Err(Errors::MissingResourceError { .. }) => Err(Errors::missing_resource(id.to_string(), why, None)),
             other => other,
         }
     }
 
-    fn dataset(dto: DatasetDto) -> CatalogDataset {
+    fn dataset(resource: CatalogResource) -> CatalogDataset {
         CatalogDataset {
-            id: dto.inner.id,
-            catalog_id: dto.inner.catalog_id,
-            dct_title: dto.inner.dct_title,
+            id: resource.id().to_string(),
+            catalog_id: resource.catalog_id().map(ToString::to_string).unwrap_or_default(),
+            dct_title: resource.title(),
         }
     }
 
-    fn distribution(dto: DistributionDto) -> CatalogDistribution {
+    fn distribution(resource: CatalogResource) -> CatalogDistribution {
+        let description = resource.description();
         CatalogDistribution {
-            id: dto.inner.id,
-            dataset_id: dto.inner.dataset_id,
-            dct_format: dto.inner.dct_format,
-            dcat_access_service: dto.inner.dcat_access_service,
+            id: resource.id().to_string(),
+            dataset_id: resource.dataset_id().map(ToString::to_string).unwrap_or_default(),
+            dct_format: description.first_value(Vocab::DCT_FORMAT),
+            dcat_access_service: description
+                .first_iri(Vocab::DCAT_ACCESS_SERVICE)
+                .unwrap_or_default()
+                .to_string(),
         }
     }
 
-    fn offer(dto: OdrlPolicyDto) -> CatalogOffer {
+    fn offer(offer: OdrlOffer) -> CatalogOffer {
         CatalogOffer {
-            id: dto.inner.id,
-            entity: dto.inner.entity,
-            entity_type: dto.inner.entity_type,
-            odrl_offer: dto.inner.odrl_offer,
+            id: offer.id.to_string(),
+            entity: offer.entity.to_string(),
+            entity_type: offer.entity_type,
+            odrl_offer: offer.odrl_offer,
         }
     }
 }
@@ -95,38 +84,28 @@ impl CatalogFacadeTrait for CatalogLocalFacade {
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "catalog"))]
     async fn get_dataset(&self, dataset_id: &Urn) -> Outcome<CatalogDataset> {
         let found = self
-            .datasets
-            .get_dataset_by_id(&UserInfo::system(), dataset_id)
+            .ctx
+            .resources()
+            .get(&UserInfo::system(), ResourceKind::Dataset, dataset_id)
             .await;
         Self::not_found(found, dataset_id, "Dataset not found in the catalog").map(Self::dataset)
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "catalog"))]
-    async fn get_distribution_by_format(
-        &self,
-        dataset_id: &Urn,
-        format: &str,
-    ) -> Outcome<CatalogDistribution> {
-        self.distributions
-            .get_distribution_by_dataset_id_and_dct_format(&UserInfo::system(), dataset_id, format)
+    async fn get_distribution_by_format(&self, dataset_id: &Urn, format: &str) -> Outcome<CatalogDistribution> {
+        self.ctx
+            .resources()
+            .distribution_by_format(&UserInfo::system(), dataset_id, format)
             .await
             .map(Self::distribution)
     }
 
-    #[tracing::instrument(
-        level = "info",
-        skip_all,
-        err,
-        fields(peer.service = "catalog", user = %user.id())
-    )]
-    async fn get_distribution(
-        &self,
-        user: &UserInfo,
-        distribution_id: &Urn,
-    ) -> Outcome<CatalogDistribution> {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "catalog", user = %user.id()))]
+    async fn get_distribution(&self, user: &UserInfo, distribution_id: &Urn) -> Outcome<CatalogDistribution> {
         let found = self
-            .distributions
-            .get_distribution_by_id(user, distribution_id)
+            .ctx
+            .resources()
+            .get(user, ResourceKind::Distribution, distribution_id)
             .await;
         let why = "Distribution not found among those the user sees";
         Self::not_found(found, distribution_id, why).map(Self::distribution)
@@ -134,10 +113,7 @@ impl CatalogFacadeTrait for CatalogLocalFacade {
 
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "catalog"))]
     async fn get_offer(&self, offer_id: &Urn) -> Outcome<CatalogOffer> {
-        let found = self
-            .offers
-            .get_odrl_offer_by_id(&UserInfo::system(), offer_id)
-            .await;
+        let found = self.ctx.offers().get(&UserInfo::system(), offer_id).await;
         Self::not_found(found, offer_id, "Offer not found in the catalog").map(Self::offer)
     }
 }

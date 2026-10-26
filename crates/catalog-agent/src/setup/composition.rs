@@ -15,20 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Catalog agent as a composable module: management API, DSP catalog, connector and the
-//! seeders of the connector's own records, all over one `AppContext`.
+//! Catalog agent as a composable module: management API, DSP catalog, the profile modules, the
+//! connector and the seeders of the connector's own records, all over one `AppContext`.
 
 use std::sync::Arc;
 
-use crate::facades::CatalogLocalFacade;
-use crate::protocols::dsp::setup::DspModule;
-// Per-tenant main catalogs are gone (one main catalog per connector); kept out of the tree.
-// use crate::services::tenant_provisioning::listener::TenantProvisioningListener;
-use crate::setup::admin_module::CatalogAdminModule;
-use crate::setup::context::AppContext;
-use crate::setup::ports::CatalogPorts;
-use crate::setup::seeders::{AdminTenantProvisioner, PolicyTemplateLoader};
-use crate::SERVICE_NAME;
 use axum::Router;
 use common::boot::seeders::BootSeeder;
 use common::boot::workers::BackgroundWorker;
@@ -39,11 +30,26 @@ use common::module_loader::module_group::ModuleGroup;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
 use connector::{ConnectorInstanceFacadeTrait, ConnectorModule, ConnectorPorts};
+use events::NoopEventSink;
 use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
 use ymir::errors::Outcome;
 
-/// Catalog agent as a module: management API, DSP catalog and the connector.
+use crate::cache::CatalogCacheFactory;
+use crate::data::sea_orm::migrations::CatalogMigrations;
+use crate::facades::CatalogLocalFacade;
+use crate::profiles::dcat3::Dcat3ProfileModule;
+use crate::profiles::dcat_ap::DcatApProfileModule;
+use crate::profiles::dsp::DspProfileModule;
+use crate::profiles::ProfileModules;
+use crate::protocols::dsp::setup::DspModule;
+use crate::setup::admin_module::CatalogAdminModule;
+use crate::setup::context::AppContext;
+use crate::setup::ports::CatalogPorts;
+use crate::setup::seeders::{MainCatalogProvisioner, PolicyTemplateLoader};
+use crate::SERVICE_NAME;
+
+/// Catalog agent as a module: management API, DSP catalog, profiles and the connector.
 pub struct CatalogAgentModule {
     ctx: Arc<AppContext>,
     modules: ModuleGroup,
@@ -59,18 +65,26 @@ impl CatalogAgentModule {
         event_bus: Option<events::EventBus>,
         ports: &CatalogPorts,
     ) -> Outcome<Self> {
-        let ctx = Arc::new(AppContext::build(config, root, event_bus.clone(), ports).await?);
-        let catalog_facade: Arc<dyn CatalogFacadeTrait> = Arc::new(CatalogLocalFacade::new(
-            ctx.dataset_svc.clone(),
-            ctx.distribution_svc.clone(),
-            ctx.odrl_policy_svc.clone(),
-        ));
-        let connector_ports = ConnectorPorts::local(catalog_facade.clone());
-        let connector = ConnectorModule::compose(config, root, event_bus, &connector_ports);
+        let cache = CatalogCacheFactory::from_config(config).await?;
+        let events = NoopEventSink::or_bus(event_bus.clone());
+        let ctx = AppContext::build(config, root, cache, events, ports.clone());
+        let catalog_facade: Arc<dyn CatalogFacadeTrait> = Arc::new(CatalogLocalFacade::new(ctx.clone()));
+        let connector = ConnectorModule::compose(
+            config,
+            root,
+            event_bus,
+            &ConnectorPorts::local(catalog_facade.clone()),
+        );
         let connector_instances = connector.local_connector_instances();
+        // A new profile is one more module here: its routes mount and the doctor sees it.
+        let profiles = ProfileModules::new(ctx.clone())
+            .register(DspProfileModule::default())
+            .register(Dcat3ProfileModule::new(ctx.clone()))
+            .register(DcatApProfileModule::new(ctx.clone()));
         let modules = ModuleGroup::new(SERVICE_NAME)
-            .register(DspModule::build(ctx.clone()).await?)
+            .register(DspModule::new(ctx.clone()))
             .register(CatalogAdminModule::new(ctx.clone()))
+            .register(profiles)
             .register(connector);
         Ok(Self {
             ctx,
@@ -92,13 +106,10 @@ impl CatalogAgentModule {
 
     /// Catalog then connector, the FK order the monolith relies on.
     pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        [
-            crate::data::migrations::get_catalog_migrations(),
-            ConnectorModule::migrations(),
-        ]
-        .into_iter()
-        .flatten()
-        .collect()
+        [CatalogMigrations::all(), ConnectorModule::migrations()]
+            .into_iter()
+            .flatten()
+            .collect()
     }
 }
 
@@ -123,30 +134,21 @@ impl ServiceModuleTrait for CatalogAgentModule {
         self.modules.grpc_descriptors()
     }
 
-    /// No workers: the connector's main catalog is provisioned once, at boot (the former
-    /// per-tenant listener is kept out of the tree).
     fn workers(&self) -> Vec<Box<dyn BackgroundWorker>> {
-        // let Some(bus) = self.ctx.event_bus.clone() else {
-        //     return vec![];
-        // };
-        // let listener =
-        //     TenantProvisioningListener::new(bus, self.ctx.tenant_provisioning_svc.clone());
-        // vec![Box::new(listener)]
-        vec![]
+        self.modules.workers()
     }
 
     /// The connector's main catalog and the policy template library, on the services
     /// in-process, as the root: both are the connector's and public.
     fn seeders(&self) -> Vec<Box<dyn BootSeeder>> {
-        let config = &self.ctx.config;
-        vec![
-            Box::new(AdminTenantProvisioner::new(
-                self.ctx.tenant_provisioning_svc.clone(),
-            )),
+        let mut seeders: Vec<Box<dyn BootSeeder>> = vec![
+            Box::new(MainCatalogProvisioner::new(self.ctx.clone())),
             Box::new(PolicyTemplateLoader::new(
-                self.ctx.policy_template_svc.clone(),
-                config.get_policy_templates_folder().to_string(),
+                self.ctx.clone(),
+                self.ctx.config.get_policy_templates_folder().to_string(),
             )),
-        ]
+        ];
+        seeders.extend(self.modules.seeders());
+        seeders
     }
 }

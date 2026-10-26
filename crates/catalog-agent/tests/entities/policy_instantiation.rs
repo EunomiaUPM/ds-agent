@@ -18,7 +18,7 @@
 //! NewPolicyInstantiationDto validation against a template: known parameters, required ones,
 //! defaults and the restrictions of each type.
 
-use catalog_agent::entities::odrl_policies::CatalogEntityTypes;
+use catalog_agent::entities::odrl_offer::CatalogEntityTypes;
 use catalog_agent::entities::policy_instantiation::NewPolicyInstantiationDto;
 use catalog_agent::entities::policy_templates::PolicyTemplateAllowedDefaultValues::{
     Numerable, Stringable,

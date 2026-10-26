@@ -15,9 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! DSP orchestration of the catalog agent with mocked entity services.
+//! The DSP catalog plane: messages read through RDF, the provider side and the RPC side.
 
 #[path = "../support/mod.rs"]
 mod support;
 
-mod catalog_persistence;
+mod dsp_catalog;
+mod extractors;
+mod rpc_catalog;

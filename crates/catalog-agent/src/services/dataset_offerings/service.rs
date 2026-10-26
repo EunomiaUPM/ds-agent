@@ -15,133 +15,110 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Offering service over the catalog, data service, dataset, distribution and policy services.
+//! Offering service over the resource and offer services.
 
-use std::str::FromStr;
 use std::sync::Arc;
 
-use common::oauth::{OwnedTrait, Owner};
-use ymir::types::oauth::UserInfo;
 use serde_json::json;
 use tracing::warn;
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
+use ymir::types::oauth::UserInfo;
+use ymir::types::participants::Visibility;
 
-use crate::entities::dataset_offerings::{
-    DatasetOfferingDto, NewDatasetOfferingDto, PolicyOfferingInput,
-};
-use crate::entities::datasets::{DatasetDto, NewDatasetDto};
-use crate::entities::distributions::{DistributionDto, NewDistributionDto};
-use crate::entities::odrl_policies::{CatalogEntityTypes, NewOdrlPolicyDto, OdrlPolicyDto};
-use crate::services::catalogs::CatalogServiceTrait;
-use crate::services::data_services::DataServiceServiceTrait;
-use crate::services::dataset_offerings::DatasetOfferingServiceTrait;
-use crate::services::datasets::DatasetServiceTrait;
-use crate::services::distributions::DistributionServiceTrait;
-use crate::services::odrl_policies::OdrlPolicyServiceTrait;
-
-const DEFAULT_CONFORMS_TO: &str = "https://w3id.org/dspace/v0.8/dcat";
-const DEFAULT_FORMAT: &str = "application/json";
-const ODRL_USE: &str = "http://www.w3.org/ns/odrl/2/use";
-const ODRL_PROFILE: &str = "http://www.w3.org/ns/odrl/2/";
+use crate::entities::admin_document::AdminDocument;
+use crate::entities::commands::{NewOdrlOfferCommand, NewResourceCommand};
+use crate::entities::dataset_offering::{NewDatasetOfferingCommand, PolicyOfferingInput};
+use crate::entities::graph::ResourceGraph;
+use crate::entities::odrl_offer::{CatalogEntityTypes, OdrlOffer};
+use crate::entities::resource::CatalogResource;
+use crate::entities::resource_kind::ResourceKind;
+use crate::entities::vocab::Vocab;
+use crate::services::dataset_offerings::{DatasetOffering, DatasetOfferingServiceTrait};
+use crate::setup::context::AppContext;
 
 pub struct DatasetOfferingService {
-    catalogs: Arc<dyn CatalogServiceTrait>,
-    data_services: Arc<dyn DataServiceServiceTrait>,
-    datasets: Arc<dyn DatasetServiceTrait>,
-    distributions: Arc<dyn DistributionServiceTrait>,
-    policies: Arc<dyn OdrlPolicyServiceTrait>,
+    ctx: Arc<AppContext>,
 }
 
 impl DatasetOfferingService {
-    pub fn new(
-        catalogs: Arc<dyn CatalogServiceTrait>,
-        data_services: Arc<dyn DataServiceServiceTrait>,
-        datasets: Arc<dyn DatasetServiceTrait>,
-        distributions: Arc<dyn DistributionServiceTrait>,
-        policies: Arc<dyn OdrlPolicyServiceTrait>,
-    ) -> Self {
-        Self {
-            catalogs,
-            data_services,
-            datasets,
-            distributions,
-            policies,
-        }
+    const ODRL_USE: &'static str = "http://www.w3.org/ns/odrl/2/use";
+    const ODRL_PROFILE: &'static str = "http://www.w3.org/ns/odrl/2/";
+
+    pub fn new(ctx: Arc<AppContext>) -> Self {
+        Self { ctx }
     }
 
-    async fn resolve_catalog(&self, user: &UserInfo, requested: Option<&str>) -> Outcome<Urn> {
-        if let Some(id) = requested.filter(|id| !id.trim().is_empty()) {
-            return Self::parse_urn(id);
+    /// The document as a resource of `kind`, or a malformed body.
+    async fn read(body: &serde_json::Value, kind: ResourceKind) -> Outcome<AdminDocument> {
+        let document = AdminDocument::read(body.clone()).await?;
+        if document.kind != kind {
+            return Err(Errors::format(
+                BadFormat::Received,
+                format!("the {} of an offering must be a {}", kind.term(), kind.term()),
+                None,
+            ));
         }
-        let main = self
-            .catalogs
-            .get_main_catalog(user)
-            .await?
-            .ok_or_else(|| {
-                Errors::missing_resource("main", "the connector has no main catalog", None)
-            })?;
-        Self::parse_urn(&main.inner.id)
+        Ok(document)
     }
 
-    async fn resolve_access_service(
-        &self,
-        user: &UserInfo,
-        requested: Option<&str>,
-    ) -> Outcome<String> {
-        if let Some(id) = requested.filter(|id| !id.trim().is_empty()) {
-            return Ok(id.trim().to_string());
-        }
-        let main = self
-            .data_services
-            .get_main_data_service(user)
+    /// The main resource of `kind`, which an offering falls back to.
+    async fn main(&self, kind: ResourceKind) -> Outcome<Urn> {
+        self.ctx
+            .resources()
+            .main(kind)
             .await?
+            .map(|r| r.id().clone())
             .ok_or_else(|| {
-                Errors::missing_resource("main", "the connector has no main data service", None)
-            })?;
-        Ok(main.inner.id)
+                Errors::missing_resource(
+                    "main",
+                    format!("the connector has no main {}", kind.term()),
+                    None,
+                )
+            })
     }
 
     async fn create_rest(
         &self,
         user: &UserInfo,
-        offering: &NewDatasetOfferingDto,
-        dataset: &DatasetDto,
-    ) -> Outcome<(DistributionDto, Option<OdrlPolicyDto>)> {
-        let dataset_id = Self::parse_urn(&dataset.inner.id)?;
-        let input = &offering.distribution;
-        let access_service = self
-            .resolve_access_service(user, input.access_service_id.as_deref())
-            .await?;
+        offering: &NewDatasetOfferingCommand,
+        dataset: &CatalogResource,
+    ) -> Outcome<(CatalogResource, Option<OdrlOffer>)> {
+        let mut document = Self::read(&offering.distribution, ResourceKind::Distribution).await?;
+        if document.parent.as_ref().is_some_and(|p| p != dataset.id()) {
+            return Err(Errors::format(
+                BadFormat::Received,
+                "the distribution of an offering belongs to its dataset",
+                None,
+            ));
+        }
+        let served = [Vocab::DCAT_ACCESS_SERVICE, Vocab::DCAT_ACCESS_URL, Vocab::DCAT_DOWNLOAD_URL];
+        if !served.iter().any(|p| document.description.has(p)) {
+            let service = self.main(ResourceKind::DataService).await?;
+            document
+                .description
+                .put(Vocab::DCAT_ACCESS_SERVICE, vec![ResourceGraph::iri(service.as_ref())]);
+        }
         let distribution = self
-            .distributions
-            .create_distribution(
+            .ctx
+            .resources()
+            .create(
                 user,
-                &NewDistributionDto {
-                    id: None,
-                    visibility: Some(dataset.inner.visibility.clone()),
-                    owner: Some(dataset.inner.owner()),
-                    dct_title: Some(input.title.clone()),
-                    dct_description: input.description.clone(),
-                    dct_formats: Some(
-                        input
-                            .formats
-                            .clone()
-                            .unwrap_or_else(|| DEFAULT_FORMAT.to_string()),
-                    ),
-                    dcat_access_service: access_service,
-                    dataset_id: dataset_id.clone(),
+                &NewResourceCommand {
+                    kind: ResourceKind::Distribution,
+                    id: document.id,
+                    owner: Some(dataset.owner().clone()),
+                    visibility: Some(dataset.owner().visibility.clone()),
+                    parent: Some(dataset.id().clone()),
+                    description: document.description,
                 },
             )
             .await?;
-
         let policy = match &offering.policy {
             Some(policy) => Some(
-                self.policies
-                    .create_odrl_offer(
-                        user,
-                        &Self::policy_command(policy, &dataset.inner.owner(), dataset_id)?,
-                    )
+                self.ctx
+                    .offers()
+                    .create(user, &Self::policy_command(policy, dataset)?)
                     .await?,
             ),
             None => None,
@@ -149,25 +126,21 @@ impl DatasetOfferingService {
         Ok((distribution, policy))
     }
 
-    fn policy_command(
-        policy: &PolicyOfferingInput,
-        owner: &Owner,
-        dataset_id: Urn,
-    ) -> Outcome<NewOdrlPolicyDto> {
+    fn policy_command(policy: &PolicyOfferingInput, dataset: &CatalogResource) -> Outcome<NewOdrlOfferCommand> {
         let offer = json!({
-            "profile": [policy.profile.as_deref().unwrap_or(ODRL_PROFILE)],
+            "profile": [policy.profile.as_deref().unwrap_or(Self::ODRL_PROFILE)],
             "permission": [{
-                "action": policy.action.as_deref().unwrap_or(ODRL_USE),
+                "action": policy.action.as_deref().unwrap_or(Self::ODRL_USE),
                 "constraint": policy.constraints.clone().unwrap_or_default(),
             }],
         });
-        Ok(NewOdrlPolicyDto {
+        Ok(NewOdrlOfferCommand {
             id: None,
-            visibility: Some(owner.visibility.clone()),
-            owner: Some(owner.clone()),
+            visibility: Some(dataset.owner().visibility.clone()),
+            owner: Some(dataset.owner().clone()),
             odrl_offer: serde_json::from_value(offer)
                 .map_err(|e| Errors::format(BadFormat::Received, e.to_string(), None))?,
-            entity_id: dataset_id,
+            entity_id: dataset.id().clone(),
             entity_type: CatalogEntityTypes::Dataset,
             source_template_id: None,
             source_template_version: None,
@@ -180,11 +153,6 @@ impl DatasetOfferingService {
             ),
         })
     }
-
-    fn parse_urn(id: &str) -> Outcome<Urn> {
-        Urn::from_str(id.trim())
-            .map_err(|e| Errors::format(BadFormat::Received, e.to_string(), None))
-    }
 }
 
 #[async_trait::async_trait]
@@ -193,44 +161,43 @@ impl DatasetOfferingServiceTrait for DatasetOfferingService {
     async fn create_offering(
         &self,
         user: &UserInfo,
-        offering: &NewDatasetOfferingDto,
-    ) -> Outcome<DatasetOfferingDto> {
-        let input = &offering.dataset;
-        let catalog_id = self
-            .resolve_catalog(user, input.catalog_id.as_deref())
-            .await?;
+        offering: &NewDatasetOfferingCommand,
+        visibility: Option<Visibility>,
+    ) -> Outcome<DatasetOffering> {
+        let document = Self::read(&offering.dataset, ResourceKind::Dataset).await?;
+        let catalog = match document.parent {
+            Some(catalog) => catalog,
+            None => self.main(ResourceKind::Catalog).await?,
+        };
         let dataset = self
-            .datasets
-            .create_dataset(
+            .ctx
+            .resources()
+            .create(
                 user,
-                &NewDatasetDto {
-                    id: None,
-                    visibility: None,
+                &NewResourceCommand {
+                    kind: ResourceKind::Dataset,
+                    id: document.id,
                     owner: None,
-                    dct_conforms_to: Some(
-                        input
-                            .conforms_to
-                            .clone()
-                            .unwrap_or_else(|| DEFAULT_CONFORMS_TO.to_string()),
-                    ),
-                    dct_creator: input.creator.clone(),
-                    dct_title: Some(input.title.clone()),
-                    dct_description: input.description.clone(),
-                    catalog_id,
+                    visibility,
+                    parent: Some(catalog),
+                    description: document.description,
                 },
             )
             .await?;
-
         match self.create_rest(user, offering, &dataset).await {
-            Ok((distribution, policy)) => Ok(DatasetOfferingDto {
+            Ok((distribution, policy)) => Ok(DatasetOffering {
                 dataset,
                 distribution,
                 policy,
             }),
             Err(e) => {
-                let dataset_id = Self::parse_urn(&dataset.inner.id)?;
-                if let Err(cleanup) = self.datasets.delete_dataset_by_id(user, &dataset_id).await {
-                    warn!(dataset = %dataset_id, error = %cleanup, "Could not remove partial offering");
+                let removed = self
+                    .ctx
+                    .resources()
+                    .delete(user, ResourceKind::Dataset, dataset.id(), None)
+                    .await;
+                if let Err(cleanup) = removed {
+                    warn!(dataset = %dataset.id(), error = %cleanup, "Could not remove partial offering");
                 }
                 Err(e)
             }

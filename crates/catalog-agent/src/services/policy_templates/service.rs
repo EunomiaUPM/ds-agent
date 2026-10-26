@@ -17,37 +17,27 @@
 
 //! Template service over the repository.
 
-use crate::data::entities::policy_template::NewPolicyTemplateModel;
-use crate::data::factory_trait::CatalogAgentRepoTrait;
+use std::sync::Arc;
+
+use common::errors::NotFoundExt;
+use common::oauth::{OwnedTrait, Owner, OwnerScope};
+use common::paginated_spec::{Cursor, Page, Paginated, Sort};
+use common::query::QueryFilter;
+use ymir::errors::Outcome;
+use ymir::types::oauth::UserInfo;
+
 use crate::entities::filters::PolicyTemplateFilter;
 use crate::entities::policy_templates::{NewPolicyTemplateDto, PolicyTemplateDto};
 use crate::services::policy_templates::PolicyTemplateServiceTrait;
-use common::oauth::{OwnedTrait, Owner, OwnerScope};
-use ymir::types::oauth::UserInfo;
-use common::errors::NotFoundExt;
-use common::paginated_spec::{Cursor, Page, Paginated, Sort};
-use common::query::QueryFilter;
-use std::sync::Arc;
-use ymir::errors::Outcome;
+use crate::setup::context::AppContext;
 
-/// Template service over a repository, emitting `catalog:` events when a bus is set.
 pub struct PolicyTemplateService {
-    repo: Arc<dyn CatalogAgentRepoTrait>,
-    event_bus: Option<events::EventBus>,
+    ctx: Arc<AppContext>,
 }
 
 impl PolicyTemplateService {
-    pub fn new(repo: Arc<dyn CatalogAgentRepoTrait>) -> Self {
-        Self {
-            repo,
-            event_bus: None,
-        }
-    }
-
-    /// Publishes create and delete events on `event_bus`.
-    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
-        self.event_bus = event_bus;
-        self
+    pub fn new(ctx: Arc<AppContext>) -> Self {
+        Self { ctx }
     }
 }
 
@@ -63,19 +53,11 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
     ) -> Outcome<Paginated<PolicyTemplateDto>> {
         filters.validate()?;
         let page = page.clamped();
-
-        let (policy_templates, total) = self
-            .repo
-            .get_policy_template_repo()
-            .get_all_policy_templates(&OwnerScope::seeing(user), filters, &page, sort)
-            .await?;
-
-        let dtos = policy_templates
-            .into_iter()
-            .map(PolicyTemplateDto::try_from)
-            .collect::<Outcome<Vec<_>>>()?;
-
-        Ok(Paginated::from_page(dtos, &page, total, |d| {
+        let scope = OwnerScope::seeing(user);
+        let repo = self.ctx.repos.policy_template_repo();
+        let items = repo.get_page(&scope, filters, &page, sort).await?;
+        let total = repo.count(&scope, filters).await?;
+        Ok(Paginated::from_page(items, &page, Some(total), |d| {
             Cursor::encode_composite(&d.date, &d.id)
         }))
     }
@@ -86,15 +68,11 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
         user: &UserInfo,
         ids: &[String],
     ) -> Outcome<Vec<PolicyTemplateDto>> {
-        let policy_templates = self
-            .repo
-            .get_policy_template_repo()
-            .get_batch_policy_templates(&OwnerScope::seeing(user), ids)
-            .await?;
-        policy_templates
-            .into_iter()
-            .map(PolicyTemplateDto::try_from)
-            .collect()
+        self.ctx
+            .repos
+            .policy_template_repo()
+            .get_batch(&OwnerScope::seeing(user), ids)
+            .await
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
@@ -103,15 +81,11 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
         user: &UserInfo,
         template_id: &str,
     ) -> Outcome<Vec<PolicyTemplateDto>> {
-        let policy_templates = self
-            .repo
-            .get_policy_template_repo()
-            .get_policy_templates_by_id(&OwnerScope::seeing(user), template_id)
-            .await?;
-        policy_templates
-            .into_iter()
-            .map(PolicyTemplateDto::try_from)
-            .collect()
+        self.ctx
+            .repos
+            .policy_template_repo()
+            .get_versions(&OwnerScope::seeing(user), template_id)
+            .await
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
@@ -121,13 +95,12 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
         template_id: &str,
         version_id: &str,
     ) -> Outcome<PolicyTemplateDto> {
-        let policy_template = self
-            .repo
-            .get_policy_template_repo()
-            .get_policy_template_by_id_and_version(&OwnerScope::seeing(user), template_id, version_id)
+        self.ctx
+            .repos
+            .policy_template_repo()
+            .get_version(&OwnerScope::seeing(user), template_id, version_id)
             .await?
-            .or_not_found(format!("{template_id}:{version_id}"), "policy template")?;
-        PolicyTemplateDto::try_from(policy_template)
+            .or_not_found(format!("{template_id}:{version_id}"), "policy template")
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
@@ -137,28 +110,19 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
         new_policy_template: &NewPolicyTemplateDto,
     ) -> Outcome<PolicyTemplateDto> {
         new_policy_template.validate_dto()?;
-        let mut new_policy_template = new_policy_template.clone();
-        let owner = Owner::for_new(
-            user,
-            new_policy_template.owner.take(),
-            new_policy_template.visibility.clone(),
-        );
-        let new_model: NewPolicyTemplateModel = new_policy_template.into_model(owner)?;
-        let policy_template = self
-            .repo
-            .get_policy_template_repo()
-            .create_policy_template(&new_model)
-            .await?;
-        let dto: PolicyTemplateDto = PolicyTemplateDto::try_from(policy_template)?;
+        let mut template = new_policy_template.clone();
+        let owner = Owner::for_new(user, template.owner.take(), template.visibility.clone());
+        let command = template.into_command(owner)?;
+        let stored = self.ctx.repos.policy_template_repo().insert(&command).await?;
         events::emit_action!(
-            self.event_bus,
-            &dto.owner(),
+            self.ctx.events,
+            &stored.owner(),
             crate::EVENT_PREFIX,
             "policy_template",
             "create",
-            &dto
+            &stored
         );
-        Ok(dto)
+        Ok(stored)
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
@@ -168,16 +132,13 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
         template_id: &str,
         version_id: &str,
     ) -> Outcome<()> {
-        self.repo
-            .get_policy_template_repo()
-            .delete_policy_template_by_id_and_version(
-                &OwnerScope::acting(user),
-                template_id,
-                version_id,
-            )
+        self.ctx
+            .repos
+            .policy_template_repo()
+            .delete_version(&OwnerScope::acting(user), template_id, version_id)
             .await?;
         events::emit_action!(
-            self.event_bus,
+            self.ctx.events,
             &Owner::private(user),
             crate::EVENT_PREFIX,
             "policy_template",

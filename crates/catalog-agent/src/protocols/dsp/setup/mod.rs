@@ -15,47 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
+//! The DSP plane as a module over the agent context.
 
-use crate::protocols::dsp::CatalogDSP;
-use crate::protocols::protocol::ProtocolPluginTrait;
-use crate::setup::context::AppContext;
-use axum::Router;
-use common::module_loader::service_module::ServiceModuleTrait;
-use ymir::errors::Outcome;
+pub mod composition;
+pub mod context;
 
-pub struct DspModule {
-    router: Router,
-}
-
-impl DspModule {
-    pub async fn build(ctx: Arc<AppContext>) -> Outcome<Self> {
-        let router = CatalogDSP::new(
-            ctx.catalog_svc.clone(),
-            ctx.data_service_svc.clone(),
-            ctx.dataset_svc.clone(),
-            ctx.odrl_policy_svc.clone(),
-            ctx.distribution_svc.clone(),
-            ctx.peer_catalog_svc.clone(),
-            ctx.mates_facade.clone(),
-            ctx.grants_facade.clone(),
-            ctx.oauth_validator.clone(),
-        )
-        .build_router()
-        .await?;
-        Ok(Self { router })
-    }
-}
-
-impl ServiceModuleTrait for DspModule {
-    fn name(&self) -> &'static str {
-        "dsp-catalog"
-    }
-
-    fn http(&self) -> Option<(String, Router)> {
-        Some((
-            common::dsp_common::paths::CATALOG.to_string(),
-            self.router.clone(),
-        ))
-    }
-}
+pub use composition::DspModule;

@@ -15,122 +15,71 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Domain filters for catalog agent entities.
+//! Query filters over resources, offers and templates; every one runs in the database.
 
 use chrono::{DateTime, Utc};
 use common::query::{DateRange, QueryFilter};
 use serde::{Deserialize, Serialize};
 use ymir::errors::Outcome;
 
-/// Filter criteria for querying catalogs.
+use crate::entities::resource_kind::ResourceKind;
+
+/// Filter criteria for querying resources of one kind.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub struct CatalogFilter {
-    /// Only the records of this user, among those the caller sees.
-    pub user_id: Option<String>,
-    pub title: Option<String>,
-    pub creator: Option<String>,
-    pub participant_id: Option<String>,
-    pub with_main_catalog: Option<bool>,
-    pub created_after: Option<DateTime<Utc>>,
-    pub created_before: Option<DateTime<Utc>>,
-}
-
-impl QueryFilter for CatalogFilter {
-    fn is_empty(&self) -> bool {
-        self.user_id.is_none()
-            && self.title.is_none()
-            && self.creator.is_none()
-            && self.participant_id.is_none()
-            && self.with_main_catalog.is_none()
-            && self.created_after.is_none()
-            && self.created_before.is_none()
-    }
-
-    fn validate(&self) -> Outcome<()> {
-        DateRange::validate_bounds(self.created_after, self.created_before)
-    }
-}
-
-/// Filter criteria for querying datasets.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub struct DatasetFilter {
+pub struct ResourceFilter {
+    /// Set by the route, never by the query string.
+    #[serde(skip)]
+    pub kind: Option<ResourceKind>,
     /// Only the records of this user, among those the caller sees.
     pub user_id: Option<String>,
     pub catalog_id: Option<String>,
-    pub title: Option<String>,
-    pub creator: Option<String>,
-    pub conforms_to: Option<String>,
-    pub created_after: Option<DateTime<Utc>>,
-    pub created_before: Option<DateTime<Utc>>,
-}
-
-impl QueryFilter for DatasetFilter {
-    fn is_empty(&self) -> bool {
-        self.user_id.is_none()
-            && self.catalog_id.is_none()
-            && self.title.is_none()
-            && self.creator.is_none()
-            && self.conforms_to.is_none()
-            && self.created_after.is_none()
-            && self.created_before.is_none()
-    }
-
-    fn validate(&self) -> Outcome<()> {
-        DateRange::validate_bounds(self.created_after, self.created_before)
-    }
-}
-
-/// Filter criteria for querying distributions.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub struct DistributionFilter {
-    /// Only the records of this user, among those the caller sees.
-    pub user_id: Option<String>,
     pub dataset_id: Option<String>,
-    pub access_service: Option<String>,
+    /// Part of the title, in any language.
+    pub title: Option<String>,
+    /// A `dcat:keyword`, exactly.
+    pub keyword: Option<String>,
+    /// A `dcat:theme` IRI.
+    pub theme: Option<String>,
+    /// A `dct:format`, literal or IRI.
     pub format: Option<String>,
-    pub title: Option<String>,
-    pub created_after: Option<DateTime<Utc>>,
-    pub created_before: Option<DateTime<Utc>>,
-}
-
-impl QueryFilter for DistributionFilter {
-    fn is_empty(&self) -> bool {
-        self.user_id.is_none()
-            && self.dataset_id.is_none()
-            && self.access_service.is_none()
-            && self.format.is_none()
-            && self.title.is_none()
-            && self.created_after.is_none()
-            && self.created_before.is_none()
-    }
-
-    fn validate(&self) -> Outcome<()> {
-        DateRange::validate_bounds(self.created_after, self.created_before)
-    }
-}
-
-/// Filter criteria for querying data services.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub struct DataServiceFilter {
-    /// Only the records of this user, among those the caller sees.
-    pub user_id: Option<String>,
-    pub catalog_id: Option<String>,
-    pub endpoint_url: Option<String>,
-    pub title: Option<String>,
     pub creator: Option<String>,
-    pub main_data_service: Option<bool>,
+    pub publisher: Option<String>,
+    pub conforms_to: Option<String>,
+    pub participant_id: Option<String>,
+    pub access_service: Option<String>,
+    pub endpoint_url: Option<String>,
+    /// `false` leaves out the connector's main resource; `true` keeps only it.
+    pub main: Option<bool>,
     pub created_after: Option<DateTime<Utc>>,
     pub created_before: Option<DateTime<Utc>>,
 }
 
-impl QueryFilter for DataServiceFilter {
+impl ResourceFilter {
+    /// Every resource of `kind`.
+    pub fn of(kind: ResourceKind) -> Self {
+        Self {
+            kind: Some(kind),
+            ..Self::default()
+        }
+    }
+}
+
+impl QueryFilter for ResourceFilter {
     fn is_empty(&self) -> bool {
         self.user_id.is_none()
             && self.catalog_id.is_none()
-            && self.endpoint_url.is_none()
+            && self.dataset_id.is_none()
             && self.title.is_none()
+            && self.keyword.is_none()
+            && self.theme.is_none()
+            && self.format.is_none()
             && self.creator.is_none()
-            && self.main_data_service.is_none()
+            && self.publisher.is_none()
+            && self.conforms_to.is_none()
+            && self.participant_id.is_none()
+            && self.access_service.is_none()
+            && self.endpoint_url.is_none()
+            && self.main.is_none()
             && self.created_after.is_none()
             && self.created_before.is_none()
     }
@@ -140,7 +89,7 @@ impl QueryFilter for DataServiceFilter {
     }
 }
 
-/// Filter criteria for querying ODRL policies and offers.
+/// Filter criteria for querying ODRL offers.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct OdrlPolicyFilter {
     /// Only the records of this user, among those the caller sees.

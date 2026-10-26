@@ -15,16 +15,16 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Catalog agent: DCAT 3 catalogs, datasets, distributions, data services and ODRL policies,
-//! served to peers over the DSP catalog protocol and to the owner through a management API.
+//! Catalog agent: DCAT resources stored as RDF graphs, one neutral core projected through
+//! profile adapters (DSP for peers, DCAT 3 and DCAT-AP for public readers), managed through a
+//! JSON-LD API and diagnosed by a doctor against every registered profile.
 //!
-//! It also mounts the connector, keeps cached copies of peer catalogs and builds policies from
+//! It also mounts the connector, keeps the catalogs fetched from peers and builds policies from
 //! templates. [`setup::CatalogAgentModule`] composes it into a larger process and
-//! [`setup::CatalogAgentBoot`] runs it as its own service. Other crates get its migrations,
-//! repository trait and main DTOs from the root; its events use the `catalog:` prefix.
+//! [`setup::CatalogAgentBoot`] runs it as its own service; its events use the `catalog:` prefix.
 //!
-//! Modules: [`entities`], [`services`], [`data`], [`cache`] (Redis), [`grpc`], [`http`],
-//! [`protocols`] (DSP), [`facades`], [`setup`].
+//! Modules: [`entities`], [`services`], [`data`], [`cache`], [`profiles`], [`protocols`] (DSP),
+//! [`http`], [`grpc`], [`facades`], [`setup`].
 
 pub mod cache;
 pub mod data;
@@ -32,6 +32,7 @@ pub mod entities;
 pub mod facades;
 pub mod grpc;
 pub mod http;
+pub mod profiles;
 pub mod protocols;
 pub mod services;
 pub mod setup;
@@ -44,16 +45,3 @@ pub const SERVICE_BIG_NAME: &str = "Catalog Agent";
 pub const EVENT_DOMAIN: &str = "catalog";
 /// Topic prefix of the catalog events.
 pub const EVENT_PREFIX: &str = "catalog:";
-/// Cache key of the connector's main catalog and data service (there is one of each).
-pub const MAIN_CACHE_KEY: &str = "connector";
-
-pub use data::migrations::get_catalog_migrations;
-pub use data::repo_traits::catalog_repo::CatalogRepositoryTrait;
-pub use data::repos_sql::catalog_repo::CatalogRepositoryForSql;
-pub use entities::catalogs::CatalogDto;
-pub use entities::catalogs::NewCatalogDto;
-pub use entities::data_services::DataServiceDto;
-pub use entities::data_services::NewDataServiceDto;
-pub use entities::datasets::DatasetDto;
-pub use entities::distributions::DistributionDto;
-pub use entities::odrl_policies::OdrlPolicyDto;

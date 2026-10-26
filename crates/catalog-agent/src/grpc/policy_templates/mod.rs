@@ -15,125 +15,117 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Policy template RPCs.
-
-mod mappers;
+//! The template RPCs over the template and instantiation services.
 
 use std::sync::Arc;
 
-use crate::grpc::api::catalog_agent::policy_template_entity_service_server::PolicyTemplateEntityService;
-use crate::grpc::api::catalog_agent::{
-    CreatePolicyTemplateRequest, DeleteByVersionRequest, GetBatchRequest, GetByIdRequest,
-    GetByVersionRequest, ListPolicyTemplatesRequest, PolicyTemplateListResponse,
-    PolicyTemplateResponse,
-};
-use crate::services::policy_templates::PolicyTemplateServiceTrait;
+use common::grpc::{IntoStatus, PageParams};
 use common::oauth::grpc::GrpcAuth;
-use ymir::services::token_validator::OauthTokenValidatorTrait;
-use common::grpc::{IntoStatus, ListParams};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 
-/// gRPC adapter of the policy template service.
-pub struct PolicyTemplateEntityGrpc {
-    service: Arc<dyn PolicyTemplateServiceTrait>,
+use crate::entities::filters::PolicyTemplateFilter;
+use crate::entities::policy_instantiation::NewPolicyInstantiationDto;
+use crate::entities::policy_templates::NewPolicyTemplateDto;
+use crate::grpc::api::catalog_agent::policy_template_service_server::PolicyTemplateService;
+use crate::grpc::api::catalog_agent::{IdRequest, JsonDocument, ListJsonRequest, TemplateVersionRequest};
+use crate::grpc::GrpcJson;
+use crate::services::odrl_policies::views::OdrlPolicyView;
+use crate::setup::context::AppContext;
+
+pub struct PolicyTemplateGrpc {
+    ctx: Arc<AppContext>,
     auth: GrpcAuth,
 }
 
-impl PolicyTemplateEntityGrpc {
-    pub fn new(
-        service: Arc<dyn PolicyTemplateServiceTrait>,
-        validator: Arc<dyn OauthTokenValidatorTrait>,
-    ) -> Self {
+impl PolicyTemplateGrpc {
+    pub fn new(ctx: Arc<AppContext>) -> Self {
         Self {
-            service,
-            auth: GrpcAuth::new(validator),
+            auth: GrpcAuth::new(ctx.oauth_validator.clone()),
+            ctx,
         }
     }
 }
 
 #[tonic::async_trait]
-impl PolicyTemplateEntityService for PolicyTemplateEntityGrpc {
-    async fn get_all_policy_templates(
-        &self,
-        request: Request<ListPolicyTemplatesRequest>,
-    ) -> Result<Response<PolicyTemplateListResponse>, Status> {
+impl PolicyTemplateService for PolicyTemplateGrpc {
+    async fn list(&self, request: Request<ListJsonRequest>) -> Result<Response<JsonDocument>, Status> {
         let user = self.auth.user(request.metadata()).await?;
-        let params = ListParams::try_from(request.into_inner())?;
-        let result = self
-            .service
-            .get_all_policy_templates(&user, &params.filter, &params.page, &params.sort)
+        let request = request.into_inner();
+        let filter: PolicyTemplateFilter = match request.filter.as_deref().filter(|f| !f.is_empty()) {
+            Some(json) => GrpcJson::parse(json, "filter")?,
+            None => PolicyTemplateFilter::default(),
+        };
+        let (page, sort) = PageParams::from_proto(
+            request.limit.unwrap_or(0),
+            request.cursor.as_deref().unwrap_or_default(),
+            request.sort.as_deref().unwrap_or_default(),
+        )?;
+        let found = self
+            .ctx
+            .templates()
+            .get_all_policy_templates(&user, &filter, &page, &sort)
             .await
             .map_err(Errors::into_status)?;
-        Ok(Response::new(result.try_into()?))
+        Ok(Response::new(GrpcJson::document(&found)?))
     }
 
-    async fn get_batch_policy_templates(
-        &self,
-        request: Request<GetBatchRequest>,
-    ) -> Result<Response<PolicyTemplateListResponse>, Status> {
-        let user = self.auth.user(request.metadata()).await?;
-        let ids = request.into_inner().ids;
-        let dtos = self
-            .service
-            .get_batch_policy_templates(&user, &ids)
-            .await
-            .map_err(Errors::into_status)?;
-        Ok(Response::new(dtos.try_into()?))
-    }
-
-    async fn get_policy_templates_by_id(
-        &self,
-        request: Request<GetByIdRequest>,
-    ) -> Result<Response<PolicyTemplateListResponse>, Status> {
+    async fn versions(&self, request: Request<IdRequest>) -> Result<Response<JsonDocument>, Status> {
         let user = self.auth.user(request.metadata()).await?;
         let id = request.into_inner().id;
-        let dtos = self
-            .service
+        let found = self
+            .ctx
+            .templates()
             .get_policies_template_by_id(&user, &id)
             .await
             .map_err(Errors::into_status)?;
-        Ok(Response::new(dtos.try_into()?))
+        Ok(Response::new(GrpcJson::document(&found)?))
     }
 
-    async fn get_policy_template_by_version(
-        &self,
-        request: Request<GetByVersionRequest>,
-    ) -> Result<Response<PolicyTemplateResponse>, Status> {
+    async fn get(&self, request: Request<TemplateVersionRequest>) -> Result<Response<JsonDocument>, Status> {
         let user = self.auth.user(request.metadata()).await?;
-        let req = request.into_inner();
-        let dto = self
-            .service
-            .get_policies_template_by_version_and_id(&user, &req.id, &req.version)
+        let request = request.into_inner();
+        let found = self
+            .ctx
+            .templates()
+            .get_policies_template_by_version_and_id(&user, &request.id, &request.version)
             .await
             .map_err(Errors::into_status)?;
-        Ok(Response::new(dto.try_into()?))
+        Ok(Response::new(GrpcJson::document(&found)?))
     }
 
-    async fn create_policy_template(
-        &self,
-        request: Request<CreatePolicyTemplateRequest>,
-    ) -> Result<Response<PolicyTemplateResponse>, Status> {
+    async fn create(&self, request: Request<JsonDocument>) -> Result<Response<JsonDocument>, Status> {
         let user = self.auth.user(request.metadata()).await?;
-        let dto = request.into_inner().try_into()?;
+        let template: NewPolicyTemplateDto = GrpcJson::parse(&request.into_inner().json, "json")?;
         let created = self
-            .service
-            .create_policy_template(&user, &dto)
+            .ctx
+            .templates()
+            .create_policy_template(&user, &template)
             .await
             .map_err(Errors::into_status)?;
-        Ok(Response::new(created.try_into()?))
+        Ok(Response::new(GrpcJson::document(&created)?))
     }
 
-    async fn delete_policy_template_by_version(
-        &self,
-        request: Request<DeleteByVersionRequest>,
-    ) -> Result<Response<()>, Status> {
+    async fn delete(&self, request: Request<TemplateVersionRequest>) -> Result<Response<()>, Status> {
         let user = self.auth.user(request.metadata()).await?;
-        let req = request.into_inner();
-        self.service
-            .delete_policy_template_by_version_and_id(&user, &req.id, &req.version)
+        let request = request.into_inner();
+        self.ctx
+            .templates()
+            .delete_policy_template_by_version_and_id(&user, &request.id, &request.version)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(()))
+    }
+
+    async fn instantiate(&self, request: Request<JsonDocument>) -> Result<Response<JsonDocument>, Status> {
+        let user = self.auth.user(request.metadata()).await?;
+        let instantiation: NewPolicyInstantiationDto = GrpcJson::parse(&request.into_inner().json, "json")?;
+        let offer = self
+            .ctx
+            .instantiation()
+            .instantiate_policy(&user, &instantiation)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(GrpcJson::document(&OdrlPolicyView::assemble(offer))?))
     }
 }

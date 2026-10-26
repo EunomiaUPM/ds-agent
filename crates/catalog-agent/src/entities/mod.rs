@@ -15,15 +15,20 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! DTOs of catalogs, datasets, distributions, data services, offers and templates.
+//! The catalog's domain: resources as RDF graphs, offers, templates and the commands and filters
+//! over them. Nothing here knows about the database or HTTP.
 
-pub mod catalogs;
-pub mod common;
-pub mod data_services;
-pub mod dataset_offerings;
-pub mod datasets;
-pub mod distributions;
+pub mod admin_document;
+pub mod commands;
+pub mod dataset_offering;
+pub mod errors;
 pub mod filters;
-pub mod odrl_policies;
+pub mod graph;
+pub mod jsonld;
+pub mod odrl_offer;
 pub mod policy_instantiation;
 pub mod policy_templates;
+pub mod resource;
+pub mod resource_kind;
+pub mod resource_set;
+pub mod vocab;

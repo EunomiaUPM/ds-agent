@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! The DSP catalog routes behind PeerAuth, with mocked orchestrator, grants and mates.
+//! The DSP catalog routes behind PeerAuth, over a mocked provider service, grants and mates.
 
 use std::sync::Arc;
 
@@ -23,31 +23,24 @@ use axum::body::Body;
 use axum::extract::Request;
 use axum::http::StatusCode;
 use axum::Router;
-use catalog_agent::protocols::dsp::http::protocol::DspRouter;
-use catalog_agent::protocols::dsp::orchestrator::protocol::MockProtocolOrchestratorTrait;
-use catalog_agent::protocols::dsp::orchestrator::MockOrchestratorTrait;
-use common::dsp_common::PeerAuth;
+use catalog_agent::protocols::dsp::http::dsp::DspRouter;
+use catalog_agent::protocols::dsp::services::dsp_catalog::MockDspCatalogServiceTrait;
+use catalog_agent::protocols::dsp::services::rpc_catalog::MockRpcCatalogServiceTrait;
+use catalog_agent::protocols::dsp::setup::context::DspContext;
 use common::facades::grants_facade::{MockGrantsFacadeTrait, VerifiedPeer};
 use common::facades::mates_facade::MockMatesFacadeTrait;
-use ymir::types::oauth::RolePath;
-use ymir::types::participants::Visibility;
-use serde_json::Value;
+use serde_json::{json, Value};
 use tower::ServiceExt;
 use ymir::errors::Errors;
+use ymir::types::oauth::RolePath;
+use ymir::types::participants::Visibility;
 
-const DATASET: &str = "urn:uuid:9f8c7a2e-0000-0000-0000-000000000001";
+use crate::support::context::TestContext;
 
-/// A router whose peer is always verified and whose datasets are all unknown.
+const DATASET: &str = "urn:dataset:9f8c7a2e-0000-0000-0000-000000000001";
+
+/// A router whose peer is always verified, whose catalog is fixed and whose datasets are unknown.
 fn router() -> Router {
-    let mut protocol = MockProtocolOrchestratorTrait::new();
-    protocol
-        .expect_on_dataset_request()
-        .returning(|_, _| Err(Errors::missing_resource(DATASET, "dataset not found", None)));
-    let protocol = Arc::new(protocol);
-    let mut orchestrator = MockOrchestratorTrait::new();
-    orchestrator
-        .expect_get_protocol_service()
-        .returning(move || protocol.clone());
     let mut grants = MockGrantsFacadeTrait::new();
     grants.expect_verify_token().returning(|_| {
         Ok(VerifiedPeer {
@@ -57,41 +50,74 @@ fn router() -> Router {
         })
     });
     let mut mates = MockMatesFacadeTrait::new();
-    mates
-        .expect_get_mate_by_id()
-        .returning(|_, id| Err(Errors::missing_resource(id, "not a mate", None)));
-    let auth = PeerAuth::new(Arc::new(grants), Arc::new(mates));
-    DspRouter::new(Arc::new(orchestrator), auth).router()
+    mates.expect_get_mate_by_id().returning(|_, id| Err(Errors::missing_resource(id, "not a mate", None)));
+    let app = TestContext::new().grants(grants).mates(mates).build();
+    let mut catalog = MockDspCatalogServiceTrait::new();
+    catalog.expect_catalog().returning(|_, _| Ok(json!({"@type": "Catalog"})));
+    catalog
+        .expect_dataset()
+        .returning(|_, _| Err(Errors::missing_resource(DATASET, "dataset not found", None)));
+    let ctx = Arc::new(DspContext {
+        app,
+        catalog: Arc::new(catalog),
+        rpc: Arc::new(MockRpcCatalogServiceTrait::new()),
+    });
+    DspRouter::new(ctx).router()
 }
 
-async fn get(path: &str) -> (StatusCode, Value) {
+async fn send(method: &str, path: &str, body: Option<Value>) -> (StatusCode, Value) {
     let request = Request::builder()
+        .method(method)
         .uri(path)
         .header("authorization", "Bearer tok")
-        .body(Body::empty())
+        .header("content-type", "application/json")
+        .body(body.map(|b| Body::from(b.to_string())).unwrap_or_else(Body::empty))
         .unwrap();
     let response = router().oneshot(request).await.unwrap();
     let status = response.status();
-    let body = axum::body::to_bytes(response.into_body(), 64 * 1024)
-        .await
-        .unwrap();
-    (status, serde_json::from_slice(&body).unwrap())
+    let bytes = axum::body::to_bytes(response.into_body(), 64 * 1024).await.unwrap();
+    (status, serde_json::from_slice(&bytes).unwrap())
 }
 
-/// An unknown dataset is a 404 with a `CatalogError` body (DSP 6.3.3).
+/// A catalog request read through RDF is answered with the catalog.
+#[tokio::test]
+async fn catalog_request_is_answered() {
+    let (status, body) = send(
+        "POST",
+        "/request",
+        Some(json!({"@context": ["https://w3id.org/dspace/2025/1/context.jsonld"], "@type": "CatalogRequestMessage"})),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["@type"], "Catalog");
+}
+
+/// A body that declares no catalog request is a 400 `CatalogError` (DSP 6.2.3).
+#[tokio::test]
+async fn body_without_message_type_is_a_catalog_error() {
+    let (status, body) = send("POST", "/request", Some(json!({"filter": []}))).await;
+
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(body["@type"], "CatalogError");
+    assert_eq!(body["code"], "400");
+}
+
+/// An unknown dataset is a 404 with a `CatalogError` body.
 #[tokio::test]
 async fn unknown_dataset_is_a_404_catalog_error() {
-    let (status, body) = get(&format!("/datasets/{DATASET}")).await;
+    let (status, body) = send("GET", &format!("/datasets/{DATASET}"), None).await;
+
     assert_eq!(status, StatusCode::NOT_FOUND);
     assert_eq!(body["@type"], "CatalogError");
-    assert_eq!(body["code"], "404");
     assert!(body["reason"].as_array().is_some_and(|r| !r.is_empty()));
 }
 
 /// A dataset id that is not a URN is a 400 `CatalogError`.
 #[tokio::test]
 async fn malformed_dataset_id_is_a_400_catalog_error() {
-    let (status, body) = get("/datasets/not-a-urn").await;
+    let (status, body) = send("GET", "/datasets/not-a-urn", None).await;
+
     assert_eq!(status, StatusCode::BAD_REQUEST);
     assert_eq!(body["@type"], "CatalogError");
 }

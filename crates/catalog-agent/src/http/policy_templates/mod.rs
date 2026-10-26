@@ -15,35 +15,33 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The policy template API: templates and their versions, and offers instantiated from them.
+
 use crate::entities::filters::PolicyTemplateFilter;
 use crate::entities::policy_instantiation::NewPolicyInstantiationDto;
 use crate::entities::policy_templates::NewPolicyTemplateDto;
 use crate::http::common::to_camel_case::ToCamelCase;
-use crate::services::policy_instantiation::PolicyInstantiationServiceTrait;
-use crate::services::policy_templates::PolicyTemplateServiceTrait;
+use crate::services::odrl_policies::views::OdrlPolicyView;
+use crate::setup::context::AppContext;
 use axum::extract::rejection::JsonRejection;
-use axum::extract::{FromRef, Path, Query, State};
+use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use common::batch_requests::BatchRequestsAsString;
-use common::config::services::CatalogConfig;
 use common::query::QuerySpec;
+use common::routes::catalog as routes;
 use serde::Deserialize;
 use std::sync::Arc;
 use ymir::errors::Errors;
 use ymir::utils::extract_payload;
-use common::routes::catalog as routes;
 
 #[derive(Clone)]
 pub struct PolicyTemplateEntityRouter {
-    service: Arc<dyn PolicyTemplateServiceTrait>,
-    policy_engine: Arc<dyn PolicyInstantiationServiceTrait>,
-    config: Arc<CatalogConfig>,
+    ctx: Arc<AppContext>,
 }
 
-pub use common::paginated_spec::PaginationParams;
 pub type PolicyTemplateQuery = QuerySpec<PolicyTemplateFilter>;
 
 #[derive(Deserialize)]
@@ -51,35 +49,9 @@ pub struct SilentParams {
     pub silent: Option<bool>,
 }
 
-impl FromRef<PolicyTemplateEntityRouter> for Arc<dyn PolicyTemplateServiceTrait> {
-    fn from_ref(state: &PolicyTemplateEntityRouter) -> Self {
-        state.service.clone()
-    }
-}
-
-impl FromRef<PolicyTemplateEntityRouter> for Arc<dyn PolicyInstantiationServiceTrait> {
-    fn from_ref(state: &PolicyTemplateEntityRouter) -> Self {
-        state.policy_engine.clone()
-    }
-}
-
-impl FromRef<PolicyTemplateEntityRouter> for Arc<CatalogConfig> {
-    fn from_ref(state: &PolicyTemplateEntityRouter) -> Self {
-        state.config.clone()
-    }
-}
-
 impl PolicyTemplateEntityRouter {
-    pub fn new(
-        service: Arc<dyn PolicyTemplateServiceTrait>,
-        policy_engine: Arc<dyn PolicyInstantiationServiceTrait>,
-        config: Arc<CatalogConfig>,
-    ) -> Self {
-        Self {
-            service,
-            policy_engine,
-            config,
-        }
+    pub fn new(ctx: Arc<AppContext>) -> Self {
+        Self { ctx }
     }
 
     pub fn router(self) -> Router {
@@ -109,7 +81,8 @@ impl PolicyTemplateEntityRouter {
         Query(query): Query<PolicyTemplateQuery>,
     ) -> impl IntoResponse {
         match state
-            .service
+            .ctx
+            .templates()
             .get_all_policy_templates(&user, &query.filter, &query.page, &query.sort)
             .await
         {
@@ -127,7 +100,8 @@ impl PolicyTemplateEntityRouter {
             Err(e) => return e.into_response(),
         };
         match state
-            .service
+            .ctx
+            .templates()
             .get_batch_policy_templates(&user, &input.ids)
             .await
         {
@@ -140,7 +114,7 @@ impl PolicyTemplateEntityRouter {
         user: ymir::types::oauth::UserInfo,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
-        match state.service.get_policies_template_by_id(&user, &id).await {
+        match state.ctx.templates().get_policies_template_by_id(&user, &id).await {
             Ok(templates) => (StatusCode::OK, Json(ToCamelCase(templates))).into_response(),
             Err(e) => e.into_response(),
         }
@@ -151,7 +125,8 @@ impl PolicyTemplateEntityRouter {
         Path((id, version)): Path<(String, String)>,
     ) -> impl IntoResponse {
         match state
-            .service
+            .ctx
+            .templates()
             .get_policies_template_by_version_and_id(&user, &id, &version)
             .await
         {
@@ -176,7 +151,7 @@ impl PolicyTemplateEntityRouter {
                 return (StatusCode::BAD_REQUEST, format!("Invalid JSON: {e}")).into_response();
             }
         };
-        match state.service.create_policy_template(&user, &input).await {
+        match state.ctx.templates().create_policy_template(&user, &input).await {
             Ok(template) => (StatusCode::OK, Json(ToCamelCase(template))).into_response(),
             Err(Errors::DatabaseError { reason, .. })
                 if silent && reason.contains("duplicate key") =>
@@ -197,7 +172,8 @@ impl PolicyTemplateEntityRouter {
         Path((id, version)): Path<(String, String)>,
     ) -> impl IntoResponse {
         match state
-            .service
+            .ctx
+            .templates()
             .delete_policy_template_by_version_and_id(&user, &id, &version)
             .await
         {
@@ -215,8 +191,8 @@ impl PolicyTemplateEntityRouter {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.policy_engine.instantiate_policy(&user, &input).await {
-            Ok(dto) => (StatusCode::ACCEPTED, Json(ToCamelCase(dto))).into_response(),
+        match state.ctx.instantiation().instantiate_policy(&user, &input).await {
+            Ok(offer) => (StatusCode::ACCEPTED, Json(OdrlPolicyView::assemble(offer))).into_response(),
             Err(e) => e.into_response(),
         }
     }

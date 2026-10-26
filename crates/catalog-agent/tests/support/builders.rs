@@ -15,131 +15,140 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! DTOs of each catalog entity, numbered by URN and owned by the stub tenant.
+//! Resources, offers and graphs numbered by URN, as tests need them.
 
-use catalog_agent::data::entities::{catalog, dataservice, dataset, distribution, odrl_offer};
-use catalog_agent::entities::catalogs::CatalogDto;
-use catalog_agent::entities::data_services::DataServiceDto;
-use catalog_agent::entities::datasets::DatasetDto;
-use catalog_agent::entities::distributions::DistributionDto;
-use catalog_agent::entities::odrl_policies::OdrlPolicyDto;
-use chrono::Utc;
-use common::test_utils::grpc::TENANT;
+use std::str::FromStr;
+
+use catalog_agent::entities::graph::ResourceGraph;
+use catalog_agent::entities::odrl_offer::OdrlOffer;
+use catalog_agent::entities::resource::CatalogResource;
+use catalog_agent::entities::resource_kind::ResourceKind;
+use catalog_agent::entities::resource_set::ResourceSet;
+use catalog_agent::entities::vocab::Vocab;
+use common::oauth::Owner;
 use serde_json::json;
+use urn::Urn;
 
-use super::fixtures::urn;
+/// The URN of resource `n` of `kind`, e.g. `urn:dataset:000…007`.
+pub fn urn(kind: ResourceKind, n: u32) -> Urn {
+    Urn::from_str(&format!("urn:{}:00000000-0000-0000-0000-{n:012}", kind.urn_nid())).unwrap()
+}
 
-/// Catalog `n`; catalog 1 is the main one.
-pub fn catalog_dto(n: u32) -> CatalogDto {
-    CatalogDto {
-        inner: catalog::Model {
-            id: urn(n),
-            user_id: TENANT.to_string(),
-            user_role: ymir::types::oauth::RolePath::root(),
-            visibility: ymir::types::participants::Visibility::Private,
-            foaf_home_page: None,
-            dct_conforms_to: None,
-            dct_creator: Some("creator".into()),
-            dct_identifier: None,
-            dct_issued: Utc::now().into(),
-            dct_modified: None,
-            dct_title: Some(format!("catalog-{n}")),
-            dspace_participant_id: None,
-            dspace_main_catalog: n == 1,
-        },
+pub fn id(kind: ResourceKind, n: u32) -> String {
+    urn(kind, n).to_string()
+}
+
+/// A description with an English title.
+pub fn titled(title: &str) -> ResourceGraph {
+    let mut graph = ResourceGraph::default();
+    graph.put(Vocab::DCT_TITLE, vec![ResourceGraph::literal(title, Some("en"))]);
+    graph
+}
+
+/// A stored resource of `kind`, the connector's (public).
+pub fn resource(
+    kind: ResourceKind,
+    n: u32,
+    catalog: Option<u32>,
+    dataset: Option<u32>,
+    description: ResourceGraph,
+) -> CatalogResource {
+    CatalogResource::create(
+        urn(kind, n),
+        kind,
+        Owner::connector(),
+        catalog.map(|c| urn(ResourceKind::Catalog, c)),
+        dataset.map(|d| urn(ResourceKind::Dataset, d)),
+        false,
+        description,
+    )
+}
+
+/// The main catalog `n`, with the provider's participant id.
+pub fn main_catalog(n: u32) -> CatalogResource {
+    let mut description = titled("Main catalog");
+    description.put(Vocab::DSPACE_PARTICIPANT_ID, vec![ResourceGraph::iri("did:web:provider.example")]);
+    CatalogResource::create(
+        urn(ResourceKind::Catalog, n),
+        ResourceKind::Catalog,
+        Owner::connector(),
+        None,
+        None,
+        true,
+        description,
+    )
+}
+
+pub fn catalog(n: u32) -> CatalogResource {
+    resource(ResourceKind::Catalog, n, None, None, titled(&format!("catalog-{n}")))
+}
+
+pub fn dataset(n: u32, catalog: u32) -> CatalogResource {
+    resource(ResourceKind::Dataset, n, Some(catalog), None, titled(&format!("dataset-{n}")))
+}
+
+pub fn data_service(n: u32, catalog: u32) -> CatalogResource {
+    let mut description = titled(&format!("service-{n}"));
+    description.put(Vocab::DCAT_ENDPOINT_URL, vec![ResourceGraph::iri("https://provider.example/dsp")]);
+    resource(ResourceKind::DataService, n, Some(catalog), None, description)
+}
+
+/// Distribution `n` of `dataset` in `format`, served by data service `service`.
+pub fn distribution(n: u32, dataset: u32, service: u32, format: &str) -> CatalogResource {
+    let mut description = titled(&format!("distribution-{n}"));
+    description.put(Vocab::DCT_FORMAT, vec![ResourceGraph::literal(format, None)]);
+    description.put(
+        Vocab::DCAT_ACCESS_SERVICE,
+        vec![ResourceGraph::iri(&id(ResourceKind::DataService, service))],
+    );
+    resource(ResourceKind::Distribution, n, None, Some(dataset), description)
+}
+
+pub fn agent(n: u32, name: &str) -> CatalogResource {
+    let mut description = ResourceGraph::default();
+    description.put(Vocab::FOAF_NAME, vec![ResourceGraph::literal(name, Some("en"))]);
+    resource(ResourceKind::Agent, n, None, None, description)
+}
+
+/// An offer `n` on `entity` permitting `use`.
+pub fn offer(n: u32, entity: &Urn) -> OdrlOffer {
+    OdrlOffer {
+        id: Urn::from_str(&format!("urn:odrl-policy:00000000-0000-0000-0000-{n:012}")).unwrap(),
+        owner: Owner::connector(),
+        odrl_offer: json!({ "permission": [{ "action": "use" }] }),
+        entity: entity.clone(),
+        entity_type: "Dataset".to_string(),
+        created_at: chrono::Utc::now(),
+        source_template_id: None,
+        source_template_version: None,
+        instantiation_parameters: None,
+        description: None,
     }
 }
 
-/// Main data service `n` of catalog 100.
-pub fn data_service_dto(n: u32) -> DataServiceDto {
-    DataServiceDto {
-        inner: dataservice::Model {
-            id: urn(n),
-            user_id: TENANT.to_string(),
-            user_role: ymir::types::oauth::RolePath::root(),
-            visibility: ymir::types::participants::Visibility::Private,
-            dcat_endpoint_description: None,
-            dcat_endpoint_url: "https://svc.example".into(),
-            dct_conforms_to: None,
-            dct_creator: None,
-            dct_identifier: None,
-            dct_issued: Utc::now().into(),
-            dct_modified: None,
-            dct_title: None,
-            dct_description: None,
-            catalog_id: urn(100),
-            dspace_main_data_service: true,
-        },
-    }
+/// The main catalog 1 with service 2, dataset 3 (an offer, distribution 4 in `http+pull`) and
+/// sub-catalog 5 with dataset 6.
+pub fn provider_set() -> (CatalogResource, ResourceSet) {
+    let main = main_catalog(1);
+    let mut set = ResourceSet::new();
+    set.insert(main.clone());
+    set.insert(data_service(2, 1));
+    set.insert(dataset(3, 1));
+    set.insert(distribution(4, 3, 2, "http+pull"));
+    set.insert(catalog(5));
+    set.insert(dataset(6, 5));
+    set.insert_offers([offer(1, &urn(ResourceKind::Dataset, 3))]);
+    (main, set)
 }
 
-/// Dataset `n` of catalog 100.
-pub fn dataset_dto(n: u32) -> DatasetDto {
-    DatasetDto {
-        inner: dataset::Model {
-            id: urn(n),
-            user_id: TENANT.to_string(),
-            user_role: ymir::types::oauth::RolePath::root(),
-            visibility: ymir::types::participants::Visibility::Private,
-            dct_conforms_to: None,
-            dct_creator: None,
-            dct_identifier: None,
-            dct_issued: Utc::now().into(),
-            dct_modified: None,
-            dct_title: Some(format!("dataset-{n}")),
-            dct_description: None,
-            catalog_id: urn(100),
-        },
-    }
-}
-
-/// Distribution `n` of dataset 100, served by data service 200.
-pub fn distribution_dto(n: u32) -> DistributionDto {
-    DistributionDto {
-        inner: distribution::Model {
-            id: urn(n),
-            user_id: TENANT.to_string(),
-            user_role: ymir::types::oauth::RolePath::root(),
-            visibility: ymir::types::participants::Visibility::Private,
-            dct_issued: Utc::now().into(),
-            dct_modified: None,
-            dct_title: None,
-            dct_description: None,
-            dcat_access_service: urn(200),
-            dataset_id: urn(100),
-            dct_format: Some("HTTP_PULL".into()),
-        },
-    }
-}
-
-/// ODRL offer `n` on entity 100 of `entity_type`.
-pub fn odrl_policy_dto(n: u32, entity_type: &str) -> OdrlPolicyDto {
-    OdrlPolicyDto {
-        inner: odrl_offer::Model {
-            id: urn(n),
-            user_id: TENANT.to_string(),
-            user_role: ymir::types::oauth::RolePath::root(),
-            visibility: ymir::types::participants::Visibility::Private,
-            odrl_offer: json!({"permission": [{"action": "use"}]}),
-            entity: urn(100),
-            entity_type: entity_type.to_string(),
-            created_at: Utc::now().into(),
-            source_template_id: None,
-            source_template_version: None,
-            instantiation_parameters: Some(json!({"n": 3})),
-            description: None,
-        },
-    }
-}
-
-/// Template `tpl-1` v1 of the stub user, public, built from its JSON `parameters` and ODRL `content`.
+/// Template `tpl-1` v1 with the given parameters and ODRL content.
 pub fn policy_template(
     parameters: serde_json::Value,
     content: serde_json::Value,
 ) -> catalog_agent::entities::policy_templates::PolicyTemplateDto {
     serde_json::from_value(json!({
         "id": "tpl-1",
-        "userId": TENANT,
+        "userId": "user",
         "userRole": "/admin",
         "visibility": "Public",
         "version": "1",
@@ -149,33 +158,4 @@ pub fn policy_template(
         "parameters": parameters,
     }))
     .expect("valid policy template")
-}
-
-/// Minimal DSP catalog `id`, as a peer would publish it.
-pub fn peer_catalog(id: &str) -> catalog_agent::protocols::dsp::types::catalog_definition::Catalog {
-    serde_json::from_value(json!({
-        "@context": "https://w3id.org/dspace/2025/1/context.jsonld",
-        "@type": "Catalog",
-        "@id": id,
-        "identifier": id,
-        "issued": "2026-01-01T00:00:00",
-        "description": [],
-        "catalog": [],
-        "dataset": [],
-        "service": [],
-    }))
-    .expect("valid catalog")
-}
-
-/// Participant `participant_id`, global to the connector.
-pub fn mate(participant_id: &str) -> ymir::data::entities::shared::participant::Model {
-    ymir::data::entities::shared::participant::Model {
-        participant_id: participant_id.to_string(),
-        participant_nick: participant_id.to_string(),
-        participant_type: ymir::types::participants::ParticipantType::Agent,
-        base_url: format!("https://{participant_id}.example"),
-        saved_at: Utc::now(),
-        last_interaction: Utc::now(),
-        extra_fields: json!({}),
-    }
 }

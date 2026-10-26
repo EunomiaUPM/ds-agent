@@ -18,7 +18,7 @@
 pub mod validator_request;
 pub mod validators;
 
-use crate::entities::odrl_policies::CatalogEntityTypes;
+use crate::entities::odrl_offer::CatalogEntityTypes;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use urn::Urn;

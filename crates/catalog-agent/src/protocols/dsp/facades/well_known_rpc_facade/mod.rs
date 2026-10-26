@@ -20,6 +20,8 @@ use ymir::errors::Outcome;
 
 pub mod well_known_rpc_facade;
 
+/// Where a peer serves the current DSP version, as its well-known document says.
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait WellKnownRPCFacadeTrait: Send + Sync {
     async fn resolve_dataspace_current_path(&self, input: &WellKnownRPCRequest) -> Outcome<String>;

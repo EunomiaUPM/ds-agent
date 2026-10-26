@@ -20,30 +20,29 @@
 
 use std::sync::Arc;
 
-use common::oauth::Owner;
-use ymir::types::oauth::UserInfo;
 use common::boot::seeders::{BootPhase, BootSeeder};
+use common::oauth::Owner;
 use serde_json::Value;
 use tokio::fs;
 use ymir::errors::{Errors, Outcome};
+use ymir::types::oauth::UserInfo;
 
 use crate::entities::policy_templates::NewPolicyTemplateDto;
-use crate::services::policy_templates::PolicyTemplateServiceTrait;
-use crate::services::tenant_provisioning::TenantProvisioningServiceTrait;
+use crate::setup::context::AppContext;
 
 /// Provisions the connector's main catalog and data service (idempotent).
-pub struct AdminTenantProvisioner {
-    service: Arc<dyn TenantProvisioningServiceTrait>,
+pub struct MainCatalogProvisioner {
+    ctx: Arc<AppContext>,
 }
 
-impl AdminTenantProvisioner {
-    pub fn new(service: Arc<dyn TenantProvisioningServiceTrait>) -> Self {
-        Self { service }
+impl MainCatalogProvisioner {
+    pub fn new(ctx: Arc<AppContext>) -> Self {
+        Self { ctx }
     }
 }
 
 #[async_trait::async_trait]
-impl BootSeeder for AdminTenantProvisioner {
+impl BootSeeder for MainCatalogProvisioner {
     fn name(&self) -> &'static str {
         "main-catalog-provisioning"
     }
@@ -54,10 +53,10 @@ impl BootSeeder for AdminTenantProvisioner {
     }
 
     async fn seed(&self) -> Outcome<()> {
-        let provisioned = self.service.provision(&UserInfo::system()).await?;
+        let provisioned = self.ctx.main_catalog().provision(&UserInfo::system()).await?;
         tracing::info!(
-            catalog = provisioned.catalog.inner.id,
-            data_service = provisioned.data_service.inner.id,
+            catalog = %provisioned.catalog.id(),
+            data_service = %provisioned.data_service.id(),
             "Connector catalog provisioned"
         );
         Ok(())
@@ -67,14 +66,14 @@ impl BootSeeder for AdminTenantProvisioner {
 /// Registers every `*.json` template of a folder; unreadable, invalid or already
 /// registered templates are skipped, keeping boot idempotent.
 pub struct PolicyTemplateLoader {
-    service: Arc<dyn PolicyTemplateServiceTrait>,
+    ctx: Arc<AppContext>,
     folder: String,
 }
 
 impl PolicyTemplateLoader {
     /// Loads every template file in `folder` as the connector's (public) templates.
-    pub fn new(service: Arc<dyn PolicyTemplateServiceTrait>, folder: String) -> Self {
-        Self { service, folder }
+    pub fn new(ctx: Arc<AppContext>, folder: String) -> Self {
+        Self { ctx, folder }
     }
 
     async fn read_template(path: &std::path::Path) -> Option<NewPolicyTemplateDto> {
@@ -127,7 +126,7 @@ impl BootSeeder for PolicyTemplateLoader {
                 continue;
             };
             template.owner = Some(Owner::connector());
-            match self.service.create_policy_template(&user, &template).await {
+            match self.ctx.templates().create_policy_template(&user, &template).await {
                 Ok(_) => {}
                 Err(e) if Self::is_duplicate(&e) => tracing::info!(
                     "Policy template '{}' v{} already exists, skipping",

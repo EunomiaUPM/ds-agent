@@ -15,20 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Catalog-agent services with mocked repositories and no-op caches.
+//! Catalog-agent use cases over mocked repositories: resources, closures, the doctor, offers,
+//! offerings and the main catalog.
 
 #[path = "../support/mod.rs"]
 mod support;
 
-mod catalogs;
-mod data_services;
+mod closure;
 mod dataset_offerings;
-mod datasets;
-mod distributions;
+mod doctor;
+mod main_catalog;
 mod odrl_policies;
-mod peer_catalogs;
-mod policy_instantiation;
-mod policy_templates;
-mod tenant_provisioning;
-// The per-tenant listener is out of the tree (one main catalog per connector).
-// mod tenant_provisioning_listener;
+mod resources;

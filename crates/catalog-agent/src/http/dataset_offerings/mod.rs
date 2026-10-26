@@ -15,30 +15,35 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Publishing a dataset with its distribution and policy in one call.
+
 use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
 use axum::extract::State;
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
+use axum::http::{HeaderMap, StatusCode};
+use axum::response::{IntoResponse, Response};
 use axum::routing::post;
 use axum::{Json, Router};
+use common::routes::catalog as routes;
+use serde_json::json;
 use ymir::types::oauth::UserInfo;
 use ymir::utils::extract_payload;
 
-use crate::entities::dataset_offerings::NewDatasetOfferingDto;
-use crate::http::common::to_camel_case::ToCamelCase;
-use crate::services::dataset_offerings::DatasetOfferingServiceTrait;
-use common::routes::catalog as routes;
+use crate::entities::admin_document::AdminDocument;
+use crate::entities::dataset_offering::NewDatasetOfferingCommand;
+use crate::http::resources::headers::AdminHeaders;
+use crate::services::odrl_policies::views::OdrlPolicyView;
+use crate::setup::context::AppContext;
 
 #[derive(Clone)]
 pub struct DatasetOfferingRouter {
-    service: Arc<dyn DatasetOfferingServiceTrait>,
+    ctx: Arc<AppContext>,
 }
 
 impl DatasetOfferingRouter {
-    pub fn new(service: Arc<dyn DatasetOfferingServiceTrait>) -> Self {
-        Self { service }
+    pub fn new(ctx: Arc<AppContext>) -> Self {
+        Self { ctx }
     }
 
     pub fn router(self) -> Router {
@@ -47,17 +52,31 @@ impl DatasetOfferingRouter {
             .with_state(self)
     }
 
+    /// The created dataset and distribution as catalog documents, and the policy.
     async fn handle_create(
         State(state): State<Self>,
         user: UserInfo,
-        input: Result<Json<NewDatasetOfferingDto>, JsonRejection>,
-    ) -> impl IntoResponse {
+        headers: HeaderMap,
+        input: Result<Json<NewDatasetOfferingCommand>, JsonRejection>,
+    ) -> Response {
         let input = match extract_payload(input) {
             Ok(input) => input,
             Err(e) => return e.into_response(),
         };
-        match state.service.create_offering(&user, &input).await {
-            Ok(offering) => (StatusCode::CREATED, Json(ToCamelCase(offering))).into_response(),
+        let visibility = match AdminHeaders::visibility(&headers) {
+            Ok(visibility) => visibility,
+            Err(e) => return e.into_response(),
+        };
+        match state.ctx.offerings().create_offering(&user, &input, visibility).await {
+            Ok(offering) => (
+                StatusCode::CREATED,
+                Json(json!({
+                    "dataset": AdminDocument::render(&offering.dataset),
+                    "distribution": AdminDocument::render(&offering.distribution),
+                    "policy": offering.policy.map(OdrlPolicyView::assemble),
+                })),
+            )
+                .into_response(),
             Err(e) => e.into_response(),
         }
     }

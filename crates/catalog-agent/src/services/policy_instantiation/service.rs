@@ -17,12 +17,11 @@
 
 //! Instantiation service over the template and offer services.
 
-use crate::entities::odrl_policies::NewOdrlPolicyDto;
+use crate::entities::commands::NewOdrlOfferCommand;
+use crate::entities::odrl_offer::OdrlOffer;
 use crate::entities::policy_instantiation::NewPolicyInstantiationDto;
-use crate::services::odrl_policies::OdrlPolicyServiceTrait;
 use crate::services::policy_instantiation::PolicyInstantiationServiceTrait;
-use crate::services::policy_templates::PolicyTemplateServiceTrait;
-use crate::OdrlPolicyDto;
+use crate::setup::context::AppContext;
 use common::dsp_common::odrl::OdrlPolicyInfo;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -30,19 +29,12 @@ use std::sync::Arc;
 use ymir::errors::Outcome;
 
 pub struct PolicyInstantiationService {
-    odrl_policy_service: Arc<dyn OdrlPolicyServiceTrait>,
-    policy_templates_service: Arc<dyn PolicyTemplateServiceTrait>,
+    ctx: Arc<AppContext>,
 }
 
 impl PolicyInstantiationService {
-    pub fn new(
-        odrl_policy_service: Arc<dyn OdrlPolicyServiceTrait>,
-        policy_templates_service: Arc<dyn PolicyTemplateServiceTrait>,
-    ) -> PolicyInstantiationService {
-        Self {
-            odrl_policy_service,
-            policy_templates_service,
-        }
+    pub fn new(ctx: Arc<AppContext>) -> Self {
+        Self { ctx }
     }
 
     fn substitute_variables_recursive(
@@ -82,10 +74,11 @@ impl PolicyInstantiationServiceTrait for PolicyInstantiationService {
         &self,
         user: &UserInfo,
         instantiation_request: &NewPolicyInstantiationDto,
-    ) -> Outcome<OdrlPolicyDto> {
+    ) -> Outcome<OdrlOffer> {
         // fetch policy template
         let policy_template = self
-            .policy_templates_service
+            .ctx
+            .templates()
             .get_policies_template_by_version_and_id(
                 user,
                 &instantiation_request.id,
@@ -117,10 +110,11 @@ impl PolicyInstantiationServiceTrait for PolicyInstantiationService {
 
         // create offer
         let created_offer = self
-            .odrl_policy_service
-            .create_odrl_offer(
+            .ctx
+            .offers()
+            .create(
                 user,
-                &NewOdrlPolicyDto {
+                &NewOdrlOfferCommand {
                     id: None,
                     visibility: None,
                     owner: None,

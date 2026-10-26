@@ -15,11 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Tables, repositories and migrations.
+//! Persistence: repository ports typed with domain entities and their SeaORM adapters.
 
-pub mod entities;
-pub mod factory_sql;
-pub mod factory_trait;
-pub mod migrations;
-pub mod repo_traits;
-pub mod repos_sql;
+pub mod factory;
+pub mod repo;
+pub mod sea_orm;

@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Helpers shared by the catalog-agent test targets. Each target uses a different subset.
+//! Doubles and builders shared by the catalog-agent test targets.
 #![allow(dead_code)]
 
 pub mod builders;
-pub mod fixtures;
+pub mod context;

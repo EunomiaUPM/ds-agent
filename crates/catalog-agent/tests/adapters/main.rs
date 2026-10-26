@@ -15,15 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Catalog-agent gRPC services and DSP routes with mocked services, orchestrator and auth.
+//! The driving adapters over mocked services: the management API, the DSP routes, the public
+//! profile routes and the gRPC mirror.
 
 #[path = "../support/mod.rs"]
 mod support;
 
-mod grpc_catalogs;
-mod grpc_data_services;
-mod grpc_datasets;
-mod grpc_distributions;
-mod grpc_odrl_policies;
-mod grpc_policy_templates;
+mod grpc_resources;
 mod http_dsp;
+mod http_public;
+mod http_resources;

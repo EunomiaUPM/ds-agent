@@ -15,14 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod catalogs;
-pub mod data_services;
-pub mod dataset_offerings;
-pub mod datasets;
-pub mod distributions;
-pub mod odrl_policies;
-pub mod peer_catalog;
-pub mod policy_templates;
-pub mod tenants;
+//! The management API (internal: users): every kind of resource as JSON-LD, plus offers,
+//! templates, offerings and the catalogs fetched from peers.
 
 pub mod common;
+pub mod dataset_offerings;
+pub mod odrl_policies;
+pub mod peer_catalogs;
+pub mod policy_templates;
+pub mod resources;

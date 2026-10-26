@@ -15,15 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Management use cases, offerings, peer catalogs and the provisioning of the main catalog.
+//! Use cases: resources, their closures, offers, templates, offerings, peer catalogs, the main
+//! catalog and the doctor.
 
-pub mod catalogs;
-pub mod data_services;
+pub mod closure;
 pub mod dataset_offerings;
-pub mod datasets;
-pub mod distributions;
+pub mod doctor;
+pub mod main_catalog;
 pub mod odrl_policies;
 pub mod peer_catalogs;
 pub mod policy_instantiation;
 pub mod policy_templates;
-pub mod tenant_provisioning;
+pub mod resources;

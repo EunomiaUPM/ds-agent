@@ -15,5 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The protocols the catalog speaks with peers: DSP.
+
 pub mod dsp;
-pub mod protocol;

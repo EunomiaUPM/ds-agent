@@ -15,271 +15,170 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! ODRL offer service over the repository and the cache.
+//! Offer service over the repositories; an offer must sit on a resource of the kind it names.
 
-use crate::cache::factory_trait::CatalogAgentCacheTrait;
-use crate::data::entities::odrl_offer::NewOdrlOfferModel;
-use crate::data::factory_trait::CatalogAgentRepoTrait;
-use crate::entities::filters::OdrlPolicyFilter;
-use crate::entities::odrl_policies::{NewOdrlPolicyDto, OdrlPolicyDto};
-use crate::services::odrl_policies::OdrlPolicyServiceTrait;
-use common::oauth::{OwnedTrait, Owner, OwnerScope};
-use ymir::types::oauth::UserInfo;
+use std::sync::Arc;
+
 use common::errors::NotFoundExt;
+use common::oauth::{OwnedTrait, Owner, OwnerScope};
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use common::query::QueryFilter;
-use std::str::FromStr;
-use std::sync::Arc;
-use urn::Urn;
-use ymir::errors::Outcome;
+use urn::{Urn, UrnBuilder};
+use ymir::errors::{ErrorReason, Errors, Outcome};
+use ymir::types::oauth::UserInfo;
 
-/// ODRL offer service that writes through to the cache and emits `catalog:` events.
+use crate::entities::commands::NewOdrlOfferCommand;
+use crate::entities::filters::OdrlPolicyFilter;
+use crate::entities::odrl_offer::OdrlOffer;
+use crate::services::odrl_policies::views::OdrlPolicyView;
+use crate::services::odrl_policies::OdrlPolicyServiceTrait;
+use crate::setup::context::AppContext;
+
 pub struct OdrlPolicyService {
-    repo: Arc<dyn CatalogAgentRepoTrait>,
-    cache: Arc<dyn CatalogAgentCacheTrait>,
-    event_bus: Option<events::EventBus>,
+    ctx: Arc<AppContext>,
 }
 
 impl OdrlPolicyService {
-    pub fn new(
-        repo: Arc<dyn CatalogAgentRepoTrait>,
-        cache: Arc<dyn CatalogAgentCacheTrait>,
-    ) -> Self {
-        Self {
-            repo,
-            cache,
-            event_bus: None,
-        }
+    pub fn new(ctx: Arc<AppContext>) -> Self {
+        Self { ctx }
     }
 
-    /// Publishes create and delete events on `event_bus`.
-    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
-        self.event_bus = event_bus;
-        self
+    fn mint() -> Urn {
+        UrnBuilder::new("odrl-policy", &uuid::Uuid::new_v4().to_string())
+            .build()
+            .expect("a UUID is a valid URN NSS")
+    }
+
+    async fn emit_deleted(&self, offer: &OdrlOffer) {
+        events::emit_action!(
+            self.ctx.events,
+            &offer.owner(),
+            crate::EVENT_PREFIX,
+            "offer",
+            "delete",
+            &events::EntityDeletedDto::new(&offer.id)
+        );
     }
 }
 
 #[async_trait::async_trait]
 impl OdrlPolicyServiceTrait for OdrlPolicyService {
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn get_all_odrl_offers(
+    async fn list(
         &self,
         user: &UserInfo,
-        filters: &OdrlPolicyFilter,
+        filter: &OdrlPolicyFilter,
         page: &Page,
         sort: &Sort,
-    ) -> Outcome<Paginated<OdrlPolicyDto>> {
-        filters.validate()?;
+    ) -> Outcome<Paginated<OdrlOffer>> {
+        filter.validate()?;
         let page = page.clamped();
-
-        let (odrl_policies, total) = self
-            .repo
-            .get_odrl_offer_repo()
-            .get_all_odrl_offers(&OwnerScope::seeing(user), filters, &page, sort)
-            .await?;
-
-        let dtos: Vec<OdrlPolicyDto> = odrl_policies.into_iter().map(Into::into).collect();
-
-        // hydration
-        let cache = self.cache.get_odrl_offer_cache();
-        for dto in &dtos {
-            if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
-                let score = dto.inner.created_at.timestamp() as f64;
-                let _ = cache.set_single(&id, dto).await;
-                let _ = cache.add_to_collection(&id, score).await;
-            }
-        }
-
-        Ok(Paginated::from_page(dtos, &page, total, |d| {
-            Cursor::encode_composite(&d.inner.created_at, &d.inner.id)
+        let scope = OwnerScope::seeing(user);
+        let repo = self.ctx.repos.odrl_offer_repo();
+        let items = repo.get_page(&scope, filter, &page, sort).await?;
+        let total = repo.count(&scope, filter).await?;
+        Ok(Paginated::from_page(items, &page, Some(total), |o| {
+            Cursor::encode_composite(&o.created_at, o.id.as_ref())
         }))
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn get_batch_odrl_offers(
-        &self,
-        user: &UserInfo,
-        ids: &[Urn],
-    ) -> Outcome<Vec<OdrlPolicyDto>> {
-        let odrl_policies = self
-            .repo
-            .get_odrl_offer_repo()
-            .get_batch_odrl_offers(&OwnerScope::seeing(user), ids)
-            .await?;
-
-        let mut dtos: Vec<OdrlPolicyDto> = Vec::new();
-        let cache = self.cache.get_odrl_offer_cache();
-        for p in odrl_policies {
-            let dto: OdrlPolicyDto = p.into();
-            if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
-                let _ = cache.set_single(&id, &dto).await;
-            }
-            dtos.push(dto);
-        }
-        Ok(dtos)
+    async fn batch(&self, user: &UserInfo, ids: &[Urn]) -> Outcome<Vec<OdrlOffer>> {
+        self.ctx
+            .repos
+            .odrl_offer_repo()
+            .get_batch(&OwnerScope::seeing(user), ids)
+            .await
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn get_odrl_offers_by_entities(&self, user: &UserInfo, entities: &[Urn]) -> Outcome<Vec<OdrlPolicyDto>> {
-        if entities.is_empty() {
-            return Ok(vec![]);
-        }
-        let models = self
-            .repo
-            .get_odrl_offer_repo()
-            .get_odrl_offers_by_entities(&OwnerScope::seeing(user), entities)
-            .await?;
-        Ok(models.into_iter().map(OdrlPolicyDto::from).collect())
+    async fn by_entities(&self, user: &UserInfo, entities: &[Urn]) -> Outcome<Vec<OdrlOffer>> {
+        self.ctx
+            .repos
+            .odrl_offer_repo()
+            .get_by_entities(&OwnerScope::seeing(user), entities)
+            .await
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn get_all_odrl_offers_by_entity(
-        &self,
-        user: &UserInfo,
-        entity: &Urn,
-    ) -> Outcome<Vec<OdrlPolicyDto>> {
-        let odrl_policies = self
-            .repo
-            .get_odrl_offer_repo()
-            .get_all_odrl_offers_by_entity(&OwnerScope::seeing(user), entity)
-            .await?;
-
-        let mut dtos: Vec<OdrlPolicyDto> = Vec::new();
-        let cache = self.cache.get_odrl_offer_cache();
-        for p in odrl_policies {
-            let dto: OdrlPolicyDto = p.into();
-            if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
-                let _ = cache.set_single(&id, &dto).await;
-                let _ = cache.add_to_relation("target", entity, &id, 0.0).await;
-            }
-            dtos.push(dto);
-        }
-        Ok(dtos)
-    }
-
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn get_odrl_offer_by_id(
-        &self,
-        user: &UserInfo,
-        odrl_offer_id: &Urn,
-    ) -> Outcome<OdrlPolicyDto> {
-        let odrl_policy = self
-            .repo
-            .get_odrl_offer_repo()
-            .get_odrl_offer_by_id(&OwnerScope::seeing(user), odrl_offer_id)
+    async fn get(&self, user: &UserInfo, id: &Urn) -> Outcome<OdrlOffer> {
+        self.ctx
+            .repos
+            .odrl_offer_repo()
+            .get_by_id(&OwnerScope::seeing(user), id)
             .await?
-            .or_not_found(odrl_offer_id, "odrl offer")?;
-
-        let dto: OdrlPolicyDto = odrl_policy.into();
-        let _ = self
-            .cache
-            .get_odrl_offer_cache()
-            .set_single(odrl_offer_id, &dto)
-            .await;
-        Ok(dto)
+            .or_not_found(id, "odrl offer")
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn create_odrl_offer(
-        &self,
-        user: &UserInfo,
-        new_odrl_offer_model: &NewOdrlPolicyDto,
-    ) -> Outcome<OdrlPolicyDto> {
-        let mut new_odrl_offer_model = new_odrl_offer_model.clone();
-        let owner =
-            Owner::for_new(user, new_odrl_offer_model.owner.take(), new_odrl_offer_model.visibility.clone());
-        let new_model: NewOdrlOfferModel = new_odrl_offer_model.into_model(owner);
-        let odrl_policy = self
-            .repo
-            .get_odrl_offer_repo()
-            .create_odrl_offer(&new_model)
+    async fn create(&self, user: &UserInfo, command: &NewOdrlOfferCommand) -> Outcome<OdrlOffer> {
+        let target = self
+            .ctx
+            .repos
+            .resource_repo()
+            .get_by_id(&OwnerScope::seeing(user), &command.entity_id)
             .await?;
-
-        let dto: OdrlPolicyDto = odrl_policy.into();
-        let policy_id = Urn::from_str(dto.inner.id.as_str())?;
-
-        // hydration
-        let cache = self.cache.get_odrl_offer_cache();
-        let _ = cache.set_single(&policy_id, &dto).await;
-        let _ = cache.add_to_collection(&policy_id, 0.0).await;
-
-        // lookup
-        if let Ok(target_urn) = Urn::from_str(&dto.inner.entity) {
-            let _ = cache
-                .add_to_relation("target", &target_urn, &policy_id, 0.0)
-                .await;
+        let expected = command.entity_type.kind();
+        if target.as_ref().map(|t| t.kind()) != Some(expected) {
+            return Err(Errors::validation_with(vec![ErrorReason {
+                path: "entityId".into(),
+                code: 1001,
+                message: format!(
+                    "{} is not a {} you can see",
+                    command.entity_id,
+                    expected.term()
+                ),
+            }]));
         }
-
+        let offer = OdrlOffer {
+            id: command.id.clone().unwrap_or_else(Self::mint),
+            owner: Owner::for_new(user, command.owner.clone(), command.visibility.clone()),
+            odrl_offer: serde_json::to_value(&command.odrl_offer)?,
+            entity: command.entity_id.clone(),
+            entity_type: command.entity_type.to_string(),
+            created_at: chrono::Utc::now(),
+            source_template_id: command.source_template_id.clone(),
+            source_template_version: command.source_template_version.clone(),
+            instantiation_parameters: command.instantiation_parameters.clone(),
+            description: command.description.clone(),
+        };
+        let stored = self.ctx.repos.odrl_offer_repo().insert(&offer).await?;
+        self.ctx.cache.invalidate().await;
         events::emit_action!(
-            self.event_bus,
-            &dto.inner.owner(),
+            self.ctx.events,
+            &stored.owner(),
             crate::EVENT_PREFIX,
             "offer",
             "create",
-            &dto
+            &OdrlPolicyView::assemble(stored.clone())
         );
-        Ok(dto)
+        Ok(stored)
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn delete_odrl_offer_by_id(
-        &self,
-        user: &UserInfo,
-        odrl_offer_id: &Urn,
-    ) -> Outcome<()> {
+    async fn delete(&self, user: &UserInfo, id: &Urn) -> Outcome<()> {
         let deleted = self
-            .repo
-            .get_odrl_offer_repo()
-            .delete_odrl_offer_by_id(&OwnerScope::acting(user), odrl_offer_id)
+            .ctx
+            .repos
+            .odrl_offer_repo()
+            .delete(&OwnerScope::acting(user), id)
             .await?;
-
-        let cache = self.cache.get_odrl_offer_cache();
-        let _ = cache.delete_single(odrl_offer_id).await;
-        let _ = cache.remove_from_collection(odrl_offer_id).await;
-        if let Ok(target_urn) = Urn::from_str(&deleted.entity) {
-            let _ = cache
-                .remove_from_relation("target", &target_urn, odrl_offer_id)
-                .await;
-        }
-
-        events::emit_action!(
-            self.event_bus,
-            &deleted.owner(),
-            crate::EVENT_PREFIX,
-            "offer",
-            "delete",
-            &events::EntityDeletedDto::new(odrl_offer_id)
-        );
+        self.ctx.cache.invalidate().await;
+        self.emit_deleted(&deleted).await;
         Ok(())
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn delete_odrl_offers_by_entity(
-        &self,
-        user: &UserInfo,
-        entity_id: &Urn,
-    ) -> Outcome<()> {
+    async fn delete_by_entity(&self, user: &UserInfo, entity: &Urn) -> Outcome<()> {
         let deleted = self
-            .repo
-            .get_odrl_offer_repo()
-            .delete_odrl_offers_by_entity(&OwnerScope::acting(user), entity_id)
+            .ctx
+            .repos
+            .odrl_offer_repo()
+            .delete_by_entity(&OwnerScope::acting(user), entity)
             .await?;
-
-        let cache = self.cache.get_odrl_offer_cache();
-        for policy in &deleted {
-            if let Ok(id) = Urn::from_str(policy.id.as_str()) {
-                let _ = cache.delete_single(&id).await;
-                let _ = cache.remove_from_collection(&id).await;
-                let _ = cache.remove_from_relation("target", entity_id, &id).await;
-                events::emit_action!(
-                    self.event_bus,
-                    &policy.owner(),
-                    crate::EVENT_PREFIX,
-                    "offer",
-                    "delete",
-                    &events::EntityDeletedDto::new(&id)
-                );
-            }
+        self.ctx.cache.invalidate().await;
+        for offer in &deleted {
+            self.emit_deleted(offer).await;
         }
         Ok(())
     }

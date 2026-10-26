@@ -15,10 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Catalog-agent domain logic that lives in structs.
+//! Catalog-agent domain logic that lives in structs: documents, graphs, compaction, templates.
 
 #[path = "../support/mod.rs"]
 mod support;
 
-mod filters;
+mod admin_document;
+mod compaction;
+mod graph;
 mod policy_instantiation;
+mod resource;
+mod resource_kind;

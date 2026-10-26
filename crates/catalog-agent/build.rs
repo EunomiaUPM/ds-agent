@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .compile_well_known_types(false)
         .file_descriptor_set_path(descriptor_path)
         .compile_protos(
-            &["proto/catalog_models.proto", "proto/catalog_service.proto"],
+            &["proto/catalog_service.proto"],
             &["proto"],
         )?;
 

@@ -20,99 +20,128 @@ syntax = "proto3";
 package catalog.v1;
 
 import "google/protobuf/empty.proto";
-import "catalog_models.proto";
 
-// ---------------------------------------------------------
-// Catalog Service
-// ---------------------------------------------------------
-
-service CatalogEntityService {
-  rpc GetAllCatalogs (ListCatalogsRequest) returns (CatalogListResponse);
-  rpc GetBatchCatalogs (GetBatchRequest) returns (CatalogListResponse);
-  rpc GetCatalogById (GetByIdRequest) returns (CatalogResponse);
-  rpc GetMainCatalog (google.protobuf.Empty) returns (CatalogResponse);
-
-  rpc CreateCatalog (CreateCatalogRequest) returns (CatalogResponse);
-  rpc CreateMainCatalog (CreateCatalogRequest) returns (CatalogResponse);
-
-  rpc PutCatalogById (PutCatalogRequest) returns (CatalogResponse);
-  rpc DeleteCatalogById (DeleteByIdRequest) returns (google.protobuf.Empty);
+// A resource as the management API writes it: JSON-LD in the eunomia catalog context.
+message Resource {
+  string id = 1;
+  // catalog, dataset, dataset_series, distribution, data_service, agent or catalog_record.
+  string kind = 2;
+  string document = 3;
+  int64 version = 4;
+  string visibility = 5;
+  string owner = 6;
 }
 
-// ---------------------------------------------------------
-// Data Service Service
-// ---------------------------------------------------------
-
-service DataServiceEntityService {
-  rpc GetAllDataServices (ListDataServicesRequest) returns (DataServiceListResponse);
-  rpc GetBatchDataServices (GetBatchRequest) returns (DataServiceListResponse);
-  rpc GetDataServicesByCatalogId (GetByParentIdRequest) returns (DataServiceListResponse);
-  rpc GetDataServiceById (GetByIdRequest) returns (DataServiceResponse);
-  rpc GetMainDataService(google.protobuf.Empty) returns (DataServiceResponse);
-
-  rpc CreateDataService (CreateDataServiceRequest) returns (DataServiceResponse);
-  rpc CreateMainMainCatalog (CreateDataServiceRequest) returns (DataServiceResponse);
-
-  rpc PutDataServiceById (PutDataServiceRequest) returns (DataServiceResponse);
-  rpc DeleteDataServiceById (DeleteByIdRequest) returns (google.protobuf.Empty);
+message ResourceList {
+  repeated Resource items = 1;
+  optional string next_cursor = 2;
+  optional uint64 total = 3;
 }
 
-// ---------------------------------------------------------
-// Dataset Service
-// ---------------------------------------------------------
-
-service DatasetEntityService {
-  rpc GetAllDatasets (ListDatasetsRequest) returns (DatasetListResponse);
-  rpc GetBatchDatasets (GetBatchRequest) returns (DatasetListResponse);
-  rpc GetDatasetsByCatalogId (GetByParentIdRequest) returns (DatasetListResponse);
-  rpc GetDatasetById (GetByIdRequest) returns (DatasetResponse);
-
-  rpc CreateDataset (CreateDatasetRequest) returns (DatasetResponse);
-  rpc PutDatasetById (PutDatasetRequest) returns (DatasetResponse);
-  rpc DeleteDatasetById (DeleteByIdRequest) returns (google.protobuf.Empty);
+message ListResourcesRequest {
+  string kind = 1;
+  // The filter as JSON, with the query parameters of the HTTP API as members.
+  optional string filter = 2;
+  optional uint32 limit = 3;
+  optional string cursor = 4;
+  optional string sort = 5;
 }
 
-// ---------------------------------------------------------
-// Distribution Service
-// ---------------------------------------------------------
-
-service DistributionEntityService {
-  rpc GetAllDistributions (ListDistributionsRequest) returns (DistributionListResponse);
-  rpc GetBatchDistributions (GetBatchRequest) returns (DistributionListResponse);
-  rpc GetDistributionsByDatasetId (GetByParentIdRequest) returns (DistributionListResponse);
-
-  rpc GetDistributionByDatasetAndFormat (GetDistributionByFormatRequest) returns (DistributionResponse);
-
-  rpc GetDistributionById (GetByIdRequest) returns (DistributionResponse);
-  rpc CreateDistribution (CreateDistributionRequest) returns (DistributionResponse);
-  rpc PutDistributionById (PutDistributionRequest) returns (DistributionResponse);
-  rpc DeleteDistributionById (DeleteByIdRequest) returns (google.protobuf.Empty);
+message ResourceRef {
+  string kind = 1;
+  string id = 2;
 }
 
-// ---------------------------------------------------------
-// Policy Template Service
-// ---------------------------------------------------------
-
-service PolicyTemplateEntityService {
-  rpc GetAllPolicyTemplates (ListPolicyTemplatesRequest) returns (PolicyTemplateListResponse);
-  rpc GetBatchPolicyTemplates (GetBatchRequest) returns (PolicyTemplateListResponse);
-  rpc GetPolicyTemplatesById (GetByIdRequest) returns (PolicyTemplateListResponse);
-  rpc GetPolicyTemplateByVersion (GetByVersionRequest) returns (PolicyTemplateResponse);
-  rpc CreatePolicyTemplate (CreatePolicyTemplateRequest) returns (PolicyTemplateResponse);
-  rpc DeletePolicyTemplateByVersion (DeleteByVersionRequest) returns (google.protobuf.Empty);
+message BatchResourcesRequest {
+  string kind = 1;
+  repeated string ids = 2;
 }
 
-// ---------------------------------------------------------
-// ODRL Policy Service
-// ---------------------------------------------------------
+message ChildrenRequest {
+  string kind = 1;
+  string parent_id = 2;
+}
 
-service OdrlPolicyEntityService {
-  rpc GetAllOdrlOffers (ListOdrlPoliciesRequest) returns (OdrlPolicyListResponse);
-  rpc GetBatchOdrlOffers (GetBatchRequest) returns (OdrlPolicyListResponse);
-  rpc GetAllOdrlOffersByEntity (GetByEntityIdRequest) returns (OdrlPolicyListResponse);
-  rpc GetOdrlOfferById (GetByIdRequest) returns (OdrlPolicyResponse);
+message MainRequest {
+  string kind = 1;
+}
 
-  rpc CreateOdrlOffer (CreateOdrlPolicyRequest) returns (OdrlPolicyResponse);
-  rpc DeleteOdrlOfferById (DeleteByIdRequest) returns (google.protobuf.Empty);
-  rpc DeleteOdrlOffersByEntity (DeleteByEntityIdRequest) returns (google.protobuf.Empty);
+message CreateResourceRequest {
+  string kind = 1;
+  string document = 2;
+  optional string visibility = 3;
+}
+
+message ReplaceResourceRequest {
+  string kind = 1;
+  string id = 2;
+  string document = 3;
+  optional string visibility = 4;
+  optional int64 if_match = 5;
+}
+
+message DeleteResourceRequest {
+  string kind = 1;
+  string id = 2;
+  optional int64 if_match = 3;
+}
+
+message DoctorRequest {
+  string kind = 1;
+  string id = 2;
+  optional string profile = 3;
+  bool deep = 4;
+}
+
+// Any management API answer or body, as JSON.
+message JsonDocument {
+  string json = 1;
+}
+
+message IdRequest {
+  string id = 1;
+}
+
+message ListJsonRequest {
+  optional string filter = 1;
+  optional uint32 limit = 2;
+  optional string cursor = 3;
+  optional string sort = 4;
+}
+
+message TemplateVersionRequest {
+  string id = 1;
+  string version = 2;
+}
+
+service CatalogResourceService {
+  rpc List (ListResourcesRequest) returns (ResourceList);
+  rpc Batch (BatchResourcesRequest) returns (ResourceList);
+  rpc Get (ResourceRef) returns (Resource);
+  rpc Main (MainRequest) returns (Resource);
+  rpc Children (ChildrenRequest) returns (ResourceList);
+  rpc Create (CreateResourceRequest) returns (Resource);
+  rpc CreateMain (CreateResourceRequest) returns (Resource);
+  rpc Replace (ReplaceResourceRequest) returns (Resource);
+  rpc Delete (DeleteResourceRequest) returns (google.protobuf.Empty);
+  rpc Doctor (DoctorRequest) returns (JsonDocument);
+}
+
+// ODRL offers, as the management API's JSON.
+service OdrlOfferService {
+  rpc List (ListJsonRequest) returns (JsonDocument);
+  rpc Get (IdRequest) returns (JsonDocument);
+  rpc ByEntity (IdRequest) returns (JsonDocument);
+  rpc Create (JsonDocument) returns (JsonDocument);
+  rpc Delete (IdRequest) returns (google.protobuf.Empty);
+}
+
+// Policy templates and their instantiation, as the management API's JSON.
+service PolicyTemplateService {
+  rpc List (ListJsonRequest) returns (JsonDocument);
+  rpc Versions (IdRequest) returns (JsonDocument);
+  rpc Get (TemplateVersionRequest) returns (JsonDocument);
+  rpc Create (JsonDocument) returns (JsonDocument);
+  rpc Delete (TemplateVersionRequest) returns (google.protobuf.Empty);
+  rpc Instantiate (JsonDocument) returns (JsonDocument);
 }

@@ -19,9 +19,21 @@
 
 pub mod service;
 
-use crate::entities::dataset_offerings::{DatasetOfferingDto, NewDatasetOfferingDto};
-use ymir::types::oauth::UserInfo;
 use ymir::errors::Outcome;
+use ymir::types::oauth::UserInfo;
+use ymir::types::participants::Visibility;
+
+use crate::entities::dataset_offering::NewDatasetOfferingCommand;
+use crate::entities::odrl_offer::OdrlOffer;
+use crate::entities::resource::CatalogResource;
+
+/// The dataset, distribution and policy an offering created.
+#[derive(Debug, Clone)]
+pub struct DatasetOffering {
+    pub dataset: CatalogResource,
+    pub distribution: CatalogResource,
+    pub policy: Option<OdrlOffer>,
+}
 
 /// Publishing a dataset together with its distribution and policy.
 #[mockall::automock]
@@ -31,6 +43,7 @@ pub trait DatasetOfferingServiceTrait: Send + Sync {
     async fn create_offering(
         &self,
         user: &UserInfo,
-        offering: &NewDatasetOfferingDto,
-    ) -> Outcome<DatasetOfferingDto>;
+        offering: &NewDatasetOfferingCommand,
+        visibility: Option<Visibility>,
+    ) -> Outcome<DatasetOffering>;
 }

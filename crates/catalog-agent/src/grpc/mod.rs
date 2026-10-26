@@ -15,14 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! gRPC driving adapter: generated API plus one handler module per resource.
+//! gRPC driving adapter, the simplest mirror of the management API: resources travel as the
+//! same JSON-LD documents, offers and templates as the same JSON.
 
-pub mod catalogs;
-pub mod data_services;
-pub mod datasets;
-pub mod distributions;
-pub mod odrl_policies;
+pub mod odrl_offers;
 pub mod policy_templates;
+pub mod resources;
 
 /// Generated protobuf/tonic code and the reflection descriptor set.
 pub mod api {
@@ -32,6 +30,26 @@ pub mod api {
     }
 
     /// Encoded descriptors for the reflection service.
-    pub const FILE_DESCRIPTOR_SET: &[u8] =
-        tonic::include_file_descriptor_set!("catalog_descriptor");
+    pub const FILE_DESCRIPTOR_SET: &[u8] = tonic::include_file_descriptor_set!("catalog_descriptor");
+}
+
+use serde::Serialize;
+use tonic::Status;
+
+use crate::grpc::api::catalog_agent::JsonDocument;
+
+/// JSON answers of the gRPC mirror.
+pub struct GrpcJson;
+
+impl GrpcJson {
+    pub fn document<T: Serialize>(value: &T) -> Result<JsonDocument, Status> {
+        serde_json::to_string(value)
+            .map(|json| JsonDocument { json })
+            .map_err(|e| Status::internal(format!("answer is not serializable: {e}")))
+    }
+
+    /// The JSON `field` carries, as the type it must be.
+    pub fn parse<T: serde::de::DeserializeOwned>(json: &str, field: &str) -> Result<T, Status> {
+        serde_json::from_str(json).map_err(|e| Status::invalid_argument(format!("{field}: {e}")))
+    }
 }

@@ -20,17 +20,16 @@
 pub mod types;
 pub mod validator;
 
-use crate::data::entities::policy_template;
+use crate::entities::commands::NewPolicyTemplateCommand;
+use crate::entities::policy_templates::types::{LocalizedText, ParameterDefinition};
 use common::oauth::Owner;
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::Visibility;
-use crate::data::entities::policy_template::{Model, NewPolicyTemplateModel};
-use crate::entities::policy_templates::types::{LocalizedText, ParameterDefinition};
 use common::dsp_common::odrl::OdrlPolicyInfo;
-use sea_orm::prelude::DateTimeWithTimeZone;
+type DateTimeWithTimeZone = chrono::DateTime<chrono::FixedOffset>;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 
 /// Default value of a parameter: a string or a number.
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -91,9 +90,9 @@ pub struct NewPolicyTemplateDto {
 common::impl_owned!(PolicyTemplateDto);
 
 impl NewPolicyTemplateDto {
-    /// Row owned by `owner`; fails when content or parameters cannot be serialized.
-    pub fn into_model(self, owner: Owner) -> Outcome<NewPolicyTemplateModel> {
-        Ok(NewPolicyTemplateModel {
+    /// The command creating it for `owner`; fails when content or parameters cannot be serialized.
+    pub fn into_command(self, owner: Owner) -> Outcome<NewPolicyTemplateCommand> {
+        Ok(NewPolicyTemplateCommand {
             id: self.id,
             owner,
             version: self.version,
@@ -103,26 +102,6 @@ impl NewPolicyTemplateDto {
             description: self.description.map(serde_json::to_value).transpose()?,
             content: serde_json::to_value(self.content)?,
             parameters: serde_json::to_value(self.parameters)?,
-        })
-    }
-}
-
-impl TryFrom<policy_template::Model> for PolicyTemplateDto {
-    type Error = Errors;
-
-    fn try_from(value: Model) -> Result<Self, Self::Error> {
-        Ok(Self {
-            id: value.id,
-            user_id: value.user_id,
-            user_role: value.user_role,
-            visibility: value.visibility,
-            version: value.version,
-            date: value.date,
-            title: value.title.map(serde_json::from_value).transpose()?,
-            description: value.description.map(serde_json::from_value).transpose()?,
-            author: value.author,
-            content: serde_json::from_value(value.content)?,
-            parameters: serde_json::from_value(value.parameters)?,
         })
     }
 }

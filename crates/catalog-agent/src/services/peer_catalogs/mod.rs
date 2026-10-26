@@ -15,31 +15,23 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Cached catalogs fetched from peer connectors.
+//! Catalogs fetched from peer connectors, kept in the cache as the peer sent them.
 
 pub mod service;
 
-use crate::protocols::dsp::types::catalog_definition::Catalog;
-use ymir::types::oauth::UserInfo;
+use serde_json::Value;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
+use ymir::types::oauth::UserInfo;
 
-/// Catalogs fetched from peers, kept in the cache.
+/// Catalogs fetched from peers, kept per user.
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait PeerCatalogServiceTrait: Send + Sync {
     /// Every cached peer catalog, with the peer it came from.
-    async fn get_all_peer_catalogs(&self, user: &UserInfo) -> Outcome<Vec<(Mates, Catalog)>>;
+    async fn get_all(&self, user: &UserInfo) -> Outcome<Vec<(Mates, Value)>>;
     /// Cached catalog of the peer, if any.
-    async fn get_peer_catalog(
-        &self,
-        user: &UserInfo,
-        peer_id: &str,
-    ) -> Outcome<Option<Catalog>>;
+    async fn get(&self, user: &UserInfo, peer_id: &str) -> Outcome<Option<Value>>;
     /// Caches the catalog fetched from the peer.
-    async fn set_peer_catalog(
-        &self,
-        user: &UserInfo,
-        peer_id: &str,
-        catalog: &Catalog,
-    ) -> Outcome<()>;
+    async fn set(&self, user: &UserInfo, peer_id: &str, catalog: &Value) -> Outcome<()>;
 }

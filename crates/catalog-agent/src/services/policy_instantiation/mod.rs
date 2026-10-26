@@ -20,11 +20,12 @@
 pub mod service;
 
 use crate::entities::policy_instantiation::NewPolicyInstantiationDto;
-use crate::OdrlPolicyDto;
+use crate::entities::odrl_offer::OdrlOffer;
 use ymir::types::oauth::UserInfo;
 use ymir::errors::Outcome;
 
 /// Turning a policy template into a concrete ODRL offer.
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait PolicyInstantiationServiceTrait: Send + Sync {
     /// Fills the template's parameters with the given values and stores the offer.
@@ -32,5 +33,5 @@ pub trait PolicyInstantiationServiceTrait: Send + Sync {
         &self,
         user: &UserInfo,
         instantiation_request: &NewPolicyInstantiationDto,
-    ) -> Outcome<OdrlPolicyDto>;
+    ) -> Outcome<OdrlOffer>;
 }

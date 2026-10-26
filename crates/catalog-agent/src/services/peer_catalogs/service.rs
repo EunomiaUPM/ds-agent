@@ -17,88 +17,50 @@
 
 //! Peer catalog service over the cache and the participant registry.
 
-use crate::cache::factory_trait::CatalogAgentCacheTrait;
-use crate::protocols::dsp::types::catalog_definition::Catalog;
-use crate::services::peer_catalogs::PeerCatalogServiceTrait;
-use ymir::types::oauth::UserInfo;
-use common::facades::mates_facade::MatesFacadeTrait;
 use std::sync::Arc;
+
+use serde_json::Value;
 use tracing::warn;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
+use ymir::types::oauth::UserInfo;
+
+use crate::services::peer_catalogs::PeerCatalogServiceTrait;
+use crate::setup::context::AppContext;
 
 pub struct PeerCatalogService {
-    cache: Arc<dyn CatalogAgentCacheTrait>,
-    mates_facade: Arc<dyn MatesFacadeTrait>,
+    ctx: Arc<AppContext>,
 }
 
 impl PeerCatalogService {
-    pub fn new(
-        cache: Arc<dyn CatalogAgentCacheTrait>,
-        mates_facade: Arc<dyn MatesFacadeTrait>,
-    ) -> Self {
-        PeerCatalogService {
-            cache,
-            mates_facade,
-        }
+    pub fn new(ctx: Arc<AppContext>) -> Self {
+        Self { ctx }
     }
 }
 
 #[async_trait::async_trait]
 impl PeerCatalogServiceTrait for PeerCatalogService {
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn get_all_peer_catalogs(&self, user: &UserInfo) -> Outcome<Vec<(Mates, Catalog)>> {
-        let user_id = user.id();
-        let mates = self.mates_facade.get_all_mates(user).await?;
-        let peer_catalog_cache = self.cache.get_peer_catalog_cache();
-
-        let mut result = Vec::new();
+    async fn get_all(&self, user: &UserInfo) -> Outcome<Vec<(Mates, Value)>> {
+        let mates = self.ctx.ports.auth.mates.get_all_mates(user).await?;
+        let mut found = Vec::new();
         for mate in mates {
-            match peer_catalog_cache
-                .get_catalog(user_id, &mate.participant_id)
-                .await
-            {
-                Ok(Some(catalog)) => {
-                    result.push((mate, catalog));
-                }
-                Ok(None) => {
-                    // No catalog cached yet for this peer — skip silently.
-                }
-                Err(e) => {
-                    warn!(
-                        peer = %mate.participant_id,
-                        error = %e,
-                        "Failed to fetch peer catalog from cache; skipping peer"
-                    );
-                }
+            match self.ctx.cache.get_peer_catalog(user.id(), &mate.participant_id).await {
+                Ok(Some(catalog)) => found.push((mate, catalog)),
+                Ok(None) => {}
+                Err(e) => warn!(peer = %mate.participant_id, error = %e, "Peer catalog unreadable in the cache; skipping peer"),
             }
         }
-
-        Ok(result)
+        Ok(found)
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn get_peer_catalog(
-        &self,
-        user: &UserInfo,
-        peer_id: &str,
-    ) -> Outcome<Option<Catalog>> {
-        self.cache
-            .get_peer_catalog_cache()
-            .get_catalog(user.id(), peer_id)
-            .await
+    async fn get(&self, user: &UserInfo, peer_id: &str) -> Outcome<Option<Value>> {
+        self.ctx.cache.get_peer_catalog(user.id(), peer_id).await
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn set_peer_catalog(
-        &self,
-        user: &UserInfo,
-        peer_id: &str,
-        catalog: &Catalog,
-    ) -> Outcome<()> {
-        self.cache
-            .get_peer_catalog_cache()
-            .set_catalog(user.id(), peer_id, catalog)
-            .await
+    async fn set(&self, user: &UserInfo, peer_id: &str, catalog: &Value) -> Outcome<()> {
+        self.ctx.cache.put_peer_catalog(user.id(), peer_id, catalog).await
     }
 }

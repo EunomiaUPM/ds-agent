@@ -15,31 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::facades::well_known_rpc_facade::WellKnownRPCFacadeTrait;
-use std::sync::Arc;
+//! What the DSP plane asks other components: where a peer's DSP endpoint is.
 
 pub mod well_known_rpc_facade;
-
-#[async_trait::async_trait]
-pub trait FacadeTrait: Send + Sync {
-    async fn get_catalog_rpc_path_facade(&self) -> Arc<dyn WellKnownRPCFacadeTrait>;
-}
-
-pub struct FacadeService {
-    catalog_rpc_path_facade: Arc<dyn WellKnownRPCFacadeTrait>,
-}
-
-impl FacadeService {
-    pub fn new(catalog_rpc_path_facade: Arc<dyn WellKnownRPCFacadeTrait>) -> FacadeService {
-        Self {
-            catalog_rpc_path_facade,
-        }
-    }
-}
-
-#[async_trait::async_trait]
-impl FacadeTrait for FacadeService {
-    async fn get_catalog_rpc_path_facade(&self) -> Arc<dyn WellKnownRPCFacadeTrait> {
-        self.catalog_rpc_path_facade.clone()
-    }
-}

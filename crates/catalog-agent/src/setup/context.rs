@@ -15,24 +15,28 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Wires the catalog data layer and management services once, for every driving adapter.
+//! What every catalog module uses: config, repos, events, cache, ports, the profile registry and
+//! the services built on them.
 
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
-use crate::cache::factory_noop::CatalogAgentCacheNoop;
-use crate::cache::factory_redis::CatalogAgentCacheForRedis;
-use crate::cache::factory_trait::CatalogAgentCacheTrait;
-use crate::data::factory_sql::CatalogAgentRepoForSql;
-use crate::services::catalogs::service::CatalogService;
-use crate::services::catalogs::CatalogServiceTrait;
-use crate::services::data_services::service::DataServiceService;
-use crate::services::data_services::DataServiceServiceTrait;
+use common::config::services::CatalogConfig;
+use common::module_loader::root_context::RootContext;
+use events::EventSinkTrait;
+use ymir::services::token_validator::OauthTokenValidatorTrait;
+
+use crate::cache::CatalogCacheTrait;
+use crate::data::factory::DataFactory;
+use crate::data::sea_orm::factory::SeaOrmDataFactory;
+use crate::profiles::ProfileRegistry;
+use crate::services::closure::service::ClosureService;
+use crate::services::closure::ClosureServiceTrait;
 use crate::services::dataset_offerings::service::DatasetOfferingService;
 use crate::services::dataset_offerings::DatasetOfferingServiceTrait;
-use crate::services::datasets::service::DatasetService;
-use crate::services::datasets::DatasetServiceTrait;
-use crate::services::distributions::service::DistributionService;
-use crate::services::distributions::DistributionServiceTrait;
+use crate::services::doctor::service::DoctorService;
+use crate::services::doctor::DoctorServiceTrait;
+use crate::services::main_catalog::service::MainCatalogService;
+use crate::services::main_catalog::MainCatalogServiceTrait;
 use crate::services::odrl_policies::service::OdrlPolicyService;
 use crate::services::odrl_policies::OdrlPolicyServiceTrait;
 use crate::services::peer_catalogs::service::PeerCatalogService;
@@ -41,126 +45,140 @@ use crate::services::policy_instantiation::service::PolicyInstantiationService;
 use crate::services::policy_instantiation::PolicyInstantiationServiceTrait;
 use crate::services::policy_templates::service::PolicyTemplateService;
 use crate::services::policy_templates::PolicyTemplateServiceTrait;
-use crate::services::tenant_provisioning::service::TenantProvisioningService;
-use crate::services::tenant_provisioning::TenantProvisioningServiceTrait;
+use crate::services::resources::service::ResourceService;
+use crate::services::resources::ResourceServiceTrait;
 use crate::setup::ports::CatalogPorts;
-use ymir::services::token_validator::OauthTokenValidatorTrait;
-use common::config::services::traits::CatalogConfigTrait;
-use common::config::services::CatalogConfig;
-use common::config::types::cache::CacheType;
-use common::config::types::traits::CacheConfigTrait;
-use common::config::types::traits::MinKnownConfigTrait;
-use common::facades::mates_facade::MatesFacadeTrait;
-use common::facades::grants_facade::GrantsFacadeTrait;
-use common::module_loader::root_context::RootContext;
-use ymir::config::types::HostType;
-use ymir::errors::{Errors, Outcome};
 
-#[derive(Clone)]
+/// The catalog agent's context; every service, router and adapter keeps it whole.
 pub struct AppContext {
     pub config: Arc<CatalogConfig>,
-    pub catalog_svc: Arc<dyn CatalogServiceTrait>,
-    pub data_service_svc: Arc<dyn DataServiceServiceTrait>,
-    pub dataset_svc: Arc<dyn DatasetServiceTrait>,
-    pub distribution_svc: Arc<dyn DistributionServiceTrait>,
-    pub odrl_policy_svc: Arc<dyn OdrlPolicyServiceTrait>,
-    pub policy_template_svc: Arc<dyn PolicyTemplateServiceTrait>,
-    pub policy_instantiation_svc: Arc<dyn PolicyInstantiationServiceTrait>,
-    pub dataset_offering_svc: Arc<dyn DatasetOfferingServiceTrait>,
-    pub peer_catalog_svc: Arc<dyn PeerCatalogServiceTrait>,
-    pub tenant_provisioning_svc: Arc<dyn TenantProvisioningServiceTrait>,
-    pub mates_facade: Arc<dyn MatesFacadeTrait>,
-    pub grants_facade: Arc<dyn GrantsFacadeTrait>,
+    pub repos: Arc<dyn DataFactory>,
+    pub events: Arc<dyn EventSinkTrait>,
+    pub cache: Arc<dyn CatalogCacheTrait>,
+    pub ports: CatalogPorts,
     pub oauth_validator: Arc<dyn OauthTokenValidatorTrait>,
-    pub event_bus: Option<events::EventBus>,
+    /// The profile adapters the composition registered.
+    pub profiles: ProfileRegistry,
+    services: OnceLock<CatalogServices>,
+}
+
+/// The agent's own services; they keep the context, so they are attached once it exists.
+#[derive(Clone)]
+pub struct CatalogServices {
+    pub resources: Arc<dyn ResourceServiceTrait>,
+    pub closures: Arc<dyn ClosureServiceTrait>,
+    pub offers: Arc<dyn OdrlPolicyServiceTrait>,
+    pub templates: Arc<dyn PolicyTemplateServiceTrait>,
+    pub instantiation: Arc<dyn PolicyInstantiationServiceTrait>,
+    pub offerings: Arc<dyn DatasetOfferingServiceTrait>,
+    pub peer_catalogs: Arc<dyn PeerCatalogServiceTrait>,
+    pub main_catalog: Arc<dyn MainCatalogServiceTrait>,
+    pub doctor: Arc<dyn DoctorServiceTrait>,
+}
+
+impl CatalogServices {
+    /// The real services over the context's repos, cache and events.
+    pub fn own(ctx: &Arc<AppContext>) -> Self {
+        Self {
+            resources: Arc::new(ResourceService::new(ctx.clone())),
+            closures: Arc::new(ClosureService::new(ctx.clone())),
+            offers: Arc::new(OdrlPolicyService::new(ctx.clone())),
+            templates: Arc::new(PolicyTemplateService::new(ctx.clone())),
+            instantiation: Arc::new(PolicyInstantiationService::new(ctx.clone())),
+            offerings: Arc::new(DatasetOfferingService::new(ctx.clone())),
+            peer_catalogs: Arc::new(PeerCatalogService::new(ctx.clone())),
+            main_catalog: Arc::new(MainCatalogService::new(ctx.clone())),
+            doctor: Arc::new(DoctorService::new(ctx.clone())),
+        }
+    }
 }
 
 impl AppContext {
-    pub async fn build(
+    /// SeaORM repos on the shared pool, the given cache, events and ports, and the own services.
+    pub fn build(
         config: &CatalogConfig,
         root: &RootContext,
-        event_bus: Option<events::EventBus>,
-        ports: &CatalogPorts,
-    ) -> Outcome<Self> {
-        let cache = Self::cache(config).await?;
-        let repo = Arc::new(CatalogAgentRepoForSql::create_repo(root.db.clone()));
+        cache: Arc<dyn CatalogCacheTrait>,
+        events: Arc<dyn EventSinkTrait>,
+        ports: CatalogPorts,
+    ) -> Arc<Self> {
+        let ctx = Self::bare(
+            Arc::new(config.clone()),
+            Arc::new(SeaOrmDataFactory::new(root.db.clone())),
+            cache,
+            events,
+            ports,
+            root.validator.clone(),
+        );
+        ctx.attach(CatalogServices::own(&ctx));
+        ctx
+    }
 
-        // Domain services
-        let catalog_svc = Arc::new(
-            CatalogService::new(repo.clone(), cache.clone()).with_event_bus(event_bus.clone()),
-        );
-        let data_service_svc = Arc::new(
-            DataServiceService::new(repo.clone(), cache.clone()).with_event_bus(event_bus.clone()),
-        );
-        let dataset_svc = Arc::new(
-            DatasetService::new(repo.clone(), cache.clone()).with_event_bus(event_bus.clone()),
-        );
-        let distribution_svc = Arc::new(
-            DistributionService::new(repo.clone(), cache.clone()).with_event_bus(event_bus.clone()),
-        );
-        let odrl_policy_svc = Arc::new(
-            OdrlPolicyService::new(repo.clone(), cache.clone()).with_event_bus(event_bus.clone()),
-        );
-        let policy_template_svc =
-            Arc::new(PolicyTemplateService::new(repo).with_event_bus(event_bus.clone()));
-        let policy_instantiation_svc = Arc::new(PolicyInstantiationService::new(
-            odrl_policy_svc.clone(),
-            policy_template_svc.clone(),
-        ));
-        let dataset_offering_svc = Arc::new(DatasetOfferingService::new(
-            catalog_svc.clone(),
-            data_service_svc.clone(),
-            dataset_svc.clone(),
-            distribution_svc.clone(),
-            odrl_policy_svc.clone(),
-        ));
-        let mates_facade = ports.auth.mates.clone();
-        let peer_catalog_svc = Arc::new(PeerCatalogService::new(cache, mates_facade.clone()));
-        let tenant_provisioning_svc = Arc::new(TenantProvisioningService::new(
-            catalog_svc.clone(),
-            data_service_svc.clone(),
-            mates_facade.clone(),
-            format!(
-                "{}{}",
-                config.contracts().get_host(HostType::Http),
-                common::dsp_common::paths::DSP_CURRENT
-            ),
-        ));
-
-        Ok(Self {
-            config: Arc::new(config.clone()),
-            catalog_svc,
-            data_service_svc,
-            dataset_svc,
-            distribution_svc,
-            odrl_policy_svc,
-            policy_template_svc,
-            policy_instantiation_svc,
-            dataset_offering_svc,
-            peer_catalog_svc,
-            tenant_provisioning_svc,
-            mates_facade,
-            grants_facade: ports.auth.grants.clone(),
-            oauth_validator: root.validator.clone(),
-            event_bus,
+    /// The context without services; `attach` completes it (tests attach mocks).
+    pub fn bare(
+        config: Arc<CatalogConfig>,
+        repos: Arc<dyn DataFactory>,
+        cache: Arc<dyn CatalogCacheTrait>,
+        events: Arc<dyn EventSinkTrait>,
+        ports: CatalogPorts,
+        oauth_validator: Arc<dyn OauthTokenValidatorTrait>,
+    ) -> Arc<Self> {
+        Arc::new(Self {
+            config,
+            repos,
+            events,
+            cache,
+            ports,
+            oauth_validator,
+            profiles: ProfileRegistry::default(),
+            services: OnceLock::new(),
         })
     }
-    /// Redis, or no cache at all, as `cache_type` says.
-    async fn cache(config: &CatalogConfig) -> Outcome<Arc<dyn CatalogAgentCacheTrait>> {
-        match config.cache_config().cache_type {
-            CacheType::Redis => {
-                let redis = redis::Client::open(config.get_full_cache_url()?)
-                    .map_err(|e| Errors::crazy("Error creating Redis client", Some(Box::new(e))))?
-                    .get_multiplexed_async_connection()
-                    .await
-                    .map_err(|e| Errors::crazy("Redis connection failed", Some(Box::new(e))))?;
-                Ok(Arc::new(CatalogAgentCacheForRedis::create_repo(redis)))
-            }
-            CacheType::Noop => Ok(Arc::new(CatalogAgentCacheNoop)),
-            ref other => Err(Errors::crazy(
-                format!("cache type {other:?} is not supported by the catalog agent"),
-                None,
-            )),
-        }
+
+    /// Attaches the services; only the first call counts.
+    pub fn attach(&self, services: CatalogServices) {
+        let _ = self.services.set(services);
+    }
+
+    pub fn resources(&self) -> &Arc<dyn ResourceServiceTrait> {
+        &self.services().resources
+    }
+
+    pub fn closures(&self) -> &Arc<dyn ClosureServiceTrait> {
+        &self.services().closures
+    }
+
+    pub fn offers(&self) -> &Arc<dyn OdrlPolicyServiceTrait> {
+        &self.services().offers
+    }
+
+    pub fn templates(&self) -> &Arc<dyn PolicyTemplateServiceTrait> {
+        &self.services().templates
+    }
+
+    pub fn instantiation(&self) -> &Arc<dyn PolicyInstantiationServiceTrait> {
+        &self.services().instantiation
+    }
+
+    pub fn offerings(&self) -> &Arc<dyn DatasetOfferingServiceTrait> {
+        &self.services().offerings
+    }
+
+    pub fn peer_catalogs(&self) -> &Arc<dyn PeerCatalogServiceTrait> {
+        &self.services().peer_catalogs
+    }
+
+    pub fn main_catalog(&self) -> &Arc<dyn MainCatalogServiceTrait> {
+        &self.services().main_catalog
+    }
+
+    pub fn doctor(&self) -> &Arc<dyn DoctorServiceTrait> {
+        &self.services().doctor
+    }
+
+    fn services(&self) -> &CatalogServices {
+        self.services
+            .get()
+            .expect("services are attached before any module runs")
     }
 }

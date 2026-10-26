@@ -15,67 +15,40 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! ODRL policy management use cases.
+//! ODRL offer management use cases.
 
 pub mod service;
+pub mod views;
 
-use crate::entities::filters::OdrlPolicyFilter;
-use crate::entities::odrl_policies::{NewOdrlPolicyDto, OdrlPolicyDto};
-use ymir::types::oauth::UserInfo;
 use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
+use ymir::types::oauth::UserInfo;
 
-/// Management of the ODRL offers attached to catalog entities.
+use crate::entities::commands::NewOdrlOfferCommand;
+use crate::entities::filters::OdrlPolicyFilter;
+use crate::entities::odrl_offer::OdrlOffer;
+
+/// Management of the ODRL offers attached to catalog resources.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait OdrlPolicyServiceTrait: Sync + Send {
     /// Page of offers visible to the caller.
-    async fn get_all_odrl_offers(
+    async fn list(
         &self,
         user: &UserInfo,
-        filters: &OdrlPolicyFilter,
+        filter: &OdrlPolicyFilter,
         page: &Page,
         sort: &Sort,
-    ) -> Outcome<Paginated<OdrlPolicyDto>>;
-    /// Offers found among `ids`.
-    async fn get_batch_odrl_offers(
-        &self,
-        user: &UserInfo,
-        ids: &[Urn],
-    ) -> Outcome<Vec<OdrlPolicyDto>>;
-    /// Offers attached to the entity.
-    async fn get_all_odrl_offers_by_entity(
-        &self,
-        user: &UserInfo,
-        entity: &Urn,
-    ) -> Outcome<Vec<OdrlPolicyDto>>;
-    /// Offers attached to any of the entities, read in one query and not cached.
-    async fn get_odrl_offers_by_entities(
-        &self,
-        user: &UserInfo,
-        entities: &[Urn],
-    ) -> Outcome<Vec<OdrlPolicyDto>>;
+    ) -> Outcome<Paginated<OdrlOffer>>;
+    async fn batch(&self, user: &UserInfo, ids: &[Urn]) -> Outcome<Vec<OdrlOffer>>;
+    /// Offers attached to any of the entities, in one query.
+    async fn by_entities(&self, user: &UserInfo, entities: &[Urn]) -> Outcome<Vec<OdrlOffer>>;
     /// 404 when the offer is not visible to the caller.
-    async fn get_odrl_offer_by_id(
-        &self,
-        user: &UserInfo,
-        odrl_offer_id: &Urn,
-    ) -> Outcome<OdrlPolicyDto>;
-    async fn create_odrl_offer(
-        &self,
-        user: &UserInfo,
-        new_odrl_offer_model: &NewOdrlPolicyDto,
-    ) -> Outcome<OdrlPolicyDto>;
-    async fn delete_odrl_offer_by_id(
-        &self,
-        user: &UserInfo,
-        odrl_offer_id: &Urn,
-    ) -> Outcome<()>;
+    async fn get(&self, user: &UserInfo, id: &Urn) -> Outcome<OdrlOffer>;
+    /// Stores the offer on a resource the caller sees, of the kind it names.
+    async fn create(&self, user: &UserInfo, command: &NewOdrlOfferCommand) -> Outcome<OdrlOffer>;
+    async fn delete(&self, user: &UserInfo, id: &Urn) -> Outcome<()>;
     /// Deletes every offer attached to the entity.
-    async fn delete_odrl_offers_by_entity(
-        &self,
-        user: &UserInfo,
-        entity_id: &Urn,
-    ) -> Outcome<()>;
+    async fn delete_by_entity(&self, user: &UserInfo, entity: &Urn) -> Outcome<()>;
 }

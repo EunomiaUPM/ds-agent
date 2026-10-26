@@ -15,5 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod protocol;
+//! The DSP plane's routes: the catalog protocol for peers and the catalog RPC for users.
+
+pub mod dsp;
 pub mod rpc;

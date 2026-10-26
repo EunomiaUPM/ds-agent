@@ -32,6 +32,7 @@ import {
   useGetPoliciesByEntityId,
 } from "shared/src/data/orval/odrl-policies/odrl-policies";
 import { useGetCatalogById } from "shared/src/data/orval/catalogs/catalogs";
+import { useDoctorDataset } from "shared/src/data/orval/doctor/doctor";
 import { OdrlPolicyDto } from "shared/src/data/orval/model";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
@@ -47,6 +48,7 @@ import { ParticipantLabel } from "shared/src/components/identity/ParticipantLabe
 import { JsonTable } from "shared/src/components/json/JsonTable";
 import { PolicyCard } from "shared/src/components/policy/PolicyCard";
 import { PolicyComposer } from "shared/src/components/policy/PolicyComposer";
+import { DoctorPanel } from "shared/src/components/catalog/DoctorPanel";
 import { ContractNegotiationNewOfferDialog } from "shared/src/components/dialogs/ContractNegotiationNewOfferDialog";
 import { useParticipantDirectory } from "shared/src/data/useParticipantDirectory";
 
@@ -69,6 +71,7 @@ function DatasetPage() {
   const { data: distributionsData } = useGetDistributionsByDatasetId(datasetId);
   const { data: policiesData, refetch: refetchPolicies } = useGetPoliciesByEntityId(datasetId);
   const { mutateAsync: createPolicy } = useCreateOdrlPolicy();
+  const { data: doctorData } = useDoctorDataset(datasetId, { deep: true });
 
   const dataset =
     datasetData?.status === 200 ? CatalogViews.dataset(datasetData.data as CatalogDoc) : undefined;
@@ -79,6 +82,7 @@ function DatasetPage() {
       ? CatalogViews.list(distributionsData.data, CatalogViews.distribution)
       : [];
   const policies = policiesData?.status === 200 ? policiesData.data : [];
+  const doctor = doctorData?.status === 200 ? doctorData.data : undefined;
 
   if (!dataset) return null;
 
@@ -129,6 +133,7 @@ function DatasetPage() {
           <TabsTrigger value="distributions">
             Distributions <CountBadge n={distributions.length} showZero />
           </TabsTrigger>
+          <TabsTrigger value="conformance">Conformance</TabsTrigger>
           <TabsTrigger value="metadata">Metadata</TabsTrigger>
         </TabsList>
 
@@ -222,6 +227,10 @@ function DatasetPage() {
               },
             ]}
           />
+        </TabsContent>
+
+        <TabsContent value="conformance" className="pt-5">
+          <DoctorPanel report={doctor} />
         </TabsContent>
 
         <TabsContent value="metadata" className="pt-5">

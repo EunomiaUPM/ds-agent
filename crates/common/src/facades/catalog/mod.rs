@@ -51,3 +51,6 @@ pub trait CatalogFacadeTrait: Send + Sync {
     /// A published offer; a missing-resource error unless the catalog holds it.
     async fn get_offer(&self, offer_id: &Urn) -> Outcome<CatalogOffer>;
 }
+
+#[cfg(test)]
+mod tests;

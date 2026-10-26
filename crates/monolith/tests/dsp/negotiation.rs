@@ -85,6 +85,17 @@ fn process_of(answer: &Value) -> &Value {
     &answer["negotiationAgentModel"]
 }
 
+/// The agreement `participant` stored for its process `process_id`.
+async fn agreement_of(participant: &Participant, process_id: &Value) -> Value {
+    let agreements = participant
+        .get(&format!(
+            "/api/v1/negotiation-agent/agreements/process/{}",
+            process_id.as_str().unwrap()
+        ))
+        .await;
+    agreements["items"][0].clone()
+}
+
 /// An eunomia RPC body of type `RpcNegotiation{kind}Message` with `members`.
 fn rpc(kind: &str, members: Value) -> Value {
     let mut body = json!({
@@ -169,7 +180,7 @@ pub(crate) async fn negotiate_to_finalized(ds: &Dataspace) -> Negotiated {
     Negotiated {
         offer: published,
         target: target.clone(),
-        agreement: provider_process["agreement"].clone(),
+        agreement: agreement_of(provider, &provider_process["id"]).await,
         consumer_process,
     }
 }
@@ -192,9 +203,7 @@ async fn negotiation_reaches_finalized_with_an_agreement() {
         ))
         .await;
     assert_eq!(consumer_view["state"], "FINALIZED", "{consumer_view}");
-    assert_eq!(agreement["target"], *target);
-    assert_eq!(
-        consumer_view["agreement"]["id"], agreement["id"],
-        "{consumer_view}"
-    );
+    assert_eq!(agreement["target"], *target, "{agreement}");
+    let consumer_agreement = agreement_of(&ds.consumer, &consumer_process["id"]).await;
+    assert_eq!(consumer_agreement["id"], agreement["id"], "{consumer_agreement}");
 }

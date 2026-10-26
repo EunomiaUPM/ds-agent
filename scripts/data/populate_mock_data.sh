@@ -78,7 +78,7 @@ get_dids() {
 create_catalog() {
     # Check existence
     local check=$(eunomia_curl GET "$AGENT_URL/api/v1/catalog-agent/catalogs/main")
-    local existing_id=$(echo "$check" | jq -r 'if type=="object" and .error_code == 3120 then "null" else (.id // "null") end' 2>/dev/null)
+    local existing_id=$(echo "$check" | jq -r 'if type=="object" and .error_code == 3120 then "null" else (.["@id"] // "null") end' 2>/dev/null)
 
     if [[ "$existing_id" != "null" && -n "$existing_id" ]]; then
         echo "Log: Catalog already exists." >&2
@@ -86,19 +86,19 @@ create_catalog() {
         return
     fi
 
-    local body=$(jq -n '{ "foafHomePage": "superfoaf" }')
+    local body=$(jq -n '{ "@type": "Catalog", "title": { "en": "Mock catalog" }, "homepage": "https://example.org/mock" }')
     # invoke_curl sends logs to stderr and json to stdout.
     # We capture the json in resp.
     local resp=$(invoke_curl "POST" "$AGENT_URL/api/v1/catalog-agent/catalogs" "$body" "Creating Catalog")
 
     # Output only the ID to stdout
-    echo "$resp" | jq -r '.id // empty'
+    echo "$resp" | jq -r '.["@id"] // empty'
 }
 
 get_main_catalog() {
     # Check existence
     local check=$(eunomia_curl GET "$AGENT_URL/api/v1/catalog-agent/catalogs/main")
-    local existing_id=$(echo "$check" | jq -r 'if type=="object" and .error_code == 3120 then "null" else (.id // "null") end' 2>/dev/null)
+    local existing_id=$(echo "$check" | jq -r 'if type=="object" and .error_code == 3120 then "null" else (.["@id"] // "null") end' 2>/dev/null)
 
     if [[ "$existing_id" != "null" && -n "$existing_id" ]]; then
         echo "Log: Catalog already exists." >&2
@@ -106,7 +106,7 @@ get_main_catalog() {
         return
     fi
     # Output only the ID to stdout
-    echo "$check" | jq -r '.id // empty'
+    echo "$check" | jq -r '.["@id"] // empty'
 }
 
 # 3. Create Data Service
@@ -114,12 +114,14 @@ get_main_catalog() {
 create_dataservice() {
     local catalog_id="$1"
     local body=$(jq -n --arg cat_id "$catalog_id" '{
-        "dcatEndpointUrl": "superfoaf",
-        "catalogId": $cat_id
+        "@type": "DataService",
+        "title": { "en": "Mock data service" },
+        "endpointURL": "https://example.org/mock/dsp",
+        "inCatalog": $cat_id
     }')
 
     local resp=$(invoke_curl "POST" "$AGENT_URL/api/v1/catalog-agent/data-services" "$body" "Creating Data Service")
-    echo "$resp" | jq -r '.id // empty'
+    echo "$resp" | jq -r '.["@id"] // empty'
 }
 
 # 4. Create Dataset
@@ -129,12 +131,13 @@ create_dataset() {
     local catalog_id="$2"
 
     local body=$(jq -n --arg title "$title" --arg cat_id "$catalog_id" '{
-         "dctTitle": $title,
-         "catalogId": $cat_id
+         "@type": "Dataset",
+         "title": { "en": $title },
+         "inCatalog": $cat_id
     }')
 
     local resp=$(invoke_curl "POST" "$AGENT_URL/api/v1/catalog-agent/datasets" "$body" "Creating Dataset ($title)")
-    echo "$resp" | jq -r '.id // empty'
+    echo "$resp" | jq -r '.["@id"] // empty'
 }
 
 # 5. Create Distribution
@@ -151,14 +154,15 @@ create_distribution() {
         --arg ds_id "$dataset_id" \
         --arg fmt "$format" \
       '{
-         "dctTitle": $title,
-         "dcatAccessService": $ds_svc,
-         "datasetId": $ds_id,
-         "dctFormats": $fmt
+         "@type": "Distribution",
+         "title": { "en": $title },
+         "accessService": [$ds_svc],
+         "ofDataset": $ds_id,
+         "format": $fmt
       }')
 
     local resp=$(invoke_curl "POST" "$AGENT_URL/api/v1/catalog-agent/distributions" "$body" "Creating Distribution ($title)")
-    echo "$resp" | jq -r '.id // empty'
+    echo "$resp" | jq -r '.["@id"] // empty'
 }
 
 

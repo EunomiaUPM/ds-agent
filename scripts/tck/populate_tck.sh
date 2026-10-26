@@ -32,6 +32,13 @@ curl_j() {
   fi
 }
 
+# Like curl_j, writing the response headers to the file $4 (lists page through X-Next-Cursor).
+curl_jh() {
+  local method=$1 url=$2 body=${3:-} headers=$4
+  eunomia_auth "$url"
+  curl -sf -D "$headers" -X "$method" ${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"} -H "Content-Type: application/json" ${body:+-d "$body"} "$url"
+}
+
 # ── Globals ──────────────────────────────────────────────────────────────────
 CATALOG_ID=""
 DS_SVC_ID=""
@@ -47,11 +54,11 @@ declare -A DS OFFER AGR_PROV AGR_CONS
 seed_catalog() {
   log "Seeding provider catalog for TCK"
 
-  CATALOG_ID=$(curl_j POST "$PROVIDER_URL/api/v1/catalog-agent/catalogs/main" '{}' | jq -r '.id')
+  CATALOG_ID=$(curl_j POST "$PROVIDER_URL/api/v1/catalog-agent/catalogs/main" '{}' | jq -r '.["@id"]')
   [[ -z "$CATALOG_ID" || "$CATALOG_ID" == "null" ]] && die "Could not get main catalog ID"
   ok "Catalog: $CATALOG_ID"
 
-  DS_SVC_ID=$(curl_j GET "$PROVIDER_URL/api/v1/catalog-agent/data-services/main" | jq -r '.id')
+  DS_SVC_ID=$(curl_j GET "$PROVIDER_URL/api/v1/catalog-agent/data-services/main" | jq -r '.["@id"]')
   [[ -z "$DS_SVC_ID" || "$DS_SVC_ID" == "null" ]] && die "Could not get main data-service ID"
   ok "DataService: $DS_SVC_ID"
 
@@ -113,15 +120,18 @@ reuse_dataset() {
 prune_datasets() {
   [[ "${TCK_PRUNE:-0}" == "1" ]] || return 0
   log "Pruning TCK datasets left by earlier runs"
-  local keep cursor="" page ids id
+  local keep cursor="" page ids id headers
   keep=" ${DS[*]} "
   ids=()
+  headers=$(mktemp)
   while :; do
-    page=$(curl_j GET "$PROVIDER_URL/api/v1/catalog-agent/datasets?title=tck-&limit=100${cursor:+&cursor=$cursor}") || break
-    ids+=($(echo "$page" | jq -r '.items[] | select(.dctTitle | startswith("tck-")) | .id'))
-    cursor=$(echo "$page" | jq -r '.nextCursor // empty')
+    page=$(curl_jh GET "$PROVIDER_URL/api/v1/catalog-agent/datasets?title=tck-&limit=100${cursor:+&cursor=$cursor}" "" "$headers") || break
+    # Titles are language maps; the listing filter already kept the tck-* ones.
+    ids+=($(echo "$page" | jq -r '.["@graph"][] | .["@id"]'))
+    cursor=$(grep -i '^x-next-cursor:' "$headers" | cut -d' ' -f2 | tr -d '\r')
     [[ -n "$cursor" ]] || break
   done
+  rm -f "$headers"
   for id in "${ids[@]}"; do
     [[ "$keep" == *" $id "* ]] && continue
     if curl_j DELETE "$PROVIDER_URL/api/v1/catalog-agent/datasets/$id" >/dev/null 2>&1; then
@@ -137,13 +147,13 @@ make_dataset() {
   local d_id dist_id offer_id
 
   d_id=$(curl_j POST "$PROVIDER_URL/api/v1/catalog-agent/datasets" \
-    "$(jq -n --arg t "$title" --arg c "$CATALOG_ID" '{"dctTitle":$t,"catalogId":$c}')" \
-    | jq -r '.id')
+    "$(jq -n --arg t "$title" --arg c "$CATALOG_ID" '{"@type":"Dataset","title":{"en":$t},"inCatalog":$c}')" \
+    | jq -r '.["@id"]')
 
   dist_id=$(curl_j POST "$PROVIDER_URL/api/v1/catalog-agent/distributions" \
     "$(jq -n --arg d "$d_id" --arg s "$DS_SVC_ID" \
-      '{"dctTitle":"dist","dcatAccessService":$s,"datasetId":$d,"dctFormats":"HttpData-PULL"}')" \
-    | jq -r '.id')
+      '{"@type":"Distribution","title":{"en":"dist"},"accessService":[$s],"ofDataset":$d,"format":"HttpData-PULL"}')" \
+    | jq -r '.["@id"]')
 
   curl_j POST "$PROVIDER_URL/api/v1/connector/instances" \
     "$(jq -n --arg tn "$TPL_NAME" --arg tv "$TPL_VER" --arg di "$dist_id" \

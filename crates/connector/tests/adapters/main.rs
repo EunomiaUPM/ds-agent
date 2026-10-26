@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Connector facades as other crates call them in-process.
+//! Connector facades as other crates call them, and the HTTP routers they rest on.
 
 mod connector_instance_facade;
+mod http_templates;

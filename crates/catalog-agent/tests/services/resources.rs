@@ -22,6 +22,7 @@ use catalog_agent::entities::commands::{NewResourceCommand, ReplaceResourceComma
 use catalog_agent::entities::graph::ResourceGraph;
 use catalog_agent::entities::resource_kind::ResourceKind;
 use catalog_agent::entities::vocab::Vocab;
+use common::eunomia::EUNOMIA_CATALOG_CONTEXT_URL;
 use common::test_utils::scopes::TestUsers;
 use serde_json::json;
 use ymir::errors::Errors;
@@ -269,7 +270,7 @@ async fn documents_are_read_as_the_routes_kind() {
         .unwrap();
     let refused = ctx
         .resources()
-        .create_document(&user, ResourceKind::Agent, json!({"@type": "Dataset"}), None, false)
+        .create_document(&user, ResourceKind::Agent, json!({"@context": EUNOMIA_CATALOG_CONTEXT_URL, "@type": "Dataset"}), None, false)
         .await;
 
     assert_eq!(agent.kind(), ResourceKind::Agent);

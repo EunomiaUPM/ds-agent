@@ -19,6 +19,7 @@
 
 use chrono::{DateTime, FixedOffset};
 use common::dsp_common::odrl::OdrlPolicyInfo;
+use common::eunomia::document::JsonLd;
 use common::oauth::Owner;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -67,7 +68,7 @@ pub struct NewOdrlOfferCommand {
     /// Owner an in-process flow asks for; only honoured for the root.
     #[serde(skip)]
     pub owner: Option<Owner>,
-    pub odrl_offer: OdrlPolicyInfo,
+    pub odrl_offer: JsonLd<OdrlPolicyInfo>,
     pub entity_id: Urn,
     pub entity_type: CatalogEntityTypes,
     #[serde(skip_serializing_if = "Option::is_none")]

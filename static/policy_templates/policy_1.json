@@ -4,6 +4,8 @@
   "title": "Mi example policy",
   "description": "Mi example super policy",
   "content": {
+    "@context": "http://www.w3.org/ns/odrl.jsonld",
+    "@type": "Offer",
     "permission": [
       {
         "action": "use",

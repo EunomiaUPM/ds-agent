@@ -19,7 +19,12 @@
 
 use serde_json::json;
 
-use crate::eunomia::{EunomiaProfile, EUNOMIA_CATALOG_CONTEXT_URL, EUNOMIA_CONTEXT_URL};
+use crate::dsp_common::odrl::{OdrlPolicyInfo, ODRL_CONTEXT_URL};
+use crate::eunomia::document::JsonLd;
+use crate::eunomia::{
+    EunomiaProfile, EUNOMIA_CATALOG_CONTEXT_URL, EUNOMIA_CONNECTOR_CONTEXT_URL, EUNOMIA_CONTEXT_URL,
+    EUNOMIA_KEYSTORE_CONTEXT_URL,
+};
 use crate::rdf::ExpandedDoc;
 
 const DSPACE: &str = "https://w3id.org/dspace/2025/1/";
@@ -160,4 +165,52 @@ async fn catalog_membership_term_depends_on_the_type() {
         node["http://www.w3.org/ns/dcat#endpointURL"][0]["@id"],
         "https://provider.example/dsp"
     );
+}
+
+/// The connector, keystore and ODRL contexts are embedded too.
+#[tokio::test]
+async fn api_contexts_are_embedded() {
+    let loader = EunomiaProfile::shared().loader();
+    for url in [EUNOMIA_CONNECTOR_CONTEXT_URL, EUNOMIA_KEYSTORE_CONTEXT_URL, ODRL_CONTEXT_URL] {
+        assert!(loader.is_cached(url).await, "{url}");
+    }
+}
+
+/// An ODRL offer is written with the W3C context and its class.
+#[test]
+fn odrl_offer_is_written_as_an_odrl_offer() {
+    let info: OdrlPolicyInfo = serde_json::from_value(json!({"permission": [{"action": "use"}]})).unwrap();
+    let written = serde_json::to_value(JsonLd(info)).unwrap();
+    assert_eq!(written["@context"], ODRL_CONTEXT_URL);
+    assert_eq!(written["@type"], "Offer");
+    assert_eq!(written["permission"][0]["action"], "use");
+}
+
+/// A body with the record's context or none is read; another context or type is refused.
+#[test]
+fn only_the_records_context_and_type_are_read() {
+    let rules = json!({"permission": [{"action": "use"}]});
+    let mut tagged = rules.clone();
+    tagged["@context"] = json!([ODRL_CONTEXT_URL]);
+    tagged["@type"] = json!("Offer");
+    let mut other_context = rules.clone();
+    other_context["@context"] = json!(EUNOMIA_CONTEXT_URL);
+    let mut other_type = rules.clone();
+    other_type["@type"] = json!("Agreement");
+
+    assert!(serde_json::from_value::<JsonLd<OdrlPolicyInfo>>(rules).is_ok());
+    assert!(serde_json::from_value::<JsonLd<OdrlPolicyInfo>>(tagged).is_ok());
+    assert!(serde_json::from_value::<JsonLd<OdrlPolicyInfo>>(other_context).is_err());
+    assert!(serde_json::from_value::<JsonLd<OdrlPolicyInfo>>(other_type).is_err());
+}
+
+/// An ODRL offer expands through the embedded W3C context into ODRL terms.
+#[tokio::test]
+async fn odrl_offer_expands_to_odrl_terms() {
+    let offer = json!({"@context": ODRL_CONTEXT_URL, "@type": "Offer", "permission": [{"action": "use"}]});
+    let expansion = EunomiaProfile::shared().expand(&offer).await.unwrap();
+    let node = &expansion.expanded[0];
+    assert_eq!(node["@type"][0], "http://www.w3.org/ns/odrl/2/Offer");
+    let permission = &node["http://www.w3.org/ns/odrl/2/permission"][0];
+    assert_eq!(permission["http://www.w3.org/ns/odrl/2/action"][0]["@id"], "http://www.w3.org/ns/odrl/2/use");
 }

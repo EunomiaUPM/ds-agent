@@ -21,15 +21,13 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use axum::extract::{Path, State};
-use axum::response::{IntoResponse, Response};
-use axum::routing::get;
-use axum::{Json, Router};
+use axum::Router;
 use common::oauth::OwnerScope;
 use ymir::services::token_validator::{FixedUserValidator, OauthTokenValidatorTrait};
 use ymir::types::oauth::{RolePath, UserInfo};
 use ymir::types::participants::Visibility;
 use common::config::types::min_known_config::MinKnownConfig;
+use connector::http::connector_instance::ConnectorInstanceRouter;
 use connector::{
     AuthenticationConfig, ConnectorInstanceDto, ConnectorInstanceFacadeTrait,
     ConnectorInstanceLocalFacade, ConnectorInstanceRemoteFacade, ConnectorInstanceServiceTrait,
@@ -37,7 +35,7 @@ use connector::{
     PullLifecycle, TemplateVecString,
 };
 use urn::Urn;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 
 const TENANT_A: &str = "tenant-a";
 
@@ -125,51 +123,17 @@ impl ConnectorInstanceServiceTrait for FakeInstances {
     }
 }
 
-fn found_or_404(found: Outcome<Option<ConnectorInstanceDto>>) -> Response {
-    match found {
-        Ok(Some(instance)) => Json(instance).into_response(),
-        Ok(None) => {
-            Errors::missing_resource("instance", "Instance not found", None).into_response()
-        }
-        Err(e) => e.into_response(),
-    }
-}
-
-async fn by_id(
-    State(svc): State<Arc<FakeInstances>>,
-    user: UserInfo,
-    Path(id): Path<String>,
-) -> Response {
-    found_or_404(
-        svc.get_instance_by_id(&user, &Urn::from_str(&id).unwrap())
-            .await,
-    )
-}
-
-async fn by_distribution(
-    State(svc): State<Arc<FakeInstances>>,
-    user: UserInfo,
-    Path(id): Path<String>,
-) -> Response {
-    found_or_404(
-        svc.get_instance_by_distribution(&user, &Urn::from_str(&id).unwrap())
-            .await,
-    )
-}
-
-/// Serves the catalog's connector API (real auth middleware and user extractor, with the static
+/// Serves the catalog's connector API (its real router and auth middleware, with the static
 /// identity provider acting as the root) and returns the remote facade pointed at it.
 async fn remote_facade(svc: Arc<FakeInstances>) -> ConnectorInstanceRemoteFacade {
     let validator: Arc<dyn OauthTokenValidatorTrait> =
         Arc::new(FixedUserValidator::new(UserInfo::system()));
-    let instances = Router::new()
-        .route("/{id}", get(by_id))
-        .route("/distribution/{id}", get(by_distribution))
+    let instances = ConnectorInstanceRouter::new(svc)
+        .router()
         .route_layer(axum::middleware::from_fn_with_state(
             validator,
             ymir::http::OauthHttpMiddleware::run,
-        ))
-        .with_state(svc);
+        ));
     let app = Router::new().nest("/api/v1/connector/instances", instances);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();

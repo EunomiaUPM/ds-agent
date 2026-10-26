@@ -18,6 +18,8 @@
 //! Response views of secrets.
 
 use chrono::{DateTime, Utc};
+use common::eunomia::document::JsonLdType;
+use common::eunomia::EUNOMIA_KEYSTORE_CONTEXT_URL;
 use serde::Serialize;
 
 use crate::entities::entry::SecretEntry;
@@ -91,4 +93,14 @@ impl From<Version> for VersionResponse {
     fn from(v: Version) -> Self {
         Self { version: v.value() }
     }
+}
+
+impl JsonLdType for SecretView {
+    const CONTEXT: &'static str = EUNOMIA_KEYSTORE_CONTEXT_URL;
+    const TYPE: &'static str = "Secret";
+}
+
+impl JsonLdType for VersionResponse {
+    const CONTEXT: &'static str = EUNOMIA_KEYSTORE_CONTEXT_URL;
+    const TYPE: &'static str = "Version";
 }

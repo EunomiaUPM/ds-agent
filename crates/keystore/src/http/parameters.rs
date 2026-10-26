@@ -29,6 +29,7 @@ use crate::entities::filters::PrefixFilter;
 use crate::entities::key::Key;
 use crate::services::parameters::ParameterStore;
 use crate::services::parameters::views::{ParameterView, VersionResponse};
+use common::eunomia::document::JsonLd;
 use common::query::QuerySpec;
 use common::routes::keystore as routes;
 
@@ -58,39 +59,39 @@ impl ParameterRouter {
         State(state): State<ParameterRouter>,
         user: UserInfo,
         Query(params): Query<PrefixQuery>,
-    ) -> AppResult<Json<Vec<ParameterView>>> {
+    ) -> AppResult<Json<Vec<JsonLd<ParameterView>>>> {
         let items = state.service.list(&user, &params.filter).await?;
-        Ok(Json(items.into_iter().map(ParameterView::from).collect()))
+        Ok(Json(items.into_iter().map(|item| JsonLd(ParameterView::from(item))).collect()))
     }
 
     async fn create(
         State(state): State<ParameterRouter>,
         user: UserInfo,
-        Json(cmd): Json<NewParameterCommand<serde_json::Value>>,
-    ) -> AppResult<(StatusCode, Json<ParameterView>)> {
+        Json(JsonLd(cmd)): Json<JsonLd<NewParameterCommand<serde_json::Value>>>,
+    ) -> AppResult<(StatusCode, Json<JsonLd<ParameterView>>)> {
         let entry = state.service.create(&user, &cmd).await?;
-        Ok((StatusCode::CREATED, Json(ParameterView::from(entry))))
+        Ok((StatusCode::CREATED, Json(JsonLd(ParameterView::from(entry)))))
     }
 
     async fn read(
         State(state): State<ParameterRouter>,
         user: UserInfo,
         Path(key): Path<String>,
-    ) -> AppResult<Json<ParameterView>> {
+    ) -> AppResult<Json<JsonLd<ParameterView>>> {
         let key = Key::new(format!("/{key}"))?;
         let entry = state.service.read(&user, &key).await?;
-        Ok(Json(ParameterView::from(entry)))
+        Ok(Json(JsonLd(ParameterView::from(entry))))
     }
 
     async fn update(
         State(state): State<ParameterRouter>,
         user: UserInfo,
         Path(key): Path<String>,
-        Json(cmd): Json<EditParameterCommand<serde_json::Value>>,
-    ) -> AppResult<Json<VersionResponse>> {
+        Json(JsonLd(cmd)): Json<JsonLd<EditParameterCommand<serde_json::Value>>>,
+    ) -> AppResult<Json<JsonLd<VersionResponse>>> {
         let key = Key::new(format!("/{key}"))?;
         let version = state.service.update(&user, &key, &cmd, "").await?;
-        Ok(Json(VersionResponse::from(version)))
+        Ok(Json(JsonLd(VersionResponse::from(version))))
     }
 
     async fn delete(

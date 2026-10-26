@@ -20,6 +20,10 @@ import type { OdrlProfile } from './odrlProfile';
  * Rules of a policy without its identity or target.
  */
 export interface OdrlPolicyInfo {
+  /** `http://www.w3.org/ns/odrl.jsonld`. Optional on input, where it is assumed; another context is refused. */
+  '@context'?: 'http://www.w3.org/ns/odrl.jsonld' | string[];
+  /** `Offer`. Optional on input; another type is refused. */
+  '@type'?: 'Offer';
   profile?: OdrlProfile;
   permission?: OdrlPermission[];
   obligation?: OdrlDuty[];

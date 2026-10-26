@@ -22,6 +22,7 @@ use catalog_agent::data::repo::resource::MockResourceRepoTrait;
 use catalog_agent::entities::dataset_offering::NewDatasetOfferingCommand;
 use catalog_agent::entities::resource_kind::ResourceKind;
 use catalog_agent::entities::vocab::Vocab;
+use common::eunomia::EUNOMIA_CATALOG_CONTEXT_URL;
 use common::test_utils::scopes::TestUsers;
 use serde_json::json;
 
@@ -60,8 +61,8 @@ async fn offering_falls_back_to_the_main_resources() {
     repo.expect_get_batch().returning(|_, _| Ok(vec![data_service(2, 1)]));
     let ctx = TestContext::new().resource_repo(repo).build();
     let command: NewDatasetOfferingCommand = serde_json::from_value(json!({
-        "dataset": {"@type": "Dataset", "title": {"en": "Readings"}},
-        "distribution": {"@type": "Distribution", "format": "http+pull"}
+        "dataset": {"@context": EUNOMIA_CATALOG_CONTEXT_URL, "@type": "Dataset", "title": {"en": "Readings"}},
+        "distribution": {"@context": EUNOMIA_CATALOG_CONTEXT_URL, "@type": "Distribution", "format": "http+pull"}
     }))
     .unwrap();
 
@@ -100,8 +101,8 @@ async fn failed_offering_removes_its_dataset() {
     repo.expect_delete().times(1).returning(|_, _| Ok(crate::support::builders::dataset(3, 1)));
     let ctx = TestContext::new().resource_repo(repo).build();
     let command: NewDatasetOfferingCommand = serde_json::from_value(json!({
-        "dataset": {"@type": "Dataset", "title": {"en": "Readings"}},
-        "distribution": {"@type": "Agent"}
+        "dataset": {"@context": EUNOMIA_CATALOG_CONTEXT_URL, "@type": "Dataset", "title": {"en": "Readings"}},
+        "distribution": {"@context": EUNOMIA_CATALOG_CONTEXT_URL, "@type": "Agent"}
     }))
     .unwrap();
 

@@ -9865,6 +9865,21 @@ components:
         - interaction
         - distributionId
         properties:
+          '@context':
+            description: '`https://w3id.org/eunomia/v1/connector-context.jsonld`. Optional on input, where
+              it is assumed; another context is refused.'
+            oneOf:
+            - type: string
+              const: https://w3id.org/eunomia/v1/connector-context.jsonld
+            - type: array
+              items:
+                type: string
+              contains:
+                const: https://w3id.org/eunomia/v1/connector-context.jsonld
+          '@type':
+            type: string
+            const: ConnectorInstance
+            description: '`ConnectorInstance`. Optional on input; another type is refused.'
           id:
             type: string
             description: URN of the instance.
@@ -9883,6 +9898,21 @@ components:
       - distributionId
       - parameters
       properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/connector-context.jsonld`. Optional on input, where
+            it is assumed; another context is refused.'
+          oneOf:
+          - type: string
+            const: https://w3id.org/eunomia/v1/connector-context.jsonld
+          - type: array
+            items:
+              type: string
+            contains:
+              const: https://w3id.org/eunomia/v1/connector-context.jsonld
+        '@type':
+          type: string
+          const: ConnectorInstance
+          description: '`ConnectorInstance`. Optional on input; another type is refused.'
         templateName:
           type: string
         templateVersion:
@@ -9968,6 +9998,21 @@ components:
         - interaction
         - parameters
         properties:
+          '@context':
+            description: '`https://w3id.org/eunomia/v1/connector-context.jsonld`. Optional on input, where
+              it is assumed; another context is refused.'
+            oneOf:
+            - type: string
+              const: https://w3id.org/eunomia/v1/connector-context.jsonld
+            - type: array
+              items:
+                type: string
+              contains:
+                const: https://w3id.org/eunomia/v1/connector-context.jsonld
+          '@type':
+            type: string
+            const: ConnectorTemplate
+            description: '`ConnectorTemplate`. Optional on input; another type is refused.'
           authentication:
             $ref: '#/components/schemas/AuthenticationConfig'
           interaction:
@@ -11755,6 +11800,21 @@ components:
       type: object
       description: One optional section per agent, as loaded from the config file.
       properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/keystore-context.jsonld`. Optional on input, where
+            it is assumed; another context is refused.'
+          oneOf:
+          - type: string
+            const: https://w3id.org/eunomia/v1/keystore-context.jsonld
+          - type: array
+            items:
+              type: string
+            contains:
+              const: https://w3id.org/eunomia/v1/keystore-context.jsonld
+        '@type':
+          type: string
+          const: ApplicationConfig
+          description: '`ApplicationConfig`. Optional on input; another type is refused.'
         monolith:
           type:
           - object
@@ -11785,6 +11845,21 @@ components:
       - value
       - expectedVersion
       properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/keystore-context.jsonld`. Optional on input, where
+            it is assumed; another context is refused.'
+          oneOf:
+          - type: string
+            const: https://w3id.org/eunomia/v1/keystore-context.jsonld
+          - type: array
+            items:
+              type: string
+            contains:
+              const: https://w3id.org/eunomia/v1/keystore-context.jsonld
+        '@type':
+          type: string
+          const: Parameter
+          description: '`Parameter`. Optional on input; another type is refused.'
         value:
           description: Any JSON value.
         expectedVersion:
@@ -11801,6 +11876,21 @@ components:
       - value
       - expectedVersion
       properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/keystore-context.jsonld`. Optional on input, where
+            it is assumed; another context is refused.'
+          oneOf:
+          - type: string
+            const: https://w3id.org/eunomia/v1/keystore-context.jsonld
+          - type: array
+            items:
+              type: string
+            contains:
+              const: https://w3id.org/eunomia/v1/keystore-context.jsonld
+        '@type':
+          type: string
+          const: Secret
+          description: '`Secret`. Optional on input; another type is refused.'
         value:
           description: New secret content, any JSON value.
         expectedVersion:
@@ -11817,6 +11907,21 @@ components:
       - key
       - value
       properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/keystore-context.jsonld`. Optional on input, where
+            it is assumed; another context is refused.'
+          oneOf:
+          - type: string
+            const: https://w3id.org/eunomia/v1/keystore-context.jsonld
+          - type: array
+            items:
+              type: string
+            contains:
+              const: https://w3id.org/eunomia/v1/keystore-context.jsonld
+        '@type':
+          type: string
+          const: Parameter
+          description: '`Parameter`. Optional on input; another type is refused.'
         key:
           type: string
           pattern: ^(/[A-Za-z0-9_.-]+)+$
@@ -11834,6 +11939,21 @@ components:
       - key
       - value
       properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/keystore-context.jsonld`. Optional on input, where
+            it is assumed; another context is refused.'
+          oneOf:
+          - type: string
+            const: https://w3id.org/eunomia/v1/keystore-context.jsonld
+          - type: array
+            items:
+              type: string
+            contains:
+              const: https://w3id.org/eunomia/v1/keystore-context.jsonld
+        '@type':
+          type: string
+          const: Secret
+          description: '`Secret`. Optional on input; another type is refused.'
         key:
           type: string
           pattern: ^(/[A-Za-z0-9_.-]+)+$
@@ -11856,6 +11976,21 @@ components:
       - createdBy
       - updatedBy
       properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/keystore-context.jsonld`. Optional on input, where
+            it is assumed; another context is refused.'
+          oneOf:
+          - type: string
+            const: https://w3id.org/eunomia/v1/keystore-context.jsonld
+          - type: array
+            items:
+              type: string
+            contains:
+              const: https://w3id.org/eunomia/v1/keystore-context.jsonld
+        '@type':
+          type: string
+          const: Parameter
+          description: '`Parameter`. Optional on input; another type is refused.'
         key:
           type: string
           examples:
@@ -11891,6 +12026,21 @@ components:
       - createdBy
       - updatedBy
       properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/keystore-context.jsonld`. Optional on input, where
+            it is assumed; another context is refused.'
+          oneOf:
+          - type: string
+            const: https://w3id.org/eunomia/v1/keystore-context.jsonld
+          - type: array
+            items:
+              type: string
+            contains:
+              const: https://w3id.org/eunomia/v1/keystore-context.jsonld
+        '@type':
+          type: string
+          const: Secret
+          description: '`Secret`. Optional on input; another type is refused.'
         key:
           type: string
           examples:
@@ -11922,6 +12072,21 @@ components:
       required:
       - version
       properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/keystore-context.jsonld`. Optional on input, where
+            it is assumed; another context is refused.'
+          oneOf:
+          - type: string
+            const: https://w3id.org/eunomia/v1/keystore-context.jsonld
+          - type: array
+            items:
+              type: string
+            contains:
+              const: https://w3id.org/eunomia/v1/keystore-context.jsonld
+        '@type':
+          type: string
+          const: Version
+          description: '`Version`. Optional on input; another type is refused.'
         version:
           type: integer
           format: int64
@@ -12964,6 +13129,21 @@ components:
       type: object
       description: Rules of a policy without its identity or target.
       properties:
+        '@context':
+          description: '`http://www.w3.org/ns/odrl.jsonld`. Optional on input, where it is assumed; another
+            context is refused.'
+          oneOf:
+          - type: string
+            const: http://www.w3.org/ns/odrl.jsonld
+          - type: array
+            items:
+              type: string
+            contains:
+              const: http://www.w3.org/ns/odrl.jsonld
+        '@type':
+          type: string
+          const: Offer
+          description: '`Offer`. Optional on input; another type is refused.'
         profile:
           $ref: '#/components/schemas/OdrlProfile'
         permission:

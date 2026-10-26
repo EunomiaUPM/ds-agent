@@ -24,6 +24,7 @@ import {
   DialogFooter,
 } from "shared/src/components/ui/dialog";
 import { useState } from "react";
+import { KEYSTORE_CONTEXT } from "shared/src/data/jsonld";
 import { Trash2, Pencil, Plus } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -70,6 +71,8 @@ const NewSecretDialog = ({ open, onClose }: NewSecretDialogProps) => {
 
     create({
       data: {
+        "@context": KEYSTORE_CONTEXT,
+        "@type": "Secret",
         key: key.startsWith("/") ? key : `/${key}`,
         value: parsed,
         description: description || null,
@@ -181,6 +184,8 @@ const EditSecretDialog = ({ secret, open, onClose }: EditSecretDialogProps) => {
     update({
       key: secret.key.replace(/^\//, ""),
       data: {
+        "@context": KEYSTORE_CONTEXT,
+        "@type": "Secret",
         value: parsed,
         expectedVersion: secret.version,
         description: description || null,

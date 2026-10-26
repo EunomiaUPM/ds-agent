@@ -24,6 +24,7 @@ import {
   DialogFooter,
 } from "shared/src/components/ui/dialog";
 import { useState } from "react";
+import { KEYSTORE_CONTEXT } from "shared/src/data/jsonld";
 import { Eye, Trash2, Pencil, Plus } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -67,6 +68,8 @@ const NewParameterDialog = ({ open, onClose }: NewParameterDialogProps) => {
 
     create({
       data: {
+        "@context": KEYSTORE_CONTEXT,
+        "@type": "Parameter",
         key: key.startsWith("/") ? key : `/${key}`,
         value: parsed,
         description: description || null,
@@ -170,6 +173,8 @@ const EditParameterDialog = ({ param, open, onClose }: EditParameterDialogProps)
     update({
       key: param.key.replace(/^\//, ""),
       data: {
+        "@context": KEYSTORE_CONTEXT,
+        "@type": "Parameter",
         value: parsed,
         expectedVersion: param.version,
         description: description || null,

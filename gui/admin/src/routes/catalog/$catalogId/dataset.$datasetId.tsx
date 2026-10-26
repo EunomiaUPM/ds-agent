@@ -17,6 +17,7 @@
 
 import React, { useState } from "react";
 import { CatalogViews, type CatalogDoc, type DistributionView } from "shared/src/data/catalog";
+import { JsonLd } from "shared/src/data/jsonld";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowUpRight, Plus } from "lucide-react";
 import {
@@ -244,7 +245,12 @@ function DatasetPage() {
         targetLabel={dataset.title ?? dataset.id}
         onSubmit={async (odrlOffer, description) => {
           await createPolicy({
-            data: { entityId: datasetId, entityType: "Dataset", odrlOffer, description },
+            data: {
+              entityId: datasetId,
+              entityType: "Dataset",
+              odrlOffer: JsonLd.odrlOffer(odrlOffer),
+              description,
+            },
           });
           await refetchPolicies();
         }}

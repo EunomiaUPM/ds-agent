@@ -23,6 +23,7 @@ use axum::routing::get;
 use axum::{Json, Router};
 use ymir::types::oauth::UserInfo;
 use common::config::ApplicationConfig;
+use common::eunomia::document::JsonLd;
 use ymir::errors::AppResult;
 use common::routes::keystore as routes;
 
@@ -45,8 +46,8 @@ impl ConfigRouter {
     async fn get_application_config(
         State(state): State<ConfigRouter>,
         user: UserInfo,
-    ) -> AppResult<Json<ApplicationConfig>> {
+    ) -> AppResult<Json<JsonLd<ApplicationConfig>>> {
         let items = state.service.get_application_config(&user).await?;
-        Ok(Json(items))
+        Ok(Json(JsonLd(items)))
     }
 }

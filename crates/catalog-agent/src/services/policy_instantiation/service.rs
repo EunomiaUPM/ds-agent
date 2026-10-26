@@ -23,6 +23,7 @@ use crate::entities::policy_instantiation::NewPolicyInstantiationDto;
 use crate::services::policy_instantiation::PolicyInstantiationServiceTrait;
 use crate::setup::context::AppContext;
 use common::dsp_common::odrl::OdrlPolicyInfo;
+use common::eunomia::document::JsonLd;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -102,7 +103,7 @@ impl PolicyInstantiationServiceTrait for PolicyInstantiationService {
             final_params.insert(key.clone(), val_json);
         }
 
-        let mut odrl_content_json = serde_json::to_value(&policy_template.content)?;
+        let mut odrl_content_json = serde_json::to_value(policy_template.content.inner())?;
         Self::substitute_variables_recursive(&mut odrl_content_json, &final_params)?;
 
         // create policy info
@@ -118,7 +119,7 @@ impl PolicyInstantiationServiceTrait for PolicyInstantiationService {
                     id: None,
                     visibility: None,
                     owner: None,
-                    odrl_offer: final_odrl,
+                    odrl_offer: JsonLd(final_odrl),
                     entity_id: instantiation_request.entity_id.clone(),
                     entity_type: instantiation_request.entity_type,
                     source_template_id: Some(instantiation_request.id.clone()),

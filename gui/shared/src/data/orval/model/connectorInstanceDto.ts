@@ -19,11 +19,15 @@ import type { InteractionConfig } from './interactionConfig';
 /**
  * Instance metadata, flattened, plus its resolved configuration.
  */
-export type ConnectorInstanceDto = ConnectorMetadata & {
+export type ConnectorInstanceDto = ConnectorMetadata & ({
+  /** `https://w3id.org/eunomia/v1/connector-context.jsonld`. Optional on input, where it is assumed; another context is refused. */
+  '@context'?: 'https://w3id.org/eunomia/v1/connector-context.jsonld' | string[];
+  /** `ConnectorInstance`. Optional on input; another type is refused. */
+  '@type'?: 'ConnectorInstance';
   /** URN of the instance. */
   id: string;
   authenticationConfig: AuthenticationConfig;
   interaction: InteractionConfig;
   /** URN of the distribution. */
   distributionId: string;
-};
+});

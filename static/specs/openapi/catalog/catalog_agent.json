@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Eunomia DS Catalog Agent API",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "license": {
       "name": "GPL-3.0-or-later",
       "url": "https://www.gnu.org/licenses/gpl-3.0.html"
@@ -6824,6 +6824,29 @@
         "type": "object",
         "description": "Rules of a policy without its identity or target.",
         "properties": {
+          "@context": {
+            "description": "`http://www.w3.org/ns/odrl.jsonld`. Optional on input, where it is assumed; another context is refused.",
+            "oneOf": [
+              {
+                "type": "string",
+                "const": "http://www.w3.org/ns/odrl.jsonld"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "contains": {
+                  "const": "http://www.w3.org/ns/odrl.jsonld"
+                }
+              }
+            ]
+          },
+          "@type": {
+            "type": "string",
+            "const": "Offer",
+            "description": "`Offer`. Optional on input; another type is refused."
+          },
           "profile": {
             "$ref": "#/components/schemas/OdrlProfile"
           },

@@ -34,3 +34,6 @@ redis = { workspace = true }
 strum = { workspace = true }
 secrecy = "0.10.3"
 mockall = "0.14.0"
+
+[dev-dependencies]
+tower = { workspace = true, features = ["util"] }

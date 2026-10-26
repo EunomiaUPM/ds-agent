@@ -29,6 +29,7 @@ use crate::entities::filters::PrefixFilter;
 use crate::entities::key::Key;
 use crate::services::secrets::SecretStore;
 use crate::services::secrets::views::{SecretView, VersionResponse};
+use common::eunomia::document::JsonLd;
 use common::query::QuerySpec;
 use common::routes::keystore as routes;
 
@@ -58,39 +59,39 @@ impl SecretRouter {
         State(state): State<SecretRouter>,
         user: UserInfo,
         Query(params): Query<PrefixQuery>,
-    ) -> AppResult<Json<Vec<SecretView>>> {
+    ) -> AppResult<Json<Vec<JsonLd<SecretView>>>> {
         let items = state.service.list(&user, &params.filter).await?;
-        Ok(Json(items.into_iter().map(SecretView::from).collect()))
+        Ok(Json(items.into_iter().map(|item| JsonLd(SecretView::from(item))).collect()))
     }
 
     async fn create(
         State(state): State<SecretRouter>,
         user: UserInfo,
-        Json(cmd): Json<NewSecretCommand>,
-    ) -> AppResult<(StatusCode, Json<SecretView>)> {
+        Json(JsonLd(cmd)): Json<JsonLd<NewSecretCommand>>,
+    ) -> AppResult<(StatusCode, Json<JsonLd<SecretView>>)> {
         let entry = state.service.create(&user, &cmd).await?;
-        Ok((StatusCode::CREATED, Json(SecretView::from(entry))))
+        Ok((StatusCode::CREATED, Json(JsonLd(SecretView::from(entry)))))
     }
 
     async fn read(
         State(state): State<SecretRouter>,
         user: UserInfo,
         Path(key): Path<String>,
-    ) -> AppResult<Json<SecretView>> {
+    ) -> AppResult<Json<JsonLd<SecretView>>> {
         let key = Key::new(format!("/{key}"))?;
         let entry = state.service.read(&user, &key).await?;
-        Ok(Json(SecretView::from(entry)))
+        Ok(Json(JsonLd(SecretView::from(entry))))
     }
 
     async fn update(
         State(state): State<SecretRouter>,
         user: UserInfo,
         Path(key): Path<String>,
-        Json(cmd): Json<EditSecretCommand>,
-    ) -> AppResult<Json<VersionResponse>> {
+        Json(JsonLd(cmd)): Json<JsonLd<EditSecretCommand>>,
+    ) -> AppResult<Json<JsonLd<VersionResponse>>> {
         let key = Key::new(format!("/{key}"))?;
         let version = state.service.update(&user, &key, &cmd).await?;
-        Ok(Json(VersionResponse::from(version)))
+        Ok(Json(JsonLd(VersionResponse::from(version))))
     }
 
     async fn delete(

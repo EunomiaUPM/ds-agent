@@ -1,5 +1,7 @@
 # Guía de estilo de código — ds-protocol
 
+> **Vigente con salvedades.** Las reglas que mandan están en `CLAUDE.md` (sobre todo §7 de tests: mocks `mockall` incondicionales, no `cfg_attr(test, …)`). Desactualizado: §7 describe `AccessScope` y tenants, sustituidos por `UserInfo` + `OwnerScope` (`../ARQUITECTURA_Y_DISENO.md` §2.5); `transfer-agent-ref` es hoy `transfer-agent` y ya no hay repos `in_memory`.
+
 Esta guía describe el "estilo de la casa" del workspace. No inventa nada: **destila los
 patrones que ya existen** en los crates de referencia y los convierte en reglas aplicables
 crate a crate. Cuando dudes cómo hacer algo, abre el archivo de referencia citado y cópialo.

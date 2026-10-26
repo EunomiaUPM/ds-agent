@@ -14,6 +14,10 @@ are calls the GUI still makes to routes the backend no longer serves.
  */
 
 export interface KeystoreEditParameterCommand {
+  /** `https://w3id.org/eunomia/v1/keystore-context.jsonld`. Optional on input, where it is assumed; another context is refused. */
+  '@context'?: 'https://w3id.org/eunomia/v1/keystore-context.jsonld' | string[];
+  /** `Parameter`. Optional on input; another type is refused. */
+  '@type'?: 'Parameter';
   /** Any JSON value. */
   value: unknown;
   /** @minimum 1 */

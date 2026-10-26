@@ -18,7 +18,7 @@
 //! Transfer over DSP after a finalized negotiation: the consumer, as a raw DSP peer, opens a
 //! transfer on the provider and terminates it, through the transfer flow end to end.
 
-use common::eunomia::EUNOMIA_CONTEXT_URL;
+use common::eunomia::{EUNOMIA_CONNECTOR_CONTEXT_URL, EUNOMIA_CONTEXT_URL};
 use serde_json::{json, Value};
 use uuid::Uuid;
 
@@ -31,6 +31,8 @@ const TRANSFERS: &str = "/dsp/current/transfers";
 /// Gives the provider's distribution a pull connector, as an operator would before offering it.
 async fn install_pull_connector(provider: &Participant, distribution_id: &Value) {
     let template = json!({
+        "@context": EUNOMIA_CONNECTOR_CONTEXT_URL,
+        "@type": "ConnectorTemplate",
         "name": "weather-pull",
         "version": "1.0",
         "authentication": {"type": "NO_AUTH"},
@@ -55,6 +57,8 @@ async fn install_pull_connector(provider: &Participant, distribution_id: &Value)
         .post(
             "/api/v1/connector/instances",
             json!({
+                "@context": EUNOMIA_CONNECTOR_CONTEXT_URL,
+                "@type": "ConnectorInstance",
                 "templateName": "weather-pull",
                 "templateVersion": "1.0",
                 "distributionId": distribution_id,

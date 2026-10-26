@@ -20,6 +20,8 @@
 use crate::entities::key::Key;
 use crate::entities::secret_value::SecretValue;
 use crate::entities::version::Version;
+use common::eunomia::document::JsonLdType;
+use common::eunomia::EUNOMIA_KEYSTORE_CONTEXT_URL;
 use serde::{Deserialize, Serialize};
 
 /// New parameter of the caller.
@@ -54,4 +56,24 @@ pub struct EditSecretCommand {
     pub value: SecretValue,
     pub expected_version: Version,
     pub description: Option<String>,
+}
+
+impl<T> JsonLdType for NewParameterCommand<T> {
+    const CONTEXT: &'static str = EUNOMIA_KEYSTORE_CONTEXT_URL;
+    const TYPE: &'static str = "Parameter";
+}
+
+impl<T> JsonLdType for EditParameterCommand<T> {
+    const CONTEXT: &'static str = EUNOMIA_KEYSTORE_CONTEXT_URL;
+    const TYPE: &'static str = "Parameter";
+}
+
+impl JsonLdType for NewSecretCommand {
+    const CONTEXT: &'static str = EUNOMIA_KEYSTORE_CONTEXT_URL;
+    const TYPE: &'static str = "Secret";
+}
+
+impl JsonLdType for EditSecretCommand {
+    const CONTEXT: &'static str = EUNOMIA_KEYSTORE_CONTEXT_URL;
+    const TYPE: &'static str = "Secret";
 }

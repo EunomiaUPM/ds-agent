@@ -32,3 +32,6 @@ jaq-interpret = { workspace = true }
 jaq-parse = { workspace = true }
 urn = { workspace = true }
 base64 = { workspace = true }
+
+[dev-dependencies]
+tower = { workspace = true, features = ["util"] }

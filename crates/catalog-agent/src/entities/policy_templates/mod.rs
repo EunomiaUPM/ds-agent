@@ -26,6 +26,7 @@ use common::oauth::Owner;
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::Visibility;
 use common::dsp_common::odrl::OdrlPolicyInfo;
+use common::eunomia::document::JsonLd;
 type DateTimeWithTimeZone = chrono::DateTime<chrono::FixedOffset>;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -54,7 +55,7 @@ pub struct PolicyTemplateDto {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<LocalizedText>,
     pub author: String,
-    pub content: OdrlPolicyInfo,
+    pub content: JsonLd<OdrlPolicyInfo>,
     #[serde(default)]
     pub parameters: HashMap<String, ParameterDefinition>,
 }
@@ -82,7 +83,7 @@ pub struct NewPolicyTemplateDto {
     pub description: Option<LocalizedText>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub author: Option<String>,
-    pub content: OdrlPolicyInfo,
+    pub content: JsonLd<OdrlPolicyInfo>,
     #[serde(default)]
     pub parameters: HashMap<String, ParameterDefinition>,
 }
@@ -100,7 +101,7 @@ impl NewPolicyTemplateDto {
             author: self.author,
             title: self.title.map(serde_json::to_value).transpose()?,
             description: self.description.map(serde_json::to_value).transpose()?,
-            content: serde_json::to_value(self.content)?,
+            content: serde_json::to_value(self.content.inner())?,
             parameters: serde_json::to_value(self.parameters)?,
         })
     }

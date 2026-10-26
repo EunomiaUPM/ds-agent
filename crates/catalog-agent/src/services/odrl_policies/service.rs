@@ -133,7 +133,7 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
         let offer = OdrlOffer {
             id: command.id.clone().unwrap_or_else(Self::mint),
             owner: Owner::for_new(user, command.owner.clone(), command.visibility.clone()),
-            odrl_offer: serde_json::to_value(&command.odrl_offer)?,
+            odrl_offer: serde_json::to_value(command.odrl_offer.inner())?,
             entity: command.entity_id.clone(),
             entity_type: command.entity_type.to_string(),
             created_at: chrono::Utc::now(),

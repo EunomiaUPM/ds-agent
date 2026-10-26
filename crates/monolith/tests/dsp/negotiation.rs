@@ -18,6 +18,8 @@
 //! Contract negotiation over DSP, from the consumer's request to FINALIZED, as the tutorial's
 //! pull flow walks it: offers and counter-offers, acceptance, agreement, verification.
 
+use common::dsp_common::odrl::ODRL_CONTEXT_URL;
+use common::eunomia::EUNOMIA_CATALOG_CONTEXT_URL;
 use serde_json::{json, Value};
 
 use crate::support::dataspace::{Dataspace, PROVIDER_DID};
@@ -45,13 +47,19 @@ pub(crate) async fn publish_offer(provider: &Participant) -> PublishedOffer {
     let dataset = provider
         .post(
             "/api/v1/catalog-agent/datasets",
-            json!({"@type": "Dataset", "title": {"en": "Weather"}, "inCatalog": catalog["@id"]}),
+            json!({
+                "@context": EUNOMIA_CATALOG_CONTEXT_URL,
+                "@type": "Dataset",
+                "title": {"en": "Weather"},
+                "inCatalog": catalog["@id"]
+            }),
         )
         .await;
     let distribution = provider
         .post(
             "/api/v1/catalog-agent/distributions",
             json!({
+                "@context": EUNOMIA_CATALOG_CONTEXT_URL,
                 "@type": "Distribution",
                 "title": {"en": "Weather API"},
                 "accessService": [service["@id"]],
@@ -64,7 +72,11 @@ pub(crate) async fn publish_offer(provider: &Participant) -> PublishedOffer {
         .post(
             "/api/v1/catalog-agent/odrl-policies",
             json!({
-                "odrlOffer": {"permission": [{"action": "use", "constraint": []}]},
+                "odrlOffer": {
+                    "@context": ODRL_CONTEXT_URL,
+                    "@type": "Offer",
+                    "permission": [{"action": "use", "constraint": []}]
+                },
                 "entityId": dataset["@id"],
                 "entityType": "Dataset",
                 "description": "Use the weather data"

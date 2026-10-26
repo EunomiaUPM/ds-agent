@@ -60,6 +60,7 @@ async fn body_without_context_assumes_the_catalog_context() {
 #[tokio::test]
 async fn managed_dates_are_dropped() {
     let read = AdminDocument::read(json!({
+        "@context": EUNOMIA_CATALOG_CONTEXT_URL,
         "@type": "Catalog",
         "issued": "1999-01-01T00:00:00Z",
         "modified": "1999-01-01T00:00:00Z"
@@ -74,24 +75,24 @@ async fn managed_dates_are_dropped() {
 /// A language code is a literal for `language`; elsewhere a relative IRI is refused.
 #[tokio::test]
 async fn bare_language_codes_are_kept_and_relative_iris_refused() {
-    let read = AdminDocument::read(json!({"@type": "Dataset", "language": ["en"]})).await.unwrap();
+    let read = AdminDocument::read(json!({"@context": EUNOMIA_CATALOG_CONTEXT_URL, "@type": "Dataset", "language": ["en"]})).await.unwrap();
     assert!(matches!(
         read.description.terms(Vocab::DCT_LANGUAGE).first(),
         Some(Term::Literal(l)) if l.lexical() == "en"
     ));
 
-    let refused = AdminDocument::read(json!({"@type": "Dataset", "theme": ["ENER"]})).await;
+    let refused = AdminDocument::read(json!({"@context": EUNOMIA_CATALOG_CONTEXT_URL, "@type": "Dataset", "theme": ["ENER"]})).await;
     assert!(refused.is_err());
 }
 
 /// A body with no known class, two resources or a non-URN id is malformed.
 #[tokio::test]
 async fn bodies_that_name_no_single_resource_are_malformed() {
-    assert!(AdminDocument::read(json!({"title": "x"})).await.is_err());
-    assert!(AdminDocument::read(json!({"@type": "Dataset", "@id": "https://example.org/d"}))
+    assert!(AdminDocument::read(json!({"@context": EUNOMIA_CATALOG_CONTEXT_URL, "title": "x"})).await.is_err());
+    assert!(AdminDocument::read(json!({"@context": EUNOMIA_CATALOG_CONTEXT_URL, "@type": "Dataset", "@id": "https://example.org/d"}))
         .await
         .is_err());
-    assert!(AdminDocument::read(json!({"@graph": [{"@type": "Dataset"}, {"@type": "Catalog"}]}))
+    assert!(AdminDocument::read(json!({"@context": EUNOMIA_CATALOG_CONTEXT_URL, "@graph": [{"@type": "Dataset"}, {"@type": "Catalog"}]}))
         .await
         .is_err());
 }
@@ -100,6 +101,7 @@ async fn bodies_that_name_no_single_resource_are_malformed() {
 #[tokio::test]
 async fn embedded_resources_become_references() {
     let read = AdminDocument::read(json!({
+        "@context": EUNOMIA_CATALOG_CONTEXT_URL,
         "@type": "Distribution",
         "accessService": [{"@id": "urn:data-service:1", "endpointURL": "https://x.example"}]
     }))

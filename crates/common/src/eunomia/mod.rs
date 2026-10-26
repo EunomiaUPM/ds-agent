@@ -18,8 +18,11 @@
 //! Eunomia: the JSON-LD context of the agents' own RPC messages, typed like the DSP messages
 //! they become and reusing the DSP vocabulary wherever the meaning is the same.
 
+pub mod document;
+
 use std::sync::LazyLock;
 
+use crate::dsp_common::odrl::ODRL_CONTEXT_URL;
 use crate::rdf::engine::RdfEngine;
 use crate::rdf::loader::RdfContextLoader;
 use crate::rdf::profile::RdfProfile;
@@ -27,11 +30,21 @@ use crate::rdf::profile::RdfProfile;
 pub const EUNOMIA_CONTEXT_URL: &str = "https://w3id.org/eunomia/v1/context.jsonld";
 /// Context of the catalog agent's management API: DCAT resources in our own terms.
 pub const EUNOMIA_CATALOG_CONTEXT_URL: &str = "https://w3id.org/eunomia/v1/catalog-context.jsonld";
+/// Context of the connector API: templates and instances.
+pub const EUNOMIA_CONNECTOR_CONTEXT_URL: &str =
+    "https://w3id.org/eunomia/v1/connector-context.jsonld";
+/// Context of the keystore API: parameters, secrets and the application config.
+pub const EUNOMIA_KEYSTORE_CONTEXT_URL: &str = "https://w3id.org/eunomia/v1/keystore-context.jsonld";
 /// Namespace every eunomia term expands into.
 pub const EUNOMIA_NS: &str = "https://w3id.org/eunomia/v1/";
 const EUNOMIA_CONTEXT_DOC: &str = include_str!("../../assets/eunomia-v1-context.jsonld");
 const EUNOMIA_CATALOG_CONTEXT_DOC: &str =
     include_str!("../../assets/eunomia-catalog-v1-context.jsonld");
+const EUNOMIA_CONNECTOR_CONTEXT_DOC: &str =
+    include_str!("../../assets/eunomia-connector-v1-context.jsonld");
+const EUNOMIA_KEYSTORE_CONTEXT_DOC: &str =
+    include_str!("../../assets/eunomia-keystore-v1-context.jsonld");
+const ODRL_CONTEXT_DOC: &str = include_str!("../../assets/odrl-context.jsonld");
 
 static EUNOMIA_ENGINE: LazyLock<RdfEngine> =
     LazyLock::new(RdfEngine::with_profile::<EunomiaProfile>);
@@ -49,6 +62,15 @@ impl RdfProfile for EunomiaProfile {
         loader
             .register_asset(EUNOMIA_CATALOG_CONTEXT_URL, EUNOMIA_CATALOG_CONTEXT_DOC)
             .expect("embedded eunomia catalog context is valid JSON-LD");
+        loader
+            .register_asset(EUNOMIA_CONNECTOR_CONTEXT_URL, EUNOMIA_CONNECTOR_CONTEXT_DOC)
+            .expect("embedded eunomia connector context is valid JSON-LD");
+        loader
+            .register_asset(EUNOMIA_KEYSTORE_CONTEXT_URL, EUNOMIA_KEYSTORE_CONTEXT_DOC)
+            .expect("embedded eunomia keystore context is valid JSON-LD");
+        loader
+            .register_asset(ODRL_CONTEXT_URL, ODRL_CONTEXT_DOC)
+            .expect("embedded ODRL context is valid JSON-LD");
     }
 }
 

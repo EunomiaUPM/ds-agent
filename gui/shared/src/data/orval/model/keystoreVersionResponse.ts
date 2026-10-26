@@ -14,5 +14,9 @@ are calls the GUI still makes to routes the backend no longer serves.
  */
 
 export interface KeystoreVersionResponse {
+  /** `https://w3id.org/eunomia/v1/keystore-context.jsonld`. Optional on input, where it is assumed; another context is refused. */
+  '@context'?: 'https://w3id.org/eunomia/v1/keystore-context.jsonld' | string[];
+  /** `Version`. Optional on input; another type is refused. */
+  '@type'?: 'Version';
   version: number;
 }

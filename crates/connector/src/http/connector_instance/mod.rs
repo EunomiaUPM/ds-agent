@@ -25,6 +25,7 @@ use axum::response::IntoResponse;
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use ymir::types::oauth::UserInfo;
+use common::eunomia::document::JsonLd;
 use common::query::QuerySpec;
 use std::sync::Arc;
 use ymir::errors::Errors;
@@ -65,14 +66,14 @@ impl ConnectorInstanceRouter {
     async fn handle_upsert_instance(
         State(state): State<ConnectorInstanceRouter>,
         user: UserInfo,
-        input: Result<Json<ConnectorInstantiationDto>, JsonRejection>,
+        input: Result<Json<JsonLd<ConnectorInstantiationDto>>, JsonRejection>,
     ) -> impl IntoResponse {
         let mut input = match extract_payload(input) {
-            Ok(v) => v,
+            Ok(v) => v.into_inner(),
             Err(e) => return e.into_response(),
         };
         match state.service.upsert_instance(&user, &mut input).await {
-            Ok(instance) => (StatusCode::OK, Json(instance)).into_response(),
+            Ok(instance) => (StatusCode::OK, Json(JsonLd(instance))).into_response(),
             Err(err) => err.into_response(),
         }
     }
@@ -87,7 +88,7 @@ impl ConnectorInstanceRouter {
             Err(err) => return err.into_response(),
         };
         match state.service.get_instance_by_id(&user, &id).await {
-            Ok(Some(instance)) => (StatusCode::OK, Json(instance)).into_response(),
+            Ok(Some(instance)) => (StatusCode::OK, Json(JsonLd(instance))).into_response(),
             Ok(None) => {
                 let err = Errors::missing_resource("instance", "Instance not found", None);
                 err.into_response()
@@ -110,7 +111,7 @@ impl ConnectorInstanceRouter {
             .get_instance_by_distribution(&user, &did)
             .await
         {
-            Ok(Some(instance)) => (StatusCode::OK, Json(instance)).into_response(),
+            Ok(Some(instance)) => (StatusCode::OK, Json(JsonLd(instance))).into_response(),
             Ok(None) => {
                 let err = Errors::missing_resource("instance", "Instance not found", None);
                 err.into_response()

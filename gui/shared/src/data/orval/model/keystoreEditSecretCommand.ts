@@ -14,6 +14,10 @@ are calls the GUI still makes to routes the backend no longer serves.
  */
 
 export interface KeystoreEditSecretCommand {
+  /** `https://w3id.org/eunomia/v1/keystore-context.jsonld`. Optional on input, where it is assumed; another context is refused. */
+  '@context'?: 'https://w3id.org/eunomia/v1/keystore-context.jsonld' | string[];
+  /** `Secret`. Optional on input; another type is refused. */
+  '@type'?: 'Secret';
   /** New secret content, any JSON value. */
   value: unknown;
   /** @minimum 1 */

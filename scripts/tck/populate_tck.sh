@@ -12,6 +12,11 @@ PROVIDER_URL="${PROVIDER_URL:-http://127.0.0.1:1200}"
 CONSUMER_URL="${CONSUMER_URL:-http://127.0.0.1:1100}"
 OUTPUT_MAPPING="${OUTPUT_MAPPING:-$ROOT_DIR/tck/tck_mapping.json}"
 
+# JSON-LD contexts of the bodies this script sends.
+CATALOG_CTX="https://w3id.org/eunomia/v1/catalog-context.jsonld"
+CONNECTOR_CTX="https://w3id.org/eunomia/v1/connector-context.jsonld"
+ODRL_CTX="http://www.w3.org/ns/odrl.jsonld"
+
 # ── helpers ───────────────────────────────────────────────────────────────────
 log()  { echo -e "\033[36m▶ $*\033[0m" >&2; }
 ok()   { echo -e "\033[32m  ✓ $*\033[0m" >&2; }
@@ -54,7 +59,8 @@ declare -A DS OFFER AGR_PROV AGR_CONS
 seed_catalog() {
   log "Seeding provider catalog for TCK"
 
-  CATALOG_ID=$(curl_j POST "$PROVIDER_URL/api/v1/catalog-agent/catalogs/main" '{}' | jq -r '.["@id"]')
+  CATALOG_ID=$(curl_j POST "$PROVIDER_URL/api/v1/catalog-agent/catalogs/main" \
+    "$(jq -n --arg ctx "$CATALOG_CTX" '{"@context":$ctx,"@type":"Catalog"}')" | jq -r '.["@id"]')
   [[ -z "$CATALOG_ID" || "$CATALOG_ID" == "null" ]] && die "Could not get main catalog ID"
   ok "Catalog: $CATALOG_ID"
 
@@ -64,7 +70,7 @@ seed_catalog() {
 
   local tpl_resp
   tpl_resp=$(curl_j POST "$PROVIDER_URL/api/v1/connector/templates" \
-    '{"authentication":{"type":"NO_AUTH"},"interaction":{"mode":"PULL","dataAccess":{"protocol":"HTTP","urlTemplate":"{{__ACCESS_URL__}}","method":"{{__ACCESS_METHODS__}}","headers":"{{__ACCESS_HEADERS__}}"}},"parameters":[{"paramType":"STRING","name":"ACCESS_URL","title":"URL","required":true},{"paramType":"VEC<STRING>","name":"ACCESS_METHODS","title":"Methods","required":true},{"paramType":"MAP<STRING,STRING>","name":"ACCESS_HEADERS","title":"Headers","required":true}]}')
+    "$(jq -n --arg ctx "$CONNECTOR_CTX" '{"@context":$ctx,"@type":"ConnectorTemplate","authentication":{"type":"NO_AUTH"},"interaction":{"mode":"PULL","dataAccess":{"protocol":"HTTP","urlTemplate":"{{__ACCESS_URL__}}","method":"{{__ACCESS_METHODS__}}","headers":"{{__ACCESS_HEADERS__}}"}},"parameters":[{"paramType":"STRING","name":"ACCESS_URL","title":"URL","required":true},{"paramType":"VEC<STRING>","name":"ACCESS_METHODS","title":"Methods","required":true},{"paramType":"MAP<STRING,STRING>","name":"ACCESS_HEADERS","title":"Headers","required":true}]}')")
   TPL_NAME=$(echo "$tpl_resp" | jq -r '.name')
   TPL_VER=$(echo  "$tpl_resp" | jq -r '.version')
   [[ -z "$TPL_NAME" || "$TPL_NAME" == "null" ]] && die "Could not create connector template"
@@ -147,22 +153,22 @@ make_dataset() {
   local d_id dist_id offer_id
 
   d_id=$(curl_j POST "$PROVIDER_URL/api/v1/catalog-agent/datasets" \
-    "$(jq -n --arg t "$title" --arg c "$CATALOG_ID" '{"@type":"Dataset","title":{"en":$t},"inCatalog":$c}')" \
+    "$(jq -n --arg t "$title" --arg c "$CATALOG_ID" --arg ctx "$CATALOG_CTX" '{"@context":$ctx,"@type":"Dataset","title":{"en":$t},"inCatalog":$c}')" \
     | jq -r '.["@id"]')
 
   dist_id=$(curl_j POST "$PROVIDER_URL/api/v1/catalog-agent/distributions" \
-    "$(jq -n --arg d "$d_id" --arg s "$DS_SVC_ID" \
-      '{"@type":"Distribution","title":{"en":"dist"},"accessService":[$s],"ofDataset":$d,"format":"HttpData-PULL"}')" \
+    "$(jq -n --arg d "$d_id" --arg s "$DS_SVC_ID" --arg ctx "$CATALOG_CTX" \
+      '{"@context":$ctx,"@type":"Distribution","title":{"en":"dist"},"accessService":[$s],"ofDataset":$d,"format":"HttpData-PULL"}')" \
     | jq -r '.["@id"]')
 
   curl_j POST "$PROVIDER_URL/api/v1/connector/instances" \
-    "$(jq -n --arg tn "$TPL_NAME" --arg tv "$TPL_VER" --arg di "$dist_id" \
-      '{"templateName":$tn,"templateVersion":$tv,"distributionId":$di,"metadata":{"description":"tck","ownerId":"tck"},"dryRun":false,"parameters":{"ACCESS_URL":"https://jsonplaceholder.typicode.com/posts","ACCESS_METHODS":["GET"],"ACCESS_HEADERS":{"Content-Type":"application/json"}}}')" \
+    "$(jq -n --arg tn "$TPL_NAME" --arg tv "$TPL_VER" --arg di "$dist_id" --arg ctx "$CONNECTOR_CTX" \
+      '{"@context":$ctx,"@type":"ConnectorInstance","templateName":$tn,"templateVersion":$tv,"distributionId":$di,"metadata":{"description":"tck","ownerId":"tck"},"dryRun":false,"parameters":{"ACCESS_URL":"https://jsonplaceholder.typicode.com/posts","ACCESS_METHODS":["GET"],"ACCESS_HEADERS":{"Content-Type":"application/json"}}}')" \
     >/dev/null
 
   offer_id=$(curl_j POST "$PROVIDER_URL/api/v1/catalog-agent/odrl-policies" \
-    "$(jq -n --arg eid "$d_id" \
-      '{"odrlOffer":{"permission":[{"action":"use"}]},"entityId":$eid,"entityType":"Dataset"}')" \
+    "$(jq -n --arg eid "$d_id" --arg ctx "$ODRL_CTX" \
+      '{"odrlOffer":{"@context":$ctx,"@type":"Offer","permission":[{"action":"use"}]},"entityId":$eid,"entityType":"Dataset"}')" \
     | jq -r '.id')
 
   echo "$d_id $offer_id"

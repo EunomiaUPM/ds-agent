@@ -22,6 +22,7 @@ use catalog_agent::data::repo::resource::MockResourceRepoTrait;
 use catalog_agent::entities::commands::NewOdrlOfferCommand;
 use catalog_agent::entities::odrl_offer::CatalogEntityTypes;
 use catalog_agent::entities::resource_kind::ResourceKind;
+use common::dsp_common::odrl::ODRL_CONTEXT_URL;
 use common::test_utils::scopes::TestUsers;
 use serde_json::json;
 
@@ -30,7 +31,7 @@ use crate::support::context::TestContext;
 
 fn command(entity_type: CatalogEntityTypes) -> NewOdrlOfferCommand {
     serde_json::from_value(json!({
-        "odrlOffer": {"permission": [{"action": "use"}]},
+        "odrlOffer": {"@context": ODRL_CONTEXT_URL, "@type": "Offer", "permission": [{"action": "use"}]},
         "entityId": urn(ResourceKind::Dataset, 3).to_string(),
         "entityType": entity_type.to_string(),
     }))

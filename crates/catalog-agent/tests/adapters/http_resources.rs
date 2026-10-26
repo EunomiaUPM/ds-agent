@@ -26,6 +26,7 @@ use catalog_agent::http::resources::ResourceRouter;
 use catalog_agent::services::doctor::views::DoctorReport;
 use catalog_agent::services::doctor::MockDoctorServiceTrait;
 use catalog_agent::services::resources::MockResourceServiceTrait;
+use common::eunomia::EUNOMIA_CATALOG_CONTEXT_URL;
 use common::paginated_spec::Paginated;
 use common::test_utils::scopes::TestUsers;
 use serde_json::{json, Value};
@@ -75,7 +76,7 @@ async fn create_answers_the_document_and_its_metadata() {
         "POST",
         "/",
         &[("eunomia-visibility", "Public")],
-        Some(json!({"@type": "Dataset", "title": {"en": "Readings"}})),
+        Some(json!({"@context": EUNOMIA_CATALOG_CONTEXT_URL, "@type": "Dataset", "title": {"en": "Readings"}})),
     )
     .await;
 

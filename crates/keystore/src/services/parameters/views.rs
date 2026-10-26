@@ -18,6 +18,8 @@
 //! Response views of parameters.
 
 use chrono::{DateTime, Utc};
+use common::eunomia::document::JsonLdType;
+use common::eunomia::EUNOMIA_KEYSTORE_CONTEXT_URL;
 use serde::Serialize;
 
 use crate::entities::entry::Entry;
@@ -90,4 +92,14 @@ impl From<Version> for VersionResponse {
     fn from(v: Version) -> Self {
         Self { version: v.value() }
     }
+}
+
+impl JsonLdType for ParameterView {
+    const CONTEXT: &'static str = EUNOMIA_KEYSTORE_CONTEXT_URL;
+    const TYPE: &'static str = "Parameter";
+}
+
+impl JsonLdType for VersionResponse {
+    const CONTEXT: &'static str = EUNOMIA_KEYSTORE_CONTEXT_URL;
+    const TYPE: &'static str = "Version";
 }

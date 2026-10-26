@@ -21,7 +21,7 @@ use async_trait::async_trait;
 use axum::http::StatusCode;
 use urn::Urn;
 use ymir::config::types::HostType;
-use ymir::errors::{Errors, Outcome, PetitionFailure};
+use ymir::errors::{BadFormat, Errors, Outcome, PetitionFailure};
 use ymir::services::client::ClientExt;
 use ymir::types::oauth::UserInfo;
 use ymir::utils::http_client;
@@ -30,6 +30,8 @@ use serde_json::Value;
 
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
+use crate::dsp_common::odrl::OdrlPolicyInfo;
+use crate::eunomia::document::JsonLd;
 use crate::eunomia::EunomiaProfile;
 use crate::facades::catalog::{
     CatalogDataset, CatalogDistribution, CatalogFacadeTrait, CatalogOffer,
@@ -37,7 +39,7 @@ use crate::facades::catalog::{
 
 /// Reads the catalog agent's API. Calls carry no user token yet, as for the auth facades.
 /// Datasets and distributions come as JSON-LD in the eunomia catalog context and are read through
-/// RDF; offers stay ODRL JSON.
+/// RDF; offers come as ODRL JSON-LD and are handed over without their context, as stored.
 pub struct CatalogRemoteFacade {
     base_url: String,
 }
@@ -164,7 +166,9 @@ impl CatalogFacadeTrait for CatalogRemoteFacade {
 
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "catalog"))]
     async fn get_offer(&self, offer_id: &Urn) -> Outcome<CatalogOffer> {
-        self.get(&format!("odrl-policies/{offer_id}"), "Offer")
-            .await
+        let mut offer: CatalogOffer = self.get(&format!("odrl-policies/{offer_id}"), "Offer").await?;
+        offer.odrl_offer = JsonLd::<OdrlPolicyInfo>::untag(offer.odrl_offer)
+            .map_err(|reason| Errors::format(BadFormat::Received, reason, None))?;
+        Ok(offer)
     }
 }

@@ -23,6 +23,9 @@ use serde_json::Value;
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::Visibility;
 
+use common::dsp_common::odrl::OdrlPolicyInfo;
+use common::eunomia::document::JsonLd;
+
 use crate::entities::odrl_offer::OdrlOffer;
 
 #[derive(Debug, Clone, Serialize)]
@@ -49,7 +52,7 @@ impl OdrlPolicyView {
             user_id: offer.owner.user_id,
             user_role: offer.owner.role,
             visibility: offer.owner.visibility,
-            odrl_offer: offer.odrl_offer,
+            odrl_offer: JsonLd::<OdrlPolicyInfo>::tag(offer.odrl_offer),
             entity: offer.entity.to_string(),
             entity_type: offer.entity_type,
             created_at: offer.created_at,

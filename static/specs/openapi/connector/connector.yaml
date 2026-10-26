@@ -6,7 +6,7 @@ info:
     blueprint whose string fields may hold `{{__NAME__}}` placeholders; an instance binds a
     template to a distribution with concrete parameter values, giving the resolved
     configuration the dataplane uses at transfer time.
-  version: 1.0.0
+  version: 1.1.0
   license:
     name: GPL-3.0-or-later
     url: https://www.gnu.org/licenses/gpl-3.0.html
@@ -423,6 +423,21 @@ components:
         - interaction
         - distributionId
         properties:
+          '@context':
+            description: '`https://w3id.org/eunomia/v1/connector-context.jsonld`. Optional on input, where
+              it is assumed; another context is refused.'
+            oneOf:
+            - type: string
+              const: https://w3id.org/eunomia/v1/connector-context.jsonld
+            - type: array
+              items:
+                type: string
+              contains:
+                const: https://w3id.org/eunomia/v1/connector-context.jsonld
+          '@type':
+            type: string
+            const: ConnectorInstance
+            description: '`ConnectorInstance`. Optional on input; another type is refused.'
           id:
             type: string
             description: URN of the instance.
@@ -441,6 +456,21 @@ components:
       - distributionId
       - parameters
       properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/connector-context.jsonld`. Optional on input, where
+            it is assumed; another context is refused.'
+          oneOf:
+          - type: string
+            const: https://w3id.org/eunomia/v1/connector-context.jsonld
+          - type: array
+            items:
+              type: string
+            contains:
+              const: https://w3id.org/eunomia/v1/connector-context.jsonld
+        '@type':
+          type: string
+          const: ConnectorInstance
+          description: '`ConnectorInstance`. Optional on input; another type is refused.'
         templateName:
           type: string
         templateVersion:
@@ -526,6 +556,21 @@ components:
         - interaction
         - parameters
         properties:
+          '@context':
+            description: '`https://w3id.org/eunomia/v1/connector-context.jsonld`. Optional on input, where
+              it is assumed; another context is refused.'
+            oneOf:
+            - type: string
+              const: https://w3id.org/eunomia/v1/connector-context.jsonld
+            - type: array
+              items:
+                type: string
+              contains:
+                const: https://w3id.org/eunomia/v1/connector-context.jsonld
+          '@type':
+            type: string
+            const: ConnectorTemplate
+            description: '`ConnectorTemplate`. Optional on input; another type is refused.'
           authentication:
             $ref: '#/components/schemas/AuthenticationConfig'
           interaction:

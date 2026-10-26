@@ -20,6 +20,7 @@
 use axum::http::StatusCode;
 use common::config::types::min_known_config::MinKnownConfig;
 use common::config::types::traits::MinKnownConfigTrait;
+use common::eunomia::document::JsonLd;
 use urn::Urn;
 use ymir::config::types::HostType;
 use ymir::errors::{Errors, Outcome, PetitionFailure};
@@ -51,8 +52,8 @@ impl ConnectorInstanceRemoteFacade {
 
     /// A 404 is an absent instance, as the local service reports it.
     async fn fetch(&self, url: &str) -> Outcome<Option<ConnectorInstanceDto>> {
-        match http_client().get_json(url, None).await {
-            Ok(instance) => Ok(Some(instance)),
+        match http_client().get_json::<JsonLd<ConnectorInstanceDto>>(url, None).await {
+            Ok(instance) => Ok(Some(instance.into_inner())),
             Err(Errors::PetitionError {
                 failure: PetitionFailure::HttpStatus(StatusCode::NOT_FOUND),
                 ..

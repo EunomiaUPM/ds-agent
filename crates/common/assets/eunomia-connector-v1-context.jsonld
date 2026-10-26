@@ -1,0 +1,30 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@protected": true,
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "dct": "http://purl.org/dc/terms/",
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "eunomia": "https://w3id.org/eunomia/v1/",
+    "ConnectorTemplate": "eunomia:ConnectorTemplate",
+    "ConnectorInstance": "eunomia:ConnectorInstance",
+    "id": "@id",
+    "name": "eunomia:name",
+    "title": "dct:title",
+    "author": "dct:creator",
+    "description": "dct:description",
+    "version": "dcat:version",
+    "createdAt": { "@id": "dct:created", "@type": "xsd:dateTime" },
+    "userId": "eunomia:userId",
+    "visibility": "eunomia:visibility",
+    "authentication": { "@id": "eunomia:authentication", "@type": "@json" },
+    "authenticationConfig": { "@id": "eunomia:authentication", "@type": "@json" },
+    "interaction": { "@id": "eunomia:interaction", "@type": "@json" },
+    "parameters": { "@id": "eunomia:parameters", "@type": "@json" },
+    "metadata": { "@id": "eunomia:metadata", "@type": "@json" },
+    "templateName": "eunomia:templateName",
+    "templateVersion": "eunomia:templateVersion",
+    "distributionId": { "@id": "eunomia:distribution", "@type": "@id" },
+    "dryRun": { "@id": "eunomia:dryRun", "@type": "xsd:boolean" }
+  }
+}

@@ -30,6 +30,8 @@ use crate::config::services::{
     TransferConfig,
 };
 use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
+use crate::eunomia::document::JsonLdType;
+use crate::eunomia::EUNOMIA_KEYSTORE_CONTEXT_URL;
 
 /// The whole config file of the monolith: its own section plus one optional section per agent.
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -40,6 +42,12 @@ pub struct ApplicationConfig {
     catalog: Option<CatalogConfig>,
     ssi_auth: Option<SsiAuthConfig>,
     gateway: Option<GatewayConfig>,
+}
+
+/// The keystore serves the config as JSON-LD, one `@json` literal per section.
+impl JsonLdType for ApplicationConfig {
+    const CONTEXT: &'static str = EUNOMIA_KEYSTORE_CONTEXT_URL;
+    const TYPE: &'static str = "ApplicationConfig";
 }
 
 impl ApplicationConfig {

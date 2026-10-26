@@ -43,7 +43,7 @@ import {
   useGetMainCatalogs,
 } from "shared/src/data/orval/catalogs/catalogs";
 import { useGetDataServicesByCatalogId } from "shared/src/data/orval/data-services/data-services";
-import { CatalogViews, type CatalogDoc } from "shared/src/data/catalog";
+import { CATALOG_CONTEXT, CatalogViews, type CatalogDoc } from "shared/src/data/catalog";
 import type {
   NewDatasetOfferingDto,
   OdrlAtomicConstraintOperator,
@@ -167,6 +167,7 @@ function NewDatasetOfferingPage() {
     const distributionText = distributionDescription.trim();
     const offering: NewDatasetOfferingDto = {
       dataset: {
+        "@context": CATALOG_CONTEXT,
         "@type": "Dataset",
         title: { en: datasetTitle.trim() },
         description: description ? { en: description } : undefined,
@@ -175,6 +176,7 @@ function NewDatasetOfferingPage() {
         inCatalog: catalogId || undefined,
       },
       distribution: {
+        "@context": CATALOG_CONTEXT,
         "@type": "Distribution",
         title: { en: (distributionTitle.trim() || `${datasetTitle} Distribution`).trim() },
         description: distributionText ? { en: distributionText } : undefined,

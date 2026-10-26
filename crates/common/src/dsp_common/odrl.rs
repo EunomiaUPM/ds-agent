@@ -22,6 +22,7 @@ use serde_json::Value;
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
+use crate::eunomia::document::JsonLdType;
 use crate::utils::get_urn;
 // use sea_orm_migration::prelude::ValueType;
 
@@ -366,6 +367,9 @@ pub enum OdrlRightOperand {
 /// Left operand of a constraint, such as `dateTime`.
 pub type OdrlLeftOperand = String;
 
+/// W3C's JSON-LD context of the ODRL vocabulary; embedded, never fetched.
+pub const ODRL_CONTEXT_URL: &str = "http://www.w3.org/ns/odrl.jsonld";
+
 /// Rules of a policy without its identity or target, as stored in templates and offers.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct OdrlPolicyInfo {
@@ -384,4 +388,10 @@ pub struct OdrlPolicyInfo {
     #[serde(rename = "description")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+}
+
+/// An offer's rules travel as an ODRL `Offer` in the W3C context; they are stored without it.
+impl JsonLdType for OdrlPolicyInfo {
+    const CONTEXT: &'static str = ODRL_CONTEXT_URL;
+    const TYPE: &'static str = "Offer";
 }

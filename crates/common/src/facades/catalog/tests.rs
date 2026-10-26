@@ -57,7 +57,7 @@ fn distribution() -> Value {
 fn offer() -> Value {
     json!({
         "id": OFFER, "userId": "system", "userRole": "/admin", "visibility": "Private",
-        "odrlOffer": {"permission": [{"action": "use"}]}, "entity": DATASET, "entityType": "Dataset",
+        "odrlOffer": {"@context": "http://www.w3.org/ns/odrl.jsonld", "@type": "Offer", "permission": [{"action": "use"}]}, "entity": DATASET, "entityType": "Dataset",
         "createdAt": "2026-10-26T18:49:40.544939Z", "sourceTemplateId": null,
         "sourceTemplateVersion": null, "instantiationParameters": null, "description": null
     })
@@ -135,13 +135,14 @@ async fn distribution_carries_dataset_format_and_service() {
     assert_eq!(by_id.dcat_access_service, SERVICE);
 }
 
-/// An offer keeps its entity and its ODRL content.
+/// An offer keeps its entity and its ODRL rules, without the ODRL context it travels with.
 #[tokio::test]
 async fn offer_keeps_entity_and_odrl() {
     let found = facade().await.get_offer(&urn(OFFER)).await.unwrap();
     assert_eq!(found.entity, DATASET);
     assert_eq!(found.entity_type, "Dataset");
     assert_eq!(found.odrl_offer["permission"][0]["action"], "use");
+    assert!(found.odrl_offer.get("@context").is_none(), "{}", found.odrl_offer);
 }
 
 /// A 404 of the catalog API becomes the missing-resource error the local facade returns.

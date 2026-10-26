@@ -17,6 +17,7 @@
 
 //! Catalog over DSP: a consumer asks the provider's catalog through its own RPC endpoint.
 
+use common::eunomia::EUNOMIA_CATALOG_CONTEXT_URL;
 use serde_json::json;
 
 use crate::support::dataspace::{Dataspace, PROVIDER_DID};
@@ -72,7 +73,12 @@ async fn published_dataset_is_seen_by_every_profile() {
         .provider
         .post_with(
             "/api/v1/catalog-agent/datasets",
-            json!({"@type": "Dataset", "title": {"en": "Open data"}, "inCatalog": catalog["@id"]}),
+            json!({
+                "@context": EUNOMIA_CATALOG_CONTEXT_URL,
+                "@type": "Dataset",
+                "title": {"en": "Open data"},
+                "inCatalog": catalog["@id"]
+            }),
             &[("eunomia-visibility", "Public")],
         )
         .await;

@@ -23,6 +23,10 @@ import type { KeystoreApplicationConfigTransfer } from './keystoreApplicationCon
  * One optional section per agent, as loaded from the config file.
  */
 export interface KeystoreApplicationConfig {
+  /** `https://w3id.org/eunomia/v1/keystore-context.jsonld`. Optional on input, where it is assumed; another context is refused. */
+  '@context'?: 'https://w3id.org/eunomia/v1/keystore-context.jsonld' | string[];
+  /** `ApplicationConfig`. Optional on input; another type is refused. */
+  '@type'?: 'ApplicationConfig';
   /** @nullable */
   monolith?: KeystoreApplicationConfigMonolith;
   /** @nullable */

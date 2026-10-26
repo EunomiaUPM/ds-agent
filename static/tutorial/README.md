@@ -48,12 +48,12 @@ jupyter lab
 - `setup_catalog_policies.ipynb`:
   - Populates the Provider DCAT catalog via `/api/v1/catalog-agent/...` with JSON-LD documents in the catalog context (`https://w3id.org/eunomia/v1/catalog-context.jsonld`): the main Catalog and DataService (`GET /catalogs/main`, `/data-services/main`), a Dataset (`POST /datasets`, placed with `inCatalog`) and Distributions (`POST /distributions`, placed with `ofDataset`; `GET /distributions/dataset/{id}` answers a `@graph`) for both `PULL` (`http+pull`) and `PUSH` (`http+push`), the DSP transfer format kept in `dct:format`.
   - Asks the doctor whether the dataset conforms to DSP, DCAT 3 and DCAT-AP (`GET /datasets/{id}/doctor?deep=true`) and reads the public DCAT-AP catalog (`GET /public/dcat-ap/catalog`, no token).
-  - Registers ODRL policy templates (`/api/v1/catalog-agent/odrl-policies/templates`) and instantiates ODRL policies attached to the dataset (`/api/v1/catalog-agent/odrl-policies`, `/api/v1/catalog-agent/odrl-policies/entity/{id}`).
+  - Instantiates a policy template (`POST /api/v1/catalog-agent/policy-templates/instantiate-odrl-offer`) and attaches ODRL offers to the dataset (`/api/v1/catalog-agent/odrl-policies`, `/api/v1/catalog-agent/odrl-policies/entity/{id}`); each `odrlOffer` is an ODRL `Offer` in W3C's context (`http://www.w3.org/ns/odrl.jsonld`).
   - The Consumer fetches the Provider's DSP Catalog and one Dataset through its catalog RPC (`POST /dsp/current/catalog/rpc/setup-catalog-request`, `setup-dataset-request`, eunomia bodies `RpcCatalogRequestMessage` / `RpcDatasetRequestMessage`, answered as an `RpcCatalogResult`).
-  - Registers `NO_AUTH` connector instances (`/api/v1/connector-instances`, `/api/v1/connector-instances/slug/{slug}`, `/api/v1/connector-instances/distribution/{id}`) using the `generic-pull-rest-no-auth` and `generic-push-Subscription` templates (`/api/v1/connector-templates`).
+  - Registers `NO_AUTH` pull and push connector templates (`POST /api/v1/connector/templates`) and their instances on the distributions (`POST /api/v1/connector/instances`, `GET /api/v1/connector/instances/distribution/{id}`), as `ConnectorTemplate` / `ConnectorInstance` in the connector context (`https://w3id.org/eunomia/v1/connector-context.jsonld`).
 - `setup_catalog_policies_oauth.ipynb`:
-  - Same catalog & ODRL policy workflow as `setup_catalog_policies.ipynb`, plus secret provisioning in the Keystore (`POST/GET /api/v1/secrets`) at `/ecostars/api_key`.
-  - Registers a `BEARER_TOKEN` PULL connector instance (`generic-pull-rest-bearer`) that injects the secret token from Vault when forwarding requests through the dataplane proxy.
+  - Same catalog & ODRL policy workflow as `setup_catalog_policies.ipynb`, plus secret provisioning in the Keystore (`POST/GET/PUT /api/v1/keystore/secrets`) at `/ecostars/api_key`, as a `Secret` in the keystore context (`https://w3id.org/eunomia/v1/keystore-context.jsonld`).
+  - Registers a `BEARER_TOKEN` PULL connector template and instance that injects the secret token from Vault when forwarding requests through the dataplane proxy.
 
 ### 2. Contract Negotiation (DSP Control Plane RPC & Management API)
 - `contract_negotiation.ipynb`:

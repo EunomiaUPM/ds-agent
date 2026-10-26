@@ -17,6 +17,10 @@ import type { InstanceMetadataDto } from './instanceMetadataDto';
 import type { Visibility } from './visibility';
 
 export interface ConnectorInstantiationDto {
+  /** `https://w3id.org/eunomia/v1/connector-context.jsonld`. Optional on input, where it is assumed; another context is refused. */
+  '@context'?: 'https://w3id.org/eunomia/v1/connector-context.jsonld' | string[];
+  /** `ConnectorInstance`. Optional on input; another type is refused. */
+  '@type'?: 'ConnectorInstance';
   templateName: string;
   templateVersion: string;
   /** URN of the distribution. */

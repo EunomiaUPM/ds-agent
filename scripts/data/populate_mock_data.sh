@@ -8,6 +8,11 @@ source "$SCRIPT_DIR/../lib/auth.sh"
 # ==========================================
 AGENT_URL="${AGENT_URL:-$EUNOMIA_PROVIDER_URL}"
 
+# JSON-LD contexts of the bodies this script sends.
+CATALOG_CTX="https://w3id.org/eunomia/v1/catalog-context.jsonld"
+CONNECTOR_CTX="https://w3id.org/eunomia/v1/connector-context.jsonld"
+ODRL_CTX="http://www.w3.org/ns/odrl.jsonld"
+
 
 # ==========================================
 # HELPER FUNCTIONS
@@ -86,7 +91,7 @@ create_catalog() {
         return
     fi
 
-    local body=$(jq -n '{ "@type": "Catalog", "title": { "en": "Mock catalog" }, "homepage": "https://example.org/mock" }')
+    local body=$(jq -n --arg ctx "$CATALOG_CTX" '{ "@context": $ctx, "@type": "Catalog", "title": { "en": "Mock catalog" }, "homepage": "https://example.org/mock" }')
     # invoke_curl sends logs to stderr and json to stdout.
     # We capture the json in resp.
     local resp=$(invoke_curl "POST" "$AGENT_URL/api/v1/catalog-agent/catalogs" "$body" "Creating Catalog")
@@ -113,7 +118,8 @@ get_main_catalog() {
 # Returns: Data Service ID (stdout)
 create_dataservice() {
     local catalog_id="$1"
-    local body=$(jq -n --arg cat_id "$catalog_id" '{
+    local body=$(jq -n --arg cat_id "$catalog_id" --arg ctx "$CATALOG_CTX" '{
+        "@context": $ctx,
         "@type": "DataService",
         "title": { "en": "Mock data service" },
         "endpointURL": "https://example.org/mock/dsp",
@@ -130,7 +136,8 @@ create_dataset() {
     local title="$1"
     local catalog_id="$2"
 
-    local body=$(jq -n --arg title "$title" --arg cat_id "$catalog_id" '{
+    local body=$(jq -n --arg title "$title" --arg cat_id "$catalog_id" --arg ctx "$CATALOG_CTX" '{
+         "@context": $ctx,
          "@type": "Dataset",
          "title": { "en": $title },
          "inCatalog": $cat_id
@@ -153,7 +160,9 @@ create_distribution() {
         --arg ds_svc "$dataservice_id" \
         --arg ds_id "$dataset_id" \
         --arg fmt "$format" \
+        --arg ctx "$CATALOG_CTX" \
       '{
+         "@context": $ctx,
          "@type": "Distribution",
          "title": { "en": $title },
          "accessService": [$ds_svc],
@@ -169,8 +178,10 @@ create_distribution() {
 # 6. Create Connector Template (Blueprint)
 # Returns: JSON object { "id": "...", "name": "...", "version": "..." }
 create_blueprint() {
-    local body=$(jq -n \
+    local body=$(jq -n --arg ctx "$CONNECTOR_CTX" \
         '{
+        "@context": $ctx,
+        "@type": "ConnectorTemplate",
         "authentication": { "type": "NO_AUTH" },
         "interaction": {
             "mode": "PULL",
@@ -207,7 +218,10 @@ create_connector_instance() {
         --arg tVer "$t_ver" \
         --arg distId "$dist_id" \
         --arg url "$target_url" \
+        --arg ctx "$CONNECTOR_CTX" \
         '{
+        "@context": $ctx,
+        "@type": "ConnectorInstance",
         "templateName": $tName,
         "templateVersion": $tVer,
         "distributionId": $distId,
@@ -229,8 +243,10 @@ create_connector_instance() {
 create_policy() {
     local entity_id="$1"
 
-    local body=$(jq -n --arg entityId "$entity_id" '{
+    local body=$(jq -n --arg entityId "$entity_id" --arg ctx "$ODRL_CTX" '{
         "odrlOffer": {
+            "@context": $ctx,
+            "@type": "Offer",
             "permission": [ { "action": "use" } ]
         },
         "entityId": $entityId,

@@ -34,6 +34,7 @@ import { BusinessRemovePolicyDialog } from "./dialogs/BusinessRemovePolicyDialog
 import { Dialog, DialogTrigger } from "shared/src/components/ui/dialog";
 import { ContractNegotiationNewRequestDialog } from "./dialogs/ContractNegotiationNewRequestDialog";
 import { OdrlAgreement, OdrlOffer, OdrlPolicyDto } from "../data/orval/model";
+import { JsonLd } from "shared/src/data/jsonld";
 import { ContractNegotiationNewOfferDialog } from "./dialogs/ContractNegotiationNewOfferDialog";
 import {
   Accordion,
@@ -122,7 +123,7 @@ export const PolicyWrapperShow = ({
   // A catalog policy keeps its id outside the ODRL content; the negotiation needs a full offer.
   const requestOffer: OdrlOffer =
     "odrlOffer" in policy
-      ? { ...policy.odrlOffer, "@id": policy.id, "@type": "Offer", target: entity }
+      ? { ...JsonLd.embedded(policy.odrlOffer), "@id": policy.id, "@type": "Offer", target: entity }
       : (policy as OdrlOffer);
 
   // ---------------------------------------------------------------------------

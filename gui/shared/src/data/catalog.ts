@@ -1,8 +1,7 @@
 // Reading the catalog's JSON-LD: management API documents (eunomia catalog context) and DSP
 // catalogs from peers, where non-DSP properties come as `dct:` / `dcat:` compact IRIs.
 
-/** Context of the catalog agent's management API documents. */
-export const CATALOG_CONTEXT = "https://w3id.org/eunomia/v1/catalog-context.jsonld" as const;
+export { CATALOG_CONTEXT } from "./jsonld";
 
 type Literal = string | { "@value"?: unknown; "@language"?: string; "@id"?: string };
 

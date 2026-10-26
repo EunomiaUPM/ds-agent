@@ -20,9 +20,13 @@ import type { InteractionConfig } from './interactionConfig';
 /**
  * Template metadata, flattened, plus its parameterised sections.
  */
-export type ConnectorTemplateDto = ConnectorMetadata & {
+export type ConnectorTemplateDto = ConnectorMetadata & ({
+  /** `https://w3id.org/eunomia/v1/connector-context.jsonld`. Optional on input, where it is assumed; another context is refused. */
+  '@context'?: 'https://w3id.org/eunomia/v1/connector-context.jsonld' | string[];
+  /** `ConnectorTemplate`. Optional on input; another type is refused. */
+  '@type'?: 'ConnectorTemplate';
   authentication: AuthenticationConfig;
   interaction: InteractionConfig;
   /** One declaration per placeholder used in the template. */
   parameters: ConnectorParameterDefinition[];
-};
+});

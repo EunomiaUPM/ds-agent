@@ -38,6 +38,8 @@ use crate::data::entities::connector_templates::NewConnectorTemplateModel;
 use crate::entities::auth_config::AuthenticationConfig;
 use crate::entities::interaction::InteractionConfig;
 use crate::entities::parameters::ParameterDefinition;
+use common::eunomia::document::JsonLdType;
+use common::eunomia::EUNOMIA_CONNECTOR_CONTEXT_URL;
 use common::oauth::Owner;
 use sea_orm::prelude::DateTimeWithTimeZone;
 use serde::{Deserialize, Serialize};
@@ -65,6 +67,11 @@ pub struct ConnectorTemplateDto {
     /// Declared parameter definitions — every `{{__NAME__}}` placeholder used in
     /// the auth or interaction sections must have a matching entry here.
     pub parameters: Vec<ParameterDefinition>,
+}
+
+impl JsonLdType for ConnectorTemplateDto {
+    const CONTEXT: &'static str = EUNOMIA_CONNECTOR_CONTEXT_URL;
+    const TYPE: &'static str = "ConnectorTemplate";
 }
 
 impl ConnectorTemplateDto {

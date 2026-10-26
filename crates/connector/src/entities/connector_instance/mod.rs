@@ -34,6 +34,8 @@
 use crate::entities::auth_config::AuthenticationConfig;
 use crate::entities::connector_template::ConnectorMetadata;
 use crate::entities::interaction::InteractionConfig;
+use common::eunomia::document::JsonLdType;
+use common::eunomia::EUNOMIA_CONNECTOR_CONTEXT_URL;
 use ymir::types::participants::Visibility;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -65,6 +67,12 @@ pub struct ConnectorInstantiationDto {
     pub visibility: Option<Visibility>,
 }
 
+/// A request to set up an instance travels as the instance it asks for.
+impl JsonLdType for ConnectorInstantiationDto {
+    const CONTEXT: &'static str = EUNOMIA_CONNECTOR_CONTEXT_URL;
+    const TYPE: &'static str = "ConnectorInstance";
+}
+
 /// Optional human-readable metadata attached to a connector instance.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -88,4 +96,9 @@ pub struct ConnectorInstanceDto {
     /// Resolved interaction configuration (all placeholders substituted).
     pub interaction: InteractionConfig,
     pub distribution_id: Urn,
+}
+
+impl JsonLdType for ConnectorInstanceDto {
+    const CONTEXT: &'static str = EUNOMIA_CONNECTOR_CONTEXT_URL;
+    const TYPE: &'static str = "ConnectorInstance";
 }

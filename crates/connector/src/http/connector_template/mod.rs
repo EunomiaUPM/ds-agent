@@ -26,6 +26,7 @@ use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use ymir::types::oauth::UserInfo;
 use common::errors::CommonErrors;
+use common::eunomia::document::JsonLd;
 use common::query::QuerySpec;
 use std::sync::Arc;
 use ymir::utils::extract_payload;
@@ -76,7 +77,7 @@ impl ConnectorTemplateRouter {
             .get_all_templates(&user, &query.filter, &query.page, query.sort)
             .await
         {
-            Ok(templates) => (StatusCode::OK, Json(templates)).into_response(),
+            Ok(templates) => (StatusCode::OK, Json(templates.map(JsonLd))).into_response(),
             Err(err) => err.into_response(),
         }
     }
@@ -84,14 +85,14 @@ impl ConnectorTemplateRouter {
     async fn handle_create_template(
         State(state): State<ConnectorTemplateRouter>,
         user: UserInfo,
-        input: Result<Json<ConnectorTemplateDto>, JsonRejection>,
+        input: Result<Json<JsonLd<ConnectorTemplateDto>>, JsonRejection>,
     ) -> impl IntoResponse {
         let mut input = match extract_payload(input) {
-            Ok(v) => v,
+            Ok(v) => v.into_inner(),
             Err(e) => return e.into_response(),
         };
         match state.service.create_template(&user, &mut input).await {
-            Ok(template) => (StatusCode::OK, Json(template)).into_response(),
+            Ok(template) => (StatusCode::OK, Json(JsonLd(template))).into_response(),
             Err(err) => err.into_response(),
         }
     }
@@ -102,7 +103,10 @@ impl ConnectorTemplateRouter {
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         match state.service.get_templates_by_id(&user, &id).await {
-            Ok(templates) => (StatusCode::OK, Json(templates)).into_response(),
+            Ok(templates) => {
+                let templates: Vec<_> = templates.into_iter().map(JsonLd).collect();
+                (StatusCode::OK, Json(templates)).into_response()
+            }
             Err(err) => err.into_response(),
         }
     }
@@ -117,7 +121,7 @@ impl ConnectorTemplateRouter {
             .get_template_by_name_and_version(&user, &name, &version)
             .await
         {
-            Ok(Some(template)) => (StatusCode::OK, Json(template)).into_response(),
+            Ok(Some(template)) => (StatusCode::OK, Json(JsonLd(template))).into_response(),
             Ok(None) => {
                 let err = CommonErrors::missing_resource_new("template", "Template not found");
                 err.into_response()

@@ -25,14 +25,19 @@ use crate::rdf::loader::RdfContextLoader;
 use crate::rdf::profile::RdfProfile;
 
 pub const EUNOMIA_CONTEXT_URL: &str = "https://w3id.org/eunomia/v1/context.jsonld";
+/// Context of the catalog agent's management API: DCAT resources in our own terms.
+pub const EUNOMIA_CATALOG_CONTEXT_URL: &str = "https://w3id.org/eunomia/v1/catalog-context.jsonld";
 /// Namespace every eunomia term expands into.
 pub const EUNOMIA_NS: &str = "https://w3id.org/eunomia/v1/";
 const EUNOMIA_CONTEXT_DOC: &str = include_str!("../../assets/eunomia-v1-context.jsonld");
+const EUNOMIA_CATALOG_CONTEXT_DOC: &str =
+    include_str!("../../assets/eunomia-catalog-v1-context.jsonld");
 
 static EUNOMIA_ENGINE: LazyLock<RdfEngine> =
     LazyLock::new(RdfEngine::with_profile::<EunomiaProfile>);
 
-/// RDF profile of eunomia messages; the context is embedded, so it is never fetched.
+/// RDF profile of eunomia messages and catalog resources; the contexts are embedded, so they are
+/// never fetched.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct EunomiaProfile;
 
@@ -41,6 +46,9 @@ impl RdfProfile for EunomiaProfile {
         loader
             .register_asset(EUNOMIA_CONTEXT_URL, EUNOMIA_CONTEXT_DOC)
             .expect("embedded eunomia context is valid JSON-LD");
+        loader
+            .register_asset(EUNOMIA_CATALOG_CONTEXT_URL, EUNOMIA_CATALOG_CONTEXT_DOC)
+            .expect("embedded eunomia catalog context is valid JSON-LD");
     }
 }
 

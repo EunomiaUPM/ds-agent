@@ -1,0 +1,122 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@protected": true,
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "dct": "http://purl.org/dc/terms/",
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "foaf": "http://xmlns.com/foaf/0.1/",
+    "odrl": "http://www.w3.org/ns/odrl/2/",
+    "dspace": "https://w3id.org/dspace/2025/1/",
+    "adms": "http://www.w3.org/ns/adms#",
+    "vcard": "http://www.w3.org/2006/vcard/ns#",
+    "locn": "http://www.w3.org/ns/locn#",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "spdx": "http://spdx.org/rdf/terms#",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "prov": "http://www.w3.org/ns/prov#",
+    "eunomia": "https://w3id.org/eunomia/v1/",
+    "Catalog": {
+      "@id": "dcat:Catalog",
+      "@context": {
+        "@version": 1.1,
+        "inCatalog": { "@reverse": "dcat:catalog", "@type": "@id" }
+      }
+    },
+    "Dataset": {
+      "@id": "dcat:Dataset",
+      "@context": {
+        "@version": 1.1,
+        "inCatalog": { "@reverse": "dcat:dataset", "@type": "@id" }
+      }
+    },
+    "DatasetSeries": {
+      "@id": "dcat:DatasetSeries",
+      "@context": {
+        "@version": 1.1,
+        "inCatalog": { "@reverse": "dcat:dataset", "@type": "@id" }
+      }
+    },
+    "DataService": {
+      "@id": "dcat:DataService",
+      "@context": {
+        "@version": 1.1,
+        "inCatalog": { "@reverse": "dcat:service", "@type": "@id" }
+      }
+    },
+    "CatalogRecord": {
+      "@id": "dcat:CatalogRecord",
+      "@context": {
+        "@version": 1.1,
+        "inCatalog": { "@reverse": "dcat:record", "@type": "@id" }
+      }
+    },
+    "Distribution": {
+      "@id": "dcat:Distribution",
+      "@context": {
+        "@version": 1.1,
+        "ofDataset": { "@reverse": "dcat:distribution", "@type": "@id" }
+      }
+    },
+    "Agent": "foaf:Agent",
+    "Organization": "foaf:Organization",
+    "Person": "foaf:Person",
+    "Kind": "vcard:Kind",
+    "PeriodOfTime": "dct:PeriodOfTime",
+    "Location": "dct:Location",
+    "LicenseDocument": "dct:LicenseDocument",
+    "Concept": "skos:Concept",
+    "title": { "@id": "dct:title", "@container": "@language" },
+    "description": { "@id": "dct:description", "@container": "@language" },
+    "keyword": { "@id": "dcat:keyword", "@container": "@language" },
+    "name": { "@id": "foaf:name", "@container": "@language" },
+    "versionNotes": { "@id": "adms:versionNotes", "@container": "@language" },
+    "theme": { "@id": "dcat:theme", "@type": "@id", "@container": "@set" },
+    "themeTaxonomy": { "@id": "dcat:themeTaxonomy", "@type": "@id", "@container": "@set" },
+    "issued": { "@id": "dct:issued", "@type": "xsd:dateTime" },
+    "modified": { "@id": "dct:modified", "@type": "xsd:dateTime" },
+    "identifier": "dct:identifier",
+    "version": "dcat:version",
+    "conformsTo": { "@id": "dct:conformsTo", "@type": "@id", "@container": "@set" },
+    "creator": { "@id": "dct:creator", "@type": "@id" },
+    "publisher": { "@id": "dct:publisher", "@type": "@id" },
+    "rightsHolder": { "@id": "dct:rightsHolder", "@type": "@id" },
+    "contactPoint": { "@id": "dcat:contactPoint", "@container": "@set" },
+    "homepage": { "@id": "foaf:homepage", "@type": "@id" },
+    "landingPage": { "@id": "dcat:landingPage", "@type": "@id", "@container": "@set" },
+    "page": { "@id": "foaf:page", "@type": "@id", "@container": "@set" },
+    "language": { "@id": "dct:language", "@type": "@id", "@container": "@set" },
+    "license": { "@id": "dct:license", "@type": "@id" },
+    "accessRights": { "@id": "dct:accessRights", "@type": "@id" },
+    "rights": { "@id": "dct:rights", "@type": "@id" },
+    "spatial": { "@id": "dct:spatial", "@type": "@id", "@container": "@set" },
+    "temporal": { "@id": "dct:temporal", "@container": "@set" },
+    "startDate": "dcat:startDate",
+    "endDate": "dcat:endDate",
+    "accrualPeriodicity": { "@id": "dct:accrualPeriodicity", "@type": "@id" },
+    "status": { "@id": "adms:status", "@type": "@id" },
+    "endpointURL": { "@id": "dcat:endpointURL", "@type": "@id" },
+    "endpointDescription": { "@id": "dcat:endpointDescription", "@type": "@id" },
+    "servesDataset": { "@id": "dcat:servesDataset", "@type": "@id", "@container": "@set" },
+    "format": "dct:format",
+    "mediaType": { "@id": "dcat:mediaType", "@type": "@id" },
+    "accessURL": { "@id": "dcat:accessURL", "@type": "@id", "@container": "@set" },
+    "downloadURL": { "@id": "dcat:downloadURL", "@type": "@id", "@container": "@set" },
+    "accessService": { "@id": "dcat:accessService", "@type": "@id", "@container": "@set" },
+    "byteSize": { "@id": "dcat:byteSize", "@type": "xsd:nonNegativeInteger" },
+    "availability": { "@id": "dcatap:availability", "@type": "@id" },
+    "dcatap": "http://data.europa.eu/r5r/",
+    "inSeries": { "@id": "dcat:inSeries", "@type": "@id", "@container": "@set" },
+    "primaryTopic": { "@id": "foaf:primaryTopic", "@type": "@id" },
+    "participantId": { "@id": "dspace:participantId", "@type": "@id" },
+    "fn": "vcard:fn",
+    "hasEmail": { "@id": "vcard:hasEmail", "@type": "@id" },
+    "label": "rdfs:label",
+    "seeAlso": { "@id": "rdfs:seeAlso", "@type": "@id", "@container": "@set" },
+    "dctType": { "@id": "dct:type", "@type": "@id" },
+    "checksum": "spdx:checksum",
+    "hasVersion": { "@id": "dct:hasVersion", "@type": "@id", "@container": "@set" }
+  }
+}

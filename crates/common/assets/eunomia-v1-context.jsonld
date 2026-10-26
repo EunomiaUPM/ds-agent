@@ -247,6 +247,53 @@
           "@type": "@json"
         }
       }
+    },
+    "RpcCatalogRequestMessage": {
+      "@id": "eunomia:RpcCatalogRequestMessage",
+      "@context": {
+        "@version": 1.1,
+        "@protected": true,
+        "associatedAgentPeer": "eunomia:associatedAgentPeer",
+        "filter": {
+          "@id": "dspace:filter",
+          "@container": "@set"
+        },
+        "noCache": {
+          "@id": "eunomia:noCache",
+          "@type": "xsd:boolean"
+        }
+      }
+    },
+    "RpcDatasetRequestMessage": {
+      "@id": "eunomia:RpcDatasetRequestMessage",
+      "@context": {
+        "@version": 1.1,
+        "@protected": true,
+        "associatedAgentPeer": "eunomia:associatedAgentPeer",
+        "dataset": {
+          "@id": "dspace:dataset",
+          "@type": "@id"
+        },
+        "noCache": {
+          "@id": "eunomia:noCache",
+          "@type": "xsd:boolean"
+        }
+      }
+    },
+    "RpcCatalogResult": {
+      "@id": "eunomia:RpcCatalogResult",
+      "@context": {
+        "@version": 1.1,
+        "@protected": true,
+        "request": {
+          "@id": "eunomia:request",
+          "@type": "@json"
+        },
+        "response": {
+          "@id": "eunomia:response",
+          "@type": "@json"
+        }
+      }
     }
   }
 }

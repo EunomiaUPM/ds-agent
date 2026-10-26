@@ -19,7 +19,7 @@
 
 use serde_json::json;
 
-use crate::eunomia::{EunomiaProfile, EUNOMIA_CONTEXT_URL};
+use crate::eunomia::{EunomiaProfile, EUNOMIA_CATALOG_CONTEXT_URL, EUNOMIA_CONTEXT_URL};
 use crate::rdf::ExpandedDoc;
 
 const DSPACE: &str = "https://w3id.org/dspace/2025/1/";
@@ -112,4 +112,52 @@ async fn transfer_result_keeps_json_members() {
         .unwrap();
     assert_eq!(model["@type"], "@json");
     assert_eq!(model["@value"]["state"], "REQUESTED");
+}
+
+/// A catalog dataset expands with language-tagged literals and its catalog as a reverse link.
+#[tokio::test]
+async fn catalog_dataset_expands_with_languages_and_reverse_membership() {
+    let dataset = json!({
+        "@context": EUNOMIA_CATALOG_CONTEXT_URL,
+        "@id": "urn:dataset:1",
+        "@type": "Dataset",
+        "title": {"es": "Lecturas", "en": "Readings"},
+        "keyword": {"en": ["energy", "meter"]},
+        "theme": ["http://publications.europa.eu/resource/authority/data-theme/ENER"],
+        "inCatalog": "urn:catalog:1"
+    });
+    let expansion = EunomiaProfile::shared().expand(&dataset).await.unwrap();
+    let node = &expansion.expanded[0];
+
+    assert_eq!(node["@type"][0], "http://www.w3.org/ns/dcat#Dataset");
+    let titles = node["http://purl.org/dc/terms/title"].as_array().unwrap();
+    assert_eq!(titles.len(), 2);
+    assert!(titles.iter().any(|t| t["@language"] == "es" && t["@value"] == "Lecturas"));
+    assert_eq!(node["http://www.w3.org/ns/dcat#keyword"].as_array().unwrap().len(), 2);
+    assert_eq!(
+        node["@reverse"]["http://www.w3.org/ns/dcat#dataset"][0]["@id"],
+        "urn:catalog:1"
+    );
+}
+
+/// `inCatalog` means a different link on each class, as its type-scoped context says.
+#[tokio::test]
+async fn catalog_membership_term_depends_on_the_type() {
+    let service = json!({
+        "@context": EUNOMIA_CATALOG_CONTEXT_URL,
+        "@type": "DataService",
+        "endpointURL": "https://provider.example/dsp",
+        "inCatalog": "urn:catalog:1"
+    });
+    let expansion = EunomiaProfile::shared().expand(&service).await.unwrap();
+    let node = &expansion.expanded[0];
+
+    assert_eq!(
+        node["@reverse"]["http://www.w3.org/ns/dcat#service"][0]["@id"],
+        "urn:catalog:1"
+    );
+    assert_eq!(
+        node["http://www.w3.org/ns/dcat#endpointURL"][0]["@id"],
+        "https://provider.example/dsp"
+    );
 }

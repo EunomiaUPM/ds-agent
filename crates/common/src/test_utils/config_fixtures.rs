@@ -17,7 +17,7 @@
 
 //! Ready-made configs.
 
-use crate::config::services::{ContractsConfig, TransferConfig};
+use crate::config::services::{CatalogConfig, ContractsConfig, TransferConfig};
 use std::sync::Arc;
 
 /// Transfer config pointing every agent at `localhost`, with no cache.
@@ -71,6 +71,31 @@ pub fn contracts_config_fixture() -> Arc<ContractsConfig> {
             "api_version": "v1"
         },
         "is_catalog_datahub": false
+    });
+    Arc::new(serde_json::from_value(json).unwrap())
+}
+
+/// Catalog config pointing every agent at `localhost`, with no cache.
+pub fn catalog_config_fixture() -> Arc<CatalogConfig> {
+    let host = serde_json::json!({
+        "hosts": { "http": { "protocol": "http", "url": "localhost", "port": null, "internal_port": null }, "grpc": null, "graphql": null },
+        "api_version": "v1"
+    });
+    let json = serde_json::json!({
+        "common": {
+            "hosts": {
+                "http": { "protocol": "http", "url": "localhost", "port": null, "internal_port": null },
+                "grpc": null, "graphql": null
+            },
+            "db": { "db_type": "Postgres", "url": "localhost", "port": "5432" },
+            "api": { "version": "v1", "openapi_path": "/openapi.json" },
+            "connection": { "is_local": true, "is_prod": false, "is_vault_real": false, "has_proxy": false }
+        },
+        "cache": { "cache_type": "Noop", "url": "", "port": "", "user": "", "password": "" },
+        "policy_templates_folder": null,
+        "datahub": null,
+        "ssi_auth": host.clone(),
+        "contracts": host
     });
     Arc::new(serde_json::from_value(json).unwrap())
 }

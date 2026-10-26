@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! The catalog records as they cross agents: only what consumers read, in the API's JSON.
+//! The catalog records as they cross agents: only what consumers read.
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

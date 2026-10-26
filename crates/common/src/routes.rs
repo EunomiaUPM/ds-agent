@@ -112,6 +112,8 @@ pub mod catalog {
         pub const MAIN: &str = "/main";
         /// The children of a catalog (datasets, data services).
         pub const BY_CATALOG: &str = "/catalog/{id}";
+        /// Whether the resource conforms to each profile (`?profile=`, `?deep=true`).
+        pub const DOCTOR: &str = "/{id}/doctor";
     }
 
     pub mod catalogs {
@@ -124,6 +126,18 @@ pub mod catalog {
 
     pub mod datasets {
         pub const PREFIX: &str = "/datasets";
+    }
+
+    pub mod dataset_series {
+        pub const PREFIX: &str = "/dataset-series";
+    }
+
+    pub mod agents {
+        pub const PREFIX: &str = "/agents";
+    }
+
+    pub mod catalog_records {
+        pub const PREFIX: &str = "/catalog-records";
     }
 
     pub mod distributions {
@@ -154,9 +168,12 @@ pub mod catalog {
         pub const ROOT: &str = "/";
     }
 
-    pub mod tenants {
-        pub const PREFIX: &str = "/tenants";
-        pub const PROVISION: &str = "/provision";
+    /// Read-only routes of each profile (public), relative to `{api}/catalog-agent`.
+    pub mod public {
+        pub const PREFIX: &str = "/public";
+        pub const CATALOG: &str = "/catalog";
+        pub const RESOURCE: &str = "/resources/{id}";
+        pub const CONTEXT: &str = "/context.jsonld";
     }
 
     /// DSP catalog protocol (external: peers), under `dsp_common::paths::CATALOG`.

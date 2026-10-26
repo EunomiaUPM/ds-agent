@@ -26,13 +26,18 @@ use ymir::services::client::ClientExt;
 use ymir::types::oauth::UserInfo;
 use ymir::utils::http_client;
 
+use serde_json::Value;
+
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
+use crate::eunomia::EunomiaProfile;
 use crate::facades::catalog::{
     CatalogDataset, CatalogDistribution, CatalogFacadeTrait, CatalogOffer,
 };
 
 /// Reads the catalog agent's API. Calls carry no user token yet, as for the auth facades.
+/// Datasets and distributions come as JSON-LD in the eunomia catalog context and are read through
+/// RDF; offers stay ODRL JSON.
 pub struct CatalogRemoteFacade {
     base_url: String,
 }
@@ -40,6 +45,8 @@ pub struct CatalogRemoteFacade {
 impl CatalogRemoteFacade {
     /// Path segment the catalog agent mounts its API under.
     const SERVICE: &'static str = "catalog-agent";
+    const DCT: &'static str = "http://purl.org/dc/terms/";
+    const DCAT: &'static str = "http://www.w3.org/ns/dcat#";
 
     pub fn new(catalog: &MinKnownConfig) -> Self {
         Self {
@@ -73,11 +80,66 @@ impl CatalogRemoteFacade {
     }
 }
 
+impl CatalogRemoteFacade {
+    /// The resource document at `path`, expanded: its one node.
+    async fn node(&self, path: &str, what: &str) -> Outcome<Value> {
+        let document: Value = self.get(path, what).await?;
+        let expansion = EunomiaProfile::shared().expand(&document).await?;
+        expansion
+            .expanded
+            .as_array()
+            .and_then(|nodes| nodes.first())
+            .cloned()
+            .ok_or_else(|| Errors::missing_resource(path, format!("{what} not found in the catalog"), None))
+    }
+
+    /// The first value of `predicate`, IRI or literal.
+    fn first(node: &Value, predicate: &str) -> Option<String> {
+        let value = node.get(predicate)?.as_array()?.first()?;
+        value
+            .get("@id")
+            .or_else(|| value.get("@value"))
+            .and_then(Value::as_str)
+            .map(str::to_string)
+    }
+
+    /// The parent a reverse membership link names.
+    fn parent(node: &Value, membership: &str) -> String {
+        node.get("@reverse")
+            .and_then(|r| r.get(membership))
+            .and_then(Value::as_array)
+            .and_then(|links| links.first())
+            .and_then(|l| l.get("@id"))
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string()
+    }
+
+    fn id(node: &Value) -> String {
+        node.get("@id").and_then(Value::as_str).unwrap_or_default().to_string()
+    }
+
+    fn distribution(node: &Value) -> CatalogDistribution {
+        CatalogDistribution {
+            id: Self::id(node),
+            dataset_id: Self::parent(node, &format!("{}distribution", Self::DCAT)),
+            dct_format: Self::first(node, &format!("{}format", Self::DCT)),
+            dcat_access_service: Self::first(node, &format!("{}accessService", Self::DCAT))
+                .unwrap_or_default(),
+        }
+    }
+}
+
 #[async_trait]
 impl CatalogFacadeTrait for CatalogRemoteFacade {
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "catalog"))]
     async fn get_dataset(&self, dataset_id: &Urn) -> Outcome<CatalogDataset> {
-        self.get(&format!("datasets/{dataset_id}"), "Dataset").await
+        let node = self.node(&format!("datasets/{dataset_id}"), "Dataset").await?;
+        Ok(CatalogDataset {
+            id: Self::id(&node),
+            catalog_id: Self::parent(&node, &format!("{}dataset", Self::DCAT)),
+            dct_title: Self::first(&node, &format!("{}title", Self::DCT)),
+        })
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "catalog"))]
@@ -87,7 +149,7 @@ impl CatalogFacadeTrait for CatalogRemoteFacade {
         format: &str,
     ) -> Outcome<CatalogDistribution> {
         let path = format!("distributions/dataset/{dataset_id}/format/{format}");
-        self.get(&path, "Distribution").await
+        Ok(Self::distribution(&self.node(&path, "Distribution").await?))
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "catalog"))]
@@ -96,8 +158,8 @@ impl CatalogFacadeTrait for CatalogRemoteFacade {
         _user: &UserInfo,
         distribution_id: &Urn,
     ) -> Outcome<CatalogDistribution> {
-        self.get(&format!("distributions/{distribution_id}"), "Distribution")
-            .await
+        let node = self.node(&format!("distributions/{distribution_id}"), "Distribution").await?;
+        Ok(Self::distribution(&node))
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "catalog"))]

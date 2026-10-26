@@ -1,2294 +1,3594 @@
 {
-  "info": {
-    "_postman_id": "af687e23-9a86-4c7f-b372-0a1a58a51c60",
-    "name": "Application - Catalog Agent",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "13165791"
-  },
-  "item": [
-    {
-      "name": "Entities",
-      "item": [
-        {
-          "name": "Catalog",
-          "item": [
-            {
-              "name": "Get All",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs?with_main_catalog=true",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "catalogs"
-                  ],
-                  "query": [
-                    {
-                      "key": "page",
-                      "value": "4",
-                      "disabled": true
-                    },
-                    {
-                      "key": "limit",
-                      "value": "2",
-                      "disabled": true
-                    },
-                    {
-                      "key": "with_main_catalog",
-                      "value": "true"
-                    }
-                  ]
-                }
-              },
-              "response": [
-                {
-                  "name": "Get All",
-                  "originalRequest": {
-                    "method": "GET",
-                    "header": [],
-                    "url": {
-                      "raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs?with_main_catalog=true",
-                      "host": [
-                        "{{CatalogProvider}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "catalog-agent",
-                        "catalogs"
-                      ],
-                      "query": [
-                        {
-                          "key": "page",
-                          "value": "4",
-                          "disabled": true
-                        },
-                        {
-                          "key": "limit",
-                          "value": "2",
-                          "disabled": true
-                        },
-                        {
-                          "key": "with_main_catalog",
-                          "value": "true"
-                        }
-                      ]
-                    }
-                  },
-                  "_postman_previewlanguage": null,
-                  "header": null,
-                  "cookie": [],
-                  "body": null
-                }
-              ]
-            },
-            {
-              "name": "Batch",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"ids\": [\n        \"urn:catalog:e4a1a62e-af27-4b27-9999-4eef1718e993\",\n        \"urn:catalog:eddcf8e6-358b-42f0-8b31-0f7033e2156c\"\n    ]\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/batch",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "catalogs",
-                    "batch"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get Main",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/main",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "catalogs",
-                    "main"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get by Id",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/urn:catalog:0c672f22-3b06-4ac1-adfa-f9a1626aa1e9",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "catalogs",
-                    "urn:catalog:0c672f22-3b06-4ac1-adfa-f9a1626aa1e9"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Edit",
-              "request": {
-                "method": "PUT",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n   \"dctTitle\": \"asdasd\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/urn:catalog:b8119125-6bee-413d-b02b-a8c0056319c1",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "catalogs",
-                    "urn:catalog:b8119125-6bee-413d-b02b-a8c0056319c1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete",
-              "request": {
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/urn:catalog:b8119125-6bee-413d-b02b-a8c0056319c1",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "catalogs",
-                    "urn:catalog:b8119125-6bee-413d-b02b-a8c0056319c1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Create",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"foafHomePage\": \"superfoaf\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "catalogs"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Create Main",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"foafHomePage\": \"superfoaf\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/main",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "catalogs",
-                    "main"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ]
-        },
-        {
-          "name": "Dataset",
-          "item": [
-            {
-              "name": "Get all",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "datasets"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Batch",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"ids\": []\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/batch",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "datasets",
-                    "batch"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get by Catalog",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/catalog/urn:catalog:e4a1a62e-af27-4b27-9999-4eef1718e993",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "datasets",
-                    "catalog",
-                    "urn:catalog:e4a1a62e-af27-4b27-9999-4eef1718e993"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get by id",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/urn:dataset:35ec00ad-b326-4658-93e1-0014481a4ec4",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "datasets",
-                    "urn:dataset:35ec00ad-b326-4658-93e1-0014481a4ec4"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Create",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"dctTitle\": \"superfoaf\",\n    \"catalogId\": \"urn:catalog:66eed67a-9acb-4956-bd28-8466e9583b3d\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "datasets"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Edit",
-              "request": {
-                "method": "PUT",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n   \"dctTitle\": \"asdasdasdasd\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/urn:dataset:35ec00ad-b326-4658-93e1-0014481a4ec4",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "datasets",
-                    "urn:dataset:35ec00ad-b326-4658-93e1-0014481a4ec4"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete",
-              "request": {
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/urn:uuid:7367541b-d9e1-499a-8262-93e568cddc2f",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "datasets",
-                    "urn:uuid:7367541b-d9e1-499a-8262-93e568cddc2f"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ]
-        },
-        {
-          "name": "DataService",
-          "item": [
-            {
-              "name": "Get all",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "data-services"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Batch",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"ids\": [\n        \"urn:data-service:ce35de3b-2229-4a80-91d1-190802b40243\"\n    ]\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/batch",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "data-services",
-                    "batch"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get by Catalog",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/catalog/urn:catalog:04e2b493-3597-4360-9ffa-1bb78661e114",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "data-services",
-                    "catalog",
-                    "urn:catalog:04e2b493-3597-4360-9ffa-1bb78661e114"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get by id",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/urn:data-service:4acbf984-12a6-4230-a97f-de108d8fceb1",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "data-services",
-                    "urn:data-service:4acbf984-12a6-4230-a97f-de108d8fceb1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get main",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/main",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "data-services",
-                    "main"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Create",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"dcatEndpointUrl\": \"superfoaf\",\n    \"catalogId\": \"urn:catalog:04e2b493-3597-4360-9ffa-1bb78661e114\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "data-services"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Create main",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"dcatEndpointUrl\": \"main\",\n    \"catalogId\": \"urn:catalog:e4a290ed-1f5d-444c-88dd-5c48098cf5eb\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/main",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "data-services",
-                    "main"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Edit",
-              "request": {
-                "method": "PUT",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n   \"dctTitle\": \"asdasdkansldknaslkdnal\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/urn:data-service:4acbf984-12a6-4230-a97f-de108d8fceb1",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "data-services",
-                    "urn:data-service:4acbf984-12a6-4230-a97f-de108d8fceb1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete",
-              "request": {
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/urn:data-service:b3401b35-2d2e-47e4-ab45-bd6178918cdf",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "data-services",
-                    "urn:data-service:b3401b35-2d2e-47e4-ab45-bd6178918cdf"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ]
-        },
-        {
-          "name": "Distributions",
-          "item": [
-            {
-              "name": "Get all",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "distributions"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Batch",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"ids\": []\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions/batch",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "distributions",
-                    "batch"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get by Dataset",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions/dataset/urn:dataset:eac36830-0da2-4018-8732-fca155f51066",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "distributions",
-                    "dataset",
-                    "urn:dataset:eac36830-0da2-4018-8732-fca155f51066"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get by Dataset DctFormats",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions/dataset/urn:dataset:eac36830-0da2-4018-8732-fca155f51066/format/http+push",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "distributions",
-                    "dataset",
-                    "urn:dataset:eac36830-0da2-4018-8732-fca155f51066",
-                    "format",
-                    "http+push"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get by id",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions/urn:distribution:11f037c6-5084-422e-bfb3-2096516a3bc0",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "distributions",
-                    "urn:distribution:11f037c6-5084-422e-bfb3-2096516a3bc0"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Create",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"dctTitle\": \"superfoaf\",\n    \"dcatAccessService\": \"urn:data-service:3a14db63-3b99-4f40-8244-c58d93ae9e60\", \n    \"datasetId\": \"urn:dataset:eac36830-0da2-4018-8732-fca155f51066\",\n    \"dctFormats\": \"http+push\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "distributions"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Edit",
-              "request": {
-                "method": "PUT",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n   \"dctTitle\": \"asdasdkansldknaslkdnal\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions/urn:distribution:11f037c6-5084-422e-bfb3-2096516a3bc0",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "distributions",
-                    "urn:distribution:11f037c6-5084-422e-bfb3-2096516a3bc0"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete",
-              "request": {
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions/urn:distribution:11f037c6-5084-422e-bfb3-2096516a3bc0",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "distributions",
-                    "urn:distribution:11f037c6-5084-422e-bfb3-2096516a3bc0"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ]
-        },
-        {
-          "name": "Policies",
-          "item": [
-            {
-              "name": "Get all",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "odrl-policies"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Batch",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"ids\": []\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies/batch",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "odrl-policies",
-                    "batch"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get by Entity id",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies/entity/urn:uuid:123",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "odrl-policies",
-                    "entity",
-                    "urn:uuid:123"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get by id",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies/urn:odrl-policy:be1542d1-6b77-4ad9-8aba-fe399d026d17",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "odrl-policies",
-                    "urn:odrl-policy:be1542d1-6b77-4ad9-8aba-fe399d026d17"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Create",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"odrlOffer\": {\n        \"permission\": [\n            {\n                \"action\": \"use\"\n            }\n        ]\n    },\n    \"entityId\": \"urn:catalog:35d10981-1d0b-4204-b32e-847b827ce635\", \n    \"entityType\": \"Catalog\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "odrl-policies"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete",
-              "request": {
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies/urn:odrl-policy:5fc12cc0-9998-4b3b-be32-f83f288733e3",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "odrl-policies",
-                    "urn:odrl-policy:5fc12cc0-9998-4b3b-be32-f83f288733e3"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete all by entity",
-              "request": {
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies/entity/urn:uuid:123",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "odrl-policies",
-                    "entity",
-                    "urn:uuid:123"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ]
-        },
-        {
-          "name": "Policies Templates",
-          "item": [
-            {
-              "name": "Get all",
-              "protocolProfileBehavior": {
-                "disableBodyPruning": true
-              },
-              "request": {
-                "method": "GET",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"ids\": []\n}"
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "policy-templates"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Batch",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"ids\": []\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates/batch",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "policy-templates",
-                    "batch"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get multiple by id",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates/whatever",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "policy-templates",
-                    "whatever"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get by id and version",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates/whatever/4.0",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "policy-templates",
-                    "whatever",
-                    "4.0"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Create",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"version\":\"2.0\",\n    \"title\": \"asd\",\n    \"description\": \"asdasd\",\n    \"content\": {\n        \"permission\": [\n            {\n                \"action\": \"use\", \n                \"constraint\": [\n                    {\n                        \"leftOperand\": \"bla\",\n                        \"operator\": \"eq\",\n                        \"rightOperand\": \"$bla\"\n                    }\n                ]\n            }\n        ]\n    },\n    \"parameters\": {\n        \"$bla\": {\n            \"id\": \"hola\", \n            \"dataType\": \"string\"\n        }\n    }\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "policy-templates"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Instantiate Odrl Offer",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"id\": \"policy-1\",\n    \"version\": \"1.0\",\n    \"parameters\": {\n        \"$bla\": \"hola\"\n    },\n    \"entityId\": \"urn:catalog:35d10981-1d0b-4204-b32e-847b827ce635\",\n    \"entityType\": \"Catalog\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates/instantiate-odrl-offer",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "policy-templates",
-                    "instantiate-odrl-offer"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete multiple by id",
-              "request": {
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates/urn:distribution:11f037c6-5084-422e-bfb3-2096516a3bc0/a",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "policy-templates",
-                    "urn:distribution:11f037c6-5084-422e-bfb3-2096516a3bc0",
-                    "a"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ]
-        },
-        {
-          "name": "Peer Catalogs",
-          "item": [
-            {
-              "name": "Get by peer",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/catalog-agent/peer-catalogs/did:jwk:eyJrdHkiOiJSU0EiLCJlIjoiQVFBQiIsIm4iOiJ4T0F3WlpkQ3AwQ0dCQV9tMVVHR1VXcEM5THJlcmJjbDMxblJoZThzNzd6R204aXA3YUgtUW5NNUNLbEo1YXlvUDhKTV9rLWhVQ0V2Q09qNWw5VmNhN0RfNTdRMjRJUEtHN0dQSGdnYzZ5bGxwZFlnSkVlY2xUcXJGcjdGUFBxcThDQzY1WVpfS1hGY3ByOHJGRVFEUGtkc3gzbU1qTkYzQUpNNzBpaEItdGtOOWxxcHZLb0h6MzJRaHRybVhFY2t1X1NtVFlFTU9GVU0xd0I1TE4xNmN4ZzIxZXYwMnZGdlVCYmdWZENTNHZocjNHNlNMM2dPZXVzd3BZaTZtTTZ6clloY3lkaDJaRjZCUEZVMS1NNk9tcENGRnd6SFVWNTdqMHJMLUR0OU1Ja1FUWmxXam5kcVVOZG1Ecnlyd0E1OU8zS1lWYWY5cmUwdW9QS3ZGUmRmY3cifQ",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "catalog-agent",
-                    "peer-catalogs",
-                    "did:jwk:eyJrdHkiOiJSU0EiLCJlIjoiQVFBQiIsIm4iOiJ4T0F3WlpkQ3AwQ0dCQV9tMVVHR1VXcEM5THJlcmJjbDMxblJoZThzNzd6R204aXA3YUgtUW5NNUNLbEo1YXlvUDhKTV9rLWhVQ0V2Q09qNWw5VmNhN0RfNTdRMjRJUEtHN0dQSGdnYzZ5bGxwZFlnSkVlY2xUcXJGcjdGUFBxcThDQzY1WVpfS1hGY3ByOHJGRVFEUGtkc3gzbU1qTkYzQUpNNzBpaEItdGtOOWxxcHZLb0h6MzJRaHRybVhFY2t1X1NtVFlFTU9GVU0xd0I1TE4xNmN4ZzIxZXYwMnZGdlVCYmdWZENTNHZocjNHNlNMM2dPZXVzd3BZaTZtTTZ6clloY3lkaDJaRjZCUEZVMS1NNk9tcENGRnd6SFVWNTdqMHJMLUR0OU1Ja1FUWmxXam5kcVVOZG1Ecnlyd0E1OU8zS1lWYWY5cmUwdW9QS3ZGUmRmY3cifQ"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "DSP",
-      "item": [
-        {
-          "name": "Catalog Request",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"CatalogRequestMessage\",\n    \"filter\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{CatalogProvider}}/dsp/current/catalog/request",
-              "host": [
-                "{{CatalogProvider}}"
-              ],
-              "path": [
-                "dsp",
-                "current",
-                "catalog",
-                "request"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Catalog Request Copy",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"CatalogRequestMessage\",\n    \"filter\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "http://127.0.0.1:1100/dsp/current/catalog/request",
-              "protocol": "http",
-              "host": [
-                "127",
-                "0",
-                "0",
-                "1"
-              ],
-              "port": "1100",
-              "path": [
-                "dsp",
-                "current",
-                "catalog",
-                "request"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Dataset Request By Id",
-          "protocolProfileBehavior": {
-            "disableBodyPruning": true
-          },
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"DatasetRequestMessage\",\n    \"dataset\": \"urn:dataset:d58e3c46-5c22-44e1-8614-5b4fc30bb572\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{CatalogProvider}}/dsp/current/catalog/datasets/urn:dataset:d58e3c46-5c22-44e1-8614-5b4fc30bb572",
-              "host": [
-                "{{CatalogProvider}}"
-              ],
-              "path": [
-                "dsp",
-                "current",
-                "catalog",
-                "datasets",
-                "urn:dataset:d58e3c46-5c22-44e1-8614-5b4fc30bb572"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "DSP Rpc",
-      "item": [
-        {
-          "name": "Catalog Request",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"associatedAgentPeer\": \"did:jwk:eyJrdHkiOiJSU0EiLCJlIjoiQVFBQiIsIm4iOiJ4T0F3WlpkQ3AwQ0dCQV9tMVVHR1VXcEM5THJlcmJjbDMxblJoZThzNzd6R204aXA3YUgtUW5NNUNLbEo1YXlvUDhKTV9rLWhVQ0V2Q09qNWw5VmNhN0RfNTdRMjRJUEtHN0dQSGdnYzZ5bGxwZFlnSkVlY2xUcXJGcjdGUFBxcThDQzY1WVpfS1hGY3ByOHJGRVFEUGtkc3gzbU1qTkYzQUpNNzBpaEItdGtOOWxxcHZLb0h6MzJRaHRybVhFY2t1X1NtVFlFTU9GVU0xd0I1TE4xNmN4ZzIxZXYwMnZGdlVCYmdWZENTNHZocjNHNlNMM2dPZXVzd3BZaTZtTTZ6clloY3lkaDJaRjZCUEZVMS1NNk9tcENGRnd6SFVWNTdqMHJMLUR0OU1Ja1FUWmxXam5kcVVOZG1Ecnlyd0E1OU8zS1lWYWY5cmUwdW9QS3ZGUmRmY3cifQ\",\n    \"filter\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{CatalogProvider}}/dsp/current/catalog/rpc/setup-catalog-request",
-              "host": [
-                "{{CatalogProvider}}"
-              ],
-              "path": [
-                "dsp",
-                "current",
-                "catalog",
-                "rpc",
-                "setup-catalog-request"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Dataset Request By Id",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"associatedAgentPeer\": \"did:jwk:eyJrdHkiOiJSU0EiLCJlIjoiQVFBQiIsIm4iOiJ4T0F3WlpkQ3AwQ0dCQV9tMVVHR1VXcEM5THJlcmJjbDMxblJoZThzNzd6R204aXA3YUgtUW5NNUNLbEo1YXlvUDhKTV9rLWhVQ0V2Q09qNWw5VmNhN0RfNTdRMjRJUEtHN0dQSGdnYzZ5bGxwZFlnSkVlY2xUcXJGcjdGUFBxcThDQzY1WVpfS1hGY3ByOHJGRVFEUGtkc3gzbU1qTkYzQUpNNzBpaEItdGtOOWxxcHZLb0h6MzJRaHRybVhFY2t1X1NtVFlFTU9GVU0xd0I1TE4xNmN4ZzIxZXYwMnZGdlVCYmdWZENTNHZocjNHNlNMM2dPZXVzd3BZaTZtTTZ6clloY3lkaDJaRjZCUEZVMS1NNk9tcENGRnd6SFVWNTdqMHJMLUR0OU1Ja1FUWmxXam5kcVVOZG1Ecnlyd0E1OU8zS1lWYWY5cmUwdW9QS3ZGUmRmY3cifQ\",\n    \"dataset\": \"urn:dataset:828b4b4d-931e-45dd-b40b-b15251fa6487\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{CatalogProvider}}/dsp/current/catalog/rpc/setup-dataset-request",
-              "host": [
-                "{{CatalogProvider}}"
-              ],
-              "path": [
-                "dsp",
-                "current",
-                "catalog",
-                "rpc",
-                "setup-dataset-request"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Connector",
-      "item": [
-        {
-          "name": "Connector Template",
-          "item": [
-            {
-              "name": "Get All",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/connector/templates",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "connector",
-                    "templates"
-                  ],
-                  "query": [
-                    {
-                      "key": "page",
-                      "value": "4",
-                      "disabled": true
-                    },
-                    {
-                      "key": "limit",
-                      "value": "2",
-                      "disabled": true
-                    }
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get by Name",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/connector/templates/urn:connector-template:3431fa80-7ca9-432a-885f-c7e2ff83b19d",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "connector",
-                    "templates",
-                    "urn:connector-template:3431fa80-7ca9-432a-885f-c7e2ff83b19d"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get by Name and Ve",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/connector/templates/urn:connector-template:68e5a99a-11f2-40a7-b76a-0422fcfd6c92/1.0",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "connector",
-                    "templates",
-                    "urn:connector-template:68e5a99a-11f2-40a7-b76a-0422fcfd6c92",
-                    "1.0"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete by Name and Ve",
-              "request": {
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/connector/templates/urn:connector-template:3431fa80-7ca9-432a-885f-c7e2ff83b19d/1.0",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "connector",
-                    "templates",
-                    "urn:connector-template:3431fa80-7ca9-432a-885f-c7e2ff83b19d",
-                    "1.0"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Create",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "pm.collectionVariables.set(\"connectorName\", pm.response.json().name);",
-                      "pm.collectionVariables.set(\"connectorVersion\", pm.response.json().version);"
-                    ],
-                    "type": "text/javascript",
-                    "packages": {},
-                    "requests": {}
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"authentication\": {\n        \"type\": \"NO_AUTH\"\n    },\n    \"interaction\": {\n        \"mode\": \"PULL\",\n        \"dataAccess\": {\n            \"protocol\": \"HTTP\",\n            \"urlTemplate\": \"{{__ACCESS_URL__}}\",\n            \"method\": \"{{__ALLOWED_METHODS__}}\",\n            \"headers\": \"{{__ALLOWED_HEADERS__}}\",\n            \"bodyTemplate\": \"\"\n        }\n    },\n    \"parameters\": [\n        {\n            \"paramType\": \"STRING\",\n            \"name\": \"ACCESS_URL\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"VEC<STRING>\",\n            \"name\": \"ALLOWED_METHODS\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"MAP<STRING,STRING>\",\n            \"name\": \"ALLOWED_HEADERS\",\n            \"title\": \"bla\",\n            \"required\": true\n        }\n    ]\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/connector/templates",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "connector",
-                    "templates"
-                  ]
-                }
-              },
-              "response": [
-                {
-                  "name": "PUSH",
-                  "originalRequest": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json",
-                        "type": "text"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n    \"authentication\": {\n        \"type\": \"BASIC_AUTH\",\n        \"username\": \"{{__BLA__}}\",\n        \"password\": {\n            \"type\": \"VAULT_REF\",\n            \"content\": {\n                \"path\": \"asdasd\",\n                \"key\": \"asdasd\"\n            }\n        }\n    },\n    \"interaction\": {\n        \"mode\": \"PUSH\",\n        \"subscribe\": {\n            \"protocol\": \"HTTP\",\n            \"urlTemplate\": \"{{__TEMPL__}}\",\n            \"method\": \"POST\",\n            \"headers\": {},\n            \"bodyTemplate\": \"\"\n        },\n        \"unsubscribe\": {\n            \"protocol\": \"HTTP\",\n            \"urlTemplate\": \"asdas\",\n            \"method\": \"POST\",\n            \"headers\": \"{{__BLI__}}\"\n        }\n    },\n    \"parameters\": [\n        {\n            \"paramType\": \"STRING\",\n            \"name\": \"BLA\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"STRING\",\n            \"name\": \"TEMPL\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"MAP<STRING,STRING>\",\n            \"name\": \"BLI\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"STRING\",\n            \"name\": \"SYS_BLA\",\n            \"title\": \"sys bla\",\n            \"required\": true, \n            \"autoFilled\": true, \n            \"autoFilledType\": \"SYS_URN\"\n        }\n    ]\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{CatalogProvider}}/api/v1/connector/templates",
-                      "host": [
-                        "{{CatalogProvider}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "connector",
-                        "templates"
-                      ]
-                    }
-                  },
-                  "_postman_previewlanguage": null,
-                  "header": null,
-                  "cookie": [],
-                  "body": null
-                },
-                {
-                  "name": "SYS testing",
-                  "originalRequest": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json",
-                        "type": "text"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n    \"authentication\": {\n        \"type\": \"BASIC_AUTH\",\n        \"username\": \"{{__BLA__}}\",\n        \"password\": {\n            \"type\": \"VAULT_REF\",\n            \"content\": {\n                \"path\": \"asdasd\",\n                \"key\": \"asdasd\"\n            }\n        }\n    },\n    \"interaction\": {\n        \"mode\": \"PUSH\",\n        \"subscribe\": {\n            \"protocol\": \"HTTP\",\n            \"urlTemplate\": \"{{__TEMPL__}}\",\n            \"method\": \"POST\",\n            \"headers\": {},\n            \"bodyTemplate\": \"\"\n        },\n        \"unsubscribe\": {\n            \"protocol\": \"HTTP\",\n            \"urlTemplate\": \"asdas\",\n            \"method\": \"POST\",\n            \"headers\": \"{{__BLI__}}\"\n        }\n    },\n    \"parameters\": [\n        {\n            \"paramType\": \"STRING\",\n            \"name\": \"BLA\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"STRING\",\n            \"name\": \"TEMPL\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"MAP<STRING,STRING>\",\n            \"name\": \"BLI\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"STRING\",\n            \"name\": \"SYS_BLA\",\n            \"title\": \"sys bla\",\n            \"required\": true, \n            \"autoFilled\": true, \n            \"autoFilledType\": \"SYS_URN\"\n        }\n    ]\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{CatalogProvider}}/api/v1/connector/templates",
-                      "host": [
-                        "{{CatalogProvider}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "connector",
-                        "templates"
-                      ]
-                    }
-                  },
-                  "_postman_previewlanguage": null,
-                  "header": null,
-                  "cookie": [],
-                  "body": null
-                },
-                {
-                  "name": "PULL",
-                  "originalRequest": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json",
-                        "type": "text"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n    \"authentication\": {\n        \"type\": \"NO_AUTH\"\n    },\n    \"interaction\": {\n        \"mode\": \"PULL\",\n        \"dataAccess\": {\n            \"protocol\": \"HTTP\",\n            \"urlTemplate\": \"{{__ACCESS_URL__}}\",\n            \"method\": \"{{__ALLOWED_METHODS__}}\",\n            \"headers\": \"{{__ALLOWED_HEADERS__}}\",\n            \"bodyTemplate\": \"\"\n        }\n    },\n    \"parameters\": [\n        {\n            \"paramType\": \"STRING\",\n            \"name\": \"ACCESS_URL\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"VEC<STRING>\",\n            \"name\": \"ALLOWED_METHODS\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"MAP<STRING,STRING>\",\n            \"name\": \"ALLOWED_HEADERS\",\n            \"title\": \"bla\",\n            \"required\": true\n        }\n    ]\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{CatalogProvider}}/api/v1/connector/templates",
-                      "host": [
-                        "{{CatalogProvider}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "connector",
-                        "templates"
-                      ]
-                    }
-                  },
-                  "_postman_previewlanguage": null,
-                  "header": null,
-                  "cookie": [],
-                  "body": null
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "name": "Connector Instances",
-          "item": [
-            {
-              "name": "Get by Id",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/connector/instances/urn:connector-instance:90d4763e-0535-4479-b2de-37a96d79f3d1",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "connector",
-                    "instances",
-                    "urn:connector-instance:90d4763e-0535-4479-b2de-37a96d79f3d1"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get by Distribution",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/connector/instances/distribution/urn:distribution:b56c181a-bcf4-4e0d-abe4-17c943a1bbb7",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "connector",
-                    "instances",
-                    "distribution",
-                    "urn:distribution:b56c181a-bcf4-4e0d-abe4-17c943a1bbb7"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete by Id",
-              "request": {
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/connector/instances/urn:connector-template:3431fa80-7ca9-432a-885f-c7e2ff83b19d/1.0",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "connector",
-                    "instances",
-                    "urn:connector-template:3431fa80-7ca9-432a-885f-c7e2ff83b19d",
-                    "1.0"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Upsert",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"templateName\": \"{{connectorName}}\",\n    \"templateVersion\": \"{{connectorVersion}}\",\n    \"distributionId\": \"{{distributionId}}\",\n    \"metadata\": {\n        \"description\": \"asasdasddas\",\n        \"ownerId\": \"asdas\"\n    },\n    \"dryRun\": false,\n    \"parameters\": {\n        \"ACCESS_URL\": \"https://blabla:123/data/access/bla\", \n        \"ALLOWED_METHODS\": [\"GET\", \"HEAD\"],\n        \"ALLOWED_HEADERS\": {\n            \"X-Ref\": \"123\",\n            \"Yes\": \"2\"\n        }\n    }\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{CatalogProvider}}/api/v1/connector/instances",
-                  "host": [
-                    "{{CatalogProvider}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "connector",
-                    "instances"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Run - Populate Catalog",
-      "item": [
-        {
-          "name": "Catalog Main",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.collectionVariables.set(\"catalogId\", pm.response.json().dctIdentifier);"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "protocolProfileBehavior": {
-            "disableBodyPruning": true
-          },
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"templateName\": \"urn:connector-template:a5c23b67-6d84-42b1-91e8-f011be0a4571\",\n    \"templateVersion\": \"1.0\",\n    \"distributionId\": \"urn:distribution:81064dbb-629e-4d14-853c-378879967bff\",\n    \"metadata\": {\n        \"description\": \"asdas\",\n        \"ownerId\": \"asdas\"\n    },\n    \"dryRun\": false,\n    \"parameters\": {\n        \"BLA\": \"hola\"\n    }\n}"
-            },
-            "url": {
-              "raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/main",
-              "host": [
-                "{{CatalogProvider}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "catalog-agent",
-                "catalogs",
-                "main"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Dataservice Main",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.collectionVariables.set(\"dataServiceId\", pm.response.json().dctIdentifier);"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "protocolProfileBehavior": {
-            "disableBodyPruning": true
-          },
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"templateName\": \"urn:connector-template:a5c23b67-6d84-42b1-91e8-f011be0a4571\",\n    \"templateVersion\": \"1.0\",\n    \"distributionId\": \"urn:distribution:81064dbb-629e-4d14-853c-378879967bff\",\n    \"metadata\": {\n        \"description\": \"asdas\",\n        \"ownerId\": \"asdas\"\n    },\n    \"dryRun\": false,\n    \"parameters\": {\n        \"BLA\": \"hola\"\n    }\n}"
-            },
-            "url": {
-              "raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/main",
-              "host": [
-                "{{CatalogProvider}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "catalog-agent",
-                "data-services",
-                "main"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Dataset",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.collectionVariables.set(\"datasetId\", pm.response.json().dctIdentifier);"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"dctTitle\": \"superfoaf\",\n    \"catalogId\": \"{{catalogId}}\"\n}"
-            },
-            "url": {
-              "raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets",
-              "host": [
-                "{{CatalogProvider}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "catalog-agent",
-                "datasets"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create distribution",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.collectionVariables.set(\"distributionId\", pm.response.json().id);"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"dctTitle\": \"superfoaf\",\n    \"dcatAccessService\": \"{{dataServiceId}}\", \n    \"datasetId\": \"{{datasetId}}\",\n    \"dctFormats\": \"http+push\"\n}"
-            },
-            "url": {
-              "raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions",
-              "host": [
-                "{{CatalogProvider}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "catalog-agent",
-                "distributions"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "OpenAPI",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{CatalogProvider}}/api/v1/catalog/openapi.json",
-          "host": [
-            "{{CatalogProvider}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "catalog",
-            "openapi.json"
-          ]
-        }
-      },
-      "response": []
-    }
-  ],
-  "auth": {
-    "type": "oauth2",
-    "oauth2": [
-      {
-        "key": "client_authentication",
-        "value": "header",
-        "type": "string"
-      },
-      {
-        "key": "addTokenTo",
-        "value": "header",
-        "type": "string"
-      }
-    ]
-  },
-  "variable": [
-    {
-      "key": "CATALOG",
-      "value": ""
-    },
-    {
-      "key": "DATASET",
-      "value": ""
-    },
-    {
-      "key": "DATA_SERVICE",
-      "value": ""
-    },
-    {
-      "key": "catalogId",
-      "value": ""
-    },
-    {
-      "key": "datasetId",
-      "value": ""
-    },
-    {
-      "key": "dataServiceId",
-      "value": ""
-    },
-    {
-      "key": "distributionId",
-      "value": ""
-    },
-    {
-      "key": "connectorName",
-      "value": ""
-    },
-    {
-      "key": "connectorVersion",
-      "value": ""
-    }
-  ]
+	"info": {
+		"_postman_id": "af687e23-9a86-4c7f-b372-0a1a58a51c60",
+		"name": "Application - Catalog Agent",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "13165791"
+	},
+	"auth": {
+		"type": "oauth2",
+		"oauth2": [
+			{
+				"key": "client_authentication",
+				"value": "header",
+				"type": "string"
+			},
+			{
+				"key": "addTokenTo",
+				"value": "header",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Entities",
+			"item": [
+				{
+					"name": "Catalog",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs?limit=20",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"catalogs"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								},
+								"description": "Paged with `limit` and `cursor`; the next cursor comes in `X-Next-Cursor`, the total in `X-Total-Count`."
+							},
+							"response": []
+						},
+						{
+							"name": "Batch",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/batch",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"catalogs",
+										"batch"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\n        \"{{catalogId}}\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Main",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/main",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"catalogs",
+										"main"
+									]
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"pm.collectionVariables.set(\"mainCatalogId\", body[\"@id\"]);",
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Eunomia-Visibility",
+										"value": "Private",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"catalogs"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"Catalog\",\n    \"title\": {\n        \"en\": \"Weather catalog\"\n    },\n    \"description\": {\n        \"en\": \"Meteorological data of the provider\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"pm.collectionVariables.set(\"catalogId\", body[\"@id\"]);",
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/{{catalogId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"catalogs",
+										"{{catalogId}}"
+									]
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Replace",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "If-Match",
+										"value": "{{etag}}",
+										"type": "text"
+									},
+									{
+										"key": "Eunomia-Visibility",
+										"value": "Private",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/{{catalogId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"catalogs",
+										"{{catalogId}}"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"Catalog\",\n    \"title\": {\n        \"en\": \"Weather catalog\"\n    },\n    \"description\": {\n        \"en\": \"Updated description\"\n    },\n    \"@id\": \"{{catalogId}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"description": "Replaces the whole document; `If-Match` takes the ETag of the last read (412 when it changed)."
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Doctor",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/{{catalogId}}/doctor?deep=true",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"catalogs",
+										"{{catalogId}}",
+										"doctor"
+									],
+									"query": [
+										{
+											"key": "deep",
+											"value": "true"
+										}
+									]
+								},
+								"description": "Conformance to every registered profile (dsp, dcat3, dcat-ap); `profile` narrows it, `deep` follows the links."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/{{catalogId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"catalogs",
+										"{{catalogId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Dataset",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets?limit=20",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"datasets"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								},
+								"description": "Paged with `limit` and `cursor`; the next cursor comes in `X-Next-Cursor`, the total in `X-Total-Count`."
+							},
+							"response": []
+						},
+						{
+							"name": "Batch",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/batch",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"datasets",
+										"batch"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\n        \"{{datasetId}}\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "By catalog",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/catalog/{{catalogId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"datasets",
+										"catalog",
+										"{{catalogId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Eunomia-Visibility",
+										"value": "Private",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"datasets"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"Dataset\",\n    \"title\": {\n        \"en\": \"Weather\",\n        \"es\": \"Tiempo\"\n    },\n    \"description\": {\n        \"en\": \"Hourly observations\"\n    },\n    \"keyword\": {\n        \"en\": [\n            \"weather\",\n            \"observations\"\n        ]\n    },\n    \"theme\": [\n        \"http://publications.europa.eu/resource/authority/data-theme/ENVI\"\n    ],\n    \"inCatalog\": \"{{catalogId}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"pm.collectionVariables.set(\"datasetId\", body[\"@id\"]);",
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/{{datasetId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"datasets",
+										"{{datasetId}}"
+									]
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Replace",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "If-Match",
+										"value": "{{etag}}",
+										"type": "text"
+									},
+									{
+										"key": "Eunomia-Visibility",
+										"value": "Private",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/{{datasetId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"datasets",
+										"{{datasetId}}"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"Dataset\",\n    \"title\": {\n        \"en\": \"Weather\",\n        \"es\": \"Tiempo\"\n    },\n    \"description\": {\n        \"en\": \"Updated description\"\n    },\n    \"keyword\": {\n        \"en\": [\n            \"weather\",\n            \"observations\"\n        ]\n    },\n    \"theme\": [\n        \"http://publications.europa.eu/resource/authority/data-theme/ENVI\"\n    ],\n    \"inCatalog\": \"{{catalogId}}\",\n    \"@id\": \"{{datasetId}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"description": "Replaces the whole document; `If-Match` takes the ETag of the last read (412 when it changed)."
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Doctor",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/{{datasetId}}/doctor?deep=true",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"datasets",
+										"{{datasetId}}",
+										"doctor"
+									],
+									"query": [
+										{
+											"key": "deep",
+											"value": "true"
+										}
+									]
+								},
+								"description": "Conformance to every registered profile (dsp, dcat3, dcat-ap); `profile` narrows it, `deep` follows the links."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/{{datasetId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"datasets",
+										"{{datasetId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Dataset Series",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/dataset-series?limit=20",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"dataset-series"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								},
+								"description": "Paged with `limit` and `cursor`; the next cursor comes in `X-Next-Cursor`, the total in `X-Total-Count`."
+							},
+							"response": []
+						},
+						{
+							"name": "Batch",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/dataset-series/batch",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"dataset-series",
+										"batch"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\n        \"{{datasetSeriesId}}\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "By catalog",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/dataset-series/catalog/{{catalogId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"dataset-series",
+										"catalog",
+										"{{catalogId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Eunomia-Visibility",
+										"value": "Private",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/dataset-series",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"dataset-series"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"DatasetSeries\",\n    \"title\": {\n        \"en\": \"Weather by year\"\n    },\n    \"inCatalog\": \"{{catalogId}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"pm.collectionVariables.set(\"datasetSeriesId\", body[\"@id\"]);",
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/dataset-series/{{datasetSeriesId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"dataset-series",
+										"{{datasetSeriesId}}"
+									]
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Replace",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "If-Match",
+										"value": "{{etag}}",
+										"type": "text"
+									},
+									{
+										"key": "Eunomia-Visibility",
+										"value": "Private",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/dataset-series/{{datasetSeriesId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"dataset-series",
+										"{{datasetSeriesId}}"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"DatasetSeries\",\n    \"title\": {\n        \"en\": \"Weather by year\"\n    },\n    \"inCatalog\": \"{{catalogId}}\",\n    \"@id\": \"{{datasetSeriesId}}\",\n    \"description\": {\n        \"en\": \"Updated description\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"description": "Replaces the whole document; `If-Match` takes the ETag of the last read (412 when it changed)."
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Doctor",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/dataset-series/{{datasetSeriesId}}/doctor?deep=true",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"dataset-series",
+										"{{datasetSeriesId}}",
+										"doctor"
+									],
+									"query": [
+										{
+											"key": "deep",
+											"value": "true"
+										}
+									]
+								},
+								"description": "Conformance to every registered profile (dsp, dcat3, dcat-ap); `profile` narrows it, `deep` follows the links."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/dataset-series/{{datasetSeriesId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"dataset-series",
+										"{{datasetSeriesId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Data Service",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services?limit=20",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"data-services"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								},
+								"description": "Paged with `limit` and `cursor`; the next cursor comes in `X-Next-Cursor`, the total in `X-Total-Count`."
+							},
+							"response": []
+						},
+						{
+							"name": "Batch",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/batch",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"data-services",
+										"batch"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\n        \"{{dataServiceId}}\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "By catalog",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/catalog/{{catalogId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"data-services",
+										"catalog",
+										"{{catalogId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Main",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/main",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"data-services",
+										"main"
+									]
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"pm.collectionVariables.set(\"mainDataServiceId\", body[\"@id\"]);",
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Eunomia-Visibility",
+										"value": "Private",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"data-services"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"DataService\",\n    \"title\": {\n        \"en\": \"Weather API\"\n    },\n    \"endpointURL\": \"https://provider.example/api/weather\",\n    \"inCatalog\": \"{{catalogId}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"pm.collectionVariables.set(\"dataServiceId\", body[\"@id\"]);",
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/{{dataServiceId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"data-services",
+										"{{dataServiceId}}"
+									]
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Replace",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "If-Match",
+										"value": "{{etag}}",
+										"type": "text"
+									},
+									{
+										"key": "Eunomia-Visibility",
+										"value": "Private",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/{{dataServiceId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"data-services",
+										"{{dataServiceId}}"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"DataService\",\n    \"title\": {\n        \"en\": \"Weather API\"\n    },\n    \"endpointURL\": \"https://provider.example/api/weather\",\n    \"inCatalog\": \"{{catalogId}}\",\n    \"@id\": \"{{dataServiceId}}\",\n    \"description\": {\n        \"en\": \"Updated description\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"description": "Replaces the whole document; `If-Match` takes the ETag of the last read (412 when it changed)."
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Doctor",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/{{dataServiceId}}/doctor?deep=true",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"data-services",
+										"{{dataServiceId}}",
+										"doctor"
+									],
+									"query": [
+										{
+											"key": "deep",
+											"value": "true"
+										}
+									]
+								},
+								"description": "Conformance to every registered profile (dsp, dcat3, dcat-ap); `profile` narrows it, `deep` follows the links."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/{{dataServiceId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"data-services",
+										"{{dataServiceId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Distribution",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions?limit=20",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"distributions"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								},
+								"description": "Paged with `limit` and `cursor`; the next cursor comes in `X-Next-Cursor`, the total in `X-Total-Count`."
+							},
+							"response": []
+						},
+						{
+							"name": "Batch",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions/batch",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"distributions",
+										"batch"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\n        \"{{distributionId}}\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "By dataset",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions/dataset/{{datasetId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"distributions",
+										"dataset",
+										"{{datasetId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "By dataset and format",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions/dataset/{{datasetId}}/format/http+pull",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"distributions",
+										"dataset",
+										"{{datasetId}}",
+										"format",
+										"http+pull"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Eunomia-Visibility",
+										"value": "Private",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"distributions"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"Distribution\",\n    \"title\": {\n        \"en\": \"Weather over HTTP pull\"\n    },\n    \"format\": \"http+pull\",\n    \"mediaType\": \"https://www.iana.org/assignments/media-types/application/json\",\n    \"accessService\": [\n        \"{{dataServiceId}}\"\n    ],\n    \"ofDataset\": \"{{datasetId}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"pm.collectionVariables.set(\"distributionId\", body[\"@id\"]);",
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions/{{distributionId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"distributions",
+										"{{distributionId}}"
+									]
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Replace",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "If-Match",
+										"value": "{{etag}}",
+										"type": "text"
+									},
+									{
+										"key": "Eunomia-Visibility",
+										"value": "Private",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions/{{distributionId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"distributions",
+										"{{distributionId}}"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"Distribution\",\n    \"title\": {\n        \"en\": \"Weather over HTTP pull\"\n    },\n    \"format\": \"http+pull\",\n    \"mediaType\": \"https://www.iana.org/assignments/media-types/application/json\",\n    \"accessService\": [\n        \"{{dataServiceId}}\"\n    ],\n    \"ofDataset\": \"{{datasetId}}\",\n    \"@id\": \"{{distributionId}}\",\n    \"description\": {\n        \"en\": \"Updated description\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"description": "Replaces the whole document; `If-Match` takes the ETag of the last read (412 when it changed)."
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Doctor",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions/{{distributionId}}/doctor?deep=true",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"distributions",
+										"{{distributionId}}",
+										"doctor"
+									],
+									"query": [
+										{
+											"key": "deep",
+											"value": "true"
+										}
+									]
+								},
+								"description": "Conformance to every registered profile (dsp, dcat3, dcat-ap); `profile` narrows it, `deep` follows the links."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions/{{distributionId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"distributions",
+										"{{distributionId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Agent",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/agents?limit=20",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"agents"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								},
+								"description": "Paged with `limit` and `cursor`; the next cursor comes in `X-Next-Cursor`, the total in `X-Total-Count`."
+							},
+							"response": []
+						},
+						{
+							"name": "Batch",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/agents/batch",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"agents",
+										"batch"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\n        \"{{agentId}}\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Eunomia-Visibility",
+										"value": "Private",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/agents",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"agents"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"Agent\",\n    \"name\": {\n        \"en\": \"UPM\"\n    },\n    \"homepage\": \"https://www.upm.es\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"pm.collectionVariables.set(\"agentId\", body[\"@id\"]);",
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/agents/{{agentId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"agents",
+										"{{agentId}}"
+									]
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Replace",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "If-Match",
+										"value": "{{etag}}",
+										"type": "text"
+									},
+									{
+										"key": "Eunomia-Visibility",
+										"value": "Private",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/agents/{{agentId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"agents",
+										"{{agentId}}"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"Agent\",\n    \"name\": {\n        \"en\": \"UPM\"\n    },\n    \"homepage\": \"https://www.upm.es\",\n    \"@id\": \"{{agentId}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"description": "Replaces the whole document; `If-Match` takes the ETag of the last read (412 when it changed)."
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Doctor",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/agents/{{agentId}}/doctor?deep=true",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"agents",
+										"{{agentId}}",
+										"doctor"
+									],
+									"query": [
+										{
+											"key": "deep",
+											"value": "true"
+										}
+									]
+								},
+								"description": "Conformance to every registered profile (dsp, dcat3, dcat-ap); `profile` narrows it, `deep` follows the links."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/agents/{{agentId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"agents",
+										"{{agentId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Catalog Record",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalog-records?limit=20",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"catalog-records"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								},
+								"description": "Paged with `limit` and `cursor`; the next cursor comes in `X-Next-Cursor`, the total in `X-Total-Count`."
+							},
+							"response": []
+						},
+						{
+							"name": "Batch",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalog-records/batch",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"catalog-records",
+										"batch"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\n        \"{{catalogRecordId}}\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "By catalog",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalog-records/catalog/{{catalogId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"catalog-records",
+										"catalog",
+										"{{catalogId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Eunomia-Visibility",
+										"value": "Private",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalog-records",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"catalog-records"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"CatalogRecord\",\n    \"title\": {\n        \"en\": \"Record of the weather dataset\"\n    },\n    \"primaryTopic\": \"{{datasetId}}\",\n    \"inCatalog\": \"{{catalogId}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"pm.collectionVariables.set(\"catalogRecordId\", body[\"@id\"]);",
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalog-records/{{catalogRecordId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"catalog-records",
+										"{{catalogRecordId}}"
+									]
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Replace",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "If-Match",
+										"value": "{{etag}}",
+										"type": "text"
+									},
+									{
+										"key": "Eunomia-Visibility",
+										"value": "Private",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalog-records/{{catalogRecordId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"catalog-records",
+										"{{catalogRecordId}}"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"CatalogRecord\",\n    \"title\": {\n        \"en\": \"Record of the weather dataset\"\n    },\n    \"primaryTopic\": \"{{datasetId}}\",\n    \"inCatalog\": \"{{catalogId}}\",\n    \"@id\": \"{{catalogRecordId}}\",\n    \"description\": {\n        \"en\": \"Updated description\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"description": "Replaces the whole document; `If-Match` takes the ETag of the last read (412 when it changed)."
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Doctor",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalog-records/{{catalogRecordId}}/doctor?deep=true",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"catalog-records",
+										"{{catalogRecordId}}",
+										"doctor"
+									],
+									"query": [
+										{
+											"key": "deep",
+											"value": "true"
+										}
+									]
+								},
+								"description": "Conformance to every registered profile (dsp, dcat3, dcat-ap); `profile` narrows it, `deep` follows the links."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalog-records/{{catalogRecordId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"catalog-records",
+										"{{catalogRecordId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Policies",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies?limit=20",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"odrl-policies"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies/batch",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"odrl-policies",
+										"batch"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\n        \"{{policyId}}\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "By entity",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies/entity/{{datasetId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"odrl-policies",
+										"entity",
+										"{{datasetId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"odrl-policies"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"odrlOffer\": {\n        \"permission\": [\n            {\n                \"action\": \"use\",\n                \"constraint\": []\n            }\n        ]\n    },\n    \"entityId\": \"{{datasetId}}\",\n    \"entityType\": \"Dataset\",\n    \"description\": \"Use the weather data\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"pm.collectionVariables.set(\"policyId\", body[\"id\"]);",
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies/{{policyId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"odrl-policies",
+										"{{policyId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies/{{policyId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"odrl-policies",
+										"{{policyId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete all by entity",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies/entity/{{datasetId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"odrl-policies",
+										"entity",
+										"{{datasetId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Policy Templates",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates?limit=20",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"policy-templates"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates/batch",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"policy-templates",
+										"batch"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\n        \"{{templateId}}\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"policy-templates"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": \"spatial-use\",\n    \"version\": \"1.0\",\n    \"title\": \"Use within a country\",\n    \"description\": \"Use allowed only in the given country\",\n    \"content\": {\n        \"permission\": [\n            {\n                \"action\": \"use\",\n                \"constraint\": [\n                    {\n                        \"leftOperand\": \"spatial\",\n                        \"operator\": \"eq\",\n                        \"rightOperand\": \"$country\"\n                    }\n                ]\n            }\n        ]\n    },\n    \"parameters\": {\n        \"$country\": {\n            \"dataType\": \"string\"\n        }\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"pm.collectionVariables.set(\"templateId\", body.id);",
+											"pm.collectionVariables.set(\"templateVersion\", body.version);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates/{{templateId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"policy-templates",
+										"{{templateId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get by id and version",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates/{{templateId}}/{{templateVersion}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"policy-templates",
+										"{{templateId}}",
+										"{{templateVersion}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Instantiate ODRL offer",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates/instantiate-odrl-offer",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"policy-templates",
+										"instantiate-odrl-offer"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": \"{{templateId}}\",\n    \"version\": \"{{templateVersion}}\",\n    \"parameters\": {\n        \"$country\": \"ES\"\n    },\n    \"entityId\": \"{{datasetId}}\",\n    \"entityType\": \"Dataset\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete by id and version",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates/{{templateId}}/{{templateVersion}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"policy-templates",
+										"{{templateId}}",
+										"{{templateVersion}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Peer Catalogs",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/peer-catalogs",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"peer-catalogs"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get by peer",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/peer-catalogs/{{peerId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"peer-catalogs",
+										"{{peerId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Dataset Offerings",
+					"item": [
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Eunomia-Visibility",
+										"value": "Private",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/dataset-offerings",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"dataset-offerings"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"dataset\": {\n        \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n        \"@type\": \"Dataset\",\n        \"title\": {\n            \"en\": \"Air quality\"\n        },\n        \"inCatalog\": \"{{mainCatalogId}}\"\n    },\n    \"distribution\": {\n        \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n        \"@type\": \"Distribution\",\n        \"format\": \"http+pull\",\n        \"accessService\": [\n            \"{{mainDataServiceId}}\"\n        ]\n    },\n    \"policy\": {\n        \"description\": \"Use the air quality data\",\n        \"action\": \"use\",\n        \"constraints\": []\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"description": "Dataset, distribution and offer in one call, as the GUI's new offering form."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Public Profiles",
+					"item": [
+						{
+							"name": "DCAT 3 catalog",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/public/dcat3/catalog",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"public",
+										"dcat3",
+										"catalog"
+									]
+								},
+								"description": "The public main catalog in the profile; no token needed. Answers ETag and 304."
+							},
+							"response": []
+						},
+						{
+							"name": "DCAT 3 resource",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/public/dcat3/resources/{{datasetId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"public",
+										"dcat3",
+										"resources",
+										"{{datasetId}}"
+									]
+								},
+								"description": "One public resource and what it links to."
+							},
+							"response": []
+						},
+						{
+							"name": "DCAT 3 context",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/public/dcat3/context.jsonld",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"public",
+										"dcat3",
+										"context.jsonld"
+									]
+								},
+								"description": "The JSON-LD context of the profile."
+							},
+							"response": []
+						},
+						{
+							"name": "DCAT-AP catalog",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/public/dcat-ap/catalog",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"public",
+										"dcat-ap",
+										"catalog"
+									]
+								},
+								"description": "The public main catalog in the profile; no token needed. Answers ETag and 304."
+							},
+							"response": []
+						},
+						{
+							"name": "DCAT-AP resource",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/public/dcat-ap/resources/{{datasetId}}",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"public",
+										"dcat-ap",
+										"resources",
+										"{{datasetId}}"
+									]
+								},
+								"description": "One public resource and what it links to."
+							},
+							"response": []
+						},
+						{
+							"name": "DCAT-AP context",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/public/dcat-ap/context.jsonld",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"public",
+										"dcat-ap",
+										"context.jsonld"
+									]
+								},
+								"description": "The JSON-LD context of the profile."
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "DSP",
+			"item": [
+				{
+					"name": "Catalog Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/dsp/current/catalog/request",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"catalog",
+								"request"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"CatalogRequestMessage\",\n    \"filter\": []\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "DSP 6.2.1; needs the peer's credentials."
+					},
+					"response": []
+				},
+				{
+					"name": "Dataset Request",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/dsp/current/catalog/datasets/{{datasetId}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"catalog",
+								"datasets",
+								"{{datasetId}}"
+							]
+						},
+						"description": "DSP 6.2.2; needs the peer's credentials."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "DSP Rpc",
+			"item": [
+				{
+					"name": "Catalog Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/dsp/current/catalog/rpc/setup-catalog-request",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"catalog",
+								"rpc",
+								"setup-catalog-request"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcCatalogRequestMessage\",\n    \"associatedAgentPeer\": \"{{peerId}}\",\n    \"noCache\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Dataset Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/dsp/current/catalog/rpc/setup-dataset-request",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"catalog",
+								"rpc",
+								"setup-dataset-request"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcDatasetRequestMessage\",\n    \"associatedAgentPeer\": \"{{peerId}}\",\n    \"dataset\": \"{{peerDatasetId}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Connector",
+			"item": [
+				{
+					"name": "Connector Template",
+					"item": [
+						{
+							"name": "Get All",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/connector/templates",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"connector",
+										"templates"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "4",
+											"disabled": true
+										},
+										{
+											"key": "limit",
+											"value": "2",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get by Name",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/connector/templates/urn:connector-template:3431fa80-7ca9-432a-885f-c7e2ff83b19d",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"connector",
+										"templates",
+										"urn:connector-template:3431fa80-7ca9-432a-885f-c7e2ff83b19d"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get by Name and Ve",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/connector/templates/urn:connector-template:68e5a99a-11f2-40a7-b76a-0422fcfd6c92/1.0",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"connector",
+										"templates",
+										"urn:connector-template:68e5a99a-11f2-40a7-b76a-0422fcfd6c92",
+										"1.0"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete by Name and Ve",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/connector/templates/urn:connector-template:3431fa80-7ca9-432a-885f-c7e2ff83b19d/1.0",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"connector",
+										"templates",
+										"urn:connector-template:3431fa80-7ca9-432a-885f-c7e2ff83b19d",
+										"1.0"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.collectionVariables.set(\"connectorName\", pm.response.json().name);",
+											"pm.collectionVariables.set(\"connectorVersion\", pm.response.json().version);"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"authentication\": {\n        \"type\": \"NO_AUTH\"\n    },\n    \"interaction\": {\n        \"mode\": \"PULL\",\n        \"dataAccess\": {\n            \"protocol\": \"HTTP\",\n            \"urlTemplate\": \"{{__ACCESS_URL__}}\",\n            \"method\": \"{{__ALLOWED_METHODS__}}\",\n            \"headers\": \"{{__ALLOWED_HEADERS__}}\",\n            \"bodyTemplate\": \"\"\n        }\n    },\n    \"parameters\": [\n        {\n            \"paramType\": \"STRING\",\n            \"name\": \"ACCESS_URL\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"VEC<STRING>\",\n            \"name\": \"ALLOWED_METHODS\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"MAP<STRING,STRING>\",\n            \"name\": \"ALLOWED_HEADERS\",\n            \"title\": \"bla\",\n            \"required\": true\n        }\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/connector/templates",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"connector",
+										"templates"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "PUSH",
+									"originalRequest": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"authentication\": {\n        \"type\": \"BASIC_AUTH\",\n        \"username\": \"{{__BLA__}}\",\n        \"password\": {\n            \"type\": \"VAULT_REF\",\n            \"content\": {\n                \"path\": \"asdasd\",\n                \"key\": \"asdasd\"\n            }\n        }\n    },\n    \"interaction\": {\n        \"mode\": \"PUSH\",\n        \"subscribe\": {\n            \"protocol\": \"HTTP\",\n            \"urlTemplate\": \"{{__TEMPL__}}\",\n            \"method\": \"POST\",\n            \"headers\": {},\n            \"bodyTemplate\": \"\"\n        },\n        \"unsubscribe\": {\n            \"protocol\": \"HTTP\",\n            \"urlTemplate\": \"asdas\",\n            \"method\": \"POST\",\n            \"headers\": \"{{__BLI__}}\"\n        }\n    },\n    \"parameters\": [\n        {\n            \"paramType\": \"STRING\",\n            \"name\": \"BLA\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"STRING\",\n            \"name\": \"TEMPL\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"MAP<STRING,STRING>\",\n            \"name\": \"BLI\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"STRING\",\n            \"name\": \"SYS_BLA\",\n            \"title\": \"sys bla\",\n            \"required\": true, \n            \"autoFilled\": true, \n            \"autoFilledType\": \"SYS_URN\"\n        }\n    ]\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{CatalogProvider}}/api/v1/connector/templates",
+											"host": [
+												"{{CatalogProvider}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"connector",
+												"templates"
+											]
+										}
+									},
+									"_postman_previewlanguage": null,
+									"header": null,
+									"cookie": [],
+									"body": null
+								},
+								{
+									"name": "SYS testing",
+									"originalRequest": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"authentication\": {\n        \"type\": \"BASIC_AUTH\",\n        \"username\": \"{{__BLA__}}\",\n        \"password\": {\n            \"type\": \"VAULT_REF\",\n            \"content\": {\n                \"path\": \"asdasd\",\n                \"key\": \"asdasd\"\n            }\n        }\n    },\n    \"interaction\": {\n        \"mode\": \"PUSH\",\n        \"subscribe\": {\n            \"protocol\": \"HTTP\",\n            \"urlTemplate\": \"{{__TEMPL__}}\",\n            \"method\": \"POST\",\n            \"headers\": {},\n            \"bodyTemplate\": \"\"\n        },\n        \"unsubscribe\": {\n            \"protocol\": \"HTTP\",\n            \"urlTemplate\": \"asdas\",\n            \"method\": \"POST\",\n            \"headers\": \"{{__BLI__}}\"\n        }\n    },\n    \"parameters\": [\n        {\n            \"paramType\": \"STRING\",\n            \"name\": \"BLA\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"STRING\",\n            \"name\": \"TEMPL\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"MAP<STRING,STRING>\",\n            \"name\": \"BLI\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"STRING\",\n            \"name\": \"SYS_BLA\",\n            \"title\": \"sys bla\",\n            \"required\": true, \n            \"autoFilled\": true, \n            \"autoFilledType\": \"SYS_URN\"\n        }\n    ]\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{CatalogProvider}}/api/v1/connector/templates",
+											"host": [
+												"{{CatalogProvider}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"connector",
+												"templates"
+											]
+										}
+									},
+									"_postman_previewlanguage": null,
+									"header": null,
+									"cookie": [],
+									"body": null
+								},
+								{
+									"name": "PULL",
+									"originalRequest": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"authentication\": {\n        \"type\": \"NO_AUTH\"\n    },\n    \"interaction\": {\n        \"mode\": \"PULL\",\n        \"dataAccess\": {\n            \"protocol\": \"HTTP\",\n            \"urlTemplate\": \"{{__ACCESS_URL__}}\",\n            \"method\": \"{{__ALLOWED_METHODS__}}\",\n            \"headers\": \"{{__ALLOWED_HEADERS__}}\",\n            \"bodyTemplate\": \"\"\n        }\n    },\n    \"parameters\": [\n        {\n            \"paramType\": \"STRING\",\n            \"name\": \"ACCESS_URL\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"VEC<STRING>\",\n            \"name\": \"ALLOWED_METHODS\",\n            \"title\": \"bla\",\n            \"required\": true\n        },\n        {\n            \"paramType\": \"MAP<STRING,STRING>\",\n            \"name\": \"ALLOWED_HEADERS\",\n            \"title\": \"bla\",\n            \"required\": true\n        }\n    ]\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{CatalogProvider}}/api/v1/connector/templates",
+											"host": [
+												"{{CatalogProvider}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"connector",
+												"templates"
+											]
+										}
+									},
+									"_postman_previewlanguage": null,
+									"header": null,
+									"cookie": [],
+									"body": null
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Connector Instances",
+					"item": [
+						{
+							"name": "Get by Id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/connector/instances/urn:connector-instance:90d4763e-0535-4479-b2de-37a96d79f3d1",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"connector",
+										"instances",
+										"urn:connector-instance:90d4763e-0535-4479-b2de-37a96d79f3d1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get by Distribution",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/connector/instances/distribution/urn:distribution:b56c181a-bcf4-4e0d-abe4-17c943a1bbb7",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"connector",
+										"instances",
+										"distribution",
+										"urn:distribution:b56c181a-bcf4-4e0d-abe4-17c943a1bbb7"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete by Id",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/connector/instances/urn:connector-template:3431fa80-7ca9-432a-885f-c7e2ff83b19d/1.0",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"connector",
+										"instances",
+										"urn:connector-template:3431fa80-7ca9-432a-885f-c7e2ff83b19d",
+										"1.0"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Upsert",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"templateName\": \"{{connectorName}}\",\n    \"templateVersion\": \"{{connectorVersion}}\",\n    \"distributionId\": \"{{distributionId}}\",\n    \"metadata\": {\n        \"description\": \"asasdasddas\",\n        \"ownerId\": \"asdas\"\n    },\n    \"dryRun\": false,\n    \"parameters\": {\n        \"ACCESS_URL\": \"https://blabla:123/data/access/bla\", \n        \"ALLOWED_METHODS\": [\"GET\", \"HEAD\"],\n        \"ALLOWED_HEADERS\": {\n            \"X-Ref\": \"123\",\n            \"Yes\": \"2\"\n        }\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/connector/instances",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"connector",
+										"instances"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Run - Populate Catalog",
+			"item": [
+				{
+					"name": "Main catalog",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/main",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"main"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const body = pm.response.json();",
+									"pm.collectionVariables.set(\"catalogId\", body[\"@id\"]);",
+									"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Main data service",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/main",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"data-services",
+								"main"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const body = pm.response.json();",
+									"pm.collectionVariables.set(\"dataServiceId\", body[\"@id\"]);",
+									"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create dataset",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"datasets"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"Dataset\",\n    \"title\": {\n        \"en\": \"Weather\"\n    },\n    \"inCatalog\": \"{{catalogId}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const body = pm.response.json();",
+									"pm.collectionVariables.set(\"datasetId\", body[\"@id\"]);",
+									"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create distribution",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"distributions"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"Distribution\",\n    \"title\": {\n        \"en\": \"Weather API\"\n    },\n    \"format\": \"http+pull\",\n    \"accessService\": [\n        \"{{dataServiceId}}\"\n    ],\n    \"ofDataset\": \"{{datasetId}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const body = pm.response.json();",
+									"pm.collectionVariables.set(\"distributionId\", body[\"@id\"]);",
+									"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create offer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"odrl-policies"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"odrlOffer\": {\n        \"permission\": [\n            {\n                \"action\": \"use\",\n                \"constraint\": []\n            }\n        ]\n    },\n    \"entityId\": \"{{datasetId}}\",\n    \"entityType\": \"Dataset\",\n    \"description\": \"Use the weather data\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const body = pm.response.json();",
+									"pm.collectionVariables.set(\"policyId\", body[\"id\"]);",
+									"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Doctor",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/{{datasetId}}/doctor?deep=true",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"datasets",
+								"{{datasetId}}",
+								"doctor"
+							],
+							"query": [
+								{
+									"key": "deep",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "OpenAPI",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{CatalogProvider}}/api/v1/catalog/openapi.json",
+					"host": [
+						"{{CatalogProvider}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"catalog",
+						"openapi.json"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "mainCatalogId",
+			"value": ""
+		},
+		{
+			"key": "mainDataServiceId",
+			"value": ""
+		},
+		{
+			"key": "catalogId",
+			"value": ""
+		},
+		{
+			"key": "datasetId",
+			"value": ""
+		},
+		{
+			"key": "datasetSeriesId",
+			"value": ""
+		},
+		{
+			"key": "dataServiceId",
+			"value": ""
+		},
+		{
+			"key": "distributionId",
+			"value": ""
+		},
+		{
+			"key": "agentId",
+			"value": ""
+		},
+		{
+			"key": "catalogRecordId",
+			"value": ""
+		},
+		{
+			"key": "policyId",
+			"value": ""
+		},
+		{
+			"key": "templateId",
+			"value": ""
+		},
+		{
+			"key": "templateVersion",
+			"value": ""
+		},
+		{
+			"key": "etag",
+			"value": ""
+		},
+		{
+			"key": "peerId",
+			"value": ""
+		},
+		{
+			"key": "peerDatasetId",
+			"value": ""
+		},
+		{
+			"key": "connectorName",
+			"value": ""
+		},
+		{
+			"key": "connectorVersion",
+			"value": ""
+		}
+	]
 }

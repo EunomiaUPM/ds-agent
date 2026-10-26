@@ -28,14 +28,72 @@ async fn consumer_reads_the_provider_catalog() {
     let ds = Dataspace::start().await;
 
     let main = ds.provider.get("/api/v1/catalog-agent/catalogs/main").await;
-    assert!(main["id"].is_string(), "{main}");
+    assert!(main["@id"].is_string(), "{main}");
+    assert_eq!(main["@type"], "Catalog", "{main}");
 
     let found = ds
         .consumer
         .post(
             "/dsp/current/catalog/rpc/setup-catalog-request",
-            json!({"associatedAgentPeer": PROVIDER_DID, "filter": [], "noCache": true}),
+            json!({
+                "@context": "https://w3id.org/eunomia/v1/context.jsonld",
+                "@type": "RpcCatalogRequestMessage",
+                "associatedAgentPeer": PROVIDER_DID,
+                "noCache": true
+            }),
         )
         .await;
     assert!(found["response"]["service"][0]["endpointURL"].is_string(), "{found}");
+    assert_eq!(found["@type"], "RpcCatalogResult", "{found}");
+}
+
+/// A published dataset reaches the consumer over DSP, and the provider's doctor and public
+/// DCAT-AP route see the same resource.
+#[tokio::test]
+#[ignore = "needs DATABASE_URL"]
+async fn published_dataset_is_seen_by_every_profile() {
+    let ds = Dataspace::start().await;
+    let published = crate::negotiation::publish_offer(&ds.provider).await;
+    let distribution = ds
+        .provider
+        .get(&format!("/api/v1/catalog-agent/distributions/{}", published.distribution_id.as_str().unwrap()))
+        .await;
+    let dataset = distribution["ofDataset"].as_str().unwrap().to_string();
+
+    let report = ds
+        .provider
+        .get(&format!("/api/v1/catalog-agent/datasets/{dataset}/doctor"))
+        .await;
+    let dsp = report["profiles"].as_array().unwrap().iter().find(|p| p["profile"] == "dsp").unwrap();
+    assert_eq!(dsp["compliant"], true, "{report}");
+
+    let catalog = ds.provider.get("/api/v1/catalog-agent/catalogs/main").await;
+    let open = ds
+        .provider
+        .post_with(
+            "/api/v1/catalog-agent/datasets",
+            json!({"@type": "Dataset", "title": {"en": "Open data"}, "inCatalog": catalog["@id"]}),
+            &[("eunomia-visibility", "Public")],
+        )
+        .await;
+    let open_id = open["@id"].as_str().unwrap();
+    let public = ds
+        .provider
+        .get_unauthenticated(&format!("/api/v1/catalog-agent/public/dcat-ap/resources/{open_id}"))
+        .await;
+    assert_eq!(public["@graph"][0]["@id"], open_id, "{public}");
+
+    let found = ds
+        .consumer
+        .post(
+            "/dsp/current/catalog/rpc/setup-dataset-request",
+            json!({
+                "@context": "https://w3id.org/eunomia/v1/context.jsonld",
+                "@type": "RpcDatasetRequestMessage",
+                "associatedAgentPeer": PROVIDER_DID,
+                "dataset": dataset
+            }),
+        )
+        .await;
+    assert_eq!(found["response"]["distribution"][0]["format"], "http+pull", "{found}");
 }

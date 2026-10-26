@@ -216,6 +216,21 @@ impl Participant {
             .unwrap_or_else(|e| panic!("POST {path}: {e:?}"))
     }
 
+    /// POST `body` to `path` as the owner, with extra `headers`.
+    pub async fn post_with(&self, path: &str, body: Value, headers: &[(&str, &str)]) -> Value {
+        let mut map = bearer_headers("owner").unwrap();
+        for (name, value) in headers {
+            map.insert(
+                axum::http::HeaderName::from_bytes(name.as_bytes()).unwrap(),
+                axum::http::HeaderValue::from_str(value).unwrap(),
+            );
+        }
+        http_client()
+            .post_json(&self.url(path), Some(map), &body)
+            .await
+            .unwrap_or_else(|e| panic!("POST {path}: {e:?}"))
+    }
+
     /// POST a DSP message to `path` as a peer presenting `token`; answers status and body.
     pub async fn post_dsp(&self, path: &str, token: &str, body: &Value) -> (u16, Value) {
         let response = http_client()

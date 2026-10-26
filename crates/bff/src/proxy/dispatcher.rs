@@ -136,6 +136,18 @@ impl HttpProxyDispatcher {
                 self.config.catalog().get_host(HostType::Http),
                 "api/v1/catalog-agent/distributions".to_string(),
             )),
+            "dataset-series" => Some((
+                self.config.catalog().get_host(HostType::Http),
+                "api/v1/catalog-agent/dataset-series".to_string(),
+            )),
+            "agents" => Some((
+                self.config.catalog().get_host(HostType::Http),
+                "api/v1/catalog-agent/agents".to_string(),
+            )),
+            "catalog-records" => Some((
+                self.config.catalog().get_host(HostType::Http),
+                "api/v1/catalog-agent/catalog-records".to_string(),
+            )),
             "odrl-policies" => Some((
                 self.config.catalog().get_host(HostType::Http),
                 "api/v1/catalog-agent/odrl-policies".to_string(),

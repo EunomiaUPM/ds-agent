@@ -15,11 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Catalog agent Redis caches against the server `REDIS_URL` points at. Every key a test writes
+//! The catalog agent's Redis cache against the server `REDIS_URL` points at. Every key a test writes
 //! is new to that run, so the dev data in the same Redis is left alone.
 
 mod catalog_cache;
-mod dataservice_cache;
 
 /// Async connection to the Redis at `REDIS_URL`.
 async fn redis() -> redis::aio::MultiplexedConnection {

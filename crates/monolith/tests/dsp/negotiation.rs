@@ -45,17 +45,18 @@ pub(crate) async fn publish_offer(provider: &Participant) -> PublishedOffer {
     let dataset = provider
         .post(
             "/api/v1/catalog-agent/datasets",
-            json!({"dctTitle": "Weather", "catalogId": catalog["id"]}),
+            json!({"@type": "Dataset", "title": {"en": "Weather"}, "inCatalog": catalog["@id"]}),
         )
         .await;
     let distribution = provider
         .post(
             "/api/v1/catalog-agent/distributions",
             json!({
-                "dctTitle": "Weather API",
-                "dcatAccessService": service["id"],
-                "datasetId": dataset["id"],
-                "dctFormats": "http+pull"
+                "@type": "Distribution",
+                "title": {"en": "Weather API"},
+                "accessService": [service["@id"]],
+                "ofDataset": dataset["@id"],
+                "format": "http+pull"
             }),
         )
         .await;
@@ -64,14 +65,14 @@ pub(crate) async fn publish_offer(provider: &Participant) -> PublishedOffer {
             "/api/v1/catalog-agent/odrl-policies",
             json!({
                 "odrlOffer": {"permission": [{"action": "use", "constraint": []}]},
-                "entityId": dataset["id"],
+                "entityId": dataset["@id"],
                 "entityType": "Dataset",
                 "description": "Use the weather data"
             }),
         )
         .await;
     PublishedOffer {
-        distribution_id: distribution["id"].clone(),
+        distribution_id: distribution["@id"].clone(),
     }
 }
 
@@ -104,7 +105,12 @@ pub(crate) async fn negotiate_to_finalized(ds: &Dataspace) -> Negotiated {
     let catalog = consumer
         .post(
             "/dsp/current/catalog/rpc/setup-catalog-request",
-            json!({"associatedAgentPeer": PROVIDER_DID, "filter": [], "noCache": true}),
+            json!({
+                "@context": "https://w3id.org/eunomia/v1/context.jsonld",
+                "@type": "RpcCatalogRequestMessage",
+                "associatedAgentPeer": PROVIDER_DID,
+                "noCache": true
+            }),
         )
         .await;
     let dataset = &catalog["response"]["dataset"][0];
@@ -132,8 +138,8 @@ pub(crate) async fn negotiate_to_finalized(ds: &Dataspace) -> Negotiated {
         .await;
     let consumer_process = process_of(&init).clone();
     assert_eq!(consumer_process["state"], "REQUESTED", "{init}");
-    let pids = consumer_process["identifiers"].clone();
-    assert!(pids["consumerPid"].is_string() && pids["providerPid"].is_string());
+    let pids = consumer_process["correlation"]["identifiers"].clone();
+    assert!(pids["consumerPid"].is_string() && pids["providerPid"].is_string(), "{consumer_process}");
     let with_offer = |kind: &str| {
         let mut body = pids.clone();
         body["offer"] = offer(policy_id, target, "use");

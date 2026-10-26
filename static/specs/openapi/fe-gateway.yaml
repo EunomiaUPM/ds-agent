@@ -22,6 +22,10 @@ servers:
 security:
 - bearerAuth: []
 tags:
+- name: Agents
+  description: 'Agent CRUD: publishers, creators (→ catalog-agent)'
+- name: CatalogRecords
+  description: Catalog record CRUD (→ catalog-agent)
 - name: CatalogRPC
   description: Catalog RPC commands (→ catalog-agent DSP)
 - name: Catalogs
@@ -38,10 +42,14 @@ tags:
   description: Data-service CRUD operations (→ catalog-agent)
 - name: Datasets
   description: Dataset CRUD operations (→ catalog-agent)
+- name: DatasetSeries
+  description: Dataset series CRUD (→ catalog-agent)
 - name: DID
 - name: Discovery
 - name: Distributions
   description: Distribution CRUD operations (→ catalog-agent)
+- name: Doctor
+  description: Conformance of a catalog resource to DSP, DCAT 3 and DCAT-AP (→ catalog-agent)
 - name: Events
   description: Real-time pub/sub event stream, audit feed, webhook subscriptions, and Dead Letter Queue
     (→ events / bff)
@@ -75,7 +83,8 @@ tags:
   description: Personal Access Token (PAT) management (→ oauth)
 - name: PolicyTemplates
   description: Policy template operations (→ catalog-agent)
-- name: Tenants
+- name: PublicProfiles
+  description: Public catalog in each profile (→ catalog-agent)
 - name: Transfer Events
   description: Transfer event operations (→ transfer-agent)
 - name: TransferRPC
@@ -89,48 +98,719 @@ tags:
 - name: WellKnownRPC
   description: .well-known RPC commands
 paths:
-  /catalogs:
+  /agents:
     get:
       tags:
-      - Catalogs
-      operationId: getCatalogs
-      summary: List catalogs
+      - Agents
+      operationId: getAllAgents
+      summary: List Agents
+      description: One page as a JSON-LD `@graph`; the total and the next cursor come in headers.
       parameters:
       - $ref: '#/components/parameters/Limit'
       - $ref: '#/components/parameters/Cursor'
       - $ref: '#/components/parameters/PageNumber'
       - $ref: '#/components/parameters/Sort'
       - $ref: '#/components/parameters/UserIdQuery'
+      - name: catalog_id
+        in: query
+        required: false
+        description: Only resources of this catalog.
+        schema:
+          type: string
+      - name: dataset_id
+        in: query
+        required: false
+        description: Only distributions of this dataset.
+        schema:
+          type: string
       - name: title
         in: query
         required: false
+        description: Part of the title, in any language.
+        schema:
+          type: string
+      - name: keyword
+        in: query
+        required: false
+        description: A `dcat:keyword`, exactly.
+        schema:
+          type: string
+      - name: theme
+        in: query
+        required: false
+        description: A `dcat:theme` IRI.
+        schema:
+          type: string
+      - name: format
+        in: query
+        required: false
+        description: A `dct:format`, literal (`http+pull`) or IRI.
         schema:
           type: string
       - name: creator
         in: query
         required: false
+        description: A `dct:creator` IRI.
+        schema:
+          type: string
+      - name: publisher
+        in: query
+        required: false
+        description: A `dct:publisher` IRI.
+        schema:
+          type: string
+      - name: conforms_to
+        in: query
+        required: false
+        description: A `dct:conformsTo` IRI.
         schema:
           type: string
       - name: participant_id
         in: query
         required: false
+        description: A `dspace:participantId`.
         schema:
           type: string
-      - name: with_main_catalog
+      - name: access_service
         in: query
         required: false
-        description: Include the connector's main catalog in the listing.
+        description: A `dcat:accessService`.
+        schema:
+          type: string
+      - name: endpoint_url
+        in: query
+        required: false
+        description: A `dcat:endpointURL`.
+        schema:
+          type: string
+      - name: main
+        in: query
+        required: false
+        description: '`false` leaves out the connector''s main resource; `true` keeps only it.'
         schema:
           type: boolean
       - $ref: '#/components/parameters/CreatedAfter'
       - $ref: '#/components/parameters/CreatedBefore'
       responses:
         '200':
-          description: Page of catalogs
+          description: Page of Agents
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/AgentGraph'
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+            X-Next-Cursor:
+              $ref: '#/components/headers/X-Next-Cursor'
+            Link:
+              $ref: '#/components/headers/Link'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags:
+      - Agents
+      operationId: createAgent
+      summary: Create a Agent
+      description: A `Agent` document in the catalog context (a body with no `@type` is taken as one).
+      parameters:
+      - $ref: '#/components/parameters/VisibilityHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentDocument'
+      responses:
+        '201':
+          description: Created Agent
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/AgentDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /agents/batch:
+    post:
+      tags:
+      - Agents
+      operationId: getBatchAgents
+      summary: Agents by id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchRequests'
+      responses:
+        '200':
+          description: The Agents found
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/AgentGraph'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /agents/{id}:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    get:
+      tags:
+      - Agents
+      operationId: getAgentById
+      summary: One Agent
+      responses:
+        '200':
+          description: Agent
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/AgentDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Agents
+      operationId: updateAgentById
+      summary: Replace a Agent's description
+      description: The body replaces the description whole; the parent cannot change. With `If-Match`,
+        a stored version other than the one named is a 412.
+      parameters:
+      - $ref: '#/components/parameters/VisibilityHeader'
+      - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentDocument'
+      responses:
+        '200':
+          description: Updated Agent
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/AgentDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+    delete:
+      tags:
+      - Agents
+      operationId: deleteAgentById
+      summary: Delete a Agent
+      description: What hangs from it goes with it; a resource others link to is a 409.
+      parameters:
+      - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+  /agents/{id}/doctor:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    get:
+      tags:
+      - Doctor
+      operationId: doctorAgent
+      summary: Does the Agent conform to each profile?
+      description: Every registered profile (DSP, DCAT 3, DCAT-AP…) diagnoses the resource. Read only.
+      parameters:
+      - $ref: '#/components/parameters/ProfileQuery'
+      - $ref: '#/components/parameters/DeepQuery'
+      responses:
+        '200':
+          description: One diagnosis per profile
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedCatalogDto'
+                $ref: '#/components/schemas/DoctorReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /catalog-records:
+    get:
+      tags:
+      - CatalogRecords
+      operationId: getAllCatalogRecords
+      summary: List CatalogRecords
+      description: One page as a JSON-LD `@graph`; the total and the next cursor come in headers.
+      parameters:
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/Sort'
+      - $ref: '#/components/parameters/UserIdQuery'
+      - name: catalog_id
+        in: query
+        required: false
+        description: Only resources of this catalog.
+        schema:
+          type: string
+      - name: dataset_id
+        in: query
+        required: false
+        description: Only distributions of this dataset.
+        schema:
+          type: string
+      - name: title
+        in: query
+        required: false
+        description: Part of the title, in any language.
+        schema:
+          type: string
+      - name: keyword
+        in: query
+        required: false
+        description: A `dcat:keyword`, exactly.
+        schema:
+          type: string
+      - name: theme
+        in: query
+        required: false
+        description: A `dcat:theme` IRI.
+        schema:
+          type: string
+      - name: format
+        in: query
+        required: false
+        description: A `dct:format`, literal (`http+pull`) or IRI.
+        schema:
+          type: string
+      - name: creator
+        in: query
+        required: false
+        description: A `dct:creator` IRI.
+        schema:
+          type: string
+      - name: publisher
+        in: query
+        required: false
+        description: A `dct:publisher` IRI.
+        schema:
+          type: string
+      - name: conforms_to
+        in: query
+        required: false
+        description: A `dct:conformsTo` IRI.
+        schema:
+          type: string
+      - name: participant_id
+        in: query
+        required: false
+        description: A `dspace:participantId`.
+        schema:
+          type: string
+      - name: access_service
+        in: query
+        required: false
+        description: A `dcat:accessService`.
+        schema:
+          type: string
+      - name: endpoint_url
+        in: query
+        required: false
+        description: A `dcat:endpointURL`.
+        schema:
+          type: string
+      - name: main
+        in: query
+        required: false
+        description: '`false` leaves out the connector''s main resource; `true` keeps only it.'
+        schema:
+          type: boolean
+      - $ref: '#/components/parameters/CreatedAfter'
+      - $ref: '#/components/parameters/CreatedBefore'
+      responses:
+        '200':
+          description: Page of CatalogRecords
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/CatalogRecordGraph'
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+            X-Next-Cursor:
+              $ref: '#/components/headers/X-Next-Cursor'
+            Link:
+              $ref: '#/components/headers/Link'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags:
+      - CatalogRecords
+      operationId: createCatalogRecord
+      summary: Create a CatalogRecord
+      description: A `CatalogRecord` document in the catalog context (a body with no `@type` is taken
+        as one). `inCatalog` names its catalog.
+      parameters:
+      - $ref: '#/components/parameters/VisibilityHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CatalogRecordDocument'
+      responses:
+        '201':
+          description: Created CatalogRecord
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/CatalogRecordDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /catalog-records/batch:
+    post:
+      tags:
+      - CatalogRecords
+      operationId: getBatchCatalogRecords
+      summary: CatalogRecords by id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchRequests'
+      responses:
+        '200':
+          description: The CatalogRecords found
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/CatalogRecordGraph'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /catalog-records/catalog/{id}:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    get:
+      tags:
+      - CatalogRecords
+      operationId: getCatalogRecordsByCatalogId
+      summary: CatalogRecords of a catalog
+      responses:
+        '200':
+          description: The catalog's CatalogRecords
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/CatalogRecordGraph'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /catalog-records/{id}:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    get:
+      tags:
+      - CatalogRecords
+      operationId: getCatalogRecordById
+      summary: One CatalogRecord
+      responses:
+        '200':
+          description: CatalogRecord
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/CatalogRecordDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - CatalogRecords
+      operationId: updateCatalogRecordById
+      summary: Replace a CatalogRecord's description
+      description: The body replaces the description whole; the parent cannot change. With `If-Match`,
+        a stored version other than the one named is a 412.
+      parameters:
+      - $ref: '#/components/parameters/VisibilityHeader'
+      - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CatalogRecordDocument'
+      responses:
+        '200':
+          description: Updated CatalogRecord
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/CatalogRecordDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+    delete:
+      tags:
+      - CatalogRecords
+      operationId: deleteCatalogRecordById
+      summary: Delete a CatalogRecord
+      description: What hangs from it goes with it; a resource others link to is a 409.
+      parameters:
+      - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+  /catalog-records/{id}/doctor:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    get:
+      tags:
+      - Doctor
+      operationId: doctorCatalogRecord
+      summary: Does the CatalogRecord conform to each profile?
+      description: Every registered profile (DSP, DCAT 3, DCAT-AP…) diagnoses the resource. Read only.
+      parameters:
+      - $ref: '#/components/parameters/ProfileQuery'
+      - $ref: '#/components/parameters/DeepQuery'
+      responses:
+        '200':
+          description: One diagnosis per profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /catalogs:
+    get:
+      tags:
+      - Catalogs
+      operationId: getCatalogs
+      summary: List Catalogs
+      description: One page as a JSON-LD `@graph`; the total and the next cursor come in headers.
+      parameters:
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/Sort'
+      - $ref: '#/components/parameters/UserIdQuery'
+      - name: catalog_id
+        in: query
+        required: false
+        description: Only resources of this catalog.
+        schema:
+          type: string
+      - name: dataset_id
+        in: query
+        required: false
+        description: Only distributions of this dataset.
+        schema:
+          type: string
+      - name: title
+        in: query
+        required: false
+        description: Part of the title, in any language.
+        schema:
+          type: string
+      - name: keyword
+        in: query
+        required: false
+        description: A `dcat:keyword`, exactly.
+        schema:
+          type: string
+      - name: theme
+        in: query
+        required: false
+        description: A `dcat:theme` IRI.
+        schema:
+          type: string
+      - name: format
+        in: query
+        required: false
+        description: A `dct:format`, literal (`http+pull`) or IRI.
+        schema:
+          type: string
+      - name: creator
+        in: query
+        required: false
+        description: A `dct:creator` IRI.
+        schema:
+          type: string
+      - name: publisher
+        in: query
+        required: false
+        description: A `dct:publisher` IRI.
+        schema:
+          type: string
+      - name: conforms_to
+        in: query
+        required: false
+        description: A `dct:conformsTo` IRI.
+        schema:
+          type: string
+      - name: participant_id
+        in: query
+        required: false
+        description: A `dspace:participantId`.
+        schema:
+          type: string
+      - name: access_service
+        in: query
+        required: false
+        description: A `dcat:accessService`.
+        schema:
+          type: string
+      - name: endpoint_url
+        in: query
+        required: false
+        description: A `dcat:endpointURL`.
+        schema:
+          type: string
+      - name: main
+        in: query
+        required: false
+        description: '`false` leaves out the connector''s main resource; `true` keeps only it.'
+        schema:
+          type: boolean
+      - $ref: '#/components/parameters/CreatedAfter'
+      - $ref: '#/components/parameters/CreatedBefore'
+      responses:
+        '200':
+          description: Page of Catalogs
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/CatalogGraph'
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+            X-Next-Cursor:
+              $ref: '#/components/headers/X-Next-Cursor'
+            Link:
+              $ref: '#/components/headers/Link'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -141,32 +821,46 @@ paths:
       tags:
       - Catalogs
       operationId: createCatalog
-      summary: Create a catalog
+      summary: Create a Catalog
+      description: A `Catalog` document in the catalog context (a body with no `@type` is taken as one).
+      parameters:
+      - $ref: '#/components/parameters/VisibilityHeader'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NewCatalogDto'
+              $ref: '#/components/schemas/CatalogDocument'
       responses:
         '201':
-          description: Created catalog
+          description: Created Catalog
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/CatalogDto'
+                $ref: '#/components/schemas/CatalogDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /catalogs/batch:
     post:
       tags:
       - Catalogs
       operationId: getBatchCatalogs
-      summary: Get several catalogs by id
+      summary: Catalogs by id
       requestBody:
         required: true
         content:
@@ -175,30 +869,39 @@ paths:
               $ref: '#/components/schemas/BatchRequests'
       responses:
         '200':
-          description: Catalogs found
+          description: The Catalogs found
           content:
-            application/json:
+            application/ld+json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CatalogDto'
+                $ref: '#/components/schemas/CatalogGraph'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /catalogs/main:
     get:
       tags:
       - Catalogs
       operationId: getMainCatalogs
-      summary: The connector's main catalog
+      summary: The connector's main Catalog
       responses:
         '200':
-          description: Main catalog
+          description: Main Catalog
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/CatalogDto'
+                $ref: '#/components/schemas/CatalogDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -207,20 +910,30 @@ paths:
       tags:
       - Catalogs
       operationId: createMainCatalog
-      summary: Create the connector's main catalog
+      summary: Create the main Catalog (root only)
+      description: 'Idempotent: an existing main one is returned. `{}` is a valid body.'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NewCatalogDto'
+              $ref: '#/components/schemas/CatalogDocument'
       responses:
         '201':
-          description: Created main catalog
+          description: Main Catalog
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/CatalogDto'
+                $ref: '#/components/schemas/CatalogDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -234,14 +947,23 @@ paths:
       tags:
       - Catalogs
       operationId: getCatalogById
-      summary: Get a catalog
+      summary: One Catalog
       responses:
         '200':
           description: Catalog
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/CatalogDto'
+                $ref: '#/components/schemas/CatalogDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -252,42 +974,86 @@ paths:
       tags:
       - Catalogs
       operationId: updateCatalog
-      summary: Update a catalog
+      summary: Replace a Catalog's description
+      description: The body replaces the description whole; the parent cannot change. With `If-Match`,
+        a stored version other than the one named is a 412.
+      parameters:
+      - $ref: '#/components/parameters/VisibilityHeader'
+      - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EditCatalogDto'
+              $ref: '#/components/schemas/CatalogDocument'
       responses:
-        '202':
-          description: Updated catalog
+        '200':
+          description: Updated Catalog
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/CatalogDto'
+                $ref: '#/components/schemas/CatalogDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
     delete:
       tags:
       - Catalogs
       operationId: deleteCatalog
-      summary: Delete a catalog
+      summary: Delete a Catalog
+      description: What hangs from it goes with it; a resource others link to is a 409.
+      parameters:
+      - $ref: '#/components/parameters/IfMatch'
       responses:
-        '202':
+        '204':
           description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+  /catalogs/{id}/doctor:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    get:
+      tags:
+      - Doctor
+      operationId: doctorCatalog
+      summary: Does the Catalog conform to each profile?
+      description: Every registered profile (DSP, DCAT 3, DCAT-AP…) diagnoses the resource. Read only.
+      parameters:
+      - $ref: '#/components/parameters/ProfileQuery'
+      - $ref: '#/components/parameters/DeepQuery'
+      responses:
+        '200':
+          description: One diagnosis per profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorReport'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
   /connector/instances:
@@ -530,7 +1296,8 @@ paths:
       tags:
       - DataServices
       operationId: getAllDataServices
-      summary: List data services
+      summary: List DataServices
+      description: One page as a JSON-LD `@graph`; the total and the next cursor come in headers.
       parameters:
       - $ref: '#/components/parameters/Limit'
       - $ref: '#/components/parameters/Cursor'
@@ -540,37 +1307,97 @@ paths:
       - name: catalog_id
         in: query
         required: false
+        description: Only resources of this catalog.
         schema:
           type: string
-      - name: endpoint_url
+      - name: dataset_id
         in: query
         required: false
+        description: Only distributions of this dataset.
         schema:
           type: string
       - name: title
         in: query
         required: false
+        description: Part of the title, in any language.
+        schema:
+          type: string
+      - name: keyword
+        in: query
+        required: false
+        description: A `dcat:keyword`, exactly.
+        schema:
+          type: string
+      - name: theme
+        in: query
+        required: false
+        description: A `dcat:theme` IRI.
+        schema:
+          type: string
+      - name: format
+        in: query
+        required: false
+        description: A `dct:format`, literal (`http+pull`) or IRI.
         schema:
           type: string
       - name: creator
         in: query
         required: false
+        description: A `dct:creator` IRI.
         schema:
           type: string
-      - name: main_data_service
+      - name: publisher
         in: query
         required: false
+        description: A `dct:publisher` IRI.
+        schema:
+          type: string
+      - name: conforms_to
+        in: query
+        required: false
+        description: A `dct:conformsTo` IRI.
+        schema:
+          type: string
+      - name: participant_id
+        in: query
+        required: false
+        description: A `dspace:participantId`.
+        schema:
+          type: string
+      - name: access_service
+        in: query
+        required: false
+        description: A `dcat:accessService`.
+        schema:
+          type: string
+      - name: endpoint_url
+        in: query
+        required: false
+        description: A `dcat:endpointURL`.
+        schema:
+          type: string
+      - name: main
+        in: query
+        required: false
+        description: '`false` leaves out the connector''s main resource; `true` keeps only it.'
         schema:
           type: boolean
       - $ref: '#/components/parameters/CreatedAfter'
       - $ref: '#/components/parameters/CreatedBefore'
       responses:
         '200':
-          description: Page of data services
+          description: Page of DataServices
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/PaginatedDataServiceDto'
+                $ref: '#/components/schemas/DataServiceGraph'
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+            X-Next-Cursor:
+              $ref: '#/components/headers/X-Next-Cursor'
+            Link:
+              $ref: '#/components/headers/Link'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -581,32 +1408,47 @@ paths:
       tags:
       - DataServices
       operationId: createDataService
-      summary: Create a data service
+      summary: Create a DataService
+      description: A `DataService` document in the catalog context (a body with no `@type` is taken as
+        one). `inCatalog` names its catalog.
+      parameters:
+      - $ref: '#/components/parameters/VisibilityHeader'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NewDataServiceDto'
+              $ref: '#/components/schemas/DataServiceDocument'
       responses:
-        '200':
-          description: Created data service
+        '201':
+          description: Created DataService
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/DataServiceDto'
+                $ref: '#/components/schemas/DataServiceDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /data-services/batch:
     post:
       tags:
       - DataServices
       operationId: getBatchDataServices
-      summary: Get several data services by id
+      summary: DataServices by id
       requestBody:
         required: true
         content:
@@ -615,51 +1457,60 @@ paths:
               $ref: '#/components/schemas/BatchRequests'
       responses:
         '200':
-          description: Data services found
+          description: The DataServices found
           content:
-            application/json:
+            application/ld+json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/DataServiceDto'
+                $ref: '#/components/schemas/DataServiceGraph'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /data-services/catalog/{id}:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
     get:
       tags:
       - DataServices
       operationId: getDataServicesByCatalogId
-      summary: Data services of a catalog
-      parameters:
-      - $ref: '#/components/parameters/UrnPathId'
+      summary: DataServices of a catalog
       responses:
         '200':
-          description: Data services of the catalog
+          description: The catalog's DataServices
           content:
-            application/json:
+            application/ld+json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/DataServiceDto'
+                $ref: '#/components/schemas/DataServiceGraph'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /data-services/main:
     get:
       tags:
       - DataServices
       operationId: getMainDataService
-      summary: The connector's main data service
+      summary: The connector's main DataService
       responses:
         '200':
-          description: Main data service
+          description: Main DataService
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/DataServiceDto'
+                $ref: '#/components/schemas/DataServiceDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -668,20 +1519,30 @@ paths:
       tags:
       - DataServices
       operationId: createMainDataService
-      summary: Create the connector's main data service
+      summary: Create the main DataService (root only)
+      description: 'Idempotent: an existing main one is returned. `{}` is a valid body.'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NewDataServiceDto'
+              $ref: '#/components/schemas/DataServiceDocument'
       responses:
-        '200':
-          description: Created main data service
+        '201':
+          description: Main DataService
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/DataServiceDto'
+                $ref: '#/components/schemas/DataServiceDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -695,14 +1556,23 @@ paths:
       tags:
       - DataServices
       operationId: getDataServiceById
-      summary: Get a data service
+      summary: One DataService
       responses:
         '200':
-          description: Data service
+          description: DataService
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/DataServiceDto'
+                $ref: '#/components/schemas/DataServiceDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -713,42 +1583,86 @@ paths:
       tags:
       - DataServices
       operationId: updateDataService
-      summary: Update a data service
+      summary: Replace a DataService's description
+      description: The body replaces the description whole; the parent cannot change. With `If-Match`,
+        a stored version other than the one named is a 412.
+      parameters:
+      - $ref: '#/components/parameters/VisibilityHeader'
+      - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EditDataServiceDto'
+              $ref: '#/components/schemas/DataServiceDocument'
       responses:
         '200':
-          description: Updated data service
+          description: Updated DataService
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/DataServiceDto'
+                $ref: '#/components/schemas/DataServiceDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
     delete:
       tags:
       - DataServices
       operationId: deleteDataService
-      summary: Delete a data service
+      summary: Delete a DataService
+      description: What hangs from it goes with it; a resource others link to is a 409.
+      parameters:
+      - $ref: '#/components/parameters/IfMatch'
       responses:
-        '202':
+        '204':
           description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+  /data-services/{id}/doctor:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    get:
+      tags:
+      - Doctor
+      operationId: doctorDataService
+      summary: Does the DataService conform to each profile?
+      description: Every registered profile (DSP, DCAT 3, DCAT-AP…) diagnoses the resource. Read only.
+      parameters:
+      - $ref: '#/components/parameters/ProfileQuery'
+      - $ref: '#/components/parameters/DeepQuery'
+      responses:
+        '200':
+          description: One diagnosis per profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorReport'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
   /dataset-offerings:
@@ -756,10 +1670,12 @@ paths:
       tags:
       - Catalogs
       operationId: createDatasetOffering
-      summary: Publish a dataset with its distribution and policy
-      description: |
-        Without `dataset.catalogId` the dataset goes to the connector's main catalog; without
-        `distribution.accessServiceId` the distribution uses the main data service.
+      summary: Publish a dataset, its distribution and a policy in one call
+      description: Without `inCatalog` the dataset goes to the main catalog; without `accessService`,
+        `accessURL` or `downloadURL` the main data service serves the distribution. A failure after the
+        dataset removes it again.
+      parameters:
+      - $ref: '#/components/parameters/VisibilityHeader'
       requestBody:
         required: true
         content:
@@ -768,7 +1684,7 @@ paths:
               $ref: '#/components/schemas/NewDatasetOfferingDto'
       responses:
         '201':
-          description: Created entities
+          description: What was created
           content:
             application/json:
               schema:
@@ -779,14 +1695,15 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /datasets:
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /dataset-series:
     get:
       tags:
-      - Datasets
-      operationId: getAllDatasets
-      summary: List datasets
+      - DatasetSeries
+      operationId: getAllDatasetSeries
+      summary: List DatasetSeries
+      description: One page as a JSON-LD `@graph`; the total and the next cursor come in headers.
       parameters:
       - $ref: '#/components/parameters/Limit'
       - $ref: '#/components/parameters/Cursor'
@@ -796,32 +1713,411 @@ paths:
       - name: catalog_id
         in: query
         required: false
+        description: Only resources of this catalog.
+        schema:
+          type: string
+      - name: dataset_id
+        in: query
+        required: false
+        description: Only distributions of this dataset.
         schema:
           type: string
       - name: title
         in: query
         required: false
+        description: Part of the title, in any language.
+        schema:
+          type: string
+      - name: keyword
+        in: query
+        required: false
+        description: A `dcat:keyword`, exactly.
+        schema:
+          type: string
+      - name: theme
+        in: query
+        required: false
+        description: A `dcat:theme` IRI.
+        schema:
+          type: string
+      - name: format
+        in: query
+        required: false
+        description: A `dct:format`, literal (`http+pull`) or IRI.
         schema:
           type: string
       - name: creator
         in: query
         required: false
+        description: A `dct:creator` IRI.
+        schema:
+          type: string
+      - name: publisher
+        in: query
+        required: false
+        description: A `dct:publisher` IRI.
         schema:
           type: string
       - name: conforms_to
         in: query
         required: false
+        description: A `dct:conformsTo` IRI.
         schema:
           type: string
+      - name: participant_id
+        in: query
+        required: false
+        description: A `dspace:participantId`.
+        schema:
+          type: string
+      - name: access_service
+        in: query
+        required: false
+        description: A `dcat:accessService`.
+        schema:
+          type: string
+      - name: endpoint_url
+        in: query
+        required: false
+        description: A `dcat:endpointURL`.
+        schema:
+          type: string
+      - name: main
+        in: query
+        required: false
+        description: '`false` leaves out the connector''s main resource; `true` keeps only it.'
+        schema:
+          type: boolean
       - $ref: '#/components/parameters/CreatedAfter'
       - $ref: '#/components/parameters/CreatedBefore'
       responses:
         '200':
-          description: Page of datasets
+          description: Page of DatasetSeries
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/DatasetSeriesGraph'
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+            X-Next-Cursor:
+              $ref: '#/components/headers/X-Next-Cursor'
+            Link:
+              $ref: '#/components/headers/Link'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags:
+      - DatasetSeries
+      operationId: createDatasetSeries
+      summary: Create a DatasetSeries
+      description: A `DatasetSeries` document in the catalog context (a body with no `@type` is taken
+        as one). `inCatalog` names its catalog.
+      parameters:
+      - $ref: '#/components/parameters/VisibilityHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetSeriesDocument'
+      responses:
+        '201':
+          description: Created DatasetSeries
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/DatasetSeriesDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /dataset-series/batch:
+    post:
+      tags:
+      - DatasetSeries
+      operationId: getBatchDatasetSeries
+      summary: DatasetSeries by id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchRequests'
+      responses:
+        '200':
+          description: The DatasetSeries found
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/DatasetSeriesGraph'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /dataset-series/catalog/{id}:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    get:
+      tags:
+      - DatasetSeries
+      operationId: getDatasetSeriesByCatalogId
+      summary: DatasetSeries of a catalog
+      responses:
+        '200':
+          description: The catalog's DatasetSeries
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/DatasetSeriesGraph'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /dataset-series/{id}:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    get:
+      tags:
+      - DatasetSeries
+      operationId: getDatasetSeriesById
+      summary: One DatasetSeries
+      responses:
+        '200':
+          description: DatasetSeries
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/DatasetSeriesDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - DatasetSeries
+      operationId: updateDatasetSeriesById
+      summary: Replace a DatasetSeries's description
+      description: The body replaces the description whole; the parent cannot change. With `If-Match`,
+        a stored version other than the one named is a 412.
+      parameters:
+      - $ref: '#/components/parameters/VisibilityHeader'
+      - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetSeriesDocument'
+      responses:
+        '200':
+          description: Updated DatasetSeries
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/DatasetSeriesDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+    delete:
+      tags:
+      - DatasetSeries
+      operationId: deleteDatasetSeriesById
+      summary: Delete a DatasetSeries
+      description: What hangs from it goes with it; a resource others link to is a 409.
+      parameters:
+      - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+  /dataset-series/{id}/doctor:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    get:
+      tags:
+      - Doctor
+      operationId: doctorDatasetSeries
+      summary: Does the DatasetSeries conform to each profile?
+      description: Every registered profile (DSP, DCAT 3, DCAT-AP…) diagnoses the resource. Read only.
+      parameters:
+      - $ref: '#/components/parameters/ProfileQuery'
+      - $ref: '#/components/parameters/DeepQuery'
+      responses:
+        '200':
+          description: One diagnosis per profile
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedDatasetDto'
+                $ref: '#/components/schemas/DoctorReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /datasets:
+    get:
+      tags:
+      - Datasets
+      operationId: getAllDatasets
+      summary: List Datasets
+      description: One page as a JSON-LD `@graph`; the total and the next cursor come in headers.
+      parameters:
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/Sort'
+      - $ref: '#/components/parameters/UserIdQuery'
+      - name: catalog_id
+        in: query
+        required: false
+        description: Only resources of this catalog.
+        schema:
+          type: string
+      - name: dataset_id
+        in: query
+        required: false
+        description: Only distributions of this dataset.
+        schema:
+          type: string
+      - name: title
+        in: query
+        required: false
+        description: Part of the title, in any language.
+        schema:
+          type: string
+      - name: keyword
+        in: query
+        required: false
+        description: A `dcat:keyword`, exactly.
+        schema:
+          type: string
+      - name: theme
+        in: query
+        required: false
+        description: A `dcat:theme` IRI.
+        schema:
+          type: string
+      - name: format
+        in: query
+        required: false
+        description: A `dct:format`, literal (`http+pull`) or IRI.
+        schema:
+          type: string
+      - name: creator
+        in: query
+        required: false
+        description: A `dct:creator` IRI.
+        schema:
+          type: string
+      - name: publisher
+        in: query
+        required: false
+        description: A `dct:publisher` IRI.
+        schema:
+          type: string
+      - name: conforms_to
+        in: query
+        required: false
+        description: A `dct:conformsTo` IRI.
+        schema:
+          type: string
+      - name: participant_id
+        in: query
+        required: false
+        description: A `dspace:participantId`.
+        schema:
+          type: string
+      - name: access_service
+        in: query
+        required: false
+        description: A `dcat:accessService`.
+        schema:
+          type: string
+      - name: endpoint_url
+        in: query
+        required: false
+        description: A `dcat:endpointURL`.
+        schema:
+          type: string
+      - name: main
+        in: query
+        required: false
+        description: '`false` leaves out the connector''s main resource; `true` keeps only it.'
+        schema:
+          type: boolean
+      - $ref: '#/components/parameters/CreatedAfter'
+      - $ref: '#/components/parameters/CreatedBefore'
+      responses:
+        '200':
+          description: Page of Datasets
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/DatasetGraph'
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+            X-Next-Cursor:
+              $ref: '#/components/headers/X-Next-Cursor'
+            Link:
+              $ref: '#/components/headers/Link'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -832,32 +2128,47 @@ paths:
       tags:
       - Datasets
       operationId: createDataset
-      summary: Create a dataset
+      summary: Create a Dataset
+      description: A `Dataset` document in the catalog context (a body with no `@type` is taken as one).
+        `inCatalog` names its catalog.
+      parameters:
+      - $ref: '#/components/parameters/VisibilityHeader'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NewDatasetDto'
+              $ref: '#/components/schemas/DatasetDocument'
       responses:
-        '200':
-          description: Created dataset
+        '201':
+          description: Created Dataset
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/DatasetDto'
+                $ref: '#/components/schemas/DatasetDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /datasets/batch:
     post:
       tags:
       - Datasets
       operationId: getBatchDatasets
-      summary: Get several datasets by id
+      summary: Datasets by id
       requestBody:
         required: true
         content:
@@ -866,40 +2177,38 @@ paths:
               $ref: '#/components/schemas/BatchRequests'
       responses:
         '200':
-          description: Datasets found
+          description: The Datasets found
           content:
-            application/json:
+            application/ld+json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/DatasetDto'
+                $ref: '#/components/schemas/DatasetGraph'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /datasets/catalog/{id}:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
     get:
       tags:
       - Datasets
       operationId: getDatasetsByCatalogId
       summary: Datasets of a catalog
-      parameters:
-      - $ref: '#/components/parameters/UrnPathId'
       responses:
         '200':
-          description: Datasets of the catalog
+          description: The catalog's Datasets
           content:
-            application/json:
+            application/ld+json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/DatasetDto'
+                $ref: '#/components/schemas/DatasetGraph'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /datasets/{id}:
     parameters:
     - $ref: '#/components/parameters/UrnPathId'
@@ -907,14 +2216,23 @@ paths:
       tags:
       - Datasets
       operationId: getDatasetById
-      summary: Get a dataset
+      summary: One Dataset
       responses:
         '200':
           description: Dataset
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/DatasetDto'
+                $ref: '#/components/schemas/DatasetDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -925,42 +2243,86 @@ paths:
       tags:
       - Datasets
       operationId: updateDataset
-      summary: Update a dataset
+      summary: Replace a Dataset's description
+      description: The body replaces the description whole; the parent cannot change. With `If-Match`,
+        a stored version other than the one named is a 412.
+      parameters:
+      - $ref: '#/components/parameters/VisibilityHeader'
+      - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EditDatasetDto'
+              $ref: '#/components/schemas/DatasetDocument'
       responses:
         '200':
-          description: Updated dataset
+          description: Updated Dataset
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/DatasetDto'
+                $ref: '#/components/schemas/DatasetDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
     delete:
       tags:
       - Datasets
       operationId: deleteDataset
-      summary: Delete a dataset
+      summary: Delete a Dataset
+      description: What hangs from it goes with it; a resource others link to is a 409.
+      parameters:
+      - $ref: '#/components/parameters/IfMatch'
       responses:
-        '202':
+        '204':
           description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+  /datasets/{id}/doctor:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    get:
+      tags:
+      - Doctor
+      operationId: doctorDataset
+      summary: Does the Dataset conform to each profile?
+      description: Every registered profile (DSP, DCAT 3, DCAT-AP…) diagnoses the resource. Read only.
+      parameters:
+      - $ref: '#/components/parameters/ProfileQuery'
+      - $ref: '#/components/parameters/DeepQuery'
+      responses:
+        '200':
+          description: One diagnosis per profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorReport'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
   /did-json/{url}:
@@ -998,42 +2360,108 @@ paths:
       tags:
       - Distributions
       operationId: getAllDistributions
-      summary: List distributions
+      summary: List Distributions
+      description: One page as a JSON-LD `@graph`; the total and the next cursor come in headers.
       parameters:
       - $ref: '#/components/parameters/Limit'
       - $ref: '#/components/parameters/Cursor'
       - $ref: '#/components/parameters/PageNumber'
       - $ref: '#/components/parameters/Sort'
       - $ref: '#/components/parameters/UserIdQuery'
+      - name: catalog_id
+        in: query
+        required: false
+        description: Only resources of this catalog.
+        schema:
+          type: string
       - name: dataset_id
         in: query
         required: false
-        schema:
-          type: string
-      - name: access_service
-        in: query
-        required: false
-        schema:
-          type: string
-      - name: format
-        in: query
-        required: false
+        description: Only distributions of this dataset.
         schema:
           type: string
       - name: title
         in: query
         required: false
+        description: Part of the title, in any language.
         schema:
           type: string
+      - name: keyword
+        in: query
+        required: false
+        description: A `dcat:keyword`, exactly.
+        schema:
+          type: string
+      - name: theme
+        in: query
+        required: false
+        description: A `dcat:theme` IRI.
+        schema:
+          type: string
+      - name: format
+        in: query
+        required: false
+        description: A `dct:format`, literal (`http+pull`) or IRI.
+        schema:
+          type: string
+      - name: creator
+        in: query
+        required: false
+        description: A `dct:creator` IRI.
+        schema:
+          type: string
+      - name: publisher
+        in: query
+        required: false
+        description: A `dct:publisher` IRI.
+        schema:
+          type: string
+      - name: conforms_to
+        in: query
+        required: false
+        description: A `dct:conformsTo` IRI.
+        schema:
+          type: string
+      - name: participant_id
+        in: query
+        required: false
+        description: A `dspace:participantId`.
+        schema:
+          type: string
+      - name: access_service
+        in: query
+        required: false
+        description: A `dcat:accessService`.
+        schema:
+          type: string
+      - name: endpoint_url
+        in: query
+        required: false
+        description: A `dcat:endpointURL`.
+        schema:
+          type: string
+      - name: main
+        in: query
+        required: false
+        description: '`false` leaves out the connector''s main resource; `true` keeps only it.'
+        schema:
+          type: boolean
       - $ref: '#/components/parameters/CreatedAfter'
       - $ref: '#/components/parameters/CreatedBefore'
       responses:
         '200':
-          description: Page of distributions
+          description: Page of Distributions
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/PaginatedDistributionDto'
+                $ref: '#/components/schemas/DistributionGraph'
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+            X-Next-Cursor:
+              $ref: '#/components/headers/X-Next-Cursor'
+            Link:
+              $ref: '#/components/headers/Link'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1044,32 +2472,47 @@ paths:
       tags:
       - Distributions
       operationId: createDistribution
-      summary: Create a distribution
+      summary: Create a Distribution
+      description: A `Distribution` document in the catalog context (a body with no `@type` is taken as
+        one). `ofDataset` names its dataset.
+      parameters:
+      - $ref: '#/components/parameters/VisibilityHeader'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NewDistributionDto'
+              $ref: '#/components/schemas/DistributionDocument'
       responses:
-        '200':
-          description: Created distribution
+        '201':
+          description: Created Distribution
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/DistributionDto'
+                $ref: '#/components/schemas/DistributionDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /distributions/batch:
     post:
       tags:
       - Distributions
       operationId: getBatchDistributions
-      summary: Get several distributions by id
+      summary: Distributions by id
       requestBody:
         required: true
         content:
@@ -1078,61 +2521,68 @@ paths:
               $ref: '#/components/schemas/BatchRequests'
       responses:
         '200':
-          description: Distributions found
+          description: The Distributions found
           content:
-            application/json:
+            application/ld+json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/DistributionDto'
+                $ref: '#/components/schemas/DistributionGraph'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /distributions/dataset/{id}:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
     get:
       tags:
       - Distributions
       operationId: getDistributionsByDatasetId
       summary: Distributions of a dataset
-      parameters:
-      - $ref: '#/components/parameters/UrnPathId'
       responses:
         '200':
-          description: Distributions of the dataset
+          description: The dataset's Distributions
           content:
-            application/json:
+            application/ld+json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/DistributionDto'
+                $ref: '#/components/schemas/DistributionGraph'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /distributions/dataset/{id}/format/{format}:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    - name: format
+      in: path
+      required: true
+      description: A `dct:format`, e.g. `http+pull`.
+      schema:
+        type: string
     get:
       tags:
       - Distributions
       operationId: getDistributionByDatasetIdAndFormat
-      summary: Distribution of a dataset with a given format
-      parameters:
-      - $ref: '#/components/parameters/UrnPathId'
-      - name: format
-        in: path
-        required: true
-        description: '`dct:format` value.'
-        schema:
-          type: string
-          examples:
-          - HttpData-PULL
+      summary: The dataset's distribution in a format
       responses:
         '200':
           description: Distribution
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/DistributionDto'
+                $ref: '#/components/schemas/DistributionDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1146,14 +2596,23 @@ paths:
       tags:
       - Distributions
       operationId: getDistributionById
-      summary: Get a distribution
+      summary: One Distribution
       responses:
         '200':
           description: Distribution
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/DistributionDto'
+                $ref: '#/components/schemas/DistributionDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1164,42 +2623,86 @@ paths:
       tags:
       - Distributions
       operationId: updateDistribution
-      summary: Update a distribution
+      summary: Replace a Distribution's description
+      description: The body replaces the description whole; the parent cannot change. With `If-Match`,
+        a stored version other than the one named is a 412.
+      parameters:
+      - $ref: '#/components/parameters/VisibilityHeader'
+      - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EditDistributionDto'
+              $ref: '#/components/schemas/DistributionDocument'
       responses:
         '200':
-          description: Updated distribution
+          description: Updated Distribution
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/DistributionDto'
+                $ref: '#/components/schemas/DistributionDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Eunomia-Visibility:
+              $ref: '#/components/headers/Eunomia-Visibility'
+            Eunomia-Owner:
+              $ref: '#/components/headers/Eunomia-Owner'
+            Eunomia-Owner-Role:
+              $ref: '#/components/headers/Eunomia-Owner-Role'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
     delete:
       tags:
       - Distributions
       operationId: deleteDistribution
-      summary: Delete a distribution
+      summary: Delete a Distribution
+      description: What hangs from it goes with it; a resource others link to is a 409.
+      parameters:
+      - $ref: '#/components/parameters/IfMatch'
       responses:
-        '202':
+        '204':
           description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+  /distributions/{id}/doctor:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    get:
+      tags:
+      - Doctor
+      operationId: doctorDistribution
+      summary: Does the Distribution conform to each profile?
+      description: Every registered profile (DSP, DCAT 3, DCAT-AP…) diagnoses the resource. Read only.
+      parameters:
+      - $ref: '#/components/parameters/ProfileQuery'
+      - $ref: '#/components/parameters/DeepQuery'
+      responses:
+        '200':
+          description: One diagnosis per profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorReport'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
   /dsp/current/catalogs/rpc/setup-catalog-request:
@@ -1209,19 +2712,21 @@ paths:
       operationId: rpcSetupCatalogRequest
       summary: Request a peer's catalog
       description: Sends a catalog request to the peer and caches the answer unless `noCache` is set.
+      security:
+      - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RpcCatalogRequestMessageDto'
+              $ref: '#/components/schemas/RpcCatalogRequestMessage'
       responses:
         '200':
           description: The request sent and the peer's catalog
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RpcCatalogResponseMessageDto'
+                $ref: '#/components/schemas/RpcCatalogResult'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1238,19 +2743,21 @@ paths:
       - CatalogRPC
       operationId: rpcSetupDatasetRequest
       summary: Request one dataset from a peer
+      security:
+      - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RpcDatasetRequestMessageDto'
+              $ref: '#/components/schemas/RpcDatasetRequestMessage'
       responses:
         '200':
           description: The request sent and the peer's dataset
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RpcDatasetResponseMessageDto'
+                $ref: '#/components/schemas/RpcCatalogResult'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1749,7 +3256,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorInfo'
-      description: The RPC request with `autoStart` set; the provider starts the transfer once it accepts it.
+      description: The RPC request with `autoStart` set; the provider starts the transfer once it accepts
+        it.
   /dsp/current/transfers/rpc/setup-completion:
     post:
       operationId: setupTransferCompletion
@@ -2191,6 +3699,21 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /events/read-all:
+    post:
+      tags:
+      - Events
+      operationId: markAllEventsRead
+      summary: Mark every unread event read
+      responses:
+        '200':
+          description: Events marked read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventCount'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /events/stream:
     get:
       tags:
@@ -2349,41 +3872,6 @@ paths:
                 $ref: '#/components/schemas/EventCount'
         '401':
           $ref: '#/components/responses/Unauthorized'
-  /events/read-all:
-    post:
-      tags:
-      - Events
-      operationId: markAllEventsRead
-      summary: Mark every unread event read
-      responses:
-        '200':
-          description: Events marked read
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EventCount'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-  /events/{eventId}/read:
-    post:
-      tags:
-      - Events
-      operationId: markEventRead
-      summary: Mark an event read
-      description: Read state is shared by everyone who sees the event.
-      parameters:
-      - $ref: '#/components/parameters/EventId'
-      responses:
-        '200':
-          description: 1 if the event was unread, else 0
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EventCount'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
   /events/{eventId}:
     get:
       tags:
@@ -2422,6 +3910,26 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/EventDeliveryRecord'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /events/{eventId}/read:
+    post:
+      tags:
+      - Events
+      operationId: markEventRead
+      summary: Mark an event read
+      description: Read state is shared by everyone who sees the event.
+      parameters:
+      - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: 1 if the event was unread, else 0
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventCount'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
   /fe-config:
@@ -2509,7 +4017,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
   /gate/request/{id}:
     get:
-      tags: &id001
+      tags:
       - GateKeeper
       operationId: getReceivedGrantById
       summary: Get a received grant request
@@ -2530,8 +4038,7 @@ paths:
       description: Ends the received grant and revokes its tokens.
       operationId: disconnectReceivedGrant
       parameters:
-      - &id003
-        $ref: '#/components/parameters/StringPathId'
+      - $ref: '#/components/parameters/StringPathId'
       responses:
         '204':
           description: Disconnected
@@ -2540,7 +4047,8 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
       summary: Disconnect a peer
-      tags: *id001
+      tags:
+      - GateKeeper
   /gate/request/{id}/details:
     get:
       tags:
@@ -2562,7 +4070,7 @@ paths:
           $ref: '#/components/responses/NotFound'
   /mates:
     post:
-      tags: &id002
+      tags:
       - Participants
       operationId: createParticipant
       summary: Register a participant
@@ -2727,7 +4235,8 @@ paths:
       schema:
         type: string
     get:
-      description: The relations with the participant the caller may see; anonymous ones of others come without author.
+      description: The relations with the participant the caller may see; anonymous ones of others come
+        without author.
       operationId: getParticipantRelations
       responses:
         '200':
@@ -2742,7 +4251,8 @@ paths:
                       description: Role path the relation was created under, e.g. `/admin/upm`.
                       type: string
                     user_id:
-                      description: Who added the participant; masked for anonymous relations the caller does not reach.
+                      description: Who added the participant; masked for anonymous relations the caller
+                        does not reach.
                       type: string
                     username:
                       description: Never given for Anonymous relations.
@@ -4428,7 +5938,7 @@ paths:
           $ref: '#/components/responses/NotFound'
   /peer-connection/connect:
     post:
-      tags: &id004
+      tags:
       - Onboard
       operationId: connectToPeer
       summary: Start onboarding with a peer
@@ -4520,7 +6030,7 @@ paths:
       description: Ends the sent grant and asks the peer to revoke its tokens.
       operationId: disconnectSentGrant
       parameters:
-      - *id003
+      - $ref: '#/components/parameters/StringPathId'
       responses:
         '204':
           description: Disconnected
@@ -4529,7 +6039,8 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
       summary: Disconnect from a peer
-      tags: *id004
+      tags:
+      - Onboard
   /peer-connection/request/{id}/details:
     get:
       tags:
@@ -5371,26 +6882,132 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-  /v1/catalog-agent/tenants/provision:
-    post:
+  /v1/catalog-agent/public/dcat-ap/catalog:
+    get:
       tags:
-      - Tenants
-      operationId: provisionTenant
-      summary: Give the connector its main catalog and data service
-      description: Idempotent; existing main entities are kept. The boot already runs it as the root.
+      - PublicProfiles
+      operationId: publicDcatApCatalog
+      summary: Main catalog in DCAT-AP 3.0.1, with mandatory properties and EU controlled vocabularies
+      security: []
+      description: 'Public: only what is not private. `If-None-Match` answers 304.'
       responses:
         '200':
-          description: The connector's main entities
+          description: The main catalog and what it holds, as one @graph
           content:
-            application/json:
+            application/ld+json:
               schema:
-                $ref: '#/components/schemas/ProvisionedTenantDto'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+                $ref: '#/components/schemas/ProfileDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Link:
+              $ref: '#/components/headers/Link'
+        '304':
+          description: Not modified
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/catalog-agent/public/dcat-ap/context.jsonld:
+    get:
+      tags:
+      - PublicProfiles
+      operationId: publicDcatApContext
+      summary: The profile's JSON-LD context
+      security: []
+      responses:
+        '200':
+          description: Context document
+          content:
+            application/ld+json:
+              schema:
+                type: object
+  /v1/catalog-agent/public/dcat-ap/resources/{id}:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    get:
+      tags:
+      - PublicProfiles
+      operationId: publicDcatApResource
+      summary: One resource in DCAT-AP 3.0.1, with mandatory properties and EU controlled vocabularies
+      security: []
+      responses:
+        '200':
+          description: The resource and its closure
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ProfileDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Link:
+              $ref: '#/components/headers/Link'
+        '304':
+          description: Not modified
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/catalog-agent/public/dcat3/catalog:
+    get:
+      tags:
+      - PublicProfiles
+      operationId: publicDcat3Catalog
+      summary: Main catalog in DCAT 3 (W3C), nearly everything optional
+      security: []
+      description: 'Public: only what is not private. `If-None-Match` answers 304.'
+      responses:
+        '200':
+          description: The main catalog and what it holds, as one @graph
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ProfileDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Link:
+              $ref: '#/components/headers/Link'
+        '304':
+          description: Not modified
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/catalog-agent/public/dcat3/context.jsonld:
+    get:
+      tags:
+      - PublicProfiles
+      operationId: publicDcat3Context
+      summary: The profile's JSON-LD context
+      security: []
+      responses:
+        '200':
+          description: Context document
+          content:
+            application/ld+json:
+              schema:
+                type: object
+  /v1/catalog-agent/public/dcat3/resources/{id}:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    get:
+      tags:
+      - PublicProfiles
+      operationId: publicDcat3Resource
+      summary: One resource in DCAT 3 (W3C), nearly everything optional
+      security: []
+      responses:
+        '200':
+          description: The resource and its closure
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ProfileDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Link:
+              $ref: '#/components/headers/Link'
+        '304':
+          description: Not modified
+        '404':
+          $ref: '#/components/responses/NotFound'
   /v1/keystore/config:
     get:
       tags:
@@ -6204,6 +7821,34 @@ components:
       description: Total number of matching items.
       schema:
         type: integer
+    ETag:
+      description: Weak tag of the stored version (`W/"3"`); on public routes, a strong tag of the body.
+      schema:
+        type: string
+    Eunomia-Visibility:
+      description: Private, Anonymous or Public.
+      schema:
+        $ref: '#/components/schemas/Visibility'
+    Eunomia-Owner:
+      description: User id of the owner.
+      schema:
+        type: string
+    Eunomia-Owner-Role:
+      description: Role path of the owner.
+      schema:
+        type: string
+    X-Total-Count:
+      description: Resources matching the filter.
+      schema:
+        type: integer
+    X-Next-Cursor:
+      description: Cursor of the next page, when there is one.
+      schema:
+        type: string
+    Link:
+      description: '`rel="next"` with the next cursor, or `rel="profile"` on public routes.'
+      schema:
+        type: string
   parameters:
     CreatedAfter:
       name: created_after
@@ -6381,6 +8026,35 @@ components:
       required: false
       schema:
         type: string
+    VisibilityHeader:
+      name: Eunomia-Visibility
+      in: header
+      required: false
+      description: Who else sees the resource; private when absent.
+      schema:
+        $ref: '#/components/schemas/Visibility'
+    IfMatch:
+      name: If-Match
+      in: header
+      required: false
+      description: The `ETag` read (`W/"3"`); another stored version is a 412.
+      schema:
+        type: string
+    ProfileQuery:
+      name: profile
+      in: query
+      required: false
+      description: 'One profile only: `dsp`, `dcat3` or `dcat-ap`.'
+      schema:
+        type: string
+    DeepQuery:
+      name: deep
+      in: query
+      required: false
+      description: Diagnose the whole closure, not the resource alone.
+      schema:
+        type: boolean
+        default: false
   responses:
     BadRequest:
       description: Malformed request or failed validation
@@ -6431,7 +8105,100 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorInfo'
+    PreconditionFailed:
+      description: The resource changed since the version `If-Match` names
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorInfo'
+    PeerUnauthorized:
+      description: Missing or unknown peer token (empty body)
+    ProtocolBadRequest:
+      description: Invalid message or failed request, as plain text
+      content:
+        text/plain:
+          schema:
+            type: string
   schemas:
+    AgentDocument:
+      type: object
+      description: A `Agent` (`foaf:Agent`) in the eunomia catalog context. Any other property is kept
+        as sent, under its full or compact IRI.
+      properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/catalog-context.jsonld`; any context works on input,
+            it is read through RDF.'
+          oneOf:
+          - type: string
+          - type: object
+          - type: array
+        '@id':
+          type: string
+          description: URN of the resource; minted when a body names none.
+        '@type':
+          description: The class term, e.g. `Dataset`.
+          oneOf:
+          - type: string
+          - type: array
+            items:
+              type: string
+        title:
+          $ref: '#/components/schemas/LanguageText'
+        description:
+          $ref: '#/components/schemas/LanguageText'
+        issued:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Set by the agent.
+        modified:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Set by the agent.
+        identifier:
+          type: string
+        conformsTo:
+          type: array
+          items:
+            type: string
+            format: iri
+        creator:
+          type: string
+          format: iri
+        publisher:
+          type: string
+          format: iri
+        license:
+          type: string
+          format: iri
+        accessRights:
+          type: string
+          format: iri
+        language:
+          type: array
+          items:
+            type: string
+          description: Language IRIs, or bare codes (`en`) that DCAT-AP maps to the EU language table.
+        name:
+          $ref: '#/components/schemas/LanguageText'
+        dctType:
+          type: string
+          format: iri
+      additionalProperties: true
+    AgentGraph:
+      type: object
+      required:
+      - '@graph'
+      properties:
+        '@context':
+          type: string
+          examples:
+          - https://w3id.org/eunomia/v1/catalog-context.jsonld
+        '@graph':
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentDocument'
     AgreementDto:
       type: object
       required:
@@ -6583,63 +8350,189 @@ components:
           const: BEARER_TOKEN
         token:
           $ref: '#/components/schemas/SecretString'
-    CatalogDto:
+    CatalogDocument:
+      type: object
+      description: A `Catalog` (`dcat:Catalog`) in the eunomia catalog context. Any other property is
+        kept as sent, under its full or compact IRI.
+      properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/catalog-context.jsonld`; any context works on input,
+            it is read through RDF.'
+          oneOf:
+          - type: string
+          - type: object
+          - type: array
+        '@id':
+          type: string
+          description: URN of the resource; minted when a body names none.
+        '@type':
+          description: The class term, e.g. `Dataset`.
+          oneOf:
+          - type: string
+          - type: array
+            items:
+              type: string
+        title:
+          $ref: '#/components/schemas/LanguageText'
+        description:
+          $ref: '#/components/schemas/LanguageText'
+        issued:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Set by the agent.
+        modified:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Set by the agent.
+        identifier:
+          type: string
+        conformsTo:
+          type: array
+          items:
+            type: string
+            format: iri
+        creator:
+          type: string
+          format: iri
+        publisher:
+          type: string
+          format: iri
+        license:
+          type: string
+          format: iri
+        accessRights:
+          type: string
+          format: iri
+        language:
+          type: array
+          items:
+            type: string
+          description: Language IRIs, or bare codes (`en`) that DCAT-AP maps to the EU language table.
+        homepage:
+          type: string
+          format: iri
+        themeTaxonomy:
+          type: array
+          items:
+            type: string
+            format: iri
+        participantId:
+          type: string
+          description: '`dspace:participantId` (DID).'
+        spatial:
+          type: array
+          items:
+            type: string
+            format: iri
+        inCatalog:
+          type: string
+          description: 'Not used: catalogs hang from no catalog.'
+      additionalProperties: true
+    CatalogEntityType:
+      type: string
+      enum:
+      - Catalog
+      - Dataset
+      - Distribution
+      - DataService
+    CatalogGraph:
       type: object
       required:
-      - id
-      - userId
-      - userRole
-      - visibility
-      - dctIssued
-      - dspaceMainCatalog
+      - '@graph'
       properties:
-        id:
+        '@context':
           type: string
-          description: URN of the catalog.
-        userId:
-          type: string
-          description: Author of the record (`system` when a peer opened it).
-        userRole:
-          type: string
-          description: Role the record was created under (or that handles it).
           examples:
-          - /admin/upm
-        visibility:
-          $ref: '#/components/schemas/Visibility'
-        foafHomePage:
-          type:
-          - string
-          - 'null'
-        dctConformsTo:
-          type:
-          - string
-          - 'null'
-        dctCreator:
-          type:
-          - string
-          - 'null'
-        dctIdentifier:
-          type:
-          - string
-          - 'null'
-        dctIssued:
+          - https://w3id.org/eunomia/v1/catalog-context.jsonld
+        '@graph':
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogDocument'
+    CatalogRecordDocument:
+      type: object
+      description: A `CatalogRecord` (`dcat:CatalogRecord`) in the eunomia catalog context. Any other
+        property is kept as sent, under its full or compact IRI.
+      properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/catalog-context.jsonld`; any context works on input,
+            it is read through RDF.'
+          oneOf:
+          - type: string
+          - type: object
+          - type: array
+        '@id':
+          type: string
+          description: URN of the resource; minted when a body names none.
+        '@type':
+          description: The class term, e.g. `Dataset`.
+          oneOf:
+          - type: string
+          - type: array
+            items:
+              type: string
+        title:
+          $ref: '#/components/schemas/LanguageText'
+        description:
+          $ref: '#/components/schemas/LanguageText'
+        issued:
           type: string
           format: date-time
-        dctModified:
-          type:
-          - string
-          - 'null'
+          readOnly: true
+          description: Set by the agent.
+        modified:
+          type: string
           format: date-time
-        dctTitle:
-          type:
-          - string
-          - 'null'
-        dspaceParticipantId:
-          type:
-          - string
-          - 'null'
-        dspaceMainCatalog:
-          type: boolean
+          readOnly: true
+          description: Set by the agent.
+        identifier:
+          type: string
+        conformsTo:
+          type: array
+          items:
+            type: string
+            format: iri
+        creator:
+          type: string
+          format: iri
+        publisher:
+          type: string
+          format: iri
+        license:
+          type: string
+          format: iri
+        accessRights:
+          type: string
+          format: iri
+        language:
+          type: array
+          items:
+            type: string
+          description: Language IRIs, or bare codes (`en`) that DCAT-AP maps to the EU language table.
+        primaryTopic:
+          type: string
+          description: The resource the record is about.
+        status:
+          type: string
+          format: iri
+        inCatalog:
+          type: string
+          description: URN of its catalog (reverse of `dcat:record`).
+      additionalProperties: true
+    CatalogRecordGraph:
+      type: object
+      required:
+      - '@graph'
+      properties:
+        '@context':
+          type: string
+          examples:
+          - https://w3id.org/eunomia/v1/catalog-context.jsonld
+        '@graph':
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogRecordDocument'
     ConnectorInstanceDto:
       description: Instance metadata, flattened, plus its resolved configuration.
       allOf:
@@ -6864,8 +8757,6 @@ components:
           type: array
           items:
             type: string
-    CreateDatasetOfferingRequest:
-      $ref: '#/components/schemas/NewDatasetOfferingDto'
     CreatePatCommand:
       type: object
       required:
@@ -7005,69 +8896,101 @@ components:
                 type: string
               value:
                 type: string
-    DataServiceDto:
+    DataServiceDocument:
+      type: object
+      description: A `DataService` (`dcat:DataService`) in the eunomia catalog context. Any other property
+        is kept as sent, under its full or compact IRI.
+      properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/catalog-context.jsonld`; any context works on input,
+            it is read through RDF.'
+          oneOf:
+          - type: string
+          - type: object
+          - type: array
+        '@id':
+          type: string
+          description: URN of the resource; minted when a body names none.
+        '@type':
+          description: The class term, e.g. `Dataset`.
+          oneOf:
+          - type: string
+          - type: array
+            items:
+              type: string
+        title:
+          $ref: '#/components/schemas/LanguageText'
+        description:
+          $ref: '#/components/schemas/LanguageText'
+        issued:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Set by the agent.
+        modified:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Set by the agent.
+        identifier:
+          type: string
+        conformsTo:
+          type: array
+          items:
+            type: string
+            format: iri
+        creator:
+          type: string
+          format: iri
+        publisher:
+          type: string
+          format: iri
+        license:
+          type: string
+          format: iri
+        accessRights:
+          type: string
+          format: iri
+        language:
+          type: array
+          items:
+            type: string
+          description: Language IRIs, or bare codes (`en`) that DCAT-AP maps to the EU language table.
+        endpointURL:
+          type: string
+          format: iri
+        endpointDescription:
+          type: string
+          format: iri
+        servesDataset:
+          type: array
+          items:
+            type: string
+            format: iri
+        keyword:
+          $ref: '#/components/schemas/LanguageText'
+        theme:
+          type: array
+          items:
+            type: string
+            format: iri
+        inCatalog:
+          type: string
+          description: URN of its catalog (reverse of `dcat:service`).
+      additionalProperties: true
+    DataServiceGraph:
       type: object
       required:
-      - id
-      - userId
-      - userRole
-      - visibility
-      - dcatEndpointUrl
-      - dctIssued
-      - catalogId
-      - dspaceMainDataService
+      - '@graph'
       properties:
-        id:
+        '@context':
           type: string
-          description: URN of the data service.
-        userId:
-          type: string
-          description: Author of the record (`system` when a peer opened it).
-        userRole:
-          type: string
-          description: Role the record was created under (or that handles it).
           examples:
-          - /admin/upm
-        visibility:
-          $ref: '#/components/schemas/Visibility'
-        dcatEndpointDescription:
-          type:
-          - string
-          - 'null'
-        dcatEndpointUrl:
-          type: string
-        dctConformsTo:
-          type:
-          - string
-          - 'null'
-        dctCreator:
-          type:
-          - string
-          - 'null'
-        dctIdentifier:
-          type:
-          - string
-          - 'null'
-        dctIssued:
-          type: string
-          format: date-time
-        dctModified:
-          type:
-          - string
-          - 'null'
-          format: date-time
-        dctTitle:
-          type:
-          - string
-          - 'null'
-        dctDescription:
-          type:
-          - string
-          - 'null'
-        catalogId:
-          type: string
-        dspaceMainDataService:
-          type: boolean
+          - https://w3id.org/eunomia/v1/catalog-context.jsonld
+        '@graph':
+          type: array
+          items:
+            $ref: '#/components/schemas/DataServiceDocument'
     DataplaneInfoResponse:
       type: object
       required:
@@ -7229,61 +9152,118 @@ components:
         created_at:
           type: string
           format: date-time
-    Dataset:
-      $ref: '#/components/schemas/DspDataset'
-    DatasetDto:
+    DatasetDocument:
+      type: object
+      description: A `Dataset` (`dcat:Dataset`) in the eunomia catalog context. Any other property is
+        kept as sent, under its full or compact IRI.
+      properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/catalog-context.jsonld`; any context works on input,
+            it is read through RDF.'
+          oneOf:
+          - type: string
+          - type: object
+          - type: array
+        '@id':
+          type: string
+          description: URN of the resource; minted when a body names none.
+        '@type':
+          description: The class term, e.g. `Dataset`.
+          oneOf:
+          - type: string
+          - type: array
+            items:
+              type: string
+        title:
+          $ref: '#/components/schemas/LanguageText'
+        description:
+          $ref: '#/components/schemas/LanguageText'
+        issued:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Set by the agent.
+        modified:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Set by the agent.
+        identifier:
+          type: string
+        conformsTo:
+          type: array
+          items:
+            type: string
+            format: iri
+        creator:
+          type: string
+          format: iri
+        publisher:
+          type: string
+          format: iri
+        license:
+          type: string
+          format: iri
+        accessRights:
+          type: string
+          format: iri
+        language:
+          type: array
+          items:
+            type: string
+          description: Language IRIs, or bare codes (`en`) that DCAT-AP maps to the EU language table.
+        keyword:
+          $ref: '#/components/schemas/LanguageText'
+        theme:
+          type: array
+          items:
+            type: string
+            format: iri
+        landingPage:
+          type: array
+          items:
+            type: string
+            format: iri
+        spatial:
+          type: array
+          items:
+            type: string
+            format: iri
+        temporal:
+          type: array
+          items:
+            type: object
+        accrualPeriodicity:
+          type: string
+          format: iri
+        contactPoint:
+          type: array
+          items:
+            type: object
+        version:
+          type: string
+        inSeries:
+          type: array
+          items:
+            type: string
+            format: iri
+        inCatalog:
+          type: string
+          description: URN of its catalog (reverse of `dcat:dataset`).
+      additionalProperties: true
+    DatasetGraph:
       type: object
       required:
-      - id
-      - userId
-      - userRole
-      - visibility
-      - dctIssued
-      - catalogId
+      - '@graph'
       properties:
-        id:
+        '@context':
           type: string
-          description: URN of the dataset.
-        userId:
-          type: string
-          description: Author of the record (`system` when a peer opened it).
-        userRole:
-          type: string
-          description: Role the record was created under (or that handles it).
           examples:
-          - /admin/upm
-        visibility:
-          $ref: '#/components/schemas/Visibility'
-        dctConformsTo:
-          type:
-          - string
-          - 'null'
-        dctCreator:
-          type:
-          - string
-          - 'null'
-        dctIdentifier:
-          type:
-          - string
-          - 'null'
-        dctIssued:
-          type: string
-          format: date-time
-        dctModified:
-          type:
-          - string
-          - 'null'
-          format: date-time
-        dctTitle:
-          type:
-          - string
-          - 'null'
-        dctDescription:
-          type:
-          - string
-          - 'null'
-        catalogId:
-          type: string
+          - https://w3id.org/eunomia/v1/catalog-context.jsonld
+        '@graph':
+          type: array
+          items:
+            $ref: '#/components/schemas/DatasetDocument'
     DatasetOfferingDto:
       type: object
       required:
@@ -7291,13 +9271,100 @@ components:
       - distribution
       properties:
         dataset:
-          $ref: '#/components/schemas/DatasetDto'
+          $ref: '#/components/schemas/DatasetDocument'
         distribution:
-          $ref: '#/components/schemas/DistributionDto'
+          $ref: '#/components/schemas/DistributionDocument'
         policy:
           oneOf:
           - $ref: '#/components/schemas/OdrlPolicyDto'
           - type: 'null'
+    DatasetSeriesDocument:
+      type: object
+      description: A `DatasetSeries` (`dcat:DatasetSeries`) in the eunomia catalog context. Any other
+        property is kept as sent, under its full or compact IRI.
+      properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/catalog-context.jsonld`; any context works on input,
+            it is read through RDF.'
+          oneOf:
+          - type: string
+          - type: object
+          - type: array
+        '@id':
+          type: string
+          description: URN of the resource; minted when a body names none.
+        '@type':
+          description: The class term, e.g. `Dataset`.
+          oneOf:
+          - type: string
+          - type: array
+            items:
+              type: string
+        title:
+          $ref: '#/components/schemas/LanguageText'
+        description:
+          $ref: '#/components/schemas/LanguageText'
+        issued:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Set by the agent.
+        modified:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Set by the agent.
+        identifier:
+          type: string
+        conformsTo:
+          type: array
+          items:
+            type: string
+            format: iri
+        creator:
+          type: string
+          format: iri
+        publisher:
+          type: string
+          format: iri
+        license:
+          type: string
+          format: iri
+        accessRights:
+          type: string
+          format: iri
+        language:
+          type: array
+          items:
+            type: string
+          description: Language IRIs, or bare codes (`en`) that DCAT-AP maps to the EU language table.
+        keyword:
+          $ref: '#/components/schemas/LanguageText'
+        theme:
+          type: array
+          items:
+            type: string
+            format: iri
+        accrualPeriodicity:
+          type: string
+          format: iri
+        inCatalog:
+          type: string
+          description: URN of its catalog.
+      additionalProperties: true
+    DatasetSeriesGraph:
+      type: object
+      required:
+      - '@graph'
+      properties:
+        '@context':
+          type: string
+          examples:
+          - https://w3id.org/eunomia/v1/catalog-context.jsonld
+        '@graph':
+          type: array
+          items:
+            $ref: '#/components/schemas/DatasetSeriesDocument'
     DeadLetterRecord:
       type: object
       required:
@@ -7405,71 +9472,137 @@ components:
           type: string
         serviceEndpoint:
           type: string
-    Distribution:
-      $ref: '#/components/schemas/DspDistribution'
-    DistributionDto:
+    DistributionDocument:
+      type: object
+      description: A `Distribution` (`dcat:Distribution`) in the eunomia catalog context. Any other property
+        is kept as sent, under its full or compact IRI.
+      properties:
+        '@context':
+          description: '`https://w3id.org/eunomia/v1/catalog-context.jsonld`; any context works on input,
+            it is read through RDF.'
+          oneOf:
+          - type: string
+          - type: object
+          - type: array
+        '@id':
+          type: string
+          description: URN of the resource; minted when a body names none.
+        '@type':
+          description: The class term, e.g. `Dataset`.
+          oneOf:
+          - type: string
+          - type: array
+            items:
+              type: string
+        title:
+          $ref: '#/components/schemas/LanguageText'
+        description:
+          $ref: '#/components/schemas/LanguageText'
+        issued:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Set by the agent.
+        modified:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Set by the agent.
+        identifier:
+          type: string
+        conformsTo:
+          type: array
+          items:
+            type: string
+            format: iri
+        creator:
+          type: string
+          format: iri
+        publisher:
+          type: string
+          format: iri
+        license:
+          type: string
+          format: iri
+        accessRights:
+          type: string
+          format: iri
+        language:
+          type: array
+          items:
+            type: string
+          description: Language IRIs, or bare codes (`en`) that DCAT-AP maps to the EU language table.
+        format:
+          type: string
+          description: '`dct:format`: the DSP transfer format (`http+pull`), or a file-type IRI.'
+        mediaType:
+          type: string
+          format: iri
+        accessURL:
+          type: array
+          items:
+            type: string
+            format: iri
+        downloadURL:
+          type: array
+          items:
+            type: string
+            format: iri
+        accessService:
+          type: array
+          items:
+            type: string
+            format: iri
+        byteSize:
+          type: string
+        status:
+          type: string
+          format: iri
+        ofDataset:
+          type: string
+          description: URN of its dataset (reverse of `dcat:distribution`).
+      additionalProperties: true
+    DistributionGraph:
       type: object
       required:
-      - id
-      - userId
-      - userRole
-      - visibility
-      - dctIssued
-      - dcatAccessService
-      - datasetId
+      - '@graph'
       properties:
-        id:
+        '@context':
           type: string
-          description: URN of the distribution.
-        userId:
-          type: string
-          description: Author of the record (`system` when a peer opened it).
-        userRole:
-          type: string
-          description: Role the record was created under (or that handles it).
           examples:
-          - /admin/upm
-        visibility:
-          $ref: '#/components/schemas/Visibility'
-        dctIssued:
+          - https://w3id.org/eunomia/v1/catalog-context.jsonld
+        '@graph':
+          type: array
+          items:
+            $ref: '#/components/schemas/DistributionDocument'
+    DoctorReport:
+      type: object
+      required:
+      - resource
+      - type
+      - checked
+      - profiles
+      properties:
+        resource:
           type: string
-          format: date-time
-        dctModified:
-          type:
-          - string
-          - 'null'
-          format: date-time
-        dctTitle:
-          type:
-          - string
-          - 'null'
-        dctDescription:
-          type:
-          - string
-          - 'null'
-        dcatAccessService:
+        type:
           type: string
-          description: URN of the data service serving it.
-        datasetId:
-          type: string
-        dctFormat:
-          type:
-          - string
-          - 'null'
-          examples:
-          - HttpData-PULL
+        checked:
+          type: array
+          items:
+            type: string
+        profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProfileDiagnosis'
     DspCatalog:
       type: object
-      description: DCAT catalog as sent over DSP.
+      description: 'DCAT catalog as sent over DSP: DSP terms where the DSP context has them, every other
+        DCAT property as a `dct:` / `dcat:` compact IRI.'
       required:
       - '@context'
       - '@type'
       - '@id'
-      - identifier
-      - issued
-      - catalog
-      - dataset
-      - service
       properties:
         '@context':
           $ref: '#/components/schemas/ContextField'
@@ -7479,29 +9612,6 @@ components:
           - Catalog
         '@id':
           type: string
-        homepage:
-          type: string
-        theme:
-          type: string
-        keyword:
-          type: string
-        conformsTo:
-          type: string
-        creator:
-          type: string
-        identifier:
-          type: string
-        issued:
-          type: string
-          description: Naive timestamp, no zone.
-        modified:
-          type: string
-        title:
-          type: string
-        description:
-          type: array
-          items:
-            type: string
         participantId:
           type: string
           description: The catalog owner's participant id.
@@ -7509,7 +9619,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/OdrlOffer'
-        extraFields: {}
         catalog:
           type: array
           description: Nested catalogs, full or minimized; omitted when there are none.
@@ -7526,6 +9635,7 @@ components:
           - type: array
             items:
               $ref: '#/components/schemas/DspDataService'
+      additionalProperties: true
     DspDataService:
       type: object
       description: Full data service, or a minimized one with only `@type`, `@id` and DCAT fields.
@@ -7670,54 +9780,6 @@ components:
           type:
           - string
           - 'null'
-    EditCatalogDto:
-      type: object
-      additionalProperties: false
-      properties:
-        foafHomePage:
-          type:
-          - string
-          - 'null'
-        dctConformsTo:
-          type:
-          - string
-          - 'null'
-        dctCreator:
-          type:
-          - string
-          - 'null'
-        dctTitle:
-          type:
-          - string
-          - 'null'
-    EditDataServiceDto:
-      type: object
-      additionalProperties: false
-      properties:
-        dcatEndpointDescription:
-          type:
-          - string
-          - 'null'
-        dcatEndpointUrl:
-          type:
-          - string
-          - 'null'
-        dctConformsTo:
-          type:
-          - string
-          - 'null'
-        dctCreator:
-          type:
-          - string
-          - 'null'
-        dctTitle:
-          type:
-          - string
-          - 'null'
-        dctDescription:
-          type:
-          - string
-          - 'null'
     EditDataplaneTransferDto:
       type: object
       additionalProperties: false
@@ -7750,42 +9812,6 @@ components:
           - 'null'
           additionalProperties:
             type: string
-    EditDatasetDto:
-      type: object
-      additionalProperties: false
-      properties:
-        dctConformsTo:
-          type:
-          - string
-          - 'null'
-        dctCreator:
-          type:
-          - string
-          - 'null'
-        dctTitle:
-          type:
-          - string
-          - 'null'
-        dctDescription:
-          type:
-          - string
-          - 'null'
-    EditDistributionDto:
-      type: object
-      additionalProperties: false
-      properties:
-        dctTitle:
-          type:
-          - string
-          - 'null'
-        dctDescription:
-          type:
-          - string
-          - 'null'
-        dcatAccessService:
-          type:
-          - string
-          - 'null'
     EditNegotiationProcessDto:
       type: object
       additionalProperties: false
@@ -7849,6 +9875,14 @@ components:
           type:
           - string
           - 'null'
+    EventCount:
+      type: object
+      required:
+      - count
+      properties:
+        count:
+          type: integer
+          minimum: 0
     EventDeliveryRecord:
       type: object
       required:
@@ -7913,14 +9947,6 @@ components:
         created_at:
           type: string
           format: date-time
-    EventCount:
-      type: object
-      required:
-      - count
-      properties:
-        count:
-          type: integer
-          minimum: 0
     EventEnvelope:
       type: object
       required:
@@ -8043,6 +10069,22 @@ components:
         gateway_base:
           type: string
           description: Base URL of the gateway.
+    Finding:
+      type: object
+      required:
+      - severity
+      - resource
+      - message
+      properties:
+        severity:
+          $ref: '#/components/schemas/Severity'
+        resource:
+          type: string
+        property:
+          type: string
+          description: IRI of the property concerned.
+        message:
+          type: string
     HttpSpec:
       type: object
       required:
@@ -8279,6 +10321,18 @@ components:
         version:
           type: integer
           format: int64
+    LanguageText:
+      description: 'A plain string, or a language map (`{"en": "Readings"}`); a language may hold several
+        texts.'
+      oneOf:
+      - type: string
+      - type: object
+        additionalProperties:
+          oneOf:
+          - type: string
+          - type: array
+            items:
+              type: string
     LocalizedText:
       description: A plain string, or the same text in several languages.
       oneOf:
@@ -8468,78 +10522,6 @@ components:
         agreementContent: {}
         target:
           type: string
-    NewCatalogDto:
-      type: object
-      additionalProperties: false
-      properties:
-        id:
-          type:
-          - string
-          - 'null'
-          description: URN; generated when absent.
-        visibility:
-          description: Who else sees it; private by default.
-          $ref: '#/components/schemas/Visibility'
-        foafHomePage:
-          type:
-          - string
-          - 'null'
-        dctConformsTo:
-          type:
-          - string
-          - 'null'
-        dctCreator:
-          type:
-          - string
-          - 'null'
-        dctTitle:
-          type:
-          - string
-          - 'null'
-        dspaceParticipantId:
-          type:
-          - string
-          - 'null'
-    NewDataServiceDto:
-      type: object
-      additionalProperties: false
-      required:
-      - dcatEndpointUrl
-      - catalogId
-      properties:
-        id:
-          type:
-          - string
-          - 'null'
-          description: URN; generated when absent.
-        visibility:
-          description: Who else sees it; private by default.
-          $ref: '#/components/schemas/Visibility'
-        dcatEndpointDescription:
-          type:
-          - string
-          - 'null'
-        dcatEndpointUrl:
-          type: string
-        dctConformsTo:
-          type:
-          - string
-          - 'null'
-        dctCreator:
-          type:
-          - string
-          - 'null'
-        dctTitle:
-          type:
-          - string
-          - 'null'
-        dctDescription:
-          type:
-          - string
-          - 'null'
-        catalogId:
-          type: string
-          description: URN of the catalog.
     NewDataplaneTransferDto:
       type: object
       additionalProperties: false
@@ -8605,39 +10587,6 @@ components:
           - 'null'
         ingressConfig: {}
         egressConfig: {}
-    NewDatasetDto:
-      type: object
-      additionalProperties: false
-      required:
-      - catalogId
-      properties:
-        id:
-          type:
-          - string
-          - 'null'
-          description: URN; generated when absent.
-        visibility:
-          description: Who else sees it; private by default.
-          $ref: '#/components/schemas/Visibility'
-        dctConformsTo:
-          type:
-          - string
-          - 'null'
-        dctCreator:
-          type:
-          - string
-          - 'null'
-        dctTitle:
-          type:
-          - string
-          - 'null'
-        dctDescription:
-          type:
-          - string
-          - 'null'
-        catalogId:
-          type: string
-          description: URN of the catalog.
     NewDatasetOfferingDto:
       type: object
       additionalProperties: false
@@ -8646,51 +10595,9 @@ components:
       - distribution
       properties:
         dataset:
-          type: object
-          additionalProperties: false
-          required:
-          - title
-          properties:
-            title:
-              type: string
-            description:
-              type:
-              - string
-              - 'null'
-            conformsTo:
-              type:
-              - string
-              - 'null'
-            creator:
-              type:
-              - string
-              - 'null'
-            catalogId:
-              type:
-              - string
-              - 'null'
-              description: Defaults to the connector's main catalog.
+          $ref: '#/components/schemas/DatasetDocument'
         distribution:
-          type: object
-          additionalProperties: false
-          required:
-          - title
-          properties:
-            title:
-              type: string
-            description:
-              type:
-              - string
-              - 'null'
-            formats:
-              type:
-              - string
-              - 'null'
-            accessServiceId:
-              type:
-              - string
-              - 'null'
-              description: Defaults to the connector's main data service.
+          $ref: '#/components/schemas/DistributionDocument'
         policy:
           type:
           - object
@@ -8716,41 +10623,6 @@ components:
               - 'null'
               items:
                 $ref: '#/components/schemas/OdrlConstraint'
-    NewDistributionDto:
-      type: object
-      additionalProperties: false
-      required:
-      - dcatAccessService
-      - datasetId
-      properties:
-        id:
-          type:
-          - string
-          - 'null'
-          description: URN; generated when absent.
-        visibility:
-          description: Who else sees it; private by default.
-          $ref: '#/components/schemas/Visibility'
-        dctTitle:
-          type:
-          - string
-          - 'null'
-        dctDescription:
-          type:
-          - string
-          - 'null'
-        dctFormats:
-          type:
-          - string
-          - 'null'
-          examples:
-          - HttpData-PULL
-        dcatAccessService:
-          type: string
-          description: URN of the data service.
-        datasetId:
-          type: string
-          description: URN of the dataset.
     NewNegotiationMessageDto:
       type: object
       additionalProperties: false
@@ -9474,6 +11346,22 @@ components:
       properties:
         '@id':
           type: string
+    OdrlOperator:
+      type: string
+      enum:
+      - eq
+      - gt
+      - gteq
+      - lteq
+      - hasPart
+      - isA
+      - isAllOf
+      - isAnyOf
+      - isNoneOf
+      - isPartOf
+      - lt
+      - termLteq
+      - neq
     OdrlPermission:
       type: object
       required:
@@ -9693,20 +11581,6 @@ components:
           description: Absent on the last page.
         total:
           type: integer
-    PaginatedCatalogDto:
-      type: object
-      required:
-      - items
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/CatalogDto'
-        nextCursor:
-          type: string
-          description: Absent on the last page.
-        total:
-          type: integer
     PaginatedConnectorTemplate:
       type: object
       required:
@@ -9716,20 +11590,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ConnectorTemplateDto'
-        nextCursor:
-          type: string
-          description: Absent on the last page.
-        total:
-          type: integer
-    PaginatedDataServiceDto:
-      type: object
-      required:
-      - items
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/DataServiceDto'
         nextCursor:
           type: string
           description: Absent on the last page.
@@ -9749,20 +11609,6 @@ components:
           description: Absent on the last page.
         total:
           type: integer
-    PaginatedDatasetDto:
-      type: object
-      required:
-      - items
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/DatasetDto'
-        nextCursor:
-          type: string
-          description: Absent on the last page.
-        total:
-          type: integer
     PaginatedDeadLetter:
       type: object
       required:
@@ -9772,20 +11618,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DeadLetterRecord'
-        nextCursor:
-          type: string
-          description: Absent on the last page.
-        total:
-          type: integer
-    PaginatedDistributionDto:
-      type: object
-      required:
-      - items
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/DistributionDto'
         nextCursor:
           type: string
           description: Absent on the last page.
@@ -10057,6 +11889,12 @@ components:
         extra_fields: {}
         visibility:
           $ref: '#/components/schemas/Visibility'
+    ParticipantType:
+      type: string
+      enum:
+      - Agent
+      - Authority
+      - All
     PatRecord:
       type: object
       required:
@@ -10235,6 +12073,42 @@ components:
               default: false
         defaultValue:
           $ref: '#/components/schemas/PolicyTemplateAllowedDefaultValues'
+    ProfileDiagnosis:
+      type: object
+      required:
+      - profile
+      - profileIri
+      - compliant
+      - violations
+      - warnings
+      - findings
+      properties:
+        profile:
+          type: string
+          examples:
+          - dcat-ap
+        profileIri:
+          type: string
+        compliant:
+          type: boolean
+        violations:
+          type: integer
+        warnings:
+          type: integer
+        findings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Finding'
+    ProfileDocument:
+      type: object
+      description: 'JSON-LD in the profile''s own context: `@context` and `@graph`.'
+      properties:
+        '@context':
+          type: object
+        '@graph':
+          type: array
+          items:
+            type: object
     ProtocolSpec:
       oneOf:
       - $ref: '#/components/schemas/HttpSpec'
@@ -10244,16 +12118,6 @@ components:
         mapping:
           HTTP: '#/components/schemas/HttpSpec'
           KAFKA: '#/components/schemas/KafkaSpec'
-    ProvisionedTenantDto:
-      type: object
-      required:
-      - catalog
-      - dataService
-      properties:
-        catalog:
-          $ref: '#/components/schemas/CatalogDto'
-        dataService:
-          $ref: '#/components/schemas/DataServiceDto'
     PublishEventCommand:
       type: object
       required:
@@ -10526,59 +12390,72 @@ components:
       properties:
         replayed_count:
           type: integer
-    RpcCatalogRequestMessageDto:
+    RpcCatalogRequestMessage:
       type: object
-      additionalProperties: false
       required:
+      - '@context'
+      - '@type'
       - associatedAgentPeer
-      - filter
       properties:
+        '@context':
+          type: string
+          const: https://w3id.org/eunomia/v1/context.jsonld
+        '@type':
+          type: string
+          const: RpcCatalogRequestMessage
         associatedAgentPeer:
           type: string
           description: Participant id (DID) of the peer.
         filter:
-          description: Filter forwarded in the catalog request, any JSON value.
+          type: array
+          description: Forwarded as the DSP `filter`.
+          items: {}
         noCache:
           type: boolean
           default: false
-          description: Skip storing the answer in the peer catalog cache.
-    RpcCatalogResponseMessageDto:
+          description: Ask the peer even if its catalog is cached, and do not cache the answer.
+    RpcCatalogResult:
       type: object
       required:
+      - '@context'
+      - '@type'
       - request
       - response
       properties:
+        '@context':
+          type: string
+          const: https://w3id.org/eunomia/v1/context.jsonld
+        '@type':
+          type: string
+          const: RpcCatalogResult
         request:
-          $ref: '#/components/schemas/RpcCatalogRequestMessageDto'
+          type: object
+          description: The RPC body as sent.
         response:
-          $ref: '#/components/schemas/DspCatalog'
-    RpcDatasetRequestMessageDto:
+          description: 'The peer''s answer as it came: a DSP `Catalog` or `Dataset`.'
+          oneOf:
+          - $ref: '#/components/schemas/DspCatalog'
+          - $ref: '#/components/schemas/DspDataset'
+    RpcDatasetRequestMessage:
       type: object
-      additionalProperties: false
       required:
+      - '@context'
+      - '@type'
       - associatedAgentPeer
       - dataset
       properties:
+        '@context':
+          type: string
+          const: https://w3id.org/eunomia/v1/context.jsonld
+        '@type':
+          type: string
+          const: RpcDatasetRequestMessage
         associatedAgentPeer:
           type: string
           description: Participant id (DID) of the peer.
         dataset:
           type: string
           description: URN of the dataset.
-        noCache:
-          type:
-          - boolean
-          - 'null'
-    RpcDatasetResponseMessageDto:
-      type: object
-      required:
-      - request
-      - response
-      properties:
-        request:
-          $ref: '#/components/schemas/RpcDatasetRequestMessageDto'
-        response:
-          $ref: '#/components/schemas/DspDataset'
     RpcNegotiationOfferInitMessageDto:
       type: object
       additionalProperties: false
@@ -10960,6 +12837,13 @@ components:
         root:
           type: boolean
           description: Whether it is the root (/admin), who sees and acts on everything.
+    Severity:
+      type: string
+      enum:
+      - violation
+      - warning
+      - info
+      description: A violation breaks conformance; warnings and infos do not.
     TckNegotiationInitiateRequest:
       type: object
       required:
@@ -11272,8 +13156,8 @@ components:
           $ref: '#/components/schemas/DataAddressDto'
         autoStart:
           type: boolean
-          description: Asks the provider to start the transfer as soon as it accepts the request
-            (`eunomia:autoStart` on the DSP request).
+          description: Asks the provider to start the transfer as soon as it accepts the request (`eunomia:autoStart`
+            on the DSP request).
     TransferRPCStartBody:
       type: object
       additionalProperties: false

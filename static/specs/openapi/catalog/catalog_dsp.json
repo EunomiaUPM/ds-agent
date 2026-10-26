@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Eunomia DS Catalog Protocol API",
-    "description": "Catalog Protocol of the Dataspace Protocol 2025-1 as served by the catalog agent, plus the\nRPC endpoints that make this agent act as a consumer against a peer's catalog.\nProtocol endpoints authenticate the peer with the token it obtained through GNAP onboarding\nand answer as the role of the peer's grant: the peer sees what that role sees. Prefixed keys\n(`dspace:`, `dcat:`, ...) are normalised before parsing.\n",
+    "description": "Catalog Protocol of the Dataspace Protocol 2025-1 as served by the catalog agent, plus the RPC endpoints that make this agent act as a consumer against a peer's catalog. Protocol bodies are read through RDF (JSON-LD expansion), so any valid aliasing of the DSP context works. Protocol endpoints authenticate the peer with the token it obtained through GNAP onboarding and answer as the role of the peer's grant. RPC bodies are JSON-LD in the eunomia context (`https://w3id.org/eunomia/v1/context.jsonld`).\n",
     "version": "1.0.0",
     "license": {
       "name": "GPL-3.0-or-later",
@@ -128,7 +128,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RpcCatalogRequestMessageDto"
+                "$ref": "#/components/schemas/RpcCatalogRequestMessage"
               }
             }
           }
@@ -139,7 +139,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RpcCatalogResponseMessageDto"
+                  "$ref": "#/components/schemas/RpcCatalogResult"
                 }
               }
             }
@@ -179,7 +179,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RpcDatasetRequestMessageDto"
+                "$ref": "#/components/schemas/RpcDatasetRequestMessage"
               }
             }
           }
@@ -190,7 +190,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RpcDatasetResponseMessageDto"
+                  "$ref": "#/components/schemas/RpcCatalogResult"
                 }
               }
             }
@@ -345,16 +345,11 @@
       },
       "DspCatalog": {
         "type": "object",
-        "description": "DCAT catalog as sent over DSP.",
+        "description": "DCAT catalog as sent over DSP: DSP terms where the DSP context has them, every other DCAT property as a `dct:` / `dcat:` compact IRI.",
         "required": [
           "@context",
           "@type",
-          "@id",
-          "identifier",
-          "issued",
-          "catalog",
-          "dataset",
-          "service"
+          "@id"
         ],
         "properties": {
           "@context": {
@@ -369,40 +364,6 @@
           "@id": {
             "type": "string"
           },
-          "homepage": {
-            "type": "string"
-          },
-          "theme": {
-            "type": "string"
-          },
-          "keyword": {
-            "type": "string"
-          },
-          "conformsTo": {
-            "type": "string"
-          },
-          "creator": {
-            "type": "string"
-          },
-          "identifier": {
-            "type": "string"
-          },
-          "issued": {
-            "type": "string",
-            "description": "Naive timestamp, no zone."
-          },
-          "modified": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "description": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
           "participantId": {
             "type": "string",
             "description": "The catalog owner's participant id."
@@ -413,7 +374,6 @@
               "$ref": "#/components/schemas/OdrlOffer"
             }
           },
-          "extraFields": {},
           "catalog": {
             "type": "array",
             "description": "Nested catalogs, full or minimized; omitted when there are none.",
@@ -441,7 +401,8 @@
               }
             ]
           }
-        }
+        },
+        "additionalProperties": true
       },
       "DspDataService": {
         "type": "object",
@@ -858,51 +819,55 @@
           }
         ]
       },
-      "RpcCatalogRequestMessageDto": {
+      "RpcCatalogRequestMessage": {
         "type": "object",
-        "additionalProperties": false,
         "required": [
-          "associatedAgentPeer",
-          "filter"
+          "@context",
+          "@type",
+          "associatedAgentPeer"
         ],
         "properties": {
+          "@context": {
+            "type": "string",
+            "const": "https://w3id.org/eunomia/v1/context.jsonld"
+          },
+          "@type": {
+            "type": "string",
+            "const": "RpcCatalogRequestMessage"
+          },
           "associatedAgentPeer": {
             "type": "string",
             "description": "Participant id (DID) of the peer."
           },
           "filter": {
-            "description": "Filter forwarded in the catalog request, any JSON value."
+            "type": "array",
+            "description": "Forwarded as the DSP `filter`.",
+            "items": {}
           },
           "noCache": {
             "type": "boolean",
             "default": false,
-            "description": "Skip storing the answer in the peer catalog cache."
+            "description": "Ask the peer even if its catalog is cached, and do not cache the answer."
           }
         }
       },
-      "RpcCatalogResponseMessageDto": {
+      "RpcDatasetRequestMessage": {
         "type": "object",
         "required": [
-          "request",
-          "response"
-        ],
-        "properties": {
-          "request": {
-            "$ref": "#/components/schemas/RpcCatalogRequestMessageDto"
-          },
-          "response": {
-            "$ref": "#/components/schemas/DspCatalog"
-          }
-        }
-      },
-      "RpcDatasetRequestMessageDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
+          "@context",
+          "@type",
           "associatedAgentPeer",
           "dataset"
         ],
         "properties": {
+          "@context": {
+            "type": "string",
+            "const": "https://w3id.org/eunomia/v1/context.jsonld"
+          },
+          "@type": {
+            "type": "string",
+            "const": "RpcDatasetRequestMessage"
+          },
           "associatedAgentPeer": {
             "type": "string",
             "description": "Participant id (DID) of the peer."
@@ -910,27 +875,40 @@
           "dataset": {
             "type": "string",
             "description": "URN of the dataset."
-          },
-          "noCache": {
-            "type": [
-              "boolean",
-              "null"
-            ]
           }
         }
       },
-      "RpcDatasetResponseMessageDto": {
+      "RpcCatalogResult": {
         "type": "object",
         "required": [
+          "@context",
+          "@type",
           "request",
           "response"
         ],
         "properties": {
+          "@context": {
+            "type": "string",
+            "const": "https://w3id.org/eunomia/v1/context.jsonld"
+          },
+          "@type": {
+            "type": "string",
+            "const": "RpcCatalogResult"
+          },
           "request": {
-            "$ref": "#/components/schemas/RpcDatasetRequestMessageDto"
+            "type": "object",
+            "description": "The RPC body as sent."
           },
           "response": {
-            "$ref": "#/components/schemas/DspDataset"
+            "description": "The peer's answer as it came: a DSP `Catalog` or `Dataset`.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DspCatalog"
+              },
+              {
+                "$ref": "#/components/schemas/DspDataset"
+              }
+            ]
           }
         }
       }

@@ -2,12 +2,12 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Eunomia DS Catalog Agent API",
-    "description": "Management API of the catalog agent (`crates/catalog-agent`): catalogs, datasets,\ndistributions, data services, ODRL offers, policy templates, one-step dataset offerings,\ncached peer catalogs and main catalog provisioning. Entity responses use camelCase keys.\n",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "license": {
       "name": "GPL-3.0-or-later",
       "url": "https://www.gnu.org/licenses/gpl-3.0.html"
-    }
+    },
+    "description": "Management API of the catalog agent (`crates/catalog-agent`). Every DCAT resource (catalog, dataset, dataset series, distribution, data service, agent, catalog record) is JSON-LD in the eunomia catalog context (`https://w3id.org/eunomia/v1/catalog-context.jsonld`); bodies are read through RDF, so any context works. Version, visibility and owner travel in headers (`ETag` / `If-Match`, `Eunomia-Visibility`, `Eunomia-Owner`); lists page through `X-Total-Count` and `X-Next-Cursor`. Each resource has a doctor that says whether it conforms to DSP, DCAT 3 and DCAT-AP, and the public routes serve the catalog in those profiles. ODRL offers and policy templates stay ODRL JSON.\n"
   },
   "servers": [
     {
@@ -34,6 +34,10 @@
       "description": "Datasets of a catalog"
     },
     {
+      "name": "Dataset Series",
+      "description": "Dataset series of a catalog"
+    },
+    {
       "name": "Distributions",
       "description": "Distributions of a dataset"
     },
@@ -42,8 +46,24 @@
       "description": "Data services of a catalog; the connector has one main data service"
     },
     {
+      "name": "Agents",
+      "description": "Publishers, creators and rights holders"
+    },
+    {
+      "name": "Catalog Records",
+      "description": "Records describing a catalog's entries"
+    },
+    {
+      "name": "Doctor",
+      "description": "Conformance of a resource to each registered profile"
+    },
+    {
+      "name": "Public Profiles",
+      "description": "Read-only catalog in each profile, with no authentication"
+    },
+    {
       "name": "ODRL Policies",
-      "description": "ODRL offers attached to catalog entities"
+      "description": "ODRL offers attached to catalog resources"
     },
     {
       "name": "Policy Templates",
@@ -56,10 +76,6 @@
     {
       "name": "Peer Catalogs",
       "description": "Catalogs of peers, cached from DSP catalog requests"
-    },
-    {
-      "name": "Tenants",
-      "description": "Provisioning of the connector's main catalog and data service"
     }
   ],
   "paths": {
@@ -69,7 +85,8 @@
           "Catalogs"
         ],
         "operationId": "getAllCatalogs",
-        "summary": "List catalogs",
+        "summary": "List Catalogs",
+        "description": "One page as a JSON-LD `@graph`; the total and the next cursor come in headers.",
         "parameters": [
           {
             "$ref": "#/components/parameters/Limit"
@@ -87,9 +104,55 @@
             "$ref": "#/components/parameters/UserIdQuery"
           },
           {
+            "name": "catalog_id",
+            "in": "query",
+            "required": false,
+            "description": "Only resources of this catalog.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "description": "Only distributions of this dataset.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "title",
             "in": "query",
             "required": false,
+            "description": "Part of the title, in any language.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:keyword`, exactly.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:theme` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:format`, literal (`http+pull`) or IRI.",
             "schema": {
               "type": "string"
             }
@@ -98,6 +161,25 @@
             "name": "creator",
             "in": "query",
             "required": false,
+            "description": "A `dct:creator` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "publisher",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:publisher` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conforms_to",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:conformsTo` IRI.",
             "schema": {
               "type": "string"
             }
@@ -106,15 +188,34 @@
             "name": "participant_id",
             "in": "query",
             "required": false,
+            "description": "A `dspace:participantId`.",
             "schema": {
               "type": "string"
             }
           },
           {
-            "name": "with_main_catalog",
+            "name": "access_service",
             "in": "query",
             "required": false,
-            "description": "Include the connector's main catalog in the listing.",
+            "description": "A `dcat:accessService`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endpoint_url",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:endpointURL`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "main",
+            "in": "query",
+            "required": false,
+            "description": "`false` leaves out the connector's main resource; `true` keeps only it.",
             "schema": {
               "type": "boolean"
             }
@@ -128,12 +229,23 @@
         ],
         "responses": {
           "200": {
-            "description": "Page of catalogs",
+            "description": "Page of Catalogs",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaginatedCatalogDto"
+                  "$ref": "#/components/schemas/CatalogGraph"
                 }
+              }
+            },
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/X-Total-Count"
+              },
+              "X-Next-Cursor": {
+                "$ref": "#/components/headers/X-Next-Cursor"
+              },
+              "Link": {
+                "$ref": "#/components/headers/Link"
               }
             }
           },
@@ -153,24 +265,87 @@
           "Catalogs"
         ],
         "operationId": "createCatalog",
-        "summary": "Create a catalog",
+        "summary": "Create a Catalog",
+        "description": "A `Catalog` document in the catalog context (a body with no `@type` is taken as one).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VisibilityHeader"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewCatalogDto"
+                "$ref": "#/components/schemas/CatalogDocument"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Created catalog",
+            "description": "Created Catalog",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CatalogDto"
+                  "$ref": "#/components/schemas/CatalogDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/catalogs/batch": {
+      "post": {
+        "tags": [
+          "Catalogs"
+        ],
+        "operationId": "getBatchCatalogs",
+        "summary": "Catalogs by id",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequests"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The Catalogs found",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogGraph"
                 }
               }
             }
@@ -193,15 +368,29 @@
           "Catalogs"
         ],
         "operationId": "getMainCatalog",
-        "summary": "The connector's main catalog",
+        "summary": "The connector's main Catalog",
         "responses": {
           "200": {
-            "description": "Main catalog",
+            "description": "Main Catalog",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CatalogDto"
+                  "$ref": "#/components/schemas/CatalogDocument"
                 }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
               }
             }
           },
@@ -218,25 +407,40 @@
           "Catalogs"
         ],
         "operationId": "createMainCatalog",
-        "summary": "Create the connector's main catalog",
+        "summary": "Create the main Catalog (root only)",
+        "description": "Idempotent: an existing main one is returned. `{}` is a valid body.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewCatalogDto"
+                "$ref": "#/components/schemas/CatalogDocument"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Created main catalog",
+            "description": "Main Catalog",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CatalogDto"
+                  "$ref": "#/components/schemas/CatalogDocument"
                 }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
               }
             }
           },
@@ -252,46 +456,6 @@
         }
       }
     },
-    "/api/v1/catalog-agent/catalogs/batch": {
-      "post": {
-        "tags": [
-          "Catalogs"
-        ],
-        "operationId": "getBatchCatalogs",
-        "summary": "Get several catalogs by id",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BatchRequests"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Catalogs found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CatalogDto"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
-        }
-      }
-    },
     "/api/v1/catalog-agent/catalogs/{id}": {
       "parameters": [
         {
@@ -303,15 +467,29 @@
           "Catalogs"
         ],
         "operationId": "getCatalogById",
-        "summary": "Get a catalog",
+        "summary": "One Catalog",
         "responses": {
           "200": {
             "description": "Catalog",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CatalogDto"
+                  "$ref": "#/components/schemas/CatalogDocument"
                 }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
               }
             }
           },
@@ -331,24 +509,127 @@
           "Catalogs"
         ],
         "operationId": "updateCatalogById",
-        "summary": "Update a catalog",
+        "summary": "Replace a Catalog's description",
+        "description": "The body replaces the description whole; the parent cannot change. With `If-Match`, a stored version other than the one named is a 412.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VisibilityHeader"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EditCatalogDto"
+                "$ref": "#/components/schemas/CatalogDocument"
               }
             }
           }
         },
         "responses": {
-          "202": {
-            "description": "Updated catalog",
+          "200": {
+            "description": "Updated Catalog",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Catalogs"
+        ],
+        "operationId": "deleteCatalogById",
+        "summary": "Delete a Catalog",
+        "description": "What hangs from it goes with it; a resource others link to is a 409.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/catalogs/{id}/doctor": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Doctor"
+        ],
+        "operationId": "doctorCatalog",
+        "summary": "Does the Catalog conform to each profile?",
+        "description": "Every registered profile (DSP, DCAT 3, DCAT-AP…) diagnoses the resource. Read only.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProfileQuery"
+          },
+          {
+            "$ref": "#/components/parameters/DeepQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One diagnosis per profile",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CatalogDto"
+                  "$ref": "#/components/schemas/DoctorReport"
                 }
               }
             }
@@ -358,33 +639,6 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Catalogs"
-        ],
-        "operationId": "deleteCatalogById",
-        "summary": "Delete a catalog",
-        "responses": {
-          "202": {
-            "description": "Deleted"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -398,7 +652,8 @@
           "Datasets"
         ],
         "operationId": "getAllDatasets",
-        "summary": "List datasets",
+        "summary": "List Datasets",
+        "description": "One page as a JSON-LD `@graph`; the total and the next cursor come in headers.",
         "parameters": [
           {
             "$ref": "#/components/parameters/Limit"
@@ -419,6 +674,16 @@
             "name": "catalog_id",
             "in": "query",
             "required": false,
+            "description": "Only resources of this catalog.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "description": "Only distributions of this dataset.",
             "schema": {
               "type": "string"
             }
@@ -427,6 +692,34 @@
             "name": "title",
             "in": "query",
             "required": false,
+            "description": "Part of the title, in any language.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:keyword`, exactly.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:theme` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:format`, literal (`http+pull`) or IRI.",
             "schema": {
               "type": "string"
             }
@@ -435,6 +728,16 @@
             "name": "creator",
             "in": "query",
             "required": false,
+            "description": "A `dct:creator` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "publisher",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:publisher` IRI.",
             "schema": {
               "type": "string"
             }
@@ -443,8 +746,45 @@
             "name": "conforms_to",
             "in": "query",
             "required": false,
+            "description": "A `dct:conformsTo` IRI.",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "participant_id",
+            "in": "query",
+            "required": false,
+            "description": "A `dspace:participantId`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "access_service",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:accessService`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endpoint_url",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:endpointURL`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "main",
+            "in": "query",
+            "required": false,
+            "description": "`false` leaves out the connector's main resource; `true` keeps only it.",
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -456,12 +796,23 @@
         ],
         "responses": {
           "200": {
-            "description": "Page of datasets",
+            "description": "Page of Datasets",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaginatedDatasetDto"
+                  "$ref": "#/components/schemas/DatasetGraph"
                 }
+              }
+            },
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/X-Total-Count"
+              },
+              "X-Next-Cursor": {
+                "$ref": "#/components/headers/X-Next-Cursor"
+              },
+              "Link": {
+                "$ref": "#/components/headers/Link"
               }
             }
           },
@@ -481,24 +832,87 @@
           "Datasets"
         ],
         "operationId": "createDataset",
-        "summary": "Create a dataset",
+        "summary": "Create a Dataset",
+        "description": "A `Dataset` document in the catalog context (a body with no `@type` is taken as one). `inCatalog` names its catalog.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VisibilityHeader"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewDatasetDto"
+                "$ref": "#/components/schemas/DatasetDocument"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created Dataset",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/datasets/batch": {
+      "post": {
+        "tags": [
+          "Datasets"
+        ],
+        "operationId": "getBatchDatasets",
+        "summary": "Datasets by id",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequests"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Created dataset",
+            "description": "The Datasets found",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DatasetDto"
+                  "$ref": "#/components/schemas/DatasetGraph"
                 }
               }
             }
@@ -515,68 +929,25 @@
         }
       }
     },
-    "/api/v1/catalog-agent/datasets/batch": {
-      "post": {
-        "tags": [
-          "Datasets"
-        ],
-        "operationId": "getBatchDatasets",
-        "summary": "Get several datasets by id",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BatchRequests"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Datasets found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DatasetDto"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
-        }
-      }
-    },
     "/api/v1/catalog-agent/datasets/catalog/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
       "get": {
         "tags": [
           "Datasets"
         ],
         "operationId": "getDatasetsByCatalogId",
         "summary": "Datasets of a catalog",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/UrnPathId"
-          }
-        ],
         "responses": {
           "200": {
-            "description": "Datasets of the catalog",
+            "description": "The catalog's Datasets",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DatasetDto"
-                  }
+                  "$ref": "#/components/schemas/DatasetGraph"
                 }
               }
             }
@@ -587,8 +958,8 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         }
       }
@@ -604,15 +975,29 @@
           "Datasets"
         ],
         "operationId": "getDatasetById",
-        "summary": "Get a dataset",
+        "summary": "One Dataset",
         "responses": {
           "200": {
             "description": "Dataset",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DatasetDto"
+                  "$ref": "#/components/schemas/DatasetDocument"
                 }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
               }
             }
           },
@@ -632,24 +1017,127 @@
           "Datasets"
         ],
         "operationId": "updateDatasetById",
-        "summary": "Update a dataset",
+        "summary": "Replace a Dataset's description",
+        "description": "The body replaces the description whole; the parent cannot change. With `If-Match`, a stored version other than the one named is a 412.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VisibilityHeader"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EditDatasetDto"
+                "$ref": "#/components/schemas/DatasetDocument"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Updated dataset",
+            "description": "Updated Dataset",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Datasets"
+        ],
+        "operationId": "deleteDatasetById",
+        "summary": "Delete a Dataset",
+        "description": "What hangs from it goes with it; a resource others link to is a 409.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/datasets/{id}/doctor": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Doctor"
+        ],
+        "operationId": "doctorDataset",
+        "summary": "Does the Dataset conform to each profile?",
+        "description": "Every registered profile (DSP, DCAT 3, DCAT-AP…) diagnoses the resource. Read only.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProfileQuery"
+          },
+          {
+            "$ref": "#/components/parameters/DeepQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One diagnosis per profile",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DatasetDto"
+                  "$ref": "#/components/schemas/DoctorReport"
                 }
               }
             }
@@ -660,46 +1148,20 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Datasets"
-        ],
-        "operationId": "deleteDatasetById",
-        "summary": "Delete a dataset",
-        "responses": {
-          "202": {
-            "description": "Deleted"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           }
         }
       }
     },
-    "/api/v1/catalog-agent/distributions": {
+    "/api/v1/catalog-agent/dataset-series": {
       "get": {
         "tags": [
-          "Distributions"
+          "Dataset Series"
         ],
-        "operationId": "getAllDistributions",
-        "summary": "List distributions",
+        "operationId": "getAllDatasetSeries",
+        "summary": "List DatasetSeries",
+        "description": "One page as a JSON-LD `@graph`; the total and the next cursor come in headers.",
         "parameters": [
           {
             "$ref": "#/components/parameters/Limit"
@@ -717,25 +1179,19 @@
             "$ref": "#/components/parameters/UserIdQuery"
           },
           {
+            "name": "catalog_id",
+            "in": "query",
+            "required": false,
+            "description": "Only resources of this catalog.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "dataset_id",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "access_service",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "format",
-            "in": "query",
-            "required": false,
+            "description": "Only distributions of this dataset.",
             "schema": {
               "type": "string"
             }
@@ -744,8 +1200,99 @@
             "name": "title",
             "in": "query",
             "required": false,
+            "description": "Part of the title, in any language.",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:keyword`, exactly.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:theme` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:format`, literal (`http+pull`) or IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:creator` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "publisher",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:publisher` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conforms_to",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:conformsTo` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "participant_id",
+            "in": "query",
+            "required": false,
+            "description": "A `dspace:participantId`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "access_service",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:accessService`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endpoint_url",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:endpointURL`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "main",
+            "in": "query",
+            "required": false,
+            "description": "`false` leaves out the connector's main resource; `true` keeps only it.",
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -757,12 +1304,531 @@
         ],
         "responses": {
           "200": {
-            "description": "Page of distributions",
+            "description": "Page of DatasetSeries",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetSeriesGraph"
+                }
+              }
+            },
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/X-Total-Count"
+              },
+              "X-Next-Cursor": {
+                "$ref": "#/components/headers/X-Next-Cursor"
+              },
+              "Link": {
+                "$ref": "#/components/headers/Link"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Dataset Series"
+        ],
+        "operationId": "createDatasetSeries",
+        "summary": "Create a DatasetSeries",
+        "description": "A `DatasetSeries` document in the catalog context (a body with no `@type` is taken as one). `inCatalog` names its catalog.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VisibilityHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatasetSeriesDocument"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created DatasetSeries",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetSeriesDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/dataset-series/batch": {
+      "post": {
+        "tags": [
+          "Dataset Series"
+        ],
+        "operationId": "getBatchDatasetSeries",
+        "summary": "DatasetSeries by id",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequests"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The DatasetSeries found",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetSeriesGraph"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/dataset-series/catalog/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Dataset Series"
+        ],
+        "operationId": "getDatasetSeriesByCatalogId",
+        "summary": "DatasetSeries of a catalog",
+        "responses": {
+          "200": {
+            "description": "The catalog's DatasetSeries",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetSeriesGraph"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/dataset-series/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Dataset Series"
+        ],
+        "operationId": "getDatasetSeriesById",
+        "summary": "One DatasetSeries",
+        "responses": {
+          "200": {
+            "description": "DatasetSeries",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetSeriesDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Dataset Series"
+        ],
+        "operationId": "updateDatasetSeriesById",
+        "summary": "Replace a DatasetSeries's description",
+        "description": "The body replaces the description whole; the parent cannot change. With `If-Match`, a stored version other than the one named is a 412.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VisibilityHeader"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatasetSeriesDocument"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated DatasetSeries",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetSeriesDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Dataset Series"
+        ],
+        "operationId": "deleteDatasetSeriesById",
+        "summary": "Delete a DatasetSeries",
+        "description": "What hangs from it goes with it; a resource others link to is a 409.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/dataset-series/{id}/doctor": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Doctor"
+        ],
+        "operationId": "doctorDatasetSeries",
+        "summary": "Does the DatasetSeries conform to each profile?",
+        "description": "Every registered profile (DSP, DCAT 3, DCAT-AP…) diagnoses the resource. Read only.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProfileQuery"
+          },
+          {
+            "$ref": "#/components/parameters/DeepQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One diagnosis per profile",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaginatedDistributionDto"
+                  "$ref": "#/components/schemas/DoctorReport"
                 }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/distributions": {
+      "get": {
+        "tags": [
+          "Distributions"
+        ],
+        "operationId": "getAllDistributions",
+        "summary": "List Distributions",
+        "description": "One page as a JSON-LD `@graph`; the total and the next cursor come in headers.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/UserIdQuery"
+          },
+          {
+            "name": "catalog_id",
+            "in": "query",
+            "required": false,
+            "description": "Only resources of this catalog.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "description": "Only distributions of this dataset.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "title",
+            "in": "query",
+            "required": false,
+            "description": "Part of the title, in any language.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:keyword`, exactly.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:theme` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:format`, literal (`http+pull`) or IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:creator` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "publisher",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:publisher` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conforms_to",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:conformsTo` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "participant_id",
+            "in": "query",
+            "required": false,
+            "description": "A `dspace:participantId`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "access_service",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:accessService`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endpoint_url",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:endpointURL`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "main",
+            "in": "query",
+            "required": false,
+            "description": "`false` leaves out the connector's main resource; `true` keeps only it.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CreatedAfter"
+          },
+          {
+            "$ref": "#/components/parameters/CreatedBefore"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of Distributions",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DistributionGraph"
+                }
+              }
+            },
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/X-Total-Count"
+              },
+              "X-Next-Cursor": {
+                "$ref": "#/components/headers/X-Next-Cursor"
+              },
+              "Link": {
+                "$ref": "#/components/headers/Link"
               }
             }
           },
@@ -782,24 +1848,87 @@
           "Distributions"
         ],
         "operationId": "createDistribution",
-        "summary": "Create a distribution",
+        "summary": "Create a Distribution",
+        "description": "A `Distribution` document in the catalog context (a body with no `@type` is taken as one). `ofDataset` names its dataset.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VisibilityHeader"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewDistributionDto"
+                "$ref": "#/components/schemas/DistributionDocument"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created Distribution",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DistributionDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/distributions/batch": {
+      "post": {
+        "tags": [
+          "Distributions"
+        ],
+        "operationId": "getBatchDistributions",
+        "summary": "Distributions by id",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequests"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Created distribution",
+            "description": "The Distributions found",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DistributionDto"
+                  "$ref": "#/components/schemas/DistributionGraph"
                 }
               }
             }
@@ -816,68 +1945,25 @@
         }
       }
     },
-    "/api/v1/catalog-agent/distributions/batch": {
-      "post": {
-        "tags": [
-          "Distributions"
-        ],
-        "operationId": "getBatchDistributions",
-        "summary": "Get several distributions by id",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BatchRequests"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Distributions found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DistributionDto"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
-        }
-      }
-    },
     "/api/v1/catalog-agent/distributions/dataset/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
       "get": {
         "tags": [
           "Distributions"
         ],
         "operationId": "getDistributionsByDatasetId",
         "summary": "Distributions of a dataset",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/UrnPathId"
-          }
-        ],
         "responses": {
           "200": {
-            "description": "Distributions of the dataset",
+            "description": "The dataset's Distributions",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DistributionDto"
-                  }
+                  "$ref": "#/components/schemas/DistributionGraph"
                 }
               }
             }
@@ -887,42 +1973,56 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         }
       }
     },
     "/api/v1/catalog-agent/distributions/dataset/{id}/format/{format}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        },
+        {
+          "name": "format",
+          "in": "path",
+          "required": true,
+          "description": "A `dct:format`, e.g. `http+pull`.",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
       "get": {
         "tags": [
           "Distributions"
         ],
         "operationId": "getDistributionByDatasetIdAndFormat",
-        "summary": "Distribution of a dataset with a given format",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/UrnPathId"
-          },
-          {
-            "name": "format",
-            "in": "path",
-            "required": true,
-            "description": "`dct:format` value.",
-            "schema": {
-              "type": "string",
-              "examples": [
-                "HttpData-PULL"
-              ]
-            }
-          }
-        ],
+        "summary": "The dataset's distribution in a format",
         "responses": {
           "200": {
             "description": "Distribution",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DistributionDto"
+                  "$ref": "#/components/schemas/DistributionDocument"
                 }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
               }
             }
           },
@@ -949,15 +2049,29 @@
           "Distributions"
         ],
         "operationId": "getDistributionById",
-        "summary": "Get a distribution",
+        "summary": "One Distribution",
         "responses": {
           "200": {
             "description": "Distribution",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DistributionDto"
+                  "$ref": "#/components/schemas/DistributionDocument"
                 }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
               }
             }
           },
@@ -977,24 +2091,127 @@
           "Distributions"
         ],
         "operationId": "updateDistributionById",
-        "summary": "Update a distribution",
+        "summary": "Replace a Distribution's description",
+        "description": "The body replaces the description whole; the parent cannot change. With `If-Match`, a stored version other than the one named is a 412.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VisibilityHeader"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EditDistributionDto"
+                "$ref": "#/components/schemas/DistributionDocument"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Updated distribution",
+            "description": "Updated Distribution",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DistributionDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Distributions"
+        ],
+        "operationId": "deleteDistributionById",
+        "summary": "Delete a Distribution",
+        "description": "What hangs from it goes with it; a resource others link to is a 409.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/distributions/{id}/doctor": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Doctor"
+        ],
+        "operationId": "doctorDistribution",
+        "summary": "Does the Distribution conform to each profile?",
+        "description": "Every registered profile (DSP, DCAT 3, DCAT-AP…) diagnoses the resource. Read only.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProfileQuery"
+          },
+          {
+            "$ref": "#/components/parameters/DeepQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One diagnosis per profile",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DistributionDto"
+                  "$ref": "#/components/schemas/DoctorReport"
                 }
               }
             }
@@ -1004,33 +2221,6 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Distributions"
-        ],
-        "operationId": "deleteDistributionById",
-        "summary": "Delete a distribution",
-        "responses": {
-          "202": {
-            "description": "Deleted"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -1044,7 +2234,8 @@
           "Data Services"
         ],
         "operationId": "getAllDataServices",
-        "summary": "List data services",
+        "summary": "List DataServices",
+        "description": "One page as a JSON-LD `@graph`; the total and the next cursor come in headers.",
         "parameters": [
           {
             "$ref": "#/components/parameters/Limit"
@@ -1065,14 +2256,16 @@
             "name": "catalog_id",
             "in": "query",
             "required": false,
+            "description": "Only resources of this catalog.",
             "schema": {
               "type": "string"
             }
           },
           {
-            "name": "endpoint_url",
+            "name": "dataset_id",
             "in": "query",
             "required": false,
+            "description": "Only distributions of this dataset.",
             "schema": {
               "type": "string"
             }
@@ -1081,6 +2274,34 @@
             "name": "title",
             "in": "query",
             "required": false,
+            "description": "Part of the title, in any language.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:keyword`, exactly.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:theme` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:format`, literal (`http+pull`) or IRI.",
             "schema": {
               "type": "string"
             }
@@ -1089,14 +2310,61 @@
             "name": "creator",
             "in": "query",
             "required": false,
+            "description": "A `dct:creator` IRI.",
             "schema": {
               "type": "string"
             }
           },
           {
-            "name": "main_data_service",
+            "name": "publisher",
             "in": "query",
             "required": false,
+            "description": "A `dct:publisher` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conforms_to",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:conformsTo` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "participant_id",
+            "in": "query",
+            "required": false,
+            "description": "A `dspace:participantId`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "access_service",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:accessService`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endpoint_url",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:endpointURL`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "main",
+            "in": "query",
+            "required": false,
+            "description": "`false` leaves out the connector's main resource; `true` keeps only it.",
             "schema": {
               "type": "boolean"
             }
@@ -1110,12 +2378,23 @@
         ],
         "responses": {
           "200": {
-            "description": "Page of data services",
+            "description": "Page of DataServices",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaginatedDataServiceDto"
+                  "$ref": "#/components/schemas/DataServiceGraph"
                 }
+              }
+            },
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/X-Total-Count"
+              },
+              "X-Next-Cursor": {
+                "$ref": "#/components/headers/X-Next-Cursor"
+              },
+              "Link": {
+                "$ref": "#/components/headers/Link"
               }
             }
           },
@@ -1135,24 +2414,87 @@
           "Data Services"
         ],
         "operationId": "createDataService",
-        "summary": "Create a data service",
+        "summary": "Create a DataService",
+        "description": "A `DataService` document in the catalog context (a body with no `@type` is taken as one). `inCatalog` names its catalog.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VisibilityHeader"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewDataServiceDto"
+                "$ref": "#/components/schemas/DataServiceDocument"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created DataService",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataServiceDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/data-services/batch": {
+      "post": {
+        "tags": [
+          "Data Services"
+        ],
+        "operationId": "getBatchDataServices",
+        "summary": "DataServices by id",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequests"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Created data service",
+            "description": "The DataServices found",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataServiceDto"
+                  "$ref": "#/components/schemas/DataServiceGraph"
                 }
               }
             }
@@ -1175,15 +2517,29 @@
           "Data Services"
         ],
         "operationId": "getMainDataService",
-        "summary": "The connector's main data service",
+        "summary": "The connector's main DataService",
         "responses": {
           "200": {
-            "description": "Main data service",
+            "description": "Main DataService",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataServiceDto"
+                  "$ref": "#/components/schemas/DataServiceDocument"
                 }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
               }
             }
           },
@@ -1200,24 +2556,74 @@
           "Data Services"
         ],
         "operationId": "createMainDataService",
-        "summary": "Create the connector's main data service",
+        "summary": "Create the main DataService (root only)",
+        "description": "Idempotent: an existing main one is returned. `{}` is a valid body.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewDataServiceDto"
+                "$ref": "#/components/schemas/DataServiceDocument"
               }
             }
           }
         },
         "responses": {
-          "200": {
-            "description": "Created main data service",
+          "201": {
+            "description": "Main DataService",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataServiceDto"
+                  "$ref": "#/components/schemas/DataServiceDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/data-services/catalog/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Data Services"
+        ],
+        "operationId": "getDataServicesByCatalogId",
+        "summary": "DataServices of a catalog",
+        "responses": {
+          "200": {
+            "description": "The catalog's DataServices",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataServiceGraph"
                 }
               }
             }
@@ -1234,81 +2640,6 @@
         }
       }
     },
-    "/api/v1/catalog-agent/data-services/batch": {
-      "post": {
-        "tags": [
-          "Data Services"
-        ],
-        "operationId": "getBatchDataServices",
-        "summary": "Get several data services by id",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BatchRequests"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Data services found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DataServiceDto"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
-        }
-      }
-    },
-    "/api/v1/catalog-agent/data-services/catalog/{id}": {
-      "get": {
-        "tags": [
-          "Data Services"
-        ],
-        "operationId": "getDataServicesByCatalogId",
-        "summary": "Data services of a catalog",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/UrnPathId"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Data services of the catalog",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DataServiceDto"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
-        }
-      }
-    },
     "/api/v1/catalog-agent/data-services/{id}": {
       "parameters": [
         {
@@ -1320,15 +2651,29 @@
           "Data Services"
         ],
         "operationId": "getDataServiceById",
-        "summary": "Get a data service",
+        "summary": "One DataService",
         "responses": {
           "200": {
-            "description": "Data service",
+            "description": "DataService",
             "content": {
-              "application/json": {
+              "application/ld+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataServiceDto"
+                  "$ref": "#/components/schemas/DataServiceDocument"
                 }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
               }
             }
           },
@@ -1348,24 +2693,410 @@
           "Data Services"
         ],
         "operationId": "updateDataServiceById",
-        "summary": "Update a data service",
+        "summary": "Replace a DataService's description",
+        "description": "The body replaces the description whole; the parent cannot change. With `If-Match`, a stored version other than the one named is a 412.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VisibilityHeader"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EditDataServiceDto"
+                "$ref": "#/components/schemas/DataServiceDocument"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Updated data service",
+            "description": "Updated DataService",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataServiceDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Data Services"
+        ],
+        "operationId": "deleteDataServiceById",
+        "summary": "Delete a DataService",
+        "description": "What hangs from it goes with it; a resource others link to is a 409.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/data-services/{id}/doctor": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Doctor"
+        ],
+        "operationId": "doctorDataService",
+        "summary": "Does the DataService conform to each profile?",
+        "description": "Every registered profile (DSP, DCAT 3, DCAT-AP…) diagnoses the resource. Read only.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProfileQuery"
+          },
+          {
+            "$ref": "#/components/parameters/DeepQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One diagnosis per profile",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataServiceDto"
+                  "$ref": "#/components/schemas/DoctorReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/agents": {
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "getAllAgents",
+        "summary": "List Agents",
+        "description": "One page as a JSON-LD `@graph`; the total and the next cursor come in headers.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/UserIdQuery"
+          },
+          {
+            "name": "catalog_id",
+            "in": "query",
+            "required": false,
+            "description": "Only resources of this catalog.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "description": "Only distributions of this dataset.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "title",
+            "in": "query",
+            "required": false,
+            "description": "Part of the title, in any language.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:keyword`, exactly.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:theme` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:format`, literal (`http+pull`) or IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:creator` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "publisher",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:publisher` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conforms_to",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:conformsTo` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "participant_id",
+            "in": "query",
+            "required": false,
+            "description": "A `dspace:participantId`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "access_service",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:accessService`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endpoint_url",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:endpointURL`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "main",
+            "in": "query",
+            "required": false,
+            "description": "`false` leaves out the connector's main resource; `true` keeps only it.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CreatedAfter"
+          },
+          {
+            "$ref": "#/components/parameters/CreatedBefore"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of Agents",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentGraph"
+                }
+              }
+            },
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/X-Total-Count"
+              },
+              "X-Next-Cursor": {
+                "$ref": "#/components/headers/X-Next-Cursor"
+              },
+              "Link": {
+                "$ref": "#/components/headers/Link"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "createAgent",
+        "summary": "Create a Agent",
+        "description": "A `Agent` document in the catalog context (a body with no `@type` is taken as one).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VisibilityHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentDocument"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created Agent",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/agents/batch": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "getBatchAgents",
+        "summary": "Agents by id",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequests"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The Agents found",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentGraph"
                 }
               }
             }
@@ -1378,21 +3109,369 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/agents/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "getAgentById",
+        "summary": "One Agent",
+        "responses": {
+          "200": {
+            "description": "Agent",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
           }
         }
       },
+      "put": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "updateAgentById",
+        "summary": "Replace a Agent's description",
+        "description": "The body replaces the description whole; the parent cannot change. With `If-Match`, a stored version other than the one named is a 412.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VisibilityHeader"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentDocument"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated Agent",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          }
+        }
+      },
       "delete": {
         "tags": [
-          "Data Services"
+          "Agents"
         ],
-        "operationId": "deleteDataServiceById",
-        "summary": "Delete a data service",
+        "operationId": "deleteAgentById",
+        "summary": "Delete a Agent",
+        "description": "What hangs from it goes with it; a resource others link to is a 409.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
         "responses": {
-          "202": {
+          "204": {
             "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/agents/{id}/doctor": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Doctor"
+        ],
+        "operationId": "doctorAgent",
+        "summary": "Does the Agent conform to each profile?",
+        "description": "Every registered profile (DSP, DCAT 3, DCAT-AP…) diagnoses the resource. Read only.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProfileQuery"
+          },
+          {
+            "$ref": "#/components/parameters/DeepQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One diagnosis per profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/catalog-records": {
+      "get": {
+        "tags": [
+          "Catalog Records"
+        ],
+        "operationId": "getAllCatalogRecords",
+        "summary": "List CatalogRecords",
+        "description": "One page as a JSON-LD `@graph`; the total and the next cursor come in headers.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/UserIdQuery"
+          },
+          {
+            "name": "catalog_id",
+            "in": "query",
+            "required": false,
+            "description": "Only resources of this catalog.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "description": "Only distributions of this dataset.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "title",
+            "in": "query",
+            "required": false,
+            "description": "Part of the title, in any language.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:keyword`, exactly.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:theme` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:format`, literal (`http+pull`) or IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:creator` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "publisher",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:publisher` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conforms_to",
+            "in": "query",
+            "required": false,
+            "description": "A `dct:conformsTo` IRI.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "participant_id",
+            "in": "query",
+            "required": false,
+            "description": "A `dspace:participantId`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "access_service",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:accessService`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endpoint_url",
+            "in": "query",
+            "required": false,
+            "description": "A `dcat:endpointURL`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "main",
+            "in": "query",
+            "required": false,
+            "description": "`false` leaves out the connector's main resource; `true` keeps only it.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CreatedAfter"
+          },
+          {
+            "$ref": "#/components/parameters/CreatedBefore"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of CatalogRecords",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogRecordGraph"
+                }
+              }
+            },
+            "headers": {
+              "X-Total-Count": {
+                "$ref": "#/components/headers/X-Total-Count"
+              },
+              "X-Next-Cursor": {
+                "$ref": "#/components/headers/X-Next-Cursor"
+              },
+              "Link": {
+                "$ref": "#/components/headers/Link"
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -1402,6 +3481,329 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Catalog Records"
+        ],
+        "operationId": "createCatalogRecord",
+        "summary": "Create a CatalogRecord",
+        "description": "A `CatalogRecord` document in the catalog context (a body with no `@type` is taken as one). `inCatalog` names its catalog.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VisibilityHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogRecordDocument"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created CatalogRecord",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogRecordDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/catalog-records/batch": {
+      "post": {
+        "tags": [
+          "Catalog Records"
+        ],
+        "operationId": "getBatchCatalogRecords",
+        "summary": "CatalogRecords by id",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequests"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The CatalogRecords found",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogRecordGraph"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/catalog-records/catalog/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Catalog Records"
+        ],
+        "operationId": "getCatalogRecordsByCatalogId",
+        "summary": "CatalogRecords of a catalog",
+        "responses": {
+          "200": {
+            "description": "The catalog's CatalogRecords",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogRecordGraph"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/catalog-records/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Catalog Records"
+        ],
+        "operationId": "getCatalogRecordById",
+        "summary": "One CatalogRecord",
+        "responses": {
+          "200": {
+            "description": "CatalogRecord",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogRecordDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Catalog Records"
+        ],
+        "operationId": "updateCatalogRecordById",
+        "summary": "Replace a CatalogRecord's description",
+        "description": "The body replaces the description whole; the parent cannot change. With `If-Match`, a stored version other than the one named is a 412.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VisibilityHeader"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogRecordDocument"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated CatalogRecord",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogRecordDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Eunomia-Visibility": {
+                "$ref": "#/components/headers/Eunomia-Visibility"
+              },
+              "Eunomia-Owner": {
+                "$ref": "#/components/headers/Eunomia-Owner"
+              },
+              "Eunomia-Owner-Role": {
+                "$ref": "#/components/headers/Eunomia-Owner-Role"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Catalog Records"
+        ],
+        "operationId": "deleteCatalogRecordById",
+        "summary": "Delete a CatalogRecord",
+        "description": "What hangs from it goes with it; a resource others link to is a 409.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/catalog-records/{id}/doctor": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Doctor"
+        ],
+        "operationId": "doctorCatalogRecord",
+        "summary": "Does the CatalogRecord conform to each profile?",
+        "description": "Every registered profile (DSP, DCAT 3, DCAT-AP…) diagnoses the resource. Read only.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProfileQuery"
+          },
+          {
+            "$ref": "#/components/parameters/DeepQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One diagnosis per profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -2010,50 +4412,6 @@
         }
       }
     },
-    "/api/v1/catalog-agent/dataset-offerings": {
-      "post": {
-        "tags": [
-          "Dataset Offerings"
-        ],
-        "operationId": "createDatasetOffering",
-        "summary": "Publish a dataset with its distribution and policy",
-        "description": "Without `dataset.catalogId` the dataset goes to the connector's main catalog; without\n`distribution.accessServiceId` the distribution uses the main data service.\n",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewDatasetOfferingDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Created entities",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DatasetOfferingDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      }
-    },
     "/api/v1/catalog-agent/peer-catalogs": {
       "get": {
         "tags": [
@@ -2119,21 +4477,36 @@
         }
       }
     },
-    "/api/v1/catalog-agent/tenants/provision": {
+    "/api/v1/catalog-agent/dataset-offerings": {
       "post": {
         "tags": [
-          "Tenants"
+          "Dataset Offerings"
         ],
-        "operationId": "provisionTenant",
-        "summary": "Give the connector its main catalog and data service",
-        "description": "Idempotent; existing main entities are kept. The boot already runs it as the root.",
+        "operationId": "createDatasetOffering",
+        "summary": "Publish a dataset, its distribution and a policy in one call",
+        "description": "Without `inCatalog` the dataset goes to the main catalog; without `accessService`, `accessURL` or `downloadURL` the main data service serves the distribution. A failure after the dataset removes it again.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VisibilityHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewDatasetOfferingDto"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {
-            "description": "The connector's main entities",
+          "201": {
+            "description": "What was created",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProvisionedTenantDto"
+                  "$ref": "#/components/schemas/DatasetOfferingDto"
                 }
               }
             }
@@ -2146,6 +4519,209 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/public/dcat3/catalog": {
+      "get": {
+        "tags": [
+          "Public Profiles"
+        ],
+        "operationId": "publicDcat3Catalog",
+        "summary": "Main catalog in DCAT 3 (W3C), nearly everything optional",
+        "security": [],
+        "description": "Public: only what is not private. `If-None-Match` answers 304.",
+        "responses": {
+          "200": {
+            "description": "The main catalog and what it holds, as one @graph",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Link": {
+                "$ref": "#/components/headers/Link"
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/public/dcat3/resources/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Public Profiles"
+        ],
+        "operationId": "publicDcat3Resource",
+        "summary": "One resource in DCAT 3 (W3C), nearly everything optional",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "The resource and its closure",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Link": {
+                "$ref": "#/components/headers/Link"
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/public/dcat3/context.jsonld": {
+      "get": {
+        "tags": [
+          "Public Profiles"
+        ],
+        "operationId": "publicDcat3Context",
+        "summary": "The profile's JSON-LD context",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Context document",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/public/dcat-ap/catalog": {
+      "get": {
+        "tags": [
+          "Public Profiles"
+        ],
+        "operationId": "publicDcatApCatalog",
+        "summary": "Main catalog in DCAT-AP 3.0.1, with mandatory properties and EU controlled vocabularies",
+        "security": [],
+        "description": "Public: only what is not private. `If-None-Match` answers 304.",
+        "responses": {
+          "200": {
+            "description": "The main catalog and what it holds, as one @graph",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Link": {
+                "$ref": "#/components/headers/Link"
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/public/dcat-ap/resources/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UrnPathId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Public Profiles"
+        ],
+        "operationId": "publicDcatApResource",
+        "summary": "One resource in DCAT-AP 3.0.1, with mandatory properties and EU controlled vocabularies",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "The resource and its closure",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Link": {
+                "$ref": "#/components/headers/Link"
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog-agent/public/dcat-ap/context.jsonld": {
+      "get": {
+        "tags": [
+          "Public Profiles"
+        ],
+        "operationId": "publicDcatApContext",
+        "summary": "The profile's JSON-LD context",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Context document",
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
@@ -2252,6 +4828,43 @@
         "schema": {
           "type": "string"
         }
+      },
+      "VisibilityHeader": {
+        "name": "Eunomia-Visibility",
+        "in": "header",
+        "required": false,
+        "description": "Who else sees the resource; private when absent.",
+        "schema": {
+          "$ref": "#/components/schemas/Visibility"
+        }
+      },
+      "IfMatch": {
+        "name": "If-Match",
+        "in": "header",
+        "required": false,
+        "description": "The `ETag` read (`W/\"3\"`); another stored version is a 412.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ProfileQuery": {
+        "name": "profile",
+        "in": "query",
+        "required": false,
+        "description": "One profile only: `dsp`, `dcat3` or `dcat-ap`.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "DeepQuery": {
+        "name": "deep",
+        "in": "query",
+        "required": false,
+        "description": "Diagnose the whole closure, not the resource alone.",
+        "schema": {
+          "type": "boolean",
+          "default": false
+        }
       }
     },
     "responses": {
@@ -2294,9 +4907,190 @@
             }
           }
         }
+      },
+      "Conflict": {
+        "description": "The resource already exists or changed",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      },
+      "PreconditionFailed": {
+        "description": "The resource changed since the version `If-Match` names",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorInfo"
+            }
+          }
+        }
+      }
+    },
+    "headers": {
+      "ETag": {
+        "description": "Weak tag of the stored version (`W/\"3\"`); on public routes, a strong tag of the body.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Eunomia-Visibility": {
+        "description": "Private, Anonymous or Public.",
+        "schema": {
+          "$ref": "#/components/schemas/Visibility"
+        }
+      },
+      "Eunomia-Owner": {
+        "description": "User id of the owner.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Eunomia-Owner-Role": {
+        "description": "Role path of the owner.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "X-Total-Count": {
+        "description": "Resources matching the filter.",
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "X-Next-Cursor": {
+        "description": "Cursor of the next page, when there is one.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Link": {
+        "description": "`rel=\"next\"` with the next cursor, or `rel=\"profile\"` on public routes.",
+        "schema": {
+          "type": "string"
+        }
       }
     },
     "schemas": {
+      "AgentDocument": {
+        "type": "object",
+        "description": "A `Agent` (`foaf:Agent`) in the eunomia catalog context. Any other property is kept as sent, under its full or compact IRI.",
+        "properties": {
+          "@context": {
+            "description": "`https://w3id.org/eunomia/v1/catalog-context.jsonld`; any context works on input, it is read through RDF.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              },
+              {
+                "type": "array"
+              }
+            ]
+          },
+          "@id": {
+            "type": "string",
+            "description": "URN of the resource; minted when a body names none."
+          },
+          "@type": {
+            "description": "The class term, e.g. `Dataset`.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "title": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "description": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "issued": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "description": "Set by the agent."
+          },
+          "modified": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "description": "Set by the agent."
+          },
+          "identifier": {
+            "type": "string"
+          },
+          "conformsTo": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "creator": {
+            "type": "string",
+            "format": "iri"
+          },
+          "publisher": {
+            "type": "string",
+            "format": "iri"
+          },
+          "license": {
+            "type": "string",
+            "format": "iri"
+          },
+          "accessRights": {
+            "type": "string",
+            "format": "iri"
+          },
+          "language": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Language IRIs, or bare codes (`en`) that DCAT-AP maps to the EU language table."
+          },
+          "name": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "dctType": {
+            "type": "string",
+            "format": "iri"
+          }
+        },
+        "additionalProperties": true
+      },
+      "AgentGraph": {
+        "type": "object",
+        "required": [
+          "@graph"
+        ],
+        "properties": {
+          "@context": {
+            "type": "string",
+            "examples": [
+              "https://w3id.org/eunomia/v1/catalog-context.jsonld"
+            ]
+          },
+          "@graph": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentDocument"
+            }
+          }
+        }
+      },
       "BatchRequests": {
         "type": "object",
         "required": [
@@ -2326,86 +5120,121 @@
           }
         }
       },
-      "CatalogDto": {
+      "CatalogDocument": {
         "type": "object",
-        "required": [
-          "id",
-          "userId",
-          "userRole",
-          "visibility",
-          "dctIssued",
-          "dspaceMainCatalog"
-        ],
+        "description": "A `Catalog` (`dcat:Catalog`) in the eunomia catalog context. Any other property is kept as sent, under its full or compact IRI.",
         "properties": {
-          "id": {
+          "@context": {
+            "description": "`https://w3id.org/eunomia/v1/catalog-context.jsonld`; any context works on input, it is read through RDF.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              },
+              {
+                "type": "array"
+              }
+            ]
+          },
+          "@id": {
             "type": "string",
-            "description": "URN of the catalog."
+            "description": "URN of the resource; minted when a body names none."
           },
-          "userId": {
+          "@type": {
+            "description": "The class term, e.g. `Dataset`.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "title": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "description": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "issued": {
             "type": "string",
-            "description": "Author of the record (`system` when a peer opened it)."
+            "format": "date-time",
+            "readOnly": true,
+            "description": "Set by the agent."
           },
-          "userRole": {
+          "modified": {
             "type": "string",
-            "description": "Role the record was created under (or that handles it).",
-            "examples": [
-              "/admin/upm"
-            ]
+            "format": "date-time",
+            "readOnly": true,
+            "description": "Set by the agent."
           },
-          "visibility": {
-            "$ref": "#/components/schemas/Visibility"
+          "identifier": {
+            "type": "string"
           },
-          "foafHomePage": {
-            "type": [
-              "string",
-              "null"
-            ]
+          "conformsTo": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
           },
-          "dctConformsTo": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctCreator": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctIdentifier": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctIssued": {
+          "creator": {
             "type": "string",
-            "format": "date-time"
+            "format": "iri"
           },
-          "dctModified": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
+          "publisher": {
+            "type": "string",
+            "format": "iri"
           },
-          "dctTitle": {
-            "type": [
-              "string",
-              "null"
-            ]
+          "license": {
+            "type": "string",
+            "format": "iri"
           },
-          "dspaceParticipantId": {
-            "type": [
-              "string",
-              "null"
-            ]
+          "accessRights": {
+            "type": "string",
+            "format": "iri"
           },
-          "dspaceMainCatalog": {
-            "type": "boolean"
+          "language": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Language IRIs, or bare codes (`en`) that DCAT-AP maps to the EU language table."
+          },
+          "homepage": {
+            "type": "string",
+            "format": "iri"
+          },
+          "themeTaxonomy": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "participantId": {
+            "type": "string",
+            "description": "`dspace:participantId` (DID)."
+          },
+          "spatial": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "inCatalog": {
+            "type": "string",
+            "description": "Not used: catalogs hang from no catalog."
           }
-        }
+        },
+        "additionalProperties": true
       },
       "CatalogEntityType": {
         "type": "string",
@@ -2415,6 +5244,148 @@
           "Distribution",
           "DataService"
         ]
+      },
+      "CatalogGraph": {
+        "type": "object",
+        "required": [
+          "@graph"
+        ],
+        "properties": {
+          "@context": {
+            "type": "string",
+            "examples": [
+              "https://w3id.org/eunomia/v1/catalog-context.jsonld"
+            ]
+          },
+          "@graph": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogDocument"
+            }
+          }
+        }
+      },
+      "CatalogRecordDocument": {
+        "type": "object",
+        "description": "A `CatalogRecord` (`dcat:CatalogRecord`) in the eunomia catalog context. Any other property is kept as sent, under its full or compact IRI.",
+        "properties": {
+          "@context": {
+            "description": "`https://w3id.org/eunomia/v1/catalog-context.jsonld`; any context works on input, it is read through RDF.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              },
+              {
+                "type": "array"
+              }
+            ]
+          },
+          "@id": {
+            "type": "string",
+            "description": "URN of the resource; minted when a body names none."
+          },
+          "@type": {
+            "description": "The class term, e.g. `Dataset`.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "title": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "description": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "issued": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "description": "Set by the agent."
+          },
+          "modified": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "description": "Set by the agent."
+          },
+          "identifier": {
+            "type": "string"
+          },
+          "conformsTo": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "creator": {
+            "type": "string",
+            "format": "iri"
+          },
+          "publisher": {
+            "type": "string",
+            "format": "iri"
+          },
+          "license": {
+            "type": "string",
+            "format": "iri"
+          },
+          "accessRights": {
+            "type": "string",
+            "format": "iri"
+          },
+          "language": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Language IRIs, or bare codes (`en`) that DCAT-AP maps to the EU language table."
+          },
+          "primaryTopic": {
+            "type": "string",
+            "description": "The resource the record is about."
+          },
+          "status": {
+            "type": "string",
+            "format": "iri"
+          },
+          "inCatalog": {
+            "type": "string",
+            "description": "URN of its catalog (reverse of `dcat:record`)."
+          }
+        },
+        "additionalProperties": true
+      },
+      "CatalogRecordGraph": {
+        "type": "object",
+        "required": [
+          "@graph"
+        ],
+        "properties": {
+          "@context": {
+            "type": "string",
+            "examples": [
+              "https://w3id.org/eunomia/v1/catalog-context.jsonld"
+            ]
+          },
+          "@graph": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogRecordDocument"
+            }
+          }
+        }
       },
       "ContextField": {
         "description": "JSON-LD context; must include the DSP 2024-1 or 2025-1 context.",
@@ -2433,167 +5404,306 @@
           "https://w3id.org/dspace/2025/1/context.jsonld"
         ]
       },
-      "DataServiceDto": {
+      "DataServiceDocument": {
+        "type": "object",
+        "description": "A `DataService` (`dcat:DataService`) in the eunomia catalog context. Any other property is kept as sent, under its full or compact IRI.",
+        "properties": {
+          "@context": {
+            "description": "`https://w3id.org/eunomia/v1/catalog-context.jsonld`; any context works on input, it is read through RDF.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              },
+              {
+                "type": "array"
+              }
+            ]
+          },
+          "@id": {
+            "type": "string",
+            "description": "URN of the resource; minted when a body names none."
+          },
+          "@type": {
+            "description": "The class term, e.g. `Dataset`.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "title": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "description": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "issued": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "description": "Set by the agent."
+          },
+          "modified": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "description": "Set by the agent."
+          },
+          "identifier": {
+            "type": "string"
+          },
+          "conformsTo": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "creator": {
+            "type": "string",
+            "format": "iri"
+          },
+          "publisher": {
+            "type": "string",
+            "format": "iri"
+          },
+          "license": {
+            "type": "string",
+            "format": "iri"
+          },
+          "accessRights": {
+            "type": "string",
+            "format": "iri"
+          },
+          "language": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Language IRIs, or bare codes (`en`) that DCAT-AP maps to the EU language table."
+          },
+          "endpointURL": {
+            "type": "string",
+            "format": "iri"
+          },
+          "endpointDescription": {
+            "type": "string",
+            "format": "iri"
+          },
+          "servesDataset": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "keyword": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "theme": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "inCatalog": {
+            "type": "string",
+            "description": "URN of its catalog (reverse of `dcat:service`)."
+          }
+        },
+        "additionalProperties": true
+      },
+      "DataServiceGraph": {
         "type": "object",
         "required": [
-          "id",
-          "userId",
-          "userRole",
-          "visibility",
-          "dcatEndpointUrl",
-          "dctIssued",
-          "catalogId",
-          "dspaceMainDataService"
+          "@graph"
         ],
         "properties": {
-          "id": {
+          "@context": {
             "type": "string",
-            "description": "URN of the data service."
-          },
-          "userId": {
-            "type": "string",
-            "description": "Author of the record (`system` when a peer opened it)."
-          },
-          "userRole": {
-            "type": "string",
-            "description": "Role the record was created under (or that handles it).",
             "examples": [
-              "/admin/upm"
+              "https://w3id.org/eunomia/v1/catalog-context.jsonld"
             ]
           },
-          "visibility": {
-            "$ref": "#/components/schemas/Visibility"
-          },
-          "dcatEndpointDescription": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dcatEndpointUrl": {
-            "type": "string"
-          },
-          "dctConformsTo": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctCreator": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctIdentifier": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctIssued": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "dctModified": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "dctTitle": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctDescription": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "catalogId": {
-            "type": "string"
-          },
-          "dspaceMainDataService": {
-            "type": "boolean"
+          "@graph": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataServiceDocument"
+            }
           }
         }
       },
-      "DatasetDto": {
+      "DatasetDocument": {
+        "type": "object",
+        "description": "A `Dataset` (`dcat:Dataset`) in the eunomia catalog context. Any other property is kept as sent, under its full or compact IRI.",
+        "properties": {
+          "@context": {
+            "description": "`https://w3id.org/eunomia/v1/catalog-context.jsonld`; any context works on input, it is read through RDF.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              },
+              {
+                "type": "array"
+              }
+            ]
+          },
+          "@id": {
+            "type": "string",
+            "description": "URN of the resource; minted when a body names none."
+          },
+          "@type": {
+            "description": "The class term, e.g. `Dataset`.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "title": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "description": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "issued": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "description": "Set by the agent."
+          },
+          "modified": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "description": "Set by the agent."
+          },
+          "identifier": {
+            "type": "string"
+          },
+          "conformsTo": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "creator": {
+            "type": "string",
+            "format": "iri"
+          },
+          "publisher": {
+            "type": "string",
+            "format": "iri"
+          },
+          "license": {
+            "type": "string",
+            "format": "iri"
+          },
+          "accessRights": {
+            "type": "string",
+            "format": "iri"
+          },
+          "language": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Language IRIs, or bare codes (`en`) that DCAT-AP maps to the EU language table."
+          },
+          "keyword": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "theme": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "landingPage": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "spatial": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "temporal": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "accrualPeriodicity": {
+            "type": "string",
+            "format": "iri"
+          },
+          "contactPoint": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "version": {
+            "type": "string"
+          },
+          "inSeries": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "inCatalog": {
+            "type": "string",
+            "description": "URN of its catalog (reverse of `dcat:dataset`)."
+          }
+        },
+        "additionalProperties": true
+      },
+      "DatasetGraph": {
         "type": "object",
         "required": [
-          "id",
-          "userId",
-          "userRole",
-          "visibility",
-          "dctIssued",
-          "catalogId"
+          "@graph"
         ],
         "properties": {
-          "id": {
+          "@context": {
             "type": "string",
-            "description": "URN of the dataset."
-          },
-          "userId": {
-            "type": "string",
-            "description": "Author of the record (`system` when a peer opened it)."
-          },
-          "userRole": {
-            "type": "string",
-            "description": "Role the record was created under (or that handles it).",
             "examples": [
-              "/admin/upm"
+              "https://w3id.org/eunomia/v1/catalog-context.jsonld"
             ]
           },
-          "visibility": {
-            "$ref": "#/components/schemas/Visibility"
-          },
-          "dctConformsTo": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctCreator": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctIdentifier": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctIssued": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "dctModified": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "dctTitle": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctDescription": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "catalogId": {
-            "type": "string"
+          "@graph": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DatasetDocument"
+            }
           }
         }
       },
@@ -2605,10 +5715,10 @@
         ],
         "properties": {
           "dataset": {
-            "$ref": "#/components/schemas/DatasetDto"
+            "$ref": "#/components/schemas/DatasetDocument"
           },
           "distribution": {
-            "$ref": "#/components/schemas/DistributionDto"
+            "$ref": "#/components/schemas/DistributionDocument"
           },
           "policy": {
             "oneOf": [
@@ -2622,89 +5732,320 @@
           }
         }
       },
-      "DistributionDto": {
+      "DatasetSeriesDocument": {
         "type": "object",
-        "required": [
-          "id",
-          "userId",
-          "userRole",
-          "visibility",
-          "dctIssued",
-          "dcatAccessService",
-          "datasetId"
-        ],
+        "description": "A `DatasetSeries` (`dcat:DatasetSeries`) in the eunomia catalog context. Any other property is kept as sent, under its full or compact IRI.",
         "properties": {
-          "id": {
-            "type": "string",
-            "description": "URN of the distribution."
-          },
-          "userId": {
-            "type": "string",
-            "description": "Author of the record (`system` when a peer opened it)."
-          },
-          "userRole": {
-            "type": "string",
-            "description": "Role the record was created under (or that handles it).",
-            "examples": [
-              "/admin/upm"
+          "@context": {
+            "description": "`https://w3id.org/eunomia/v1/catalog-context.jsonld`; any context works on input, it is read through RDF.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              },
+              {
+                "type": "array"
+              }
             ]
           },
-          "visibility": {
-            "$ref": "#/components/schemas/Visibility"
-          },
-          "dctIssued": {
+          "@id": {
             "type": "string",
-            "format": "date-time"
+            "description": "URN of the resource; minted when a body names none."
           },
-          "dctModified": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "dctTitle": {
-            "type": [
-              "string",
-              "null"
+          "@type": {
+            "description": "The class term, e.g. `Dataset`.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
             ]
           },
-          "dctDescription": {
-            "type": [
-              "string",
-              "null"
-            ]
+          "title": {
+            "$ref": "#/components/schemas/LanguageText"
           },
-          "dcatAccessService": {
+          "description": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "issued": {
             "type": "string",
-            "description": "URN of the data service serving it."
+            "format": "date-time",
+            "readOnly": true,
+            "description": "Set by the agent."
           },
-          "datasetId": {
+          "modified": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "description": "Set by the agent."
+          },
+          "identifier": {
             "type": "string"
           },
-          "dctFormat": {
-            "type": [
-              "string",
-              "null"
-            ],
+          "conformsTo": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "creator": {
+            "type": "string",
+            "format": "iri"
+          },
+          "publisher": {
+            "type": "string",
+            "format": "iri"
+          },
+          "license": {
+            "type": "string",
+            "format": "iri"
+          },
+          "accessRights": {
+            "type": "string",
+            "format": "iri"
+          },
+          "language": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Language IRIs, or bare codes (`en`) that DCAT-AP maps to the EU language table."
+          },
+          "keyword": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "theme": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "accrualPeriodicity": {
+            "type": "string",
+            "format": "iri"
+          },
+          "inCatalog": {
+            "type": "string",
+            "description": "URN of its catalog."
+          }
+        },
+        "additionalProperties": true
+      },
+      "DatasetSeriesGraph": {
+        "type": "object",
+        "required": [
+          "@graph"
+        ],
+        "properties": {
+          "@context": {
+            "type": "string",
             "examples": [
-              "HttpData-PULL"
+              "https://w3id.org/eunomia/v1/catalog-context.jsonld"
             ]
+          },
+          "@graph": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DatasetSeriesDocument"
+            }
+          }
+        }
+      },
+      "DistributionDocument": {
+        "type": "object",
+        "description": "A `Distribution` (`dcat:Distribution`) in the eunomia catalog context. Any other property is kept as sent, under its full or compact IRI.",
+        "properties": {
+          "@context": {
+            "description": "`https://w3id.org/eunomia/v1/catalog-context.jsonld`; any context works on input, it is read through RDF.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              },
+              {
+                "type": "array"
+              }
+            ]
+          },
+          "@id": {
+            "type": "string",
+            "description": "URN of the resource; minted when a body names none."
+          },
+          "@type": {
+            "description": "The class term, e.g. `Dataset`.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "title": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "description": {
+            "$ref": "#/components/schemas/LanguageText"
+          },
+          "issued": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "description": "Set by the agent."
+          },
+          "modified": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "description": "Set by the agent."
+          },
+          "identifier": {
+            "type": "string"
+          },
+          "conformsTo": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "creator": {
+            "type": "string",
+            "format": "iri"
+          },
+          "publisher": {
+            "type": "string",
+            "format": "iri"
+          },
+          "license": {
+            "type": "string",
+            "format": "iri"
+          },
+          "accessRights": {
+            "type": "string",
+            "format": "iri"
+          },
+          "language": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Language IRIs, or bare codes (`en`) that DCAT-AP maps to the EU language table."
+          },
+          "format": {
+            "type": "string",
+            "description": "`dct:format`: the DSP transfer format (`http+pull`), or a file-type IRI."
+          },
+          "mediaType": {
+            "type": "string",
+            "format": "iri"
+          },
+          "accessURL": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "downloadURL": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "accessService": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "iri"
+            }
+          },
+          "byteSize": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "format": "iri"
+          },
+          "ofDataset": {
+            "type": "string",
+            "description": "URN of its dataset (reverse of `dcat:distribution`)."
+          }
+        },
+        "additionalProperties": true
+      },
+      "DistributionGraph": {
+        "type": "object",
+        "required": [
+          "@graph"
+        ],
+        "properties": {
+          "@context": {
+            "type": "string",
+            "examples": [
+              "https://w3id.org/eunomia/v1/catalog-context.jsonld"
+            ]
+          },
+          "@graph": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DistributionDocument"
+            }
+          }
+        }
+      },
+      "DoctorReport": {
+        "type": "object",
+        "required": [
+          "resource",
+          "type",
+          "checked",
+          "profiles"
+        ],
+        "properties": {
+          "resource": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "checked": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfileDiagnosis"
+            }
           }
         }
       },
       "DspCatalog": {
         "type": "object",
-        "description": "DCAT catalog as sent over DSP.",
+        "description": "DCAT catalog as sent over DSP: DSP terms where the DSP context has them, every other DCAT property as a `dct:` / `dcat:` compact IRI.",
         "required": [
           "@context",
           "@type",
-          "@id",
-          "identifier",
-          "issued",
-          "catalog",
-          "dataset",
-          "service"
+          "@id"
         ],
         "properties": {
           "@context": {
@@ -2719,40 +6060,6 @@
           "@id": {
             "type": "string"
           },
-          "homepage": {
-            "type": "string"
-          },
-          "theme": {
-            "type": "string"
-          },
-          "keyword": {
-            "type": "string"
-          },
-          "conformsTo": {
-            "type": "string"
-          },
-          "creator": {
-            "type": "string"
-          },
-          "identifier": {
-            "type": "string"
-          },
-          "issued": {
-            "type": "string",
-            "description": "Naive timestamp, no zone."
-          },
-          "modified": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "description": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
           "participantId": {
             "type": "string",
             "description": "The catalog owner's participant id."
@@ -2763,7 +6070,6 @@
               "$ref": "#/components/schemas/OdrlOffer"
             }
           },
-          "extraFields": {},
           "catalog": {
             "type": "array",
             "description": "Nested catalogs, full or minimized; omitted when there are none.",
@@ -2791,7 +6097,8 @@
               }
             ]
           }
-        }
+        },
+        "additionalProperties": true
       },
       "DspDataService": {
         "type": "object",
@@ -2996,132 +6303,6 @@
           "extraFields": {}
         }
       },
-      "EditCatalogDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "foafHomePage": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctConformsTo": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctCreator": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctTitle": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        }
-      },
-      "EditDataServiceDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "dcatEndpointDescription": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dcatEndpointUrl": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctConformsTo": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctCreator": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctTitle": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctDescription": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        }
-      },
-      "EditDatasetDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "dctConformsTo": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctCreator": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctTitle": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctDescription": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        }
-      },
-      "EditDistributionDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "dctTitle": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctDescription": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dcatAccessService": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        }
-      },
       "ErrorInfo": {
         "type": "object",
         "description": "Error body returned by every agent.",
@@ -3144,6 +6325,53 @@
             ]
           }
         }
+      },
+      "Finding": {
+        "type": "object",
+        "required": [
+          "severity",
+          "resource",
+          "message"
+        ],
+        "properties": {
+          "severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "resource": {
+            "type": "string"
+          },
+          "property": {
+            "type": "string",
+            "description": "IRI of the property concerned."
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "LanguageText": {
+        "description": "A plain string, or a language map (`{\"en\": \"Readings\"}`); a language may hold several texts.",
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          }
+        ]
       },
       "LocalizedText": {
         "description": "A plain string, or the same text in several languages.",
@@ -3171,159 +6399,6 @@
           }
         ]
       },
-      "NewCatalogDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "URN; generated when absent."
-          },
-          "visibility": {
-            "description": "Who else sees it; private by default.",
-            "$ref": "#/components/schemas/Visibility"
-          },
-          "foafHomePage": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctConformsTo": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctCreator": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctTitle": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dspaceParticipantId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        }
-      },
-      "NewDataServiceDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "dcatEndpointUrl",
-          "catalogId"
-        ],
-        "properties": {
-          "id": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "URN; generated when absent."
-          },
-          "visibility": {
-            "description": "Who else sees it; private by default.",
-            "$ref": "#/components/schemas/Visibility"
-          },
-          "dcatEndpointDescription": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dcatEndpointUrl": {
-            "type": "string"
-          },
-          "dctConformsTo": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctCreator": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctTitle": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctDescription": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "catalogId": {
-            "type": "string",
-            "description": "URN of the catalog."
-          }
-        }
-      },
-      "NewDatasetDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "catalogId"
-        ],
-        "properties": {
-          "id": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "URN; generated when absent."
-          },
-          "visibility": {
-            "description": "Who else sees it; private by default.",
-            "$ref": "#/components/schemas/Visibility"
-          },
-          "dctConformsTo": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctCreator": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctTitle": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctDescription": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "catalogId": {
-            "type": "string",
-            "description": "URN of the catalog."
-          }
-        }
-      },
       "NewDatasetOfferingDto": {
         "type": "object",
         "additionalProperties": false,
@@ -3333,72 +6408,10 @@
         ],
         "properties": {
           "dataset": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "title"
-            ],
-            "properties": {
-              "title": {
-                "type": "string"
-              },
-              "description": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "conformsTo": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "creator": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "catalogId": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Defaults to the connector's main catalog."
-              }
-            }
+            "$ref": "#/components/schemas/DatasetDocument"
           },
           "distribution": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "title"
-            ],
-            "properties": {
-              "title": {
-                "type": "string"
-              },
-              "description": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "formats": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "accessServiceId": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Defaults to the connector's main data service."
-              }
-            }
+            "$ref": "#/components/schemas/DistributionDocument"
           },
           "policy": {
             "type": [
@@ -3436,56 +6449,6 @@
                 }
               }
             }
-          }
-        }
-      },
-      "NewDistributionDto": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "dcatAccessService",
-          "datasetId"
-        ],
-        "properties": {
-          "id": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "URN; generated when absent."
-          },
-          "visibility": {
-            "description": "Who else sees it; private by default.",
-            "$ref": "#/components/schemas/Visibility"
-          },
-          "dctTitle": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctDescription": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dctFormats": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "examples": [
-              "HttpData-PULL"
-            ]
-          },
-          "dcatAccessService": {
-            "type": "string",
-            "description": "URN of the data service."
-          },
-          "datasetId": {
-            "type": "string",
-            "description": "URN of the dataset."
           }
         }
       },
@@ -3900,90 +6863,6 @@
           }
         ]
       },
-      "PaginatedCatalogDto": {
-        "type": "object",
-        "required": [
-          "items"
-        ],
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CatalogDto"
-            }
-          },
-          "nextCursor": {
-            "type": "string",
-            "description": "Absent on the last page."
-          },
-          "total": {
-            "type": "integer"
-          }
-        }
-      },
-      "PaginatedDataServiceDto": {
-        "type": "object",
-        "required": [
-          "items"
-        ],
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DataServiceDto"
-            }
-          },
-          "nextCursor": {
-            "type": "string",
-            "description": "Absent on the last page."
-          },
-          "total": {
-            "type": "integer"
-          }
-        }
-      },
-      "PaginatedDatasetDto": {
-        "type": "object",
-        "required": [
-          "items"
-        ],
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DatasetDto"
-            }
-          },
-          "nextCursor": {
-            "type": "string",
-            "description": "Absent on the last page."
-          },
-          "total": {
-            "type": "integer"
-          }
-        }
-      },
-      "PaginatedDistributionDto": {
-        "type": "object",
-        "required": [
-          "items"
-        ],
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DistributionDto"
-            }
-          },
-          "nextCursor": {
-            "type": "string",
-            "description": "Absent on the last page."
-          },
-          "total": {
-            "type": "integer"
-          }
-        }
-      },
       "PaginatedOdrlPolicyDto": {
         "type": "object",
         "required": [
@@ -4250,20 +7129,66 @@
           }
         }
       },
-      "ProvisionedTenantDto": {
+      "ProfileDiagnosis": {
         "type": "object",
         "required": [
-          "catalog",
-          "dataService"
+          "profile",
+          "profileIri",
+          "compliant",
+          "violations",
+          "warnings",
+          "findings"
         ],
         "properties": {
-          "catalog": {
-            "$ref": "#/components/schemas/CatalogDto"
+          "profile": {
+            "type": "string",
+            "examples": [
+              "dcat-ap"
+            ]
           },
-          "dataService": {
-            "$ref": "#/components/schemas/DataServiceDto"
+          "profileIri": {
+            "type": "string"
+          },
+          "compliant": {
+            "type": "boolean"
+          },
+          "violations": {
+            "type": "integer"
+          },
+          "warnings": {
+            "type": "integer"
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            }
           }
         }
+      },
+      "ProfileDocument": {
+        "type": "object",
+        "description": "JSON-LD in the profile's own context: `@context` and `@graph`.",
+        "properties": {
+          "@context": {
+            "type": "object"
+          },
+          "@graph": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "Severity": {
+        "type": "string",
+        "enum": [
+          "violation",
+          "warning",
+          "info"
+        ],
+        "description": "A violation breaks conformance; warnings and infos do not."
       },
       "Visibility": {
         "type": "string",

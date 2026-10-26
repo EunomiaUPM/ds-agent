@@ -27,10 +27,9 @@ import type {
   ForbiddenResponse,
   InternalServerErrorResponse,
   NotFoundResponse,
-  RpcCatalogRequestMessageDto,
-  RpcCatalogResponseMessageDto,
-  RpcDatasetRequestMessageDto,
-  RpcDatasetResponseMessageDto,
+  RpcCatalogRequestMessage,
+  RpcCatalogResult,
+  RpcDatasetRequestMessage,
   UnauthorizedResponse
 } from '.././model';
 
@@ -47,7 +46,7 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
  * @summary Request a peer's catalog
  */
 export type rpcSetupCatalogRequestResponse200 = {
-  data: RpcCatalogResponseMessageDto
+  data: RpcCatalogResult
   status: 200
 }
 
@@ -93,7 +92,7 @@ export const getRpcSetupCatalogRequestUrl = () => {
   return `/dsp/current/catalogs/rpc/setup-catalog-request`
 }
 
-export const rpcSetupCatalogRequest = async (rpcCatalogRequestMessageDto: RpcCatalogRequestMessageDto, options?: RequestInit): Promise<rpcSetupCatalogRequestResponse> => {
+export const rpcSetupCatalogRequest = async (rpcCatalogRequestMessage: RpcCatalogRequestMessage, options?: RequestInit): Promise<rpcSetupCatalogRequestResponse> => {
   
   return customInstance<rpcSetupCatalogRequestResponse>(getRpcSetupCatalogRequestUrl(),
   {      
@@ -101,7 +100,7 @@ export const rpcSetupCatalogRequest = async (rpcCatalogRequestMessageDto: RpcCat
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      rpcCatalogRequestMessageDto,)
+      rpcCatalogRequestMessage,)
   }
 );}
 
@@ -109,8 +108,8 @@ export const rpcSetupCatalogRequest = async (rpcCatalogRequestMessageDto: RpcCat
 
 
 export const getRpcSetupCatalogRequestMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | InternalServerErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupCatalogRequest>>, TError,{data: BodyType<RpcCatalogRequestMessageDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupCatalogRequest>>, TError,{data: BodyType<RpcCatalogRequestMessageDto>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupCatalogRequest>>, TError,{data: BodyType<RpcCatalogRequestMessage>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupCatalogRequest>>, TError,{data: BodyType<RpcCatalogRequestMessage>}, TContext> => {
 
 const mutationKey = ['rpcSetupCatalogRequest'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -122,7 +121,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupCatalogRequest>>, {data: BodyType<RpcCatalogRequestMessageDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupCatalogRequest>>, {data: BodyType<RpcCatalogRequestMessage>}> = (props) => {
           const {data} = props ?? {};
 
           return  rpcSetupCatalogRequest(data,requestOptions)
@@ -136,18 +135,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type RpcSetupCatalogRequestMutationResult = NonNullable<Awaited<ReturnType<typeof rpcSetupCatalogRequest>>>
-    export type RpcSetupCatalogRequestMutationBody = BodyType<RpcCatalogRequestMessageDto>
+    export type RpcSetupCatalogRequestMutationBody = BodyType<RpcCatalogRequestMessage>
     export type RpcSetupCatalogRequestMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | InternalServerErrorResponse>
 
     /**
  * @summary Request a peer's catalog
  */
 export const useRpcSetupCatalogRequest = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | InternalServerErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupCatalogRequest>>, TError,{data: BodyType<RpcCatalogRequestMessageDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupCatalogRequest>>, TError,{data: BodyType<RpcCatalogRequestMessage>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof rpcSetupCatalogRequest>>,
         TError,
-        {data: BodyType<RpcCatalogRequestMessageDto>},
+        {data: BodyType<RpcCatalogRequestMessage>},
         TContext
       > => {
       return useMutation(getRpcSetupCatalogRequestMutationOptions(options), queryClient);
@@ -156,7 +155,7 @@ export const useRpcSetupCatalogRequest = <TError = ErrorType<BadRequestResponse 
  * @summary Request one dataset from a peer
  */
 export type rpcSetupDatasetRequestResponse200 = {
-  data: RpcDatasetResponseMessageDto
+  data: RpcCatalogResult
   status: 200
 }
 
@@ -202,7 +201,7 @@ export const getRpcSetupDatasetRequestUrl = () => {
   return `/dsp/current/catalogs/rpc/setup-dataset-request`
 }
 
-export const rpcSetupDatasetRequest = async (rpcDatasetRequestMessageDto: RpcDatasetRequestMessageDto, options?: RequestInit): Promise<rpcSetupDatasetRequestResponse> => {
+export const rpcSetupDatasetRequest = async (rpcDatasetRequestMessage: RpcDatasetRequestMessage, options?: RequestInit): Promise<rpcSetupDatasetRequestResponse> => {
   
   return customInstance<rpcSetupDatasetRequestResponse>(getRpcSetupDatasetRequestUrl(),
   {      
@@ -210,7 +209,7 @@ export const rpcSetupDatasetRequest = async (rpcDatasetRequestMessageDto: RpcDat
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      rpcDatasetRequestMessageDto,)
+      rpcDatasetRequestMessage,)
   }
 );}
 
@@ -218,8 +217,8 @@ export const rpcSetupDatasetRequest = async (rpcDatasetRequestMessageDto: RpcDat
 
 
 export const getRpcSetupDatasetRequestMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | InternalServerErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupDatasetRequest>>, TError,{data: BodyType<RpcDatasetRequestMessageDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupDatasetRequest>>, TError,{data: BodyType<RpcDatasetRequestMessageDto>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupDatasetRequest>>, TError,{data: BodyType<RpcDatasetRequestMessage>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupDatasetRequest>>, TError,{data: BodyType<RpcDatasetRequestMessage>}, TContext> => {
 
 const mutationKey = ['rpcSetupDatasetRequest'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -231,7 +230,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupDatasetRequest>>, {data: BodyType<RpcDatasetRequestMessageDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupDatasetRequest>>, {data: BodyType<RpcDatasetRequestMessage>}> = (props) => {
           const {data} = props ?? {};
 
           return  rpcSetupDatasetRequest(data,requestOptions)
@@ -245,18 +244,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type RpcSetupDatasetRequestMutationResult = NonNullable<Awaited<ReturnType<typeof rpcSetupDatasetRequest>>>
-    export type RpcSetupDatasetRequestMutationBody = BodyType<RpcDatasetRequestMessageDto>
+    export type RpcSetupDatasetRequestMutationBody = BodyType<RpcDatasetRequestMessage>
     export type RpcSetupDatasetRequestMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | InternalServerErrorResponse>
 
     /**
  * @summary Request one dataset from a peer
  */
 export const useRpcSetupDatasetRequest = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | InternalServerErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupDatasetRequest>>, TError,{data: BodyType<RpcDatasetRequestMessageDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupDatasetRequest>>, TError,{data: BodyType<RpcDatasetRequestMessage>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof rpcSetupDatasetRequest>>,
         TError,
-        {data: BodyType<RpcDatasetRequestMessageDto>},
+        {data: BodyType<RpcDatasetRequestMessage>},
         TContext
       > => {
       return useMutation(getRpcSetupDatasetRequestMutationOptions(options), queryClient);

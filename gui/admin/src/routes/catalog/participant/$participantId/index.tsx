@@ -1,6 +1,7 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { getGetMyselfQueryOptions } from "shared/src/data/orval/participants/participants";
 import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
+import { CatalogRpc, DspViews, dspIssued, dspTitle, text } from "shared/src/data/catalog";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { FormatDate } from "shared/src/components/ui/format-date";
@@ -67,27 +68,27 @@ function RouteComponent() {
   useEffect(() => {
     if (connection !== "approved") return;
     mutate({
-      data: {
-        associatedAgentPeer: participantId,
-        filter: [],
-        noCache: true,
-      },
+      data: CatalogRpc.catalog(participantId),
     });
   }, [participantId, connection, mutate]);
 
-  const catalog = data?.status === 200 ? data.data : undefined;
-  const datasets = Array.isArray(catalog?.response?.dataset) ? catalog.response.dataset : [];
-  const services = catalog?.response?.service as any;
-  const dataservice = Array.isArray(services) ? services[0] : services;
+  const catalog = data?.status === 200 ? CatalogRpc.response(data.data) : undefined;
+  const datasets = DspViews.datasets(catalog).map((node) => ({ ...DspViews.resource(node), node }));
+  const service = DspViews.service(catalog);
+  const dataservice = service && {
+    "@id": String(service["@id"] ?? ""),
+    title: dspTitle(service),
+    endpointURL: text(service.endpointURL),
+  };
 
   const filteredDatasets = useMemo(() => {
     if (!searchQuery.trim()) return datasets;
     const q = searchQuery.toLowerCase();
     return datasets.filter(
-      (d: any) =>
-        (d.title && d.title.toLowerCase().includes(q)) ||
-        (d.dctDescription && d.dctDescription.toLowerCase().includes(q)) ||
-        (d["@id"] && d["@id"].toLowerCase().includes(q)),
+      (d) =>
+        d.title.toLowerCase().includes(q) ||
+        d.description.toLowerCase().includes(q) ||
+        d.id.toLowerCase().includes(q),
     );
   }, [datasets, searchQuery]);
 
@@ -195,7 +196,7 @@ function RouteComponent() {
   if (!catalog) return null;
 
   const catalogTitle =
-    catalog.response?.title || `${participant?.participant_nick || "Participant"}'s Catalog`;
+    dspTitle(catalog) || `${participant?.participant_nick || "Participant"}'s Catalog`;
   const isOwnCatalog = participant?.participant_id === myAgent?.participant_id;
 
   return (
@@ -256,19 +257,19 @@ function RouteComponent() {
                   <Calendar className="h-3 w-3 opacity-60" />
                   Issued Date:
                 </span>
-                <FormatDate date={catalog.response?.issued} />
+                <FormatDate date={dspIssued(catalog)} />
               </div>
 
-              {catalog.response?.homepage && (
+              {DspViews.homepage(catalog) && (
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-muted-foreground">Homepage:</span>
                   <a
-                    href={catalog.response.homepage}
+                    href={DspViews.homepage(catalog)}
                     target="_blank"
                     rel="noreferrer"
                     className="text-brand-sky hover:underline truncate max-w-[150px]"
                   >
-                    {catalog.response.homepage}
+                    {DspViews.homepage(catalog)}
                   </a>
                 </div>
               )}
@@ -344,16 +345,16 @@ function RouteComponent() {
 
               {filteredDatasets.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredDatasets.map((dataset: any) => (
+                  {filteredDatasets.map((dataset) => (
                     <DatasetItem
-                      key={dataset["@id"]!}
-                      title={dataset.title!}
-                      description={dataset.dctDescription!}
-                      date={dataset.issued!}
+                      key={dataset.id}
+                      title={dataset.title}
+                      description={dataset.description}
+                      date={dataset.issued}
                       prevRoute={participantId}
-                      datasetId={dataset["@id"]!}
+                      datasetId={dataset.id}
                       ownDataset={false}
-                      dataset={dataset}
+                      dataset={dataset.node}
                     />
                   ))}
                 </div>

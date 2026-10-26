@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { CatalogViews, type CatalogDoc } from "shared/src/data/catalog";
 import {
   useGetDataServiceById,
   getGetDataServiceByIdQueryOptions,
@@ -16,7 +17,10 @@ import { PageSection } from "shared/src/components/layout/PageSection";
 function RouteComponent() {
   const { dataServiceId } = Route.useParams();
   const { data: dataServiceData } = useGetDataServiceById(dataServiceId);
-  const dataService = dataServiceData?.status === 200 ? dataServiceData.data : undefined;
+  const dataService =
+    dataServiceData?.status === 200
+      ? CatalogViews.dataService(dataServiceData.data as CatalogDoc)
+      : undefined;
 
   if (!dataService) return null;
   return (
@@ -25,7 +29,7 @@ function RouteComponent() {
         title="Data service info with id"
         badge={
           <Badge variant="info" size="lg">
-            {formatUrn(dataService.id!)}
+            {formatUrn(dataService.id)}
           </Badge>
         }
       />
@@ -33,15 +37,15 @@ function RouteComponent() {
         <PageSection>
           <InfoList
             items={[
-              { label: "Data service title", value: dataService.dctTitle },
+              { label: "Data service title", value: dataService.title },
               {
                 label: "Data service creation date",
-                value: { type: "custom", content: <FormatDate date={dataService.dctIssued!} /> },
+                value: { type: "custom", content: <FormatDate date={dataService.issued} /> },
               },
-              { label: "Data service endpoint URL", value: dataService.dcatEndpointUrl },
+              { label: "Data service endpoint URL", value: dataService.endpointURL },
               {
                 label: "Data service description",
-                value: dataService.dcatEndpointDescription,
+                value: dataService.endpointDescription,
               },
             ]}
           />

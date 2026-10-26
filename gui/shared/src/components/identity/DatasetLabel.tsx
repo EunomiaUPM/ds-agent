@@ -1,4 +1,5 @@
 import React from "react";
+import { CatalogViews, type CatalogDoc } from "../../data/catalog";
 import { cn } from "shared/src/lib/utils";
 import { useGetDatasetById } from "shared/src/data/orval/datasets/datasets";
 import { Identifier } from "./Identifier";
@@ -17,7 +18,7 @@ export function DatasetLabel({
     query: { enabled: !!id, retry: false, staleTime: 5 * 60_000 },
   });
   if (!id) return <span className="text-ink/35">—</span>;
-  const title = data?.status === 200 ? data.data.dctTitle : undefined;
+  const title = data?.status === 200 ? CatalogViews.resource(data.data as CatalogDoc).title : undefined;
 
   if (!title) return <Identifier value={id} className={className} />;
   return (

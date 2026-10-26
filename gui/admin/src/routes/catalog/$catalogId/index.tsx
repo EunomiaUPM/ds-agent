@@ -34,19 +34,26 @@ import DatasetItem from "shared/components/ui/dataset-item";
 import AvatarImg from "shared/components/ui/avatar-img";
 import { useGetMainCatalogs } from "shared/data/orval/catalogs/catalogs";
 import { useMyself } from "shared/src/data/useMyself";
+import { CatalogViews, type CatalogDoc } from "shared/src/data/catalog";
 
 const RouteComponent = () => {
   const { data: mainCatalogData } = useGetMainCatalogs();
-  const mainCatalog = mainCatalogData?.status === 200 ? mainCatalogData.data : undefined;
+  const mainCatalog =
+    mainCatalogData?.status === 200 ? CatalogViews.catalog(mainCatalogData.data as CatalogDoc) : undefined;
 
   const catalogId = mainCatalog?.id || "";
   const { data: catalogData } = useGetCatalogById(catalogId);
   const { data: datasetsData } = useGetDatasetsByCatalogId(catalogId);
   const { data: dataservicesData } = useGetDataServicesByCatalogId(catalogId);
 
-  const catalog = catalogData?.status === 200 ? catalogData.data : undefined;
-  const datasets = datasetsData?.status === 200 ? datasetsData.data : [];
-  const dataservices = dataservicesData?.status === 200 ? dataservicesData.data : [];
+  const catalog =
+    catalogData?.status === 200 ? CatalogViews.catalog(catalogData.data as CatalogDoc) : undefined;
+  const datasets =
+    datasetsData?.status === 200 ? CatalogViews.list(datasetsData.data, CatalogViews.dataset) : [];
+  const dataservices =
+    dataservicesData?.status === 200
+      ? CatalogViews.list(dataservicesData.data, CatalogViews.dataService)
+      : [];
 
   if (!catalog) return null;
   const myAgent = useMyself();
@@ -59,7 +66,7 @@ const RouteComponent = () => {
         <div className="rounded-md border border-background-200/60 bg-background-200/5 p-4 max-h-[70vh] ">
           <Heading level="h2" className="capitalize">
             {" "}
-            {catalog.dctTitle ? catalog.dctTitle : `${myAgentSlug}'s Catalog`}
+            {catalog.title ? catalog.title : `${myAgentSlug}'s Catalog`}
           </Heading>
 
           <Badge variant="detail" size="lg" className="uppercase text-blue-700 dark:text-blue-300 font-semibold mb-3">
@@ -71,12 +78,12 @@ const RouteComponent = () => {
           </p>
           <InfoList
             items={[
-              { label: "Catalog title", value: catalog.dctTitle },
+              { label: "Catalog title", value: catalog.title },
 
-              { label: "Catalog homepage", value: catalog.foafHomePage },
+              { label: "Catalog homepage", value: catalog.homepage },
               {
                 label: "Catalog creation date",
-                value: { type: "custom", content: <FormatDate date={catalog.dctIssued} /> },
+                value: { type: "custom", content: <FormatDate date={catalog.issued} /> },
               },
               {
                 label: "Organization",
@@ -115,7 +122,7 @@ const RouteComponent = () => {
                   label: "Dataservice creation date",
                   value: {
                     type: "custom",
-                    content: <FormatDate date={dataservices[0].dctIssued} />,
+                    content: <FormatDate date={dataservices[0].issued} />,
                   },
                 },
                 {
@@ -135,9 +142,9 @@ const RouteComponent = () => {
               datasets.map((dataset) => (
                 <DatasetItem
                   key={dataset.id}
-                  title={dataset.dctTitle!}
-                  description={dataset.dctDescription!}
-                  date={dataset.dctIssued!}
+                  title={dataset.title!}
+                  description={dataset.description!}
+                  date={dataset.issued!}
                   prevRoute={catalog.id!}
                   datasetId={dataset.id!}
                   ownDataset={true}

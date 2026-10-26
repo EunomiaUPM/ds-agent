@@ -41,6 +41,7 @@ import type {
   BatchRequestsAsString,
   ForbiddenResponse,
   GetAllParticipantsParams,
+  GetParticipantRelations200Item,
   NotFoundResponse,
   PaginatedParticipantDto,
   ParticipantDto,
@@ -826,6 +827,200 @@ export function useGetParticipantById<TData = Awaited<ReturnType<typeof getParti
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
   const queryOptions = getGetParticipantByIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+/**
+ * The relations with the participant the caller may see; anonymous ones of others come without author.
+ * @summary Who added a participant
+ */
+export type getParticipantRelationsResponse200 = {
+  data: GetParticipantRelations200Item[]
+  status: 200
+}
+
+export type getParticipantRelationsResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type getParticipantRelationsResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type getParticipantRelationsResponseSuccess = (getParticipantRelationsResponse200) & {
+  headers: Headers;
+};
+export type getParticipantRelationsResponseError = (getParticipantRelationsResponse401 | getParticipantRelationsResponse404) & {
+  headers: Headers;
+};
+
+export type getParticipantRelationsResponse = (getParticipantRelationsResponseSuccess | getParticipantRelationsResponseError)
+
+export const getGetParticipantRelationsUrl = (id: string,) => {
+
+
+  
+
+  return `/mates/${id}/relations`
+}
+
+export const getParticipantRelations = async (id: string, options?: RequestInit): Promise<getParticipantRelationsResponse> => {
+  
+  return customInstance<getParticipantRelationsResponse>(getGetParticipantRelationsUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetParticipantRelationsInfiniteQueryKey = (id: string,) => {
+    return [
+    'infinite', `/mates/${id}/relations`
+    ] as const;
+    }
+
+export const getGetParticipantRelationsQueryKey = (id: string,) => {
+    return [
+    `/mates/${id}/relations`
+    ] as const;
+    }
+
+    
+export const getGetParticipantRelationsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getParticipantRelations>>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantRelations>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetParticipantRelationsInfiniteQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getParticipantRelations>>> = ({ signal }) => getParticipantRelations(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id),  ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantRelations>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetParticipantRelationsInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getParticipantRelations>>>
+export type GetParticipantRelationsInfiniteQueryError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+
+
+export function useGetParticipantRelationsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getParticipantRelations>>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ id: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantRelations>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getParticipantRelations>>,
+          TError,
+          Awaited<ReturnType<typeof getParticipantRelations>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetParticipantRelationsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getParticipantRelations>>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantRelations>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getParticipantRelations>>,
+          TError,
+          Awaited<ReturnType<typeof getParticipantRelations>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetParticipantRelationsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getParticipantRelations>>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantRelations>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Who added a participant
+ */
+
+export function useGetParticipantRelationsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getParticipantRelations>>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantRelations>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getGetParticipantRelationsInfiniteQueryOptions(id,options)
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+export const getGetParticipantRelationsQueryOptions = <TData = Awaited<ReturnType<typeof getParticipantRelations>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getParticipantRelations>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetParticipantRelationsQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getParticipantRelations>>> = ({ signal }) => getParticipantRelations(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id),  ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getParticipantRelations>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetParticipantRelationsQueryResult = NonNullable<Awaited<ReturnType<typeof getParticipantRelations>>>
+export type GetParticipantRelationsQueryError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+
+
+export function useGetParticipantRelations<TData = Awaited<ReturnType<typeof getParticipantRelations>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getParticipantRelations>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getParticipantRelations>>,
+          TError,
+          Awaited<ReturnType<typeof getParticipantRelations>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetParticipantRelations<TData = Awaited<ReturnType<typeof getParticipantRelations>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getParticipantRelations>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getParticipantRelations>>,
+          TError,
+          Awaited<ReturnType<typeof getParticipantRelations>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetParticipantRelations<TData = Awaited<ReturnType<typeof getParticipantRelations>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getParticipantRelations>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Who added a participant
+ */
+
+export function useGetParticipantRelations<TData = Awaited<ReturnType<typeof getParticipantRelations>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getParticipantRelations>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getGetParticipantRelationsQueryOptions(id,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 

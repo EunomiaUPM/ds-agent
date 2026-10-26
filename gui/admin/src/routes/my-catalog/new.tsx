@@ -43,8 +43,9 @@ import {
   useGetMainCatalogs,
 } from "shared/src/data/orval/catalogs/catalogs";
 import { useGetDataServicesByCatalogId } from "shared/src/data/orval/data-services/data-services";
+import { CatalogViews, type CatalogDoc } from "shared/src/data/catalog";
 import type {
-  CreateDatasetOfferingRequest,
+  NewDatasetOfferingDto,
   OdrlAtomicConstraintOperator,
 } from "shared/src/data/orval/model";
 
@@ -70,16 +71,16 @@ function NewDatasetOfferingPage() {
   // 2. Fetch main catalog for context and data services
   const { data: mainCatalogData } = useGetMainCatalogs();
   const catalogId =
-    mainCatalogData && "id" in ((mainCatalogData.data as any) || {})
-      ? ((mainCatalogData.data as any).id as string)
-      : "";
+    mainCatalogData?.status === 200 ? CatalogViews.catalog(mainCatalogData.data as CatalogDoc).id : "";
 
   // 3. Fetch data services under main catalog
   const { data: dataServicesData } = useGetDataServicesByCatalogId(catalogId, {
     query: { enabled: !!catalogId },
   });
-  const dataServices: any[] =
-    dataServicesData && Array.isArray(dataServicesData.data) ? dataServicesData.data : [];
+  const dataServices =
+    dataServicesData?.status === 200
+      ? CatalogViews.list(dataServicesData.data, CatalogViews.dataService)
+      : [];
 
   // 4. Form State - Step 1: Dataset Metadata
   const [datasetTitle, setDatasetTitle] = useState("");
@@ -160,20 +161,25 @@ function NewDatasetOfferingPage() {
   };
 
   // Build the complete offering payload for review and submit
-  const payload: CreateDatasetOfferingRequest = useMemo(() => {
-    const offering: CreateDatasetOfferingRequest = {
+  // Both resources are catalog documents; the main catalog and data service fill in the rest.
+  const payload: NewDatasetOfferingDto = useMemo(() => {
+    const description = datasetDescription.trim();
+    const distributionText = distributionDescription.trim();
+    const offering: NewDatasetOfferingDto = {
       dataset: {
-        title: datasetTitle.trim(),
-        description: datasetDescription.trim() || undefined,
-        conformsTo: datasetConformsTo.trim() || undefined,
+        "@type": "Dataset",
+        title: { en: datasetTitle.trim() },
+        description: description ? { en: description } : undefined,
+        conformsTo: datasetConformsTo.trim() ? [datasetConformsTo.trim()] : undefined,
         creator: datasetCreator.trim() || undefined,
-        catalogId: catalogId || undefined,
+        inCatalog: catalogId || undefined,
       },
       distribution: {
-        title: (distributionTitle.trim() || `${datasetTitle} Distribution`).trim(),
-        description: distributionDescription.trim() || undefined,
-        formats: distributionFormat.trim() || undefined,
-        accessServiceId: selectedDataServiceId || undefined,
+        "@type": "Distribution",
+        title: { en: (distributionTitle.trim() || `${datasetTitle} Distribution`).trim() },
+        description: distributionText ? { en: distributionText } : undefined,
+        format: distributionFormat.trim() || undefined,
+        accessService: selectedDataServiceId ? [selectedDataServiceId] : undefined,
       },
     };
 
@@ -339,13 +345,13 @@ function NewDatasetOfferingPage() {
                 <div className="flex items-center justify-between text-xs pb-2 border-b border-ink/5">
                   <span className="text-muted-foreground">Dataset Identifier:</span>
                   <span className="font-mono text-emerald-700 dark:text-emerald-400 font-medium">
-                    {createdResult.dataset?.id || "Created"}
+                    {createdResult.dataset?.["@id"] || "Created"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs pb-2 border-b border-ink/5">
                   <span className="text-muted-foreground">Distribution Identifier:</span>
                   <span className="font-mono text-foreground font-medium">
-                    {createdResult.distribution?.id || "Created"}
+                    {createdResult.distribution?.["@id"] || "Created"}
                   </span>
                 </div>
                 {createdResult.policy && (
@@ -559,7 +565,7 @@ function NewDatasetOfferingPage() {
                           <SelectItem value="none">Auto-discover Main Data Service</SelectItem>
                           {dataServices.map((ds) => (
                             <SelectItem key={ds.id} value={ds.id}>
-                              {ds.dctTitle || ds.id}
+                              {ds.title || ds.id}
                             </SelectItem>
                           ))}
                         </SelectContent>

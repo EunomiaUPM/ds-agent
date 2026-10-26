@@ -16,7 +16,7 @@ import { useEffect, useMemo } from "react";
 import { Skeleton } from "shared/src/components/ui/skeleton";
 import { PolicyWrapperShow } from "shared/src/components/PolicyWrapperShow.tsx";
 import { OdrlOffer } from "shared/src/data/orval/model/odrlOffer";
-import { Dataset, RpcCatalogResponseMessageDto } from "shared/data/orval/model";
+import { CatalogRpc, DspViews, dspDescription, dspIssued, dspTitle, type DspNode } from "shared/src/data/catalog";
 import Heading from "shared/components/ui/heading";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 import DistributionItem from "shared/components/ui/distribution-item";
@@ -28,9 +28,8 @@ function RouteComponent() {
   const { mutate, data, isPending, error } = useRpcSetupCatalogRequest();
   const currentDataset = useMemo(() => {
     if (!data) return null;
-    const response = (data?.data as RpcCatalogResponseMessageDto).response!;
-    const dataset = response.dataset!.find((d) => d["@id"] === datasetId);
-    return dataset as Dataset;
+    const response = CatalogRpc.response(data?.data);
+    return DspViews.datasets(response).find((d) => d["@id"] === datasetId) as DspNode | undefined;
   }, [data]);
 
   const otherParticipant = Array.isArray(participants?.data)
@@ -41,11 +40,7 @@ function RouteComponent() {
 
   useEffect(() => {
     mutate({
-      data: {
-        associatedAgentPeer: participantId,
-        filter: [],
-        noCache: true,
-      },
+      data: CatalogRpc.catalog(participantId),
     });
   }, [participantId, datasetId, mutate]);
 
@@ -74,14 +69,14 @@ function RouteComponent() {
     <PageLayout>
       <div className="grid grid-cols-3 gap-12 max-h-[85vh]">
         <div className="rounded-md border border-background-200/60 bg-background-200/5 p-4 ">
-          <Heading level="h2">{currentDataset?.title} Dataset</Heading>
-          <p className="text-sm mb-2"> {`Dataset with data about ${currentDataset?.title}`} </p>
+          <Heading level="h2">{dspTitle(currentDataset)} Dataset</Heading>
+          <p className="text-sm mb-2"> {`Dataset with data about ${dspTitle(currentDataset)}`} </p>
           <InfoList
             items={[
               {
                 label: "Issued",
                 // @ts-ignore
-                value: { type: "custom", content: <FormatDate date={currentDataset?.issued!} /> },
+                value: { type: "custom", content: <FormatDate date={dspIssued(currentDataset)} /> },
               },
 
               {
@@ -135,14 +130,14 @@ function RouteComponent() {
           </Heading>
           <div className="grid grid-cols-2 gap-3">
             {currentDataset?.hasPolicy &&
-              currentDataset.hasPolicy.map((policy) => (
+              currentDataset.hasPolicy.map((policy: any) => (
                 <PolicyWrapperShow
                   key={policy["@id"]}
                   // @ts-ignore
                   policy={policy}
                   datasetId={currentDataset["@id"]!}
                   catalogId={undefined}
-                  datasetName={currentDataset.title!}
+                  datasetName={dspTitle(currentDataset)}
                   showRequestAccess={true}
                   participant={participantId}
                 />
@@ -157,13 +152,15 @@ function RouteComponent() {
               currentDataset?.distribution.map((d: any) => (
                 <DistributionItem
                   key={d["@id"]}
-                  title={d.title ? d.title : "Distribution title"}
-                  description={d.dctDescription}
-                  date={d.dctIssued}
+                  title={dspTitle(d) || "Distribution title"}
+                  description={dspDescription(d)}
+                  date={dspIssued(d)}
                   ownDataset={false}
                   prevRoute={""}
                   distribuionId={d["@id"]}
-                  dataserviceId={d.dcatAccessService}
+                  dataserviceId={
+                    typeof d.accessService === "string" ? d.accessService : d.accessService?.["@id"]
+                  }
                 />
               ))}
           </div>
@@ -185,12 +182,12 @@ function RouteComponent() {
                             {
                                 label: "Dataset title",
                                 // @ts-ignore
-                                value: currentDataset?.title
+                                value: dspTitle(currentDataset)
                             },
                             {
                                 label: "Issued",
                                 // @ts-ignore
-                                value: { type: "custom", content: <FormatDate date={currentDataset?.issued!} /> },
+                                value: { type: "custom", content: <FormatDate date={dspIssued(currentDataset)} /> },
                             },
                         ]}
                     />
@@ -220,14 +217,14 @@ function RouteComponent() {
       {/* <PageSection title="ODRL Policies" className="mt-10">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {currentDataset?.hasPolicy &&
-                        currentDataset.hasPolicy.map((policy) => (
+                        currentDataset.hasPolicy.map((policy: any) => (
                             <PolicyWrapperShow
                                 key={policy["@id"]}
                                 // @ts-ignore
                                 policy={policy}
                                 datasetId={currentDataset["@id"]!}
                                 catalogId={undefined}
-                                datasetName={currentDataset.title!}
+                                datasetName={dspTitle(currentDataset)}
                                 showRequestAccess={true}
                                 participant={participantId}
                             />

@@ -39,18 +39,45 @@ import type {
 import type {
   BadRequestResponse,
   BatchRequests,
-  DataServiceDto,
-  EditDataServiceDto,
+  ConflictResponse,
+  DataServiceDocument,
+  DataServiceGraph,
   ForbiddenResponse,
   GetAllDataServicesParams,
-  NewDataServiceDto,
   NotFoundResponse,
-  PaginatedDataServiceDto,
+  PreconditionFailedResponse,
   UnauthorizedResponse
 } from '.././model';
 
 import { customInstance } from '../../orval-mutator';
 import type { ErrorType , BodyType } from '../../orval-mutator';
+
+// https://stackoverflow.com/questions/49579094/typescript-conditional-types-filter-out-readonly-properties-pick-only-requir/49579497#49579497
+type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <
+T,
+>() => T extends Y ? 1 : 2
+? A
+: B;
+
+type WritableKeys<T> = {
+[P in keyof T]-?: IfEquals<
+  { [Q in P]: T[P] },
+  { -readonly [Q in P]: T[P] },
+  P
+>;
+}[keyof T];
+
+type UnionToIntersection<U> =
+  (U extends any ? (k: U)=>void : never) extends ((k: infer I)=>void) ? I : never;
+type DistributeReadOnlyOverUnions<T> = T extends any ? NonReadonly<T> : never;
+
+type Writable<T> = Pick<T, WritableKeys<T>>;
+type NonReadonly<T> = [T] extends [UnionToIntersection<T>] ? {
+  [P in keyof Writable<T>]: T[P] extends object
+    ? NonReadonly<NonNullable<T[P]>>
+    : T[P];
+} : DistributeReadOnlyOverUnions<T>;
+
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
@@ -58,10 +85,11 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 /**
- * @summary List data services
+ * One page as a JSON-LD `@graph`; the total and the next cursor come in headers.
+ * @summary List DataServices
  */
 export type getAllDataServicesResponse200 = {
-  data: PaginatedDataServiceDto
+  data: DataServiceGraph
   status: 200
 }
 
@@ -179,7 +207,7 @@ export function useGetAllDataServicesInfinite<TData = InfiniteData<Awaited<Retur
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary List data services
+ * @summary List DataServices
  */
 
 export function useGetAllDataServicesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllDataServices>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
@@ -244,7 +272,7 @@ export function useGetAllDataServices<TData = Awaited<ReturnType<typeof getAllDa
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary List data services
+ * @summary List DataServices
  */
 
 export function useGetAllDataServices<TData = Awaited<ReturnType<typeof getAllDataServices>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
@@ -263,11 +291,12 @@ export function useGetAllDataServices<TData = Awaited<ReturnType<typeof getAllDa
 
 
 /**
- * @summary Create a data service
+ * A `DataService` document in the catalog context (a body with no `@type` is taken as one). `inCatalog` names its catalog.
+ * @summary Create a DataService
  */
-export type createDataServiceResponse200 = {
-  data: DataServiceDto
-  status: 200
+export type createDataServiceResponse201 = {
+  data: DataServiceDocument
+  status: 201
 }
 
 export type createDataServiceResponse400 = {
@@ -284,11 +313,16 @@ export type createDataServiceResponse403 = {
   data: ForbiddenResponse
   status: 403
 }
+
+export type createDataServiceResponse409 = {
+  data: ConflictResponse
+  status: 409
+}
     
-export type createDataServiceResponseSuccess = (createDataServiceResponse200) & {
+export type createDataServiceResponseSuccess = (createDataServiceResponse201) & {
   headers: Headers;
 };
-export type createDataServiceResponseError = (createDataServiceResponse400 | createDataServiceResponse401 | createDataServiceResponse403) & {
+export type createDataServiceResponseError = (createDataServiceResponse400 | createDataServiceResponse401 | createDataServiceResponse403 | createDataServiceResponse409) & {
   headers: Headers;
 };
 
@@ -302,7 +336,7 @@ export const getCreateDataServiceUrl = () => {
   return `/data-services`
 }
 
-export const createDataService = async (newDataServiceDto: NewDataServiceDto, options?: RequestInit): Promise<createDataServiceResponse> => {
+export const createDataService = async (dataServiceDocument: NonReadonly<DataServiceDocument>, options?: RequestInit): Promise<createDataServiceResponse> => {
   
   return customInstance<createDataServiceResponse>(getCreateDataServiceUrl(),
   {      
@@ -310,16 +344,16 @@ export const createDataService = async (newDataServiceDto: NewDataServiceDto, op
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      newDataServiceDto,)
+      dataServiceDocument,)
   }
 );}
 
 
 
 
-export const getCreateDataServiceMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDataService>>, TError,{data: BodyType<NewDataServiceDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createDataService>>, TError,{data: BodyType<NewDataServiceDto>}, TContext> => {
+export const getCreateDataServiceMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDataService>>, TError,{data: BodyType<NonReadonly<DataServiceDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof createDataService>>, TError,{data: BodyType<NonReadonly<DataServiceDocument>>}, TContext> => {
 
 const mutationKey = ['createDataService'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -331,7 +365,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDataService>>, {data: BodyType<NewDataServiceDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDataService>>, {data: BodyType<NonReadonly<DataServiceDocument>>}> = (props) => {
           const {data} = props ?? {};
 
           return  createDataService(data,requestOptions)
@@ -345,27 +379,27 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CreateDataServiceMutationResult = NonNullable<Awaited<ReturnType<typeof createDataService>>>
-    export type CreateDataServiceMutationBody = BodyType<NewDataServiceDto>
-    export type CreateDataServiceMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
+    export type CreateDataServiceMutationBody = BodyType<NonReadonly<DataServiceDocument>>
+    export type CreateDataServiceMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>
 
     /**
- * @summary Create a data service
+ * @summary Create a DataService
  */
-export const useCreateDataService = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDataService>>, TError,{data: BodyType<NewDataServiceDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useCreateDataService = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDataService>>, TError,{data: BodyType<NonReadonly<DataServiceDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createDataService>>,
         TError,
-        {data: BodyType<NewDataServiceDto>},
+        {data: BodyType<NonReadonly<DataServiceDocument>>},
         TContext
       > => {
       return useMutation(getCreateDataServiceMutationOptions(options), queryClient);
     }
     /**
- * @summary Get several data services by id
+ * @summary DataServices by id
  */
 export type getBatchDataServicesResponse200 = {
-  data: DataServiceDto[]
+  data: DataServiceGraph
   status: 200
 }
 
@@ -378,11 +412,16 @@ export type getBatchDataServicesResponse401 = {
   data: UnauthorizedResponse
   status: 401
 }
+
+export type getBatchDataServicesResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
     
 export type getBatchDataServicesResponseSuccess = (getBatchDataServicesResponse200) & {
   headers: Headers;
 };
-export type getBatchDataServicesResponseError = (getBatchDataServicesResponse400 | getBatchDataServicesResponse401) & {
+export type getBatchDataServicesResponseError = (getBatchDataServicesResponse400 | getBatchDataServicesResponse401 | getBatchDataServicesResponse403) & {
   headers: Headers;
 };
 
@@ -411,7 +450,7 @@ export const getBatchDataServices = async (batchRequests: BatchRequests, options
 
 
 
-export const getGetBatchDataServicesMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+export const getGetBatchDataServicesMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getBatchDataServices>>, TError,{data: BodyType<BatchRequests>}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof getBatchDataServices>>, TError,{data: BodyType<BatchRequests>}, TContext> => {
 
@@ -440,12 +479,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type GetBatchDataServicesMutationResult = NonNullable<Awaited<ReturnType<typeof getBatchDataServices>>>
     export type GetBatchDataServicesMutationBody = BodyType<BatchRequests>
-    export type GetBatchDataServicesMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse>
+    export type GetBatchDataServicesMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
 
     /**
- * @summary Get several data services by id
+ * @summary DataServices by id
  */
-export const useGetBatchDataServices = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+export const useGetBatchDataServices = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getBatchDataServices>>, TError,{data: BodyType<BatchRequests>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof getBatchDataServices>>,
@@ -456,10 +495,10 @@ export const useGetBatchDataServices = <TError = ErrorType<BadRequestResponse | 
       return useMutation(getGetBatchDataServicesMutationOptions(options), queryClient);
     }
     /**
- * @summary Data services of a catalog
+ * @summary DataServices of a catalog
  */
 export type getDataServicesByCatalogIdResponse200 = {
-  data: DataServiceDto[]
+  data: DataServiceGraph
   status: 200
 }
 
@@ -472,11 +511,16 @@ export type getDataServicesByCatalogIdResponse401 = {
   data: UnauthorizedResponse
   status: 401
 }
+
+export type getDataServicesByCatalogIdResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
     
 export type getDataServicesByCatalogIdResponseSuccess = (getDataServicesByCatalogIdResponse200) & {
   headers: Headers;
 };
-export type getDataServicesByCatalogIdResponseError = (getDataServicesByCatalogIdResponse400 | getDataServicesByCatalogIdResponse401) & {
+export type getDataServicesByCatalogIdResponseError = (getDataServicesByCatalogIdResponse400 | getDataServicesByCatalogIdResponse401 | getDataServicesByCatalogIdResponse403) & {
   headers: Headers;
 };
 
@@ -518,7 +562,7 @@ export const getGetDataServicesByCatalogIdQueryKey = (id: string,) => {
     }
 
     
-export const getGetDataServicesByCatalogIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getDataServicesByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetDataServicesByCatalogIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getDataServicesByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -537,10 +581,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetDataServicesByCatalogIdInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getDataServicesByCatalogId>>>
-export type GetDataServicesByCatalogIdInfiniteQueryError = ErrorType<BadRequestResponse | UnauthorizedResponse>
+export type GetDataServicesByCatalogIdInfiniteQueryError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
 
 
-export function useGetDataServicesByCatalogIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDataServicesByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(
+export function useGetDataServicesByCatalogIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDataServicesByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDataServicesByCatalogId>>,
@@ -550,7 +594,7 @@ export function useGetDataServicesByCatalogIdInfinite<TData = InfiniteData<Await
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetDataServicesByCatalogIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDataServicesByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(
+export function useGetDataServicesByCatalogIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDataServicesByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDataServicesByCatalogId>>,
@@ -560,15 +604,15 @@ export function useGetDataServicesByCatalogIdInfinite<TData = InfiniteData<Await
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetDataServicesByCatalogIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDataServicesByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(
+export function useGetDataServicesByCatalogIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDataServicesByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary Data services of a catalog
+ * @summary DataServices of a catalog
  */
 
-export function useGetDataServicesByCatalogIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDataServicesByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(
+export function useGetDataServicesByCatalogIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDataServicesByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
@@ -583,7 +627,7 @@ export function useGetDataServicesByCatalogIdInfinite<TData = InfiniteData<Await
 
 
 
-export const getGetDataServicesByCatalogIdQueryOptions = <TData = Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetDataServicesByCatalogIdQueryOptions = <TData = Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -602,10 +646,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetDataServicesByCatalogIdQueryResult = NonNullable<Awaited<ReturnType<typeof getDataServicesByCatalogId>>>
-export type GetDataServicesByCatalogIdQueryError = ErrorType<BadRequestResponse | UnauthorizedResponse>
+export type GetDataServicesByCatalogIdQueryError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
 
 
-export function useGetDataServicesByCatalogId<TData = Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(
+export function useGetDataServicesByCatalogId<TData = Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDataServicesByCatalogId>>,
@@ -615,7 +659,7 @@ export function useGetDataServicesByCatalogId<TData = Awaited<ReturnType<typeof 
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetDataServicesByCatalogId<TData = Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(
+export function useGetDataServicesByCatalogId<TData = Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDataServicesByCatalogId>>,
@@ -625,15 +669,15 @@ export function useGetDataServicesByCatalogId<TData = Awaited<ReturnType<typeof 
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetDataServicesByCatalogId<TData = Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(
+export function useGetDataServicesByCatalogId<TData = Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary Data services of a catalog
+ * @summary DataServices of a catalog
  */
 
-export function useGetDataServicesByCatalogId<TData = Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(
+export function useGetDataServicesByCatalogId<TData = Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDataServicesByCatalogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
@@ -649,10 +693,10 @@ export function useGetDataServicesByCatalogId<TData = Awaited<ReturnType<typeof 
 
 
 /**
- * @summary The connector's main data service
+ * @summary The connector's main DataService
  */
 export type getMainDataServiceResponse200 = {
-  data: DataServiceDto
+  data: DataServiceDocument
   status: 200
 }
 
@@ -758,7 +802,7 @@ export function useGetMainDataServiceInfinite<TData = InfiniteData<Awaited<Retur
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary The connector's main data service
+ * @summary The connector's main DataService
  */
 
 export function useGetMainDataServiceInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMainDataService>>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
@@ -823,7 +867,7 @@ export function useGetMainDataService<TData = Awaited<ReturnType<typeof getMainD
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary The connector's main data service
+ * @summary The connector's main DataService
  */
 
 export function useGetMainDataService<TData = Awaited<ReturnType<typeof getMainDataService>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
@@ -842,11 +886,12 @@ export function useGetMainDataService<TData = Awaited<ReturnType<typeof getMainD
 
 
 /**
- * @summary Create the connector's main data service
+ * Idempotent: an existing main one is returned. `{}` is a valid body.
+ * @summary Create the main DataService (root only)
  */
-export type createMainDataServiceResponse200 = {
-  data: DataServiceDto
-  status: 200
+export type createMainDataServiceResponse201 = {
+  data: DataServiceDocument
+  status: 201
 }
 
 export type createMainDataServiceResponse400 = {
@@ -864,7 +909,7 @@ export type createMainDataServiceResponse403 = {
   status: 403
 }
     
-export type createMainDataServiceResponseSuccess = (createMainDataServiceResponse200) & {
+export type createMainDataServiceResponseSuccess = (createMainDataServiceResponse201) & {
   headers: Headers;
 };
 export type createMainDataServiceResponseError = (createMainDataServiceResponse400 | createMainDataServiceResponse401 | createMainDataServiceResponse403) & {
@@ -881,7 +926,7 @@ export const getCreateMainDataServiceUrl = () => {
   return `/data-services/main`
 }
 
-export const createMainDataService = async (newDataServiceDto: NewDataServiceDto, options?: RequestInit): Promise<createMainDataServiceResponse> => {
+export const createMainDataService = async (dataServiceDocument: NonReadonly<DataServiceDocument>, options?: RequestInit): Promise<createMainDataServiceResponse> => {
   
   return customInstance<createMainDataServiceResponse>(getCreateMainDataServiceUrl(),
   {      
@@ -889,7 +934,7 @@ export const createMainDataService = async (newDataServiceDto: NewDataServiceDto
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      newDataServiceDto,)
+      dataServiceDocument,)
   }
 );}
 
@@ -897,8 +942,8 @@ export const createMainDataService = async (newDataServiceDto: NewDataServiceDto
 
 
 export const getCreateMainDataServiceMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMainDataService>>, TError,{data: BodyType<NewDataServiceDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createMainDataService>>, TError,{data: BodyType<NewDataServiceDto>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMainDataService>>, TError,{data: BodyType<NonReadonly<DataServiceDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof createMainDataService>>, TError,{data: BodyType<NonReadonly<DataServiceDocument>>}, TContext> => {
 
 const mutationKey = ['createMainDataService'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -910,7 +955,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMainDataService>>, {data: BodyType<NewDataServiceDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMainDataService>>, {data: BodyType<NonReadonly<DataServiceDocument>>}> = (props) => {
           const {data} = props ?? {};
 
           return  createMainDataService(data,requestOptions)
@@ -924,27 +969,27 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CreateMainDataServiceMutationResult = NonNullable<Awaited<ReturnType<typeof createMainDataService>>>
-    export type CreateMainDataServiceMutationBody = BodyType<NewDataServiceDto>
+    export type CreateMainDataServiceMutationBody = BodyType<NonReadonly<DataServiceDocument>>
     export type CreateMainDataServiceMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
 
     /**
- * @summary Create the connector's main data service
+ * @summary Create the main DataService (root only)
  */
 export const useCreateMainDataService = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMainDataService>>, TError,{data: BodyType<NewDataServiceDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMainDataService>>, TError,{data: BodyType<NonReadonly<DataServiceDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createMainDataService>>,
         TError,
-        {data: BodyType<NewDataServiceDto>},
+        {data: BodyType<NonReadonly<DataServiceDocument>>},
         TContext
       > => {
       return useMutation(getCreateMainDataServiceMutationOptions(options), queryClient);
     }
     /**
- * @summary Get a data service
+ * @summary One DataService
  */
 export type getDataServiceByIdResponse200 = {
-  data: DataServiceDto
+  data: DataServiceDocument
   status: 200
 }
 
@@ -1055,7 +1100,7 @@ export function useGetDataServiceByIdInfinite<TData = InfiniteData<Awaited<Retur
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary Get a data service
+ * @summary One DataService
  */
 
 export function useGetDataServiceByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDataServiceById>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
@@ -1120,7 +1165,7 @@ export function useGetDataServiceById<TData = Awaited<ReturnType<typeof getDataS
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary Get a data service
+ * @summary One DataService
  */
 
 export function useGetDataServiceById<TData = Awaited<ReturnType<typeof getDataServiceById>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
@@ -1139,10 +1184,11 @@ export function useGetDataServiceById<TData = Awaited<ReturnType<typeof getDataS
 
 
 /**
- * @summary Update a data service
+ * The body replaces the description whole; the parent cannot change. With `If-Match`, a stored version other than the one named is a 412.
+ * @summary Replace a DataService's description
  */
 export type updateDataServiceResponse200 = {
-  data: DataServiceDto
+  data: DataServiceDocument
   status: 200
 }
 
@@ -1156,20 +1202,25 @@ export type updateDataServiceResponse401 = {
   status: 401
 }
 
-export type updateDataServiceResponse403 = {
-  data: ForbiddenResponse
-  status: 403
-}
-
 export type updateDataServiceResponse404 = {
   data: NotFoundResponse
   status: 404
+}
+
+export type updateDataServiceResponse409 = {
+  data: ConflictResponse
+  status: 409
+}
+
+export type updateDataServiceResponse412 = {
+  data: PreconditionFailedResponse
+  status: 412
 }
     
 export type updateDataServiceResponseSuccess = (updateDataServiceResponse200) & {
   headers: Headers;
 };
-export type updateDataServiceResponseError = (updateDataServiceResponse400 | updateDataServiceResponse401 | updateDataServiceResponse403 | updateDataServiceResponse404) & {
+export type updateDataServiceResponseError = (updateDataServiceResponse400 | updateDataServiceResponse401 | updateDataServiceResponse404 | updateDataServiceResponse409 | updateDataServiceResponse412) & {
   headers: Headers;
 };
 
@@ -1184,7 +1235,7 @@ export const getUpdateDataServiceUrl = (id: string,) => {
 }
 
 export const updateDataService = async (id: string,
-    editDataServiceDto: EditDataServiceDto, options?: RequestInit): Promise<updateDataServiceResponse> => {
+    dataServiceDocument: NonReadonly<DataServiceDocument>, options?: RequestInit): Promise<updateDataServiceResponse> => {
   
   return customInstance<updateDataServiceResponse>(getUpdateDataServiceUrl(id),
   {      
@@ -1192,16 +1243,16 @@ export const updateDataService = async (id: string,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      editDataServiceDto,)
+      dataServiceDocument,)
   }
 );}
 
 
 
 
-export const getUpdateDataServiceMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDataService>>, TError,{id: string;data: BodyType<EditDataServiceDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateDataService>>, TError,{id: string;data: BodyType<EditDataServiceDto>}, TContext> => {
+export const getUpdateDataServiceMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDataService>>, TError,{id: string;data: BodyType<NonReadonly<DataServiceDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDataService>>, TError,{id: string;data: BodyType<NonReadonly<DataServiceDocument>>}, TContext> => {
 
 const mutationKey = ['updateDataService'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1213,7 +1264,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDataService>>, {id: string;data: BodyType<EditDataServiceDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDataService>>, {id: string;data: BodyType<NonReadonly<DataServiceDocument>>}> = (props) => {
           const {id,data} = props ?? {};
 
           return  updateDataService(id,data,requestOptions)
@@ -1227,33 +1278,29 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateDataServiceMutationResult = NonNullable<Awaited<ReturnType<typeof updateDataService>>>
-    export type UpdateDataServiceMutationBody = BodyType<EditDataServiceDto>
-    export type UpdateDataServiceMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+    export type UpdateDataServiceMutationBody = BodyType<NonReadonly<DataServiceDocument>>
+    export type UpdateDataServiceMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>
 
     /**
- * @summary Update a data service
+ * @summary Replace a DataService's description
  */
-export const useUpdateDataService = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDataService>>, TError,{id: string;data: BodyType<EditDataServiceDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useUpdateDataService = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDataService>>, TError,{id: string;data: BodyType<NonReadonly<DataServiceDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateDataService>>,
         TError,
-        {id: string;data: BodyType<EditDataServiceDto>},
+        {id: string;data: BodyType<NonReadonly<DataServiceDocument>>},
         TContext
       > => {
       return useMutation(getUpdateDataServiceMutationOptions(options), queryClient);
     }
     /**
- * @summary Delete a data service
+ * What hangs from it goes with it; a resource others link to is a 409.
+ * @summary Delete a DataService
  */
-export type deleteDataServiceResponse202 = {
+export type deleteDataServiceResponse204 = {
   data: void
-  status: 202
-}
-
-export type deleteDataServiceResponse400 = {
-  data: BadRequestResponse
-  status: 400
+  status: 204
 }
 
 export type deleteDataServiceResponse401 = {
@@ -1261,20 +1308,25 @@ export type deleteDataServiceResponse401 = {
   status: 401
 }
 
-export type deleteDataServiceResponse403 = {
-  data: ForbiddenResponse
-  status: 403
-}
-
 export type deleteDataServiceResponse404 = {
   data: NotFoundResponse
   status: 404
 }
+
+export type deleteDataServiceResponse409 = {
+  data: ConflictResponse
+  status: 409
+}
+
+export type deleteDataServiceResponse412 = {
+  data: PreconditionFailedResponse
+  status: 412
+}
     
-export type deleteDataServiceResponseSuccess = (deleteDataServiceResponse202) & {
+export type deleteDataServiceResponseSuccess = (deleteDataServiceResponse204) & {
   headers: Headers;
 };
-export type deleteDataServiceResponseError = (deleteDataServiceResponse400 | deleteDataServiceResponse401 | deleteDataServiceResponse403 | deleteDataServiceResponse404) & {
+export type deleteDataServiceResponseError = (deleteDataServiceResponse401 | deleteDataServiceResponse404 | deleteDataServiceResponse409 | deleteDataServiceResponse412) & {
   headers: Headers;
 };
 
@@ -1302,7 +1354,7 @@ export const deleteDataService = async (id: string, options?: RequestInit): Prom
 
 
 
-export const getDeleteDataServiceMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+export const getDeleteDataServiceMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDataService>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteDataService>>, TError,{id: string}, TContext> => {
 
@@ -1331,12 +1383,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DeleteDataServiceMutationResult = NonNullable<Awaited<ReturnType<typeof deleteDataService>>>
     
-    export type DeleteDataServiceMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+    export type DeleteDataServiceMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>
 
     /**
- * @summary Delete a data service
+ * @summary Delete a DataService
  */
-export const useDeleteDataService = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+export const useDeleteDataService = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDataService>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteDataService>>,

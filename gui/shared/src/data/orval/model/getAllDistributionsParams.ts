@@ -41,10 +41,58 @@ sort?: SortParameter;
  * Only the records of this user, among those the caller sees.
  */
 user_id?: UserIdQueryParameter;
+/**
+ * Only resources of this catalog.
+ */
+catalog_id?: string;
+/**
+ * Only distributions of this dataset.
+ */
 dataset_id?: string;
-access_service?: string;
-format?: string;
+/**
+ * Part of the title, in any language.
+ */
 title?: string;
+/**
+ * A `dcat:keyword`, exactly.
+ */
+keyword?: string;
+/**
+ * A `dcat:theme` IRI.
+ */
+theme?: string;
+/**
+ * A `dct:format`, literal (`http+pull`) or IRI.
+ */
+format?: string;
+/**
+ * A `dct:creator` IRI.
+ */
+creator?: string;
+/**
+ * A `dct:publisher` IRI.
+ */
+publisher?: string;
+/**
+ * A `dct:conformsTo` IRI.
+ */
+conforms_to?: string;
+/**
+ * A `dspace:participantId`.
+ */
+participant_id?: string;
+/**
+ * A `dcat:accessService`.
+ */
+access_service?: string;
+/**
+ * A `dcat:endpointURL`.
+ */
+endpoint_url?: string;
+/**
+ * `false` leaves out the connector's main resource; `true` keeps only it.
+ */
+main?: boolean;
 created_after?: CreatedAfterParameter;
 created_before?: CreatedBeforeParameter;
 };

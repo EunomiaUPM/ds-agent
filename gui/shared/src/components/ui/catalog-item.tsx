@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { CatalogRpc, DspViews, dspIssued, dspTitle } from "../../data/catalog";
 import avatarImg from "../../../public/avatar.png";
 import Avatar from "./avatar-img";
 import Heading from "shared/src/components/ui/heading";
@@ -65,19 +66,15 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   React.useEffect(() => {
     if (id && !ownCatalog && connection === "approved") {
       mutate({
-        data: {
-          associatedAgentPeer: id,
-          filter: [],
-          noCache: true,
-        },
+        data: CatalogRpc.catalog(id),
       });
     }
   }, [id, ownCatalog, connection, mutate]);
 
-  const liveCatalog = data?.status === 200 ? data.data : undefined;
-  const liveTitle = liveCatalog?.response?.title;
-  const liveDate = liveCatalog?.response?.issued;
-  const liveDatasetNr = liveCatalog?.response?.dataset?.length;
+  const liveCatalog = data?.status === 200 ? CatalogRpc.response(data.data) : undefined;
+  const liveTitle = liveCatalog ? dspTitle(liveCatalog) : undefined;
+  const liveDate = liveCatalog ? dspIssued(liveCatalog) : undefined;
+  const liveDatasetNr = liveCatalog ? DspViews.datasets(liveCatalog).length : undefined;
 
   const displayTitle = liveTitle || title;
   const displayDate = liveDate || date;

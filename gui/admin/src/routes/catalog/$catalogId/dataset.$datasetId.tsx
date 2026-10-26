@@ -16,6 +16,7 @@
  */
 
 import React, { useState } from "react";
+import { CatalogViews, type CatalogDoc, type DistributionView } from "shared/src/data/catalog";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowUpRight, Plus } from "lucide-react";
 import {
@@ -31,7 +32,7 @@ import {
   useGetPoliciesByEntityId,
 } from "shared/src/data/orval/odrl-policies/odrl-policies";
 import { useGetCatalogById } from "shared/src/data/orval/catalogs/catalogs";
-import { DistributionDto, OdrlPolicyDto } from "shared/src/data/orval/model";
+import { OdrlPolicyDto } from "shared/src/data/orval/model";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { FieldGrid } from "shared/src/components/layout/FieldGrid";
@@ -69,9 +70,14 @@ function DatasetPage() {
   const { data: policiesData, refetch: refetchPolicies } = useGetPoliciesByEntityId(datasetId);
   const { mutateAsync: createPolicy } = useCreateOdrlPolicy();
 
-  const dataset = datasetData?.status === 200 ? datasetData.data : undefined;
-  const catalog = catalogData?.status === 200 ? catalogData.data : undefined;
-  const distributions = distributionsData?.status === 200 ? distributionsData.data : [];
+  const dataset =
+    datasetData?.status === 200 ? CatalogViews.dataset(datasetData.data as CatalogDoc) : undefined;
+  const catalog =
+    catalogData?.status === 200 ? CatalogViews.catalog(catalogData.data as CatalogDoc) : undefined;
+  const distributions =
+    distributionsData?.status === 200
+      ? CatalogViews.list(distributionsData.data, CatalogViews.distribution)
+      : [];
   const policies = policiesData?.status === 200 ? policiesData.data : [];
 
   if (!dataset) return null;
@@ -80,8 +86,8 @@ function DatasetPage() {
     <PageLayout>
       <PageHeader
         eyebrow="Dataset"
-        title={dataset.dctTitle || <Identifier value={dataset.id} />}
-        description={dataset.dctDescription || "No description."}
+        title={dataset.title || <Identifier value={dataset.id} />}
+        description={dataset.description || "No description."}
         actions={
           <Button onClick={() => setComposerOpen(true)}>
             <Plus /> Add policy
@@ -101,7 +107,7 @@ function DatasetPage() {
                 params={{ catalogId }}
                 className="inline-flex items-center gap-1 text-brand-sky hover:underline"
               >
-                {catalog?.dctTitle || <Identifier value={catalogId} copyable={false} />}
+                {catalog?.title || <Identifier value={catalogId} copyable={false} />}
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
             ),
@@ -109,7 +115,7 @@ function DatasetPage() {
           { label: "Publisher", value: <ParticipantLabel id={self?.participant_id} compact /> },
           {
             label: "Issued",
-            value: <FormatDate date={dataset.dctIssued} format="YYYY-MM-DD HH:mm" />,
+            value: <FormatDate date={dataset.issued} format="YYYY-MM-DD HH:mm" />,
           },
           { label: "Identifier", value: <Identifier value={dataset.id} /> },
         ]}
@@ -163,7 +169,7 @@ function DatasetPage() {
         </TabsContent>
 
         <TabsContent value="distributions" className="pt-5">
-          <DataTable<DistributionDto>
+          <DataTable<DistributionView>
             data={distributions}
             keyExtractor={(d) => d.id}
             hideToolbar
@@ -179,35 +185,35 @@ function DatasetPage() {
                 header: "Distribution",
                 cell: (d) => (
                   <span className="flex flex-col">
-                    <span className="font-medium">{d.dctTitle || "Untitled distribution"}</span>
-                    {d.dctDescription && (
-                      <span className="text-xs text-ink/55">{d.dctDescription}</span>
+                    <span className="font-medium">{d.title || "Untitled distribution"}</span>
+                    {d.description && (
+                      <span className="text-xs text-ink/55">{d.description}</span>
                     )}
                   </span>
                 ),
               },
               {
                 header: "Format",
-                cell: (d) => d.dctFormat ?? <span className="text-ink/35">—</span>,
+                cell: (d) => d.format ?? <span className="text-ink/35">—</span>,
               },
               {
                 header: "Data service",
                 cell: (d) => (
                   <Link
                     to="/catalog/$catalogId/data-service/$dataServiceId"
-                    params={{ catalogId, dataServiceId: d.dcatAccessService }}
+                    params={{ catalogId, dataServiceId: d.accessService }}
                     onClick={(e: React.MouseEvent) => e.stopPropagation()}
                     className="inline-flex items-center gap-1 text-brand-sky hover:underline"
                   >
-                    <Identifier value={d.dcatAccessService} copyable={false} />
+                    <Identifier value={d.accessService} copyable={false} />
                     <ArrowUpRight className="h-3.5 w-3.5" />
                   </Link>
                 ),
               },
               {
                 header: "Issued",
-                accessorKey: "dctIssued",
-                cell: (d) => <FormatDate date={d.dctIssued} format="YYYY-MM-DD" />,
+                accessorKey: "issued",
+                cell: (d) => <FormatDate date={d.issued} format="YYYY-MM-DD" />,
               },
               {
                 header: "",
@@ -226,7 +232,7 @@ function DatasetPage() {
       <PolicyComposer
         open={composerOpen}
         onOpenChange={setComposerOpen}
-        targetLabel={dataset.dctTitle ?? dataset.id}
+        targetLabel={dataset.title ?? dataset.id}
         onSubmit={async (odrlOffer, description) => {
           await createPolicy({
             data: { entityId: datasetId, entityType: "Dataset", odrlOffer, description },

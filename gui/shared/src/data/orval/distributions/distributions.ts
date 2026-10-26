@@ -39,18 +39,45 @@ import type {
 import type {
   BadRequestResponse,
   BatchRequests,
-  DistributionDto,
-  EditDistributionDto,
+  ConflictResponse,
+  DistributionDocument,
+  DistributionGraph,
   ForbiddenResponse,
   GetAllDistributionsParams,
-  NewDistributionDto,
   NotFoundResponse,
-  PaginatedDistributionDto,
+  PreconditionFailedResponse,
   UnauthorizedResponse
 } from '.././model';
 
 import { customInstance } from '../../orval-mutator';
 import type { ErrorType , BodyType } from '../../orval-mutator';
+
+// https://stackoverflow.com/questions/49579094/typescript-conditional-types-filter-out-readonly-properties-pick-only-requir/49579497#49579497
+type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <
+T,
+>() => T extends Y ? 1 : 2
+? A
+: B;
+
+type WritableKeys<T> = {
+[P in keyof T]-?: IfEquals<
+  { [Q in P]: T[P] },
+  { -readonly [Q in P]: T[P] },
+  P
+>;
+}[keyof T];
+
+type UnionToIntersection<U> =
+  (U extends any ? (k: U)=>void : never) extends ((k: infer I)=>void) ? I : never;
+type DistributeReadOnlyOverUnions<T> = T extends any ? NonReadonly<T> : never;
+
+type Writable<T> = Pick<T, WritableKeys<T>>;
+type NonReadonly<T> = [T] extends [UnionToIntersection<T>] ? {
+  [P in keyof Writable<T>]: T[P] extends object
+    ? NonReadonly<NonNullable<T[P]>>
+    : T[P];
+} : DistributeReadOnlyOverUnions<T>;
+
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
@@ -58,10 +85,11 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 /**
- * @summary List distributions
+ * One page as a JSON-LD `@graph`; the total and the next cursor come in headers.
+ * @summary List Distributions
  */
 export type getAllDistributionsResponse200 = {
-  data: PaginatedDistributionDto
+  data: DistributionGraph
   status: 200
 }
 
@@ -179,7 +207,7 @@ export function useGetAllDistributionsInfinite<TData = InfiniteData<Awaited<Retu
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary List distributions
+ * @summary List Distributions
  */
 
 export function useGetAllDistributionsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllDistributions>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
@@ -244,7 +272,7 @@ export function useGetAllDistributions<TData = Awaited<ReturnType<typeof getAllD
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary List distributions
+ * @summary List Distributions
  */
 
 export function useGetAllDistributions<TData = Awaited<ReturnType<typeof getAllDistributions>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
@@ -263,11 +291,12 @@ export function useGetAllDistributions<TData = Awaited<ReturnType<typeof getAllD
 
 
 /**
- * @summary Create a distribution
+ * A `Distribution` document in the catalog context (a body with no `@type` is taken as one). `ofDataset` names its dataset.
+ * @summary Create a Distribution
  */
-export type createDistributionResponse200 = {
-  data: DistributionDto
-  status: 200
+export type createDistributionResponse201 = {
+  data: DistributionDocument
+  status: 201
 }
 
 export type createDistributionResponse400 = {
@@ -284,11 +313,16 @@ export type createDistributionResponse403 = {
   data: ForbiddenResponse
   status: 403
 }
+
+export type createDistributionResponse409 = {
+  data: ConflictResponse
+  status: 409
+}
     
-export type createDistributionResponseSuccess = (createDistributionResponse200) & {
+export type createDistributionResponseSuccess = (createDistributionResponse201) & {
   headers: Headers;
 };
-export type createDistributionResponseError = (createDistributionResponse400 | createDistributionResponse401 | createDistributionResponse403) & {
+export type createDistributionResponseError = (createDistributionResponse400 | createDistributionResponse401 | createDistributionResponse403 | createDistributionResponse409) & {
   headers: Headers;
 };
 
@@ -302,7 +336,7 @@ export const getCreateDistributionUrl = () => {
   return `/distributions`
 }
 
-export const createDistribution = async (newDistributionDto: NewDistributionDto, options?: RequestInit): Promise<createDistributionResponse> => {
+export const createDistribution = async (distributionDocument: NonReadonly<DistributionDocument>, options?: RequestInit): Promise<createDistributionResponse> => {
   
   return customInstance<createDistributionResponse>(getCreateDistributionUrl(),
   {      
@@ -310,16 +344,16 @@ export const createDistribution = async (newDistributionDto: NewDistributionDto,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      newDistributionDto,)
+      distributionDocument,)
   }
 );}
 
 
 
 
-export const getCreateDistributionMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDistribution>>, TError,{data: BodyType<NewDistributionDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createDistribution>>, TError,{data: BodyType<NewDistributionDto>}, TContext> => {
+export const getCreateDistributionMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDistribution>>, TError,{data: BodyType<NonReadonly<DistributionDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof createDistribution>>, TError,{data: BodyType<NonReadonly<DistributionDocument>>}, TContext> => {
 
 const mutationKey = ['createDistribution'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -331,7 +365,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDistribution>>, {data: BodyType<NewDistributionDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDistribution>>, {data: BodyType<NonReadonly<DistributionDocument>>}> = (props) => {
           const {data} = props ?? {};
 
           return  createDistribution(data,requestOptions)
@@ -345,27 +379,27 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CreateDistributionMutationResult = NonNullable<Awaited<ReturnType<typeof createDistribution>>>
-    export type CreateDistributionMutationBody = BodyType<NewDistributionDto>
-    export type CreateDistributionMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
+    export type CreateDistributionMutationBody = BodyType<NonReadonly<DistributionDocument>>
+    export type CreateDistributionMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>
 
     /**
- * @summary Create a distribution
+ * @summary Create a Distribution
  */
-export const useCreateDistribution = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDistribution>>, TError,{data: BodyType<NewDistributionDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useCreateDistribution = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDistribution>>, TError,{data: BodyType<NonReadonly<DistributionDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createDistribution>>,
         TError,
-        {data: BodyType<NewDistributionDto>},
+        {data: BodyType<NonReadonly<DistributionDocument>>},
         TContext
       > => {
       return useMutation(getCreateDistributionMutationOptions(options), queryClient);
     }
     /**
- * @summary Get several distributions by id
+ * @summary Distributions by id
  */
 export type getBatchDistributionsResponse200 = {
-  data: DistributionDto[]
+  data: DistributionGraph
   status: 200
 }
 
@@ -378,11 +412,16 @@ export type getBatchDistributionsResponse401 = {
   data: UnauthorizedResponse
   status: 401
 }
+
+export type getBatchDistributionsResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
     
 export type getBatchDistributionsResponseSuccess = (getBatchDistributionsResponse200) & {
   headers: Headers;
 };
-export type getBatchDistributionsResponseError = (getBatchDistributionsResponse400 | getBatchDistributionsResponse401) & {
+export type getBatchDistributionsResponseError = (getBatchDistributionsResponse400 | getBatchDistributionsResponse401 | getBatchDistributionsResponse403) & {
   headers: Headers;
 };
 
@@ -411,7 +450,7 @@ export const getBatchDistributions = async (batchRequests: BatchRequests, option
 
 
 
-export const getGetBatchDistributionsMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+export const getGetBatchDistributionsMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getBatchDistributions>>, TError,{data: BodyType<BatchRequests>}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof getBatchDistributions>>, TError,{data: BodyType<BatchRequests>}, TContext> => {
 
@@ -440,12 +479,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type GetBatchDistributionsMutationResult = NonNullable<Awaited<ReturnType<typeof getBatchDistributions>>>
     export type GetBatchDistributionsMutationBody = BodyType<BatchRequests>
-    export type GetBatchDistributionsMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse>
+    export type GetBatchDistributionsMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
 
     /**
- * @summary Get several distributions by id
+ * @summary Distributions by id
  */
-export const useGetBatchDistributions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+export const useGetBatchDistributions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getBatchDistributions>>, TError,{data: BodyType<BatchRequests>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof getBatchDistributions>>,
@@ -459,7 +498,7 @@ export const useGetBatchDistributions = <TError = ErrorType<BadRequestResponse |
  * @summary Distributions of a dataset
  */
 export type getDistributionsByDatasetIdResponse200 = {
-  data: DistributionDto[]
+  data: DistributionGraph
   status: 200
 }
 
@@ -472,11 +511,16 @@ export type getDistributionsByDatasetIdResponse401 = {
   data: UnauthorizedResponse
   status: 401
 }
+
+export type getDistributionsByDatasetIdResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
     
 export type getDistributionsByDatasetIdResponseSuccess = (getDistributionsByDatasetIdResponse200) & {
   headers: Headers;
 };
-export type getDistributionsByDatasetIdResponseError = (getDistributionsByDatasetIdResponse400 | getDistributionsByDatasetIdResponse401) & {
+export type getDistributionsByDatasetIdResponseError = (getDistributionsByDatasetIdResponse400 | getDistributionsByDatasetIdResponse401 | getDistributionsByDatasetIdResponse403) & {
   headers: Headers;
 };
 
@@ -518,7 +562,7 @@ export const getGetDistributionsByDatasetIdQueryKey = (id: string,) => {
     }
 
     
-export const getGetDistributionsByDatasetIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getDistributionsByDatasetId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetDistributionsByDatasetIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getDistributionsByDatasetId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -537,10 +581,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetDistributionsByDatasetIdInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getDistributionsByDatasetId>>>
-export type GetDistributionsByDatasetIdInfiniteQueryError = ErrorType<BadRequestResponse | UnauthorizedResponse>
+export type GetDistributionsByDatasetIdInfiniteQueryError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
 
 
-export function useGetDistributionsByDatasetIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDistributionsByDatasetId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(
+export function useGetDistributionsByDatasetIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDistributionsByDatasetId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDistributionsByDatasetId>>,
@@ -550,7 +594,7 @@ export function useGetDistributionsByDatasetIdInfinite<TData = InfiniteData<Awai
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetDistributionsByDatasetIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDistributionsByDatasetId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(
+export function useGetDistributionsByDatasetIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDistributionsByDatasetId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDistributionsByDatasetId>>,
@@ -560,7 +604,7 @@ export function useGetDistributionsByDatasetIdInfinite<TData = InfiniteData<Awai
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetDistributionsByDatasetIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDistributionsByDatasetId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(
+export function useGetDistributionsByDatasetIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDistributionsByDatasetId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
@@ -568,7 +612,7 @@ export function useGetDistributionsByDatasetIdInfinite<TData = InfiniteData<Awai
  * @summary Distributions of a dataset
  */
 
-export function useGetDistributionsByDatasetIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDistributionsByDatasetId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(
+export function useGetDistributionsByDatasetIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDistributionsByDatasetId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
@@ -583,7 +627,7 @@ export function useGetDistributionsByDatasetIdInfinite<TData = InfiniteData<Awai
 
 
 
-export const getGetDistributionsByDatasetIdQueryOptions = <TData = Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetDistributionsByDatasetIdQueryOptions = <TData = Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -602,10 +646,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetDistributionsByDatasetIdQueryResult = NonNullable<Awaited<ReturnType<typeof getDistributionsByDatasetId>>>
-export type GetDistributionsByDatasetIdQueryError = ErrorType<BadRequestResponse | UnauthorizedResponse>
+export type GetDistributionsByDatasetIdQueryError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
 
 
-export function useGetDistributionsByDatasetId<TData = Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(
+export function useGetDistributionsByDatasetId<TData = Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDistributionsByDatasetId>>,
@@ -615,7 +659,7 @@ export function useGetDistributionsByDatasetId<TData = Awaited<ReturnType<typeof
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetDistributionsByDatasetId<TData = Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(
+export function useGetDistributionsByDatasetId<TData = Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDistributionsByDatasetId>>,
@@ -625,7 +669,7 @@ export function useGetDistributionsByDatasetId<TData = Awaited<ReturnType<typeof
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetDistributionsByDatasetId<TData = Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(
+export function useGetDistributionsByDatasetId<TData = Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
@@ -633,7 +677,7 @@ export function useGetDistributionsByDatasetId<TData = Awaited<ReturnType<typeof
  * @summary Distributions of a dataset
  */
 
-export function useGetDistributionsByDatasetId<TData = Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse>>(
+export function useGetDistributionsByDatasetId<TData = Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDistributionsByDatasetId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
@@ -649,10 +693,10 @@ export function useGetDistributionsByDatasetId<TData = Awaited<ReturnType<typeof
 
 
 /**
- * @summary Distribution of a dataset with a given format
+ * @summary The dataset's distribution in a format
  */
 export type getDistributionByDatasetIdAndFormatResponse200 = {
-  data: DistributionDto
+  data: DistributionDocument
   status: 200
 }
 
@@ -771,7 +815,7 @@ export function useGetDistributionByDatasetIdAndFormatInfinite<TData = InfiniteD
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary Distribution of a dataset with a given format
+ * @summary The dataset's distribution in a format
  */
 
 export function useGetDistributionByDatasetIdAndFormatInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDistributionByDatasetIdAndFormat>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
@@ -841,7 +885,7 @@ export function useGetDistributionByDatasetIdAndFormat<TData = Awaited<ReturnTyp
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary Distribution of a dataset with a given format
+ * @summary The dataset's distribution in a format
  */
 
 export function useGetDistributionByDatasetIdAndFormat<TData = Awaited<ReturnType<typeof getDistributionByDatasetIdAndFormat>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
@@ -861,10 +905,10 @@ export function useGetDistributionByDatasetIdAndFormat<TData = Awaited<ReturnTyp
 
 
 /**
- * @summary Get a distribution
+ * @summary One Distribution
  */
 export type getDistributionByIdResponse200 = {
-  data: DistributionDto
+  data: DistributionDocument
   status: 200
 }
 
@@ -975,7 +1019,7 @@ export function useGetDistributionByIdInfinite<TData = InfiniteData<Awaited<Retu
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary Get a distribution
+ * @summary One Distribution
  */
 
 export function useGetDistributionByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDistributionById>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
@@ -1040,7 +1084,7 @@ export function useGetDistributionById<TData = Awaited<ReturnType<typeof getDist
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary Get a distribution
+ * @summary One Distribution
  */
 
 export function useGetDistributionById<TData = Awaited<ReturnType<typeof getDistributionById>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
@@ -1059,10 +1103,11 @@ export function useGetDistributionById<TData = Awaited<ReturnType<typeof getDist
 
 
 /**
- * @summary Update a distribution
+ * The body replaces the description whole; the parent cannot change. With `If-Match`, a stored version other than the one named is a 412.
+ * @summary Replace a Distribution's description
  */
 export type updateDistributionResponse200 = {
-  data: DistributionDto
+  data: DistributionDocument
   status: 200
 }
 
@@ -1076,20 +1121,25 @@ export type updateDistributionResponse401 = {
   status: 401
 }
 
-export type updateDistributionResponse403 = {
-  data: ForbiddenResponse
-  status: 403
-}
-
 export type updateDistributionResponse404 = {
   data: NotFoundResponse
   status: 404
+}
+
+export type updateDistributionResponse409 = {
+  data: ConflictResponse
+  status: 409
+}
+
+export type updateDistributionResponse412 = {
+  data: PreconditionFailedResponse
+  status: 412
 }
     
 export type updateDistributionResponseSuccess = (updateDistributionResponse200) & {
   headers: Headers;
 };
-export type updateDistributionResponseError = (updateDistributionResponse400 | updateDistributionResponse401 | updateDistributionResponse403 | updateDistributionResponse404) & {
+export type updateDistributionResponseError = (updateDistributionResponse400 | updateDistributionResponse401 | updateDistributionResponse404 | updateDistributionResponse409 | updateDistributionResponse412) & {
   headers: Headers;
 };
 
@@ -1104,7 +1154,7 @@ export const getUpdateDistributionUrl = (id: string,) => {
 }
 
 export const updateDistribution = async (id: string,
-    editDistributionDto: EditDistributionDto, options?: RequestInit): Promise<updateDistributionResponse> => {
+    distributionDocument: NonReadonly<DistributionDocument>, options?: RequestInit): Promise<updateDistributionResponse> => {
   
   return customInstance<updateDistributionResponse>(getUpdateDistributionUrl(id),
   {      
@@ -1112,16 +1162,16 @@ export const updateDistribution = async (id: string,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      editDistributionDto,)
+      distributionDocument,)
   }
 );}
 
 
 
 
-export const getUpdateDistributionMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDistribution>>, TError,{id: string;data: BodyType<EditDistributionDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateDistribution>>, TError,{id: string;data: BodyType<EditDistributionDto>}, TContext> => {
+export const getUpdateDistributionMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDistribution>>, TError,{id: string;data: BodyType<NonReadonly<DistributionDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDistribution>>, TError,{id: string;data: BodyType<NonReadonly<DistributionDocument>>}, TContext> => {
 
 const mutationKey = ['updateDistribution'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1133,7 +1183,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDistribution>>, {id: string;data: BodyType<EditDistributionDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDistribution>>, {id: string;data: BodyType<NonReadonly<DistributionDocument>>}> = (props) => {
           const {id,data} = props ?? {};
 
           return  updateDistribution(id,data,requestOptions)
@@ -1147,33 +1197,29 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateDistributionMutationResult = NonNullable<Awaited<ReturnType<typeof updateDistribution>>>
-    export type UpdateDistributionMutationBody = BodyType<EditDistributionDto>
-    export type UpdateDistributionMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+    export type UpdateDistributionMutationBody = BodyType<NonReadonly<DistributionDocument>>
+    export type UpdateDistributionMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>
 
     /**
- * @summary Update a distribution
+ * @summary Replace a Distribution's description
  */
-export const useUpdateDistribution = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDistribution>>, TError,{id: string;data: BodyType<EditDistributionDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useUpdateDistribution = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDistribution>>, TError,{id: string;data: BodyType<NonReadonly<DistributionDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateDistribution>>,
         TError,
-        {id: string;data: BodyType<EditDistributionDto>},
+        {id: string;data: BodyType<NonReadonly<DistributionDocument>>},
         TContext
       > => {
       return useMutation(getUpdateDistributionMutationOptions(options), queryClient);
     }
     /**
- * @summary Delete a distribution
+ * What hangs from it goes with it; a resource others link to is a 409.
+ * @summary Delete a Distribution
  */
-export type deleteDistributionResponse202 = {
+export type deleteDistributionResponse204 = {
   data: void
-  status: 202
-}
-
-export type deleteDistributionResponse400 = {
-  data: BadRequestResponse
-  status: 400
+  status: 204
 }
 
 export type deleteDistributionResponse401 = {
@@ -1181,20 +1227,25 @@ export type deleteDistributionResponse401 = {
   status: 401
 }
 
-export type deleteDistributionResponse403 = {
-  data: ForbiddenResponse
-  status: 403
-}
-
 export type deleteDistributionResponse404 = {
   data: NotFoundResponse
   status: 404
 }
+
+export type deleteDistributionResponse409 = {
+  data: ConflictResponse
+  status: 409
+}
+
+export type deleteDistributionResponse412 = {
+  data: PreconditionFailedResponse
+  status: 412
+}
     
-export type deleteDistributionResponseSuccess = (deleteDistributionResponse202) & {
+export type deleteDistributionResponseSuccess = (deleteDistributionResponse204) & {
   headers: Headers;
 };
-export type deleteDistributionResponseError = (deleteDistributionResponse400 | deleteDistributionResponse401 | deleteDistributionResponse403 | deleteDistributionResponse404) & {
+export type deleteDistributionResponseError = (deleteDistributionResponse401 | deleteDistributionResponse404 | deleteDistributionResponse409 | deleteDistributionResponse412) & {
   headers: Headers;
 };
 
@@ -1222,7 +1273,7 @@ export const deleteDistribution = async (id: string, options?: RequestInit): Pro
 
 
 
-export const getDeleteDistributionMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+export const getDeleteDistributionMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDistribution>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteDistribution>>, TError,{id: string}, TContext> => {
 
@@ -1251,12 +1302,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DeleteDistributionMutationResult = NonNullable<Awaited<ReturnType<typeof deleteDistribution>>>
     
-    export type DeleteDistributionMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+    export type DeleteDistributionMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>
 
     /**
- * @summary Delete a distribution
+ * @summary Delete a Distribution
  */
-export const useDeleteDistribution = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+export const useDeleteDistribution = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDistribution>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteDistribution>>,

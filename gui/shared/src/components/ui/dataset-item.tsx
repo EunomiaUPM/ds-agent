@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { dspTitle } from "../../data/catalog";
 import Heading from "shared/src/components/ui/heading";
 import { Badge } from "./badge";
 import { FormatDate } from "./format-date";
@@ -133,7 +134,7 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
                 <div className="flex flex-wrap gap-1">
                   {distributions.map((d: any, idx: number) => (
                     <Badge key={idx} variant="detail" className="text-xs py-0.5 px-1.5">
-                      {d.dctTitle || d.title || `Distribution #${idx + 1}`}
+                      {dspTitle(d) || `Distribution #${idx + 1}`}
                     </Badge>
                   ))}
                 </div>

@@ -39,18 +39,45 @@ import type {
 import type {
   BadRequestResponse,
   BatchRequests,
-  DatasetDto,
-  EditDatasetDto,
+  ConflictResponse,
+  DatasetDocument,
+  DatasetGraph,
   ForbiddenResponse,
   GetAllDatasetsParams,
-  NewDatasetDto,
   NotFoundResponse,
-  PaginatedDatasetDto,
+  PreconditionFailedResponse,
   UnauthorizedResponse
 } from '.././model';
 
 import { customInstance } from '../../orval-mutator';
 import type { ErrorType , BodyType } from '../../orval-mutator';
+
+// https://stackoverflow.com/questions/49579094/typescript-conditional-types-filter-out-readonly-properties-pick-only-requir/49579497#49579497
+type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <
+T,
+>() => T extends Y ? 1 : 2
+? A
+: B;
+
+type WritableKeys<T> = {
+[P in keyof T]-?: IfEquals<
+  { [Q in P]: T[P] },
+  { -readonly [Q in P]: T[P] },
+  P
+>;
+}[keyof T];
+
+type UnionToIntersection<U> =
+  (U extends any ? (k: U)=>void : never) extends ((k: infer I)=>void) ? I : never;
+type DistributeReadOnlyOverUnions<T> = T extends any ? NonReadonly<T> : never;
+
+type Writable<T> = Pick<T, WritableKeys<T>>;
+type NonReadonly<T> = [T] extends [UnionToIntersection<T>] ? {
+  [P in keyof Writable<T>]: T[P] extends object
+    ? NonReadonly<NonNullable<T[P]>>
+    : T[P];
+} : DistributeReadOnlyOverUnions<T>;
+
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
@@ -58,10 +85,11 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 /**
- * @summary List datasets
+ * One page as a JSON-LD `@graph`; the total and the next cursor come in headers.
+ * @summary List Datasets
  */
 export type getAllDatasetsResponse200 = {
-  data: PaginatedDatasetDto
+  data: DatasetGraph
   status: 200
 }
 
@@ -179,7 +207,7 @@ export function useGetAllDatasetsInfinite<TData = InfiniteData<Awaited<ReturnTyp
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary List datasets
+ * @summary List Datasets
  */
 
 export function useGetAllDatasetsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllDatasets>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
@@ -244,7 +272,7 @@ export function useGetAllDatasets<TData = Awaited<ReturnType<typeof getAllDatase
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary List datasets
+ * @summary List Datasets
  */
 
 export function useGetAllDatasets<TData = Awaited<ReturnType<typeof getAllDatasets>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
@@ -263,11 +291,12 @@ export function useGetAllDatasets<TData = Awaited<ReturnType<typeof getAllDatase
 
 
 /**
- * @summary Create a dataset
+ * A `Dataset` document in the catalog context (a body with no `@type` is taken as one). `inCatalog` names its catalog.
+ * @summary Create a Dataset
  */
-export type createDatasetResponse200 = {
-  data: DatasetDto
-  status: 200
+export type createDatasetResponse201 = {
+  data: DatasetDocument
+  status: 201
 }
 
 export type createDatasetResponse400 = {
@@ -284,11 +313,16 @@ export type createDatasetResponse403 = {
   data: ForbiddenResponse
   status: 403
 }
+
+export type createDatasetResponse409 = {
+  data: ConflictResponse
+  status: 409
+}
     
-export type createDatasetResponseSuccess = (createDatasetResponse200) & {
+export type createDatasetResponseSuccess = (createDatasetResponse201) & {
   headers: Headers;
 };
-export type createDatasetResponseError = (createDatasetResponse400 | createDatasetResponse401 | createDatasetResponse403) & {
+export type createDatasetResponseError = (createDatasetResponse400 | createDatasetResponse401 | createDatasetResponse403 | createDatasetResponse409) & {
   headers: Headers;
 };
 
@@ -302,7 +336,7 @@ export const getCreateDatasetUrl = () => {
   return `/datasets`
 }
 
-export const createDataset = async (newDatasetDto: NewDatasetDto, options?: RequestInit): Promise<createDatasetResponse> => {
+export const createDataset = async (datasetDocument: NonReadonly<DatasetDocument>, options?: RequestInit): Promise<createDatasetResponse> => {
   
   return customInstance<createDatasetResponse>(getCreateDatasetUrl(),
   {      
@@ -310,16 +344,16 @@ export const createDataset = async (newDatasetDto: NewDatasetDto, options?: Requ
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      newDatasetDto,)
+      datasetDocument,)
   }
 );}
 
 
 
 
-export const getCreateDatasetMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDataset>>, TError,{data: BodyType<NewDatasetDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createDataset>>, TError,{data: BodyType<NewDatasetDto>}, TContext> => {
+export const getCreateDatasetMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDataset>>, TError,{data: BodyType<NonReadonly<DatasetDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof createDataset>>, TError,{data: BodyType<NonReadonly<DatasetDocument>>}, TContext> => {
 
 const mutationKey = ['createDataset'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -331,7 +365,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDataset>>, {data: BodyType<NewDatasetDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDataset>>, {data: BodyType<NonReadonly<DatasetDocument>>}> = (props) => {
           const {data} = props ?? {};
 
           return  createDataset(data,requestOptions)
@@ -345,27 +379,27 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CreateDatasetMutationResult = NonNullable<Awaited<ReturnType<typeof createDataset>>>
-    export type CreateDatasetMutationBody = BodyType<NewDatasetDto>
-    export type CreateDatasetMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
+    export type CreateDatasetMutationBody = BodyType<NonReadonly<DatasetDocument>>
+    export type CreateDatasetMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>
 
     /**
- * @summary Create a dataset
+ * @summary Create a Dataset
  */
-export const useCreateDataset = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDataset>>, TError,{data: BodyType<NewDatasetDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useCreateDataset = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDataset>>, TError,{data: BodyType<NonReadonly<DatasetDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createDataset>>,
         TError,
-        {data: BodyType<NewDatasetDto>},
+        {data: BodyType<NonReadonly<DatasetDocument>>},
         TContext
       > => {
       return useMutation(getCreateDatasetMutationOptions(options), queryClient);
     }
     /**
- * @summary Get several datasets by id
+ * @summary Datasets by id
  */
 export type getBatchDatasetsResponse200 = {
-  data: DatasetDto[]
+  data: DatasetGraph
   status: 200
 }
 
@@ -378,11 +412,16 @@ export type getBatchDatasetsResponse401 = {
   data: UnauthorizedResponse
   status: 401
 }
+
+export type getBatchDatasetsResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
     
 export type getBatchDatasetsResponseSuccess = (getBatchDatasetsResponse200) & {
   headers: Headers;
 };
-export type getBatchDatasetsResponseError = (getBatchDatasetsResponse400 | getBatchDatasetsResponse401) & {
+export type getBatchDatasetsResponseError = (getBatchDatasetsResponse400 | getBatchDatasetsResponse401 | getBatchDatasetsResponse403) & {
   headers: Headers;
 };
 
@@ -411,7 +450,7 @@ export const getBatchDatasets = async (batchRequests: BatchRequests, options?: R
 
 
 
-export const getGetBatchDatasetsMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+export const getGetBatchDatasetsMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getBatchDatasets>>, TError,{data: BodyType<BatchRequests>}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof getBatchDatasets>>, TError,{data: BodyType<BatchRequests>}, TContext> => {
 
@@ -440,12 +479,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type GetBatchDatasetsMutationResult = NonNullable<Awaited<ReturnType<typeof getBatchDatasets>>>
     export type GetBatchDatasetsMutationBody = BodyType<BatchRequests>
-    export type GetBatchDatasetsMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse>
+    export type GetBatchDatasetsMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
 
     /**
- * @summary Get several datasets by id
+ * @summary Datasets by id
  */
-export const useGetBatchDatasets = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+export const useGetBatchDatasets = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getBatchDatasets>>, TError,{data: BodyType<BatchRequests>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof getBatchDatasets>>,
@@ -459,7 +498,7 @@ export const useGetBatchDatasets = <TError = ErrorType<BadRequestResponse | Unau
  * @summary Datasets of a catalog
  */
 export type getDatasetsByCatalogIdResponse200 = {
-  data: DatasetDto[]
+  data: DatasetGraph
   status: 200
 }
 
@@ -473,15 +512,15 @@ export type getDatasetsByCatalogIdResponse401 = {
   status: 401
 }
 
-export type getDatasetsByCatalogIdResponse404 = {
-  data: NotFoundResponse
-  status: 404
+export type getDatasetsByCatalogIdResponse403 = {
+  data: ForbiddenResponse
+  status: 403
 }
     
 export type getDatasetsByCatalogIdResponseSuccess = (getDatasetsByCatalogIdResponse200) & {
   headers: Headers;
 };
-export type getDatasetsByCatalogIdResponseError = (getDatasetsByCatalogIdResponse400 | getDatasetsByCatalogIdResponse401 | getDatasetsByCatalogIdResponse404) & {
+export type getDatasetsByCatalogIdResponseError = (getDatasetsByCatalogIdResponse400 | getDatasetsByCatalogIdResponse401 | getDatasetsByCatalogIdResponse403) & {
   headers: Headers;
 };
 
@@ -523,7 +562,7 @@ export const getGetDatasetsByCatalogIdQueryKey = (id: string,) => {
     }
 
     
-export const getGetDatasetsByCatalogIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getDatasetsByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetDatasetsByCatalogIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getDatasetsByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -542,10 +581,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetDatasetsByCatalogIdInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getDatasetsByCatalogId>>>
-export type GetDatasetsByCatalogIdInfiniteQueryError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>
+export type GetDatasetsByCatalogIdInfiniteQueryError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
 
 
-export function useGetDatasetsByCatalogIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDatasetsByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
+export function useGetDatasetsByCatalogIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDatasetsByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDatasetsByCatalogId>>,
@@ -555,7 +594,7 @@ export function useGetDatasetsByCatalogIdInfinite<TData = InfiniteData<Awaited<R
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetDatasetsByCatalogIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDatasetsByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
+export function useGetDatasetsByCatalogIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDatasetsByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDatasetsByCatalogId>>,
@@ -565,7 +604,7 @@ export function useGetDatasetsByCatalogIdInfinite<TData = InfiniteData<Awaited<R
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetDatasetsByCatalogIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDatasetsByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
+export function useGetDatasetsByCatalogIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDatasetsByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
@@ -573,7 +612,7 @@ export function useGetDatasetsByCatalogIdInfinite<TData = InfiniteData<Awaited<R
  * @summary Datasets of a catalog
  */
 
-export function useGetDatasetsByCatalogIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDatasetsByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
+export function useGetDatasetsByCatalogIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDatasetsByCatalogId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
@@ -588,7 +627,7 @@ export function useGetDatasetsByCatalogIdInfinite<TData = InfiniteData<Awaited<R
 
 
 
-export const getGetDatasetsByCatalogIdQueryOptions = <TData = Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetDatasetsByCatalogIdQueryOptions = <TData = Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -607,10 +646,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetDatasetsByCatalogIdQueryResult = NonNullable<Awaited<ReturnType<typeof getDatasetsByCatalogId>>>
-export type GetDatasetsByCatalogIdQueryError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>
+export type GetDatasetsByCatalogIdQueryError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
 
 
-export function useGetDatasetsByCatalogId<TData = Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
+export function useGetDatasetsByCatalogId<TData = Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDatasetsByCatalogId>>,
@@ -620,7 +659,7 @@ export function useGetDatasetsByCatalogId<TData = Awaited<ReturnType<typeof getD
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetDatasetsByCatalogId<TData = Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
+export function useGetDatasetsByCatalogId<TData = Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDatasetsByCatalogId>>,
@@ -630,7 +669,7 @@ export function useGetDatasetsByCatalogId<TData = Awaited<ReturnType<typeof getD
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetDatasetsByCatalogId<TData = Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
+export function useGetDatasetsByCatalogId<TData = Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
@@ -638,7 +677,7 @@ export function useGetDatasetsByCatalogId<TData = Awaited<ReturnType<typeof getD
  * @summary Datasets of a catalog
  */
 
-export function useGetDatasetsByCatalogId<TData = Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
+export function useGetDatasetsByCatalogId<TData = Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDatasetsByCatalogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
@@ -654,10 +693,10 @@ export function useGetDatasetsByCatalogId<TData = Awaited<ReturnType<typeof getD
 
 
 /**
- * @summary Get a dataset
+ * @summary One Dataset
  */
 export type getDatasetByIdResponse200 = {
-  data: DatasetDto
+  data: DatasetDocument
   status: 200
 }
 
@@ -768,7 +807,7 @@ export function useGetDatasetByIdInfinite<TData = InfiniteData<Awaited<ReturnTyp
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary Get a dataset
+ * @summary One Dataset
  */
 
 export function useGetDatasetByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDatasetById>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
@@ -833,7 +872,7 @@ export function useGetDatasetById<TData = Awaited<ReturnType<typeof getDatasetBy
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary Get a dataset
+ * @summary One Dataset
  */
 
 export function useGetDatasetById<TData = Awaited<ReturnType<typeof getDatasetById>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
@@ -852,10 +891,11 @@ export function useGetDatasetById<TData = Awaited<ReturnType<typeof getDatasetBy
 
 
 /**
- * @summary Update a dataset
+ * The body replaces the description whole; the parent cannot change. With `If-Match`, a stored version other than the one named is a 412.
+ * @summary Replace a Dataset's description
  */
 export type updateDatasetResponse200 = {
-  data: DatasetDto
+  data: DatasetDocument
   status: 200
 }
 
@@ -869,20 +909,25 @@ export type updateDatasetResponse401 = {
   status: 401
 }
 
-export type updateDatasetResponse403 = {
-  data: ForbiddenResponse
-  status: 403
-}
-
 export type updateDatasetResponse404 = {
   data: NotFoundResponse
   status: 404
+}
+
+export type updateDatasetResponse409 = {
+  data: ConflictResponse
+  status: 409
+}
+
+export type updateDatasetResponse412 = {
+  data: PreconditionFailedResponse
+  status: 412
 }
     
 export type updateDatasetResponseSuccess = (updateDatasetResponse200) & {
   headers: Headers;
 };
-export type updateDatasetResponseError = (updateDatasetResponse400 | updateDatasetResponse401 | updateDatasetResponse403 | updateDatasetResponse404) & {
+export type updateDatasetResponseError = (updateDatasetResponse400 | updateDatasetResponse401 | updateDatasetResponse404 | updateDatasetResponse409 | updateDatasetResponse412) & {
   headers: Headers;
 };
 
@@ -897,7 +942,7 @@ export const getUpdateDatasetUrl = (id: string,) => {
 }
 
 export const updateDataset = async (id: string,
-    editDatasetDto: EditDatasetDto, options?: RequestInit): Promise<updateDatasetResponse> => {
+    datasetDocument: NonReadonly<DatasetDocument>, options?: RequestInit): Promise<updateDatasetResponse> => {
   
   return customInstance<updateDatasetResponse>(getUpdateDatasetUrl(id),
   {      
@@ -905,16 +950,16 @@ export const updateDataset = async (id: string,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      editDatasetDto,)
+      datasetDocument,)
   }
 );}
 
 
 
 
-export const getUpdateDatasetMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDataset>>, TError,{id: string;data: BodyType<EditDatasetDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateDataset>>, TError,{id: string;data: BodyType<EditDatasetDto>}, TContext> => {
+export const getUpdateDatasetMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDataset>>, TError,{id: string;data: BodyType<NonReadonly<DatasetDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDataset>>, TError,{id: string;data: BodyType<NonReadonly<DatasetDocument>>}, TContext> => {
 
 const mutationKey = ['updateDataset'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -926,7 +971,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDataset>>, {id: string;data: BodyType<EditDatasetDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDataset>>, {id: string;data: BodyType<NonReadonly<DatasetDocument>>}> = (props) => {
           const {id,data} = props ?? {};
 
           return  updateDataset(id,data,requestOptions)
@@ -940,33 +985,29 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateDatasetMutationResult = NonNullable<Awaited<ReturnType<typeof updateDataset>>>
-    export type UpdateDatasetMutationBody = BodyType<EditDatasetDto>
-    export type UpdateDatasetMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+    export type UpdateDatasetMutationBody = BodyType<NonReadonly<DatasetDocument>>
+    export type UpdateDatasetMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>
 
     /**
- * @summary Update a dataset
+ * @summary Replace a Dataset's description
  */
-export const useUpdateDataset = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDataset>>, TError,{id: string;data: BodyType<EditDatasetDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useUpdateDataset = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDataset>>, TError,{id: string;data: BodyType<NonReadonly<DatasetDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateDataset>>,
         TError,
-        {id: string;data: BodyType<EditDatasetDto>},
+        {id: string;data: BodyType<NonReadonly<DatasetDocument>>},
         TContext
       > => {
       return useMutation(getUpdateDatasetMutationOptions(options), queryClient);
     }
     /**
- * @summary Delete a dataset
+ * What hangs from it goes with it; a resource others link to is a 409.
+ * @summary Delete a Dataset
  */
-export type deleteDatasetResponse202 = {
+export type deleteDatasetResponse204 = {
   data: void
-  status: 202
-}
-
-export type deleteDatasetResponse400 = {
-  data: BadRequestResponse
-  status: 400
+  status: 204
 }
 
 export type deleteDatasetResponse401 = {
@@ -974,20 +1015,25 @@ export type deleteDatasetResponse401 = {
   status: 401
 }
 
-export type deleteDatasetResponse403 = {
-  data: ForbiddenResponse
-  status: 403
-}
-
 export type deleteDatasetResponse404 = {
   data: NotFoundResponse
   status: 404
 }
+
+export type deleteDatasetResponse409 = {
+  data: ConflictResponse
+  status: 409
+}
+
+export type deleteDatasetResponse412 = {
+  data: PreconditionFailedResponse
+  status: 412
+}
     
-export type deleteDatasetResponseSuccess = (deleteDatasetResponse202) & {
+export type deleteDatasetResponseSuccess = (deleteDatasetResponse204) & {
   headers: Headers;
 };
-export type deleteDatasetResponseError = (deleteDatasetResponse400 | deleteDatasetResponse401 | deleteDatasetResponse403 | deleteDatasetResponse404) & {
+export type deleteDatasetResponseError = (deleteDatasetResponse401 | deleteDatasetResponse404 | deleteDatasetResponse409 | deleteDatasetResponse412) & {
   headers: Headers;
 };
 
@@ -1015,7 +1061,7 @@ export const deleteDataset = async (id: string, options?: RequestInit): Promise<
 
 
 
-export const getDeleteDatasetMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+export const getDeleteDatasetMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDataset>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteDataset>>, TError,{id: string}, TContext> => {
 
@@ -1044,12 +1090,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DeleteDatasetMutationResult = NonNullable<Awaited<ReturnType<typeof deleteDataset>>>
     
-    export type DeleteDatasetMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+    export type DeleteDatasetMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>
 
     /**
- * @summary Delete a dataset
+ * @summary Delete a Dataset
  */
-export const useDeleteDataset = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+export const useDeleteDataset = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDataset>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteDataset>>,

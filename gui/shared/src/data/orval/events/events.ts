@@ -1055,6 +1055,94 @@ export const useReplayDeadLetter = <TError = ErrorType<UnauthorizedResponse | Fo
       return useMutation(getReplayDeadLetterMutationOptions(options), queryClient);
     }
     /**
+ * @summary Mark every unread event read
+ */
+export type markAllEventsReadResponse200 = {
+  data: EventCount
+  status: 200
+}
+
+export type markAllEventsReadResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+    
+export type markAllEventsReadResponseSuccess = (markAllEventsReadResponse200) & {
+  headers: Headers;
+};
+export type markAllEventsReadResponseError = (markAllEventsReadResponse401) & {
+  headers: Headers;
+};
+
+export type markAllEventsReadResponse = (markAllEventsReadResponseSuccess | markAllEventsReadResponseError)
+
+export const getMarkAllEventsReadUrl = () => {
+
+
+  
+
+  return `/events/read-all`
+}
+
+export const markAllEventsRead = async ( options?: RequestInit): Promise<markAllEventsReadResponse> => {
+  
+  return customInstance<markAllEventsReadResponse>(getMarkAllEventsReadUrl(),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getMarkAllEventsReadMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markAllEventsRead>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof markAllEventsRead>>, TError,void, TContext> => {
+
+const mutationKey = ['markAllEventsRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markAllEventsRead>>, void> = () => {
+          
+
+          return  markAllEventsRead(requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkAllEventsReadMutationResult = NonNullable<Awaited<ReturnType<typeof markAllEventsRead>>>
+    
+    export type MarkAllEventsReadMutationError = ErrorType<UnauthorizedResponse>
+
+    /**
+ * @summary Mark every unread event read
+ */
+export const useMarkAllEventsRead = <TError = ErrorType<UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markAllEventsRead>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof markAllEventsRead>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getMarkAllEventsReadMutationOptions(options), queryClient);
+    }
+    /**
  * Unnamed server-sent events, one `EventEnvelope` JSON per `data:` line, with a keep-alive
 every 15 s, about the records the session's user sees. The session travels as the
 proxy's cookie, like any other request.
@@ -2149,188 +2237,6 @@ export function useGetUnreadEventCount<TData = Awaited<ReturnType<typeof getUnre
 
 
 /**
- * @summary Mark every unread event read
- */
-export type markAllEventsReadResponse200 = {
-  data: EventCount
-  status: 200
-}
-
-export type markAllEventsReadResponse401 = {
-  data: UnauthorizedResponse
-  status: 401
-}
-    
-export type markAllEventsReadResponseSuccess = (markAllEventsReadResponse200) & {
-  headers: Headers;
-};
-export type markAllEventsReadResponseError = (markAllEventsReadResponse401) & {
-  headers: Headers;
-};
-
-export type markAllEventsReadResponse = (markAllEventsReadResponseSuccess | markAllEventsReadResponseError)
-
-export const getMarkAllEventsReadUrl = () => {
-
-
-  
-
-  return `/events/read-all`
-}
-
-export const markAllEventsRead = async ( options?: RequestInit): Promise<markAllEventsReadResponse> => {
-  
-  return customInstance<markAllEventsReadResponse>(getMarkAllEventsReadUrl(),
-  {      
-    ...options,
-    method: 'POST'
-    
-    
-  }
-);}
-
-
-
-
-export const getMarkAllEventsReadMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markAllEventsRead>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof markAllEventsRead>>, TError,void, TContext> => {
-
-const mutationKey = ['markAllEventsRead'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-      
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markAllEventsRead>>, void> = () => {
-          
-
-          return  markAllEventsRead(requestOptions)
-        }
-
-
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type MarkAllEventsReadMutationResult = NonNullable<Awaited<ReturnType<typeof markAllEventsRead>>>
-    
-    export type MarkAllEventsReadMutationError = ErrorType<UnauthorizedResponse>
-
-    /**
- * @summary Mark every unread event read
- */
-export const useMarkAllEventsRead = <TError = ErrorType<UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markAllEventsRead>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof markAllEventsRead>>,
-        TError,
-        void,
-        TContext
-      > => {
-      return useMutation(getMarkAllEventsReadMutationOptions(options), queryClient);
-    }
-    /**
- * Read state is shared by everyone who sees the event.
- * @summary Mark an event read
- */
-export type markEventReadResponse200 = {
-  data: EventCount
-  status: 200
-}
-
-export type markEventReadResponse400 = {
-  data: BadRequestResponse
-  status: 400
-}
-
-export type markEventReadResponse401 = {
-  data: UnauthorizedResponse
-  status: 401
-}
-    
-export type markEventReadResponseSuccess = (markEventReadResponse200) & {
-  headers: Headers;
-};
-export type markEventReadResponseError = (markEventReadResponse400 | markEventReadResponse401) & {
-  headers: Headers;
-};
-
-export type markEventReadResponse = (markEventReadResponseSuccess | markEventReadResponseError)
-
-export const getMarkEventReadUrl = (eventId: string,) => {
-
-
-  
-
-  return `/events/${eventId}/read`
-}
-
-export const markEventRead = async (eventId: string, options?: RequestInit): Promise<markEventReadResponse> => {
-  
-  return customInstance<markEventReadResponse>(getMarkEventReadUrl(eventId),
-  {      
-    ...options,
-    method: 'POST'
-    
-    
-  }
-);}
-
-
-
-
-export const getMarkEventReadMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markEventRead>>, TError,{eventId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof markEventRead>>, TError,{eventId: string}, TContext> => {
-
-const mutationKey = ['markEventRead'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-      
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markEventRead>>, {eventId: string}> = (props) => {
-          const {eventId} = props ?? {};
-
-          return  markEventRead(eventId,requestOptions)
-        }
-
-
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type MarkEventReadMutationResult = NonNullable<Awaited<ReturnType<typeof markEventRead>>>
-    
-    export type MarkEventReadMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse>
-
-    /**
- * @summary Mark an event read
- */
-export const useMarkEventRead = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markEventRead>>, TError,{eventId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof markEventRead>>,
-        TError,
-        {eventId: string},
-        TContext
-      > => {
-      return useMutation(getMarkEventReadMutationOptions(options), queryClient);
-    }
-    /**
  * @summary Get an event
  */
 export type getEventByIdResponse200 = {
@@ -2716,3 +2622,98 @@ export function useGetEventDeliveries<TData = Awaited<ReturnType<typeof getEvent
 
 
 
+/**
+ * Read state is shared by everyone who sees the event.
+ * @summary Mark an event read
+ */
+export type markEventReadResponse200 = {
+  data: EventCount
+  status: 200
+}
+
+export type markEventReadResponse400 = {
+  data: BadRequestResponse
+  status: 400
+}
+
+export type markEventReadResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+    
+export type markEventReadResponseSuccess = (markEventReadResponse200) & {
+  headers: Headers;
+};
+export type markEventReadResponseError = (markEventReadResponse400 | markEventReadResponse401) & {
+  headers: Headers;
+};
+
+export type markEventReadResponse = (markEventReadResponseSuccess | markEventReadResponseError)
+
+export const getMarkEventReadUrl = (eventId: string,) => {
+
+
+  
+
+  return `/events/${eventId}/read`
+}
+
+export const markEventRead = async (eventId: string, options?: RequestInit): Promise<markEventReadResponse> => {
+  
+  return customInstance<markEventReadResponse>(getMarkEventReadUrl(eventId),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getMarkEventReadMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markEventRead>>, TError,{eventId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof markEventRead>>, TError,{eventId: string}, TContext> => {
+
+const mutationKey = ['markEventRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markEventRead>>, {eventId: string}> = (props) => {
+          const {eventId} = props ?? {};
+
+          return  markEventRead(eventId,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkEventReadMutationResult = NonNullable<Awaited<ReturnType<typeof markEventRead>>>
+    
+    export type MarkEventReadMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse>
+
+    /**
+ * @summary Mark an event read
+ */
+export const useMarkEventRead = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markEventRead>>, TError,{eventId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof markEventRead>>,
+        TError,
+        {eventId: string},
+        TContext
+      > => {
+      return useMutation(getMarkEventReadMutationOptions(options), queryClient);
+    }
+    

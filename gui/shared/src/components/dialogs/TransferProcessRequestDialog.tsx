@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { CatalogRpc, asArray, type DspNode } from "../../data/catalog";
 import { formatUrn } from "shared/src/lib/utils";
 import { Badge } from "shared/src/components/ui/badge";
 import {
@@ -24,7 +25,6 @@ import { InfoItemProps } from "../ui/info-list";
 import {
   AgreementDto,
   DataAddressDto,
-  Distribution,
   TransferRPCRequestBody,
 } from "../../data/orval/model";
 import {
@@ -48,7 +48,7 @@ export const TransferProcessRequestDialog = ({ process }: TransferProcessRequest
   const { mutateAsync: setupTransferRequest } = useSetupTransferRequest();
   const { mutateAsync: bffSetupTransferRequest } = useBffRpcSetupTransferRequest();
   const { mutateAsync: setupDatasetRequestAsync } = useRpcSetupDatasetRequest();
-  const [distributions, setDistributions] = useState<Distribution[]>([]);
+  const [distributions, setDistributions] = useState<DspNode[]>([]);
   const [autoStart, setAutoStart] = useState(true);
   const myDspPath = useMyWellKnownDSPPath();
   const { path: providerDspPath } = useParticipantDSPPath(process.providerParticipantId);
@@ -60,11 +60,10 @@ export const TransferProcessRequestDialog = ({ process }: TransferProcessRequest
   const fetchDistributions = async () => {
     try {
       const res = await setupDatasetRequestAsync({
-        data: { associatedAgentPeer: process.providerParticipantId, dataset: process.target },
+        data: CatalogRpc.dataset(process.providerParticipantId, process.target),
       });
-      const data = res.status === 200 ? res.data : undefined;
-      // @ts-ignore
-      setDistributions(data?.distribution || data?.response?.distribution || []);
+      const dataset = res.status === 200 ? CatalogRpc.response(res.data) : undefined;
+      setDistributions(asArray(dataset?.distribution));
     } catch (e) {
       console.error("Failed to fetch distributions", e);
     }

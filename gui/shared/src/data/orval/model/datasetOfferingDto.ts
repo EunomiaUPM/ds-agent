@@ -12,12 +12,12 @@ are calls the GUI still makes to routes the backend no longer serves.
 
  * OpenAPI spec version: 1.0.0
  */
-import type { DatasetDto } from './datasetDto';
-import type { DistributionDto } from './distributionDto';
+import type { DatasetDocument } from './datasetDocument';
+import type { DistributionDocument } from './distributionDocument';
 import type { OdrlPolicyDto } from './odrlPolicyDto';
 
 export interface DatasetOfferingDto {
-  dataset: DatasetDto;
-  distribution: DistributionDto;
+  dataset: DatasetDocument;
+  distribution: DistributionDocument;
   policy?: OdrlPolicyDto | null;
 }

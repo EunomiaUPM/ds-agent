@@ -50,6 +50,7 @@ import {
 
 import { useGetCatalogById, useGetMainCatalogs } from "shared/src/data/orval/catalogs/catalogs";
 import { useGetDatasetsByCatalogId } from "shared/src/data/orval/datasets/datasets";
+import { CatalogViews, type CatalogDoc } from "shared/src/data/catalog";
 import { useGetDataServicesByCatalogId } from "shared/src/data/orval/data-services/data-services";
 import { useMyself } from "shared/src/data/useMyself";
 
@@ -70,7 +71,8 @@ function RouteComponent() {
     isLoading: isCatalogLoading,
     refetch: refetchMainCatalog,
   } = useGetMainCatalogs();
-  const mainCatalog = mainCatalogData?.status === 200 ? mainCatalogData.data : undefined;
+  const mainCatalog =
+    mainCatalogData?.status === 200 ? CatalogViews.catalog(mainCatalogData.data as CatalogDoc) : undefined;
   const catalogId = mainCatalog?.id;
 
   const { data: catalogData, refetch: refetchCatalog } = useGetCatalogById(catalogId ?? "");
@@ -81,9 +83,14 @@ function RouteComponent() {
     catalogId ?? "",
   );
 
-  const catalog = catalogData?.status === 200 ? catalogData.data : undefined;
-  const datasets = datasetsData?.status === 200 ? datasetsData.data : [];
-  const dataservices = dataservicesData?.status === 200 ? dataservicesData.data : [];
+  const catalog =
+    catalogData?.status === 200 ? CatalogViews.catalog(catalogData.data as CatalogDoc) : undefined;
+  const datasets =
+    datasetsData?.status === 200 ? CatalogViews.list(datasetsData.data, CatalogViews.dataset) : [];
+  const dataservices =
+    dataservicesData?.status === 200
+      ? CatalogViews.list(dataservicesData.data, CatalogViews.dataService)
+      : [];
 
   const handleRefresh = () => {
     refetchMainCatalog();
@@ -95,7 +102,8 @@ function RouteComponent() {
   const myAgent = useMyself();
 
   const myAgentSlug = myAgent?.participant_nick || "Local Agent";
-  const mainDs = (dataservices || []).find((ds) => ds.dspaceMainDataService) ?? dataservices[0];
+  // The main data service is the connector's first, created with the main catalog.
+  const mainDs = dataservices[0];
   const hasDataservice = !!mainDs;
 
   // Filter datasets for live search
@@ -104,8 +112,8 @@ function RouteComponent() {
     const q = searchQuery.toLowerCase();
     return datasets.filter(
       (d) =>
-        (d.dctTitle && d.dctTitle.toLowerCase().includes(q)) ||
-        (d.dctDescription && d.dctDescription.toLowerCase().includes(q)) ||
+        (d.title && d.title.toLowerCase().includes(q)) ||
+        (d.description && d.description.toLowerCase().includes(q)) ||
         (d.id && d.id.toLowerCase().includes(q)),
     );
   }, [datasets, searchQuery]);
@@ -122,7 +130,7 @@ function RouteComponent() {
   const datasetColumns: Column<any>[] = [
     {
       header: "Dataset Title",
-      accessorKey: "dctTitle",
+      accessorKey: "title",
       cell: (row) => (
         <div className="flex flex-col gap-0.5">
           <Link
@@ -133,11 +141,11 @@ function RouteComponent() {
             }}
             className="font-semibold text-foreground hover:text-brand-sky underline-offset-2 hover:underline inline-flex items-center gap-1.5"
           >
-            <span>{row.dctTitle || "Untitled Dataset"}</span>
+            <span>{row.title || "Untitled Dataset"}</span>
             <ArrowRight className="h-3 w-3 opacity-60 flex-shrink-0" />
           </Link>
           <span className="text-xs text-muted-foreground line-clamp-1">
-            {row.dctDescription || "No description provided"}
+            {row.description || "No description provided"}
           </span>
         </div>
       ),
@@ -175,8 +183,8 @@ function RouteComponent() {
     },
     {
       header: "Issued",
-      accessorKey: "dctIssued",
-      cell: (row) => <FormatDate date={row.dctIssued} />,
+      accessorKey: "issued",
+      cell: (row) => <FormatDate date={row.issued} />,
     },
     {
       header: "Action",
@@ -259,7 +267,7 @@ function RouteComponent() {
               <AvatarImg sizeClass="h-10 w-10" />
               <div className="min-w-0 flex-1">
                 <h3 className="font-semibold text-foreground text-sm truncate capitalize">
-                  {catalog.dctTitle || `${myAgentSlug}'s Catalog`}
+                  {catalog.title || `${myAgentSlug}'s Catalog`}
                 </h3>
                 <p className="text-xs text-muted-foreground truncate font-mono">
                   {myAgent?.participant_nick || myAgentSlug}
@@ -278,22 +286,22 @@ function RouteComponent() {
                   <Calendar className="h-3 w-3 opacity-60" />
                   Issued Date:
                 </span>
-                <FormatDate date={catalog.dctIssued} />
+                <FormatDate date={catalog.issued} />
               </div>
 
-              {catalog.foafHomePage && (
+              {catalog.homepage && (
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-muted-foreground flex items-center gap-1">
                     <Globe className="h-3 w-3 opacity-60" />
                     Homepage:
                   </span>
                   <a
-                    href={catalog.foafHomePage}
+                    href={catalog.homepage}
                     target="_blank"
                     rel="noreferrer"
                     className="text-brand-sky hover:underline truncate max-w-[150px] inline-flex items-center gap-1"
                   >
-                    <span>{catalog.foafHomePage}</span>
+                    <span>{catalog.homepage}</span>
                     <ExternalLink className="h-2.5 w-2.5" />
                   </a>
                 </div>
@@ -359,14 +367,14 @@ function RouteComponent() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-foreground truncate">
-                    {mainDs.dctTitle || "Dataspace Data Service"}
+                    {mainDs.title || "Dataspace Data Service"}
                   </span>
                   <Badge variant="status" state="active" className="text-xs">
                     Online
                   </Badge>
                 </div>
                 <div className="rounded-lg bg-background-800/60 p-2 text-xs font-mono text-muted-foreground break-all border border-ink/5">
-                  {mainDs.dcatEndpointUrl || "No endpoint URL registered"}
+                  {mainDs.endpointURL || "No endpoint URL registered"}
                 </div>
               </div>
             </InnerSidebarSection>
@@ -479,9 +487,9 @@ function RouteComponent() {
                     {filteredDatasets.map((dataset) => (
                       <DatasetItem
                         key={dataset.id}
-                        title={dataset.dctTitle ?? ""}
-                        description={dataset.dctDescription ?? ""}
-                        date={dataset.dctIssued ?? ""}
+                        title={dataset.title ?? ""}
+                        description={dataset.description ?? ""}
+                        date={dataset.issued ?? ""}
                         prevRoute={catalog.id ?? ""}
                         datasetId={dataset.id ?? ""}
                         ownDataset={true}
@@ -516,7 +524,7 @@ function RouteComponent() {
                 <DataTable
                   columns={datasetColumns}
                   data={filteredDatasets}
-                  keyExtractor={(d) => d.id || String(d.dctTitle) || Math.random().toString()}
+                  keyExtractor={(d) => d.id || String(d.title) || Math.random().toString()}
                   searchable={false}
                   pageSize={10}
                 />
@@ -545,17 +553,17 @@ function RouteComponent() {
                           <div className="flex items-center gap-2">
                             <Server className="h-5 w-5 text-brand-sky" />
                             <CardTitle className="text-base font-semibold">
-                              {ds.dctTitle || "Data Service"}
+                              {ds.title || "Data Service"}
                             </CardTitle>
                           </div>
-                          {ds.dspaceMainDataService && (
+                          {ds.id === mainDs?.id && (
                             <Badge variant="status" state="active">
                               Primary Service
                             </Badge>
                           )}
                         </div>
                         <CardDescription>
-                          {ds.dctDescription ||
+                          {ds.description ||
                             "Data service endpoint configured for this catalog."}
                         </CardDescription>
                       </CardHeader>
@@ -565,7 +573,7 @@ function RouteComponent() {
                           <div className="flex justify-between items-center">
                             <span className="text-muted-foreground font-medium">Endpoint URL:</span>
                             <span className="font-mono text-brand-sky text-xs select-all">
-                              {ds.dcatEndpointUrl || "N/A"}
+                              {ds.endpointURL || "N/A"}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
@@ -576,7 +584,7 @@ function RouteComponent() {
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-muted-foreground font-medium">Issued Date:</span>
-                            <FormatDate date={ds.dctIssued} />
+                            <FormatDate date={ds.issued} />
                           </div>
                         </div>
                       </CardContent>

@@ -19,30 +19,19 @@ import type { DspDataset } from './dspDataset';
 import type { OdrlOffer } from './odrlOffer';
 
 /**
- * DCAT catalog as sent over DSP.
+ * DCAT catalog as sent over DSP: DSP terms where the DSP context has them, every other DCAT property as a `dct:` / `dcat:` compact IRI.
  */
 export interface DspCatalog {
   '@context': ContextField;
   '@type': string;
   '@id': string;
-  homepage?: string;
-  theme?: string;
-  keyword?: string;
-  conformsTo?: string;
-  creator?: string;
-  identifier: string;
-  /** Naive timestamp, no zone. */
-  issued: string;
-  modified?: string;
-  title?: string;
-  description?: string[];
   /** The catalog owner's participant id. */
   participantId?: string;
   hasPolicy?: OdrlOffer[];
-  extraFields?: unknown;
   /** Nested catalogs, full or minimized; omitted when there are none. */
-  catalog: DspCatalogCatalogItem[];
-  dataset: DspDataset[];
+  catalog?: DspCatalogCatalogItem[];
+  dataset?: DspDataset[];
   /** The data services, as a list (DSP 6); older peers may answer a single one. */
-  service: DspDataService | DspDataService[];
-}
+  service?: DspDataService | DspDataService[];
+  [key: string]: unknown;
+ }

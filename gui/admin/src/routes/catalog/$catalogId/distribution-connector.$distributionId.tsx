@@ -16,6 +16,7 @@
  */
 
 import React, { useState } from "react";
+import { CatalogViews, type CatalogDoc } from "shared/src/data/catalog";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight, Eye, EyeOff } from "lucide-react";
 import {
@@ -71,7 +72,10 @@ function DistributionConnectorPage() {
   const [reveal, setReveal] = useState(false);
   const { data: distributionData } = useGetDistributionById(distributionId);
   const { data: instanceData } = useGetConnectorInstanceByDistribution(distributionId);
-  const distribution = distributionData?.status === 200 ? distributionData.data : undefined;
+  const distribution =
+    distributionData?.status === 200
+      ? CatalogViews.distribution(distributionData.data as CatalogDoc)
+      : undefined;
   const instance = instanceData?.status === 200 ? instanceData.data : undefined;
   if (!distribution) return null;
 
@@ -97,14 +101,14 @@ function DistributionConnectorPage() {
     <PageLayout>
       <PageHeader
         eyebrow="Distribution"
-        title={distribution.dctTitle || <Identifier value={distribution.id} />}
+        title={distribution.title || <Identifier value={distribution.id} />}
         badge={
           <>
-            {distribution.dctFormat && <Badge variant="outline">{distribution.dctFormat}</Badge>}
+            {distribution.format && <Badge variant="outline">{distribution.format}</Badge>}
             {interaction && <Badge variant="info">{interaction.mode}</Badge>}
           </>
         }
-        description={distribution.dctDescription || undefined}
+        description={distribution.description || undefined}
         actions={
           <Button asChild variant="outline" size="sm">
             <Link
@@ -127,17 +131,17 @@ function DistributionConnectorPage() {
             value: (
               <Link
                 to="/catalog/$catalogId/data-service/$dataServiceId"
-                params={{ catalogId, dataServiceId: distribution.dcatAccessService }}
+                params={{ catalogId, dataServiceId: distribution.accessService }}
                 className="inline-flex items-center gap-1 text-brand-sky hover:underline"
               >
-                <Identifier value={distribution.dcatAccessService} copyable={false} />
+                <Identifier value={distribution.accessService} copyable={false} />
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
             ),
           },
           {
             label: "Issued",
-            value: <FormatDate date={distribution.dctIssued} format="YYYY-MM-DD HH:mm" />,
+            value: <FormatDate date={distribution.issued} format="YYYY-MM-DD HH:mm" />,
           },
           { label: "Distribution", value: <Identifier value={distribution.id} /> },
           { label: "Connector instance", value: <Identifier value={instance?.id} /> },

@@ -39,21 +39,48 @@ import type {
 import type {
   BadRequestResponse,
   BatchRequests,
-  CatalogDto,
+  CatalogDocument,
+  CatalogGraph,
+  ConflictResponse,
   DatasetOfferingDto,
   DspCatalog,
-  EditCatalogDto,
   ForbiddenResponse,
   GetCatalogsParams,
-  NewCatalogDto,
   NewDatasetOfferingDto,
   NotFoundResponse,
-  PaginatedCatalogDto,
+  PreconditionFailedResponse,
   UnauthorizedResponse
 } from '.././model';
 
 import { customInstance } from '../../orval-mutator';
 import type { ErrorType , BodyType } from '../../orval-mutator';
+
+// https://stackoverflow.com/questions/49579094/typescript-conditional-types-filter-out-readonly-properties-pick-only-requir/49579497#49579497
+type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <
+T,
+>() => T extends Y ? 1 : 2
+? A
+: B;
+
+type WritableKeys<T> = {
+[P in keyof T]-?: IfEquals<
+  { [Q in P]: T[P] },
+  { -readonly [Q in P]: T[P] },
+  P
+>;
+}[keyof T];
+
+type UnionToIntersection<U> =
+  (U extends any ? (k: U)=>void : never) extends ((k: infer I)=>void) ? I : never;
+type DistributeReadOnlyOverUnions<T> = T extends any ? NonReadonly<T> : never;
+
+type Writable<T> = Pick<T, WritableKeys<T>>;
+type NonReadonly<T> = [T] extends [UnionToIntersection<T>] ? {
+  [P in keyof Writable<T>]: T[P] extends object
+    ? NonReadonly<NonNullable<T[P]>>
+    : T[P];
+} : DistributeReadOnlyOverUnions<T>;
+
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
@@ -61,10 +88,11 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 /**
- * @summary List catalogs
+ * One page as a JSON-LD `@graph`; the total and the next cursor come in headers.
+ * @summary List Catalogs
  */
 export type getCatalogsResponse200 = {
-  data: PaginatedCatalogDto
+  data: CatalogGraph
   status: 200
 }
 
@@ -182,7 +210,7 @@ export function useGetCatalogsInfinite<TData = InfiniteData<Awaited<ReturnType<t
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary List catalogs
+ * @summary List Catalogs
  */
 
 export function useGetCatalogsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getCatalogs>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
@@ -247,7 +275,7 @@ export function useGetCatalogs<TData = Awaited<ReturnType<typeof getCatalogs>>, 
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary List catalogs
+ * @summary List Catalogs
  */
 
 export function useGetCatalogs<TData = Awaited<ReturnType<typeof getCatalogs>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>>(
@@ -266,10 +294,11 @@ export function useGetCatalogs<TData = Awaited<ReturnType<typeof getCatalogs>>, 
 
 
 /**
- * @summary Create a catalog
+ * A `Catalog` document in the catalog context (a body with no `@type` is taken as one).
+ * @summary Create a Catalog
  */
 export type createCatalogResponse201 = {
-  data: CatalogDto
+  data: CatalogDocument
   status: 201
 }
 
@@ -287,11 +316,16 @@ export type createCatalogResponse403 = {
   data: ForbiddenResponse
   status: 403
 }
+
+export type createCatalogResponse409 = {
+  data: ConflictResponse
+  status: 409
+}
     
 export type createCatalogResponseSuccess = (createCatalogResponse201) & {
   headers: Headers;
 };
-export type createCatalogResponseError = (createCatalogResponse400 | createCatalogResponse401 | createCatalogResponse403) & {
+export type createCatalogResponseError = (createCatalogResponse400 | createCatalogResponse401 | createCatalogResponse403 | createCatalogResponse409) & {
   headers: Headers;
 };
 
@@ -305,7 +339,7 @@ export const getCreateCatalogUrl = () => {
   return `/catalogs`
 }
 
-export const createCatalog = async (newCatalogDto: NewCatalogDto, options?: RequestInit): Promise<createCatalogResponse> => {
+export const createCatalog = async (catalogDocument: NonReadonly<CatalogDocument>, options?: RequestInit): Promise<createCatalogResponse> => {
   
   return customInstance<createCatalogResponse>(getCreateCatalogUrl(),
   {      
@@ -313,16 +347,16 @@ export const createCatalog = async (newCatalogDto: NewCatalogDto, options?: Requ
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      newCatalogDto,)
+      catalogDocument,)
   }
 );}
 
 
 
 
-export const getCreateCatalogMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCatalog>>, TError,{data: BodyType<NewCatalogDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createCatalog>>, TError,{data: BodyType<NewCatalogDto>}, TContext> => {
+export const getCreateCatalogMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCatalog>>, TError,{data: BodyType<NonReadonly<CatalogDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCatalog>>, TError,{data: BodyType<NonReadonly<CatalogDocument>>}, TContext> => {
 
 const mutationKey = ['createCatalog'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -334,7 +368,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCatalog>>, {data: BodyType<NewCatalogDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCatalog>>, {data: BodyType<NonReadonly<CatalogDocument>>}> = (props) => {
           const {data} = props ?? {};
 
           return  createCatalog(data,requestOptions)
@@ -348,27 +382,27 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CreateCatalogMutationResult = NonNullable<Awaited<ReturnType<typeof createCatalog>>>
-    export type CreateCatalogMutationBody = BodyType<NewCatalogDto>
-    export type CreateCatalogMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
+    export type CreateCatalogMutationBody = BodyType<NonReadonly<CatalogDocument>>
+    export type CreateCatalogMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>
 
     /**
- * @summary Create a catalog
+ * @summary Create a Catalog
  */
-export const useCreateCatalog = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCatalog>>, TError,{data: BodyType<NewCatalogDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useCreateCatalog = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCatalog>>, TError,{data: BodyType<NonReadonly<CatalogDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createCatalog>>,
         TError,
-        {data: BodyType<NewCatalogDto>},
+        {data: BodyType<NonReadonly<CatalogDocument>>},
         TContext
       > => {
       return useMutation(getCreateCatalogMutationOptions(options), queryClient);
     }
     /**
- * @summary Get several catalogs by id
+ * @summary Catalogs by id
  */
 export type getBatchCatalogsResponse200 = {
-  data: CatalogDto[]
+  data: CatalogGraph
   status: 200
 }
 
@@ -381,11 +415,16 @@ export type getBatchCatalogsResponse401 = {
   data: UnauthorizedResponse
   status: 401
 }
+
+export type getBatchCatalogsResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
     
 export type getBatchCatalogsResponseSuccess = (getBatchCatalogsResponse200) & {
   headers: Headers;
 };
-export type getBatchCatalogsResponseError = (getBatchCatalogsResponse400 | getBatchCatalogsResponse401) & {
+export type getBatchCatalogsResponseError = (getBatchCatalogsResponse400 | getBatchCatalogsResponse401 | getBatchCatalogsResponse403) & {
   headers: Headers;
 };
 
@@ -414,7 +453,7 @@ export const getBatchCatalogs = async (batchRequests: BatchRequests, options?: R
 
 
 
-export const getGetBatchCatalogsMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+export const getGetBatchCatalogsMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getBatchCatalogs>>, TError,{data: BodyType<BatchRequests>}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof getBatchCatalogs>>, TError,{data: BodyType<BatchRequests>}, TContext> => {
 
@@ -443,12 +482,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type GetBatchCatalogsMutationResult = NonNullable<Awaited<ReturnType<typeof getBatchCatalogs>>>
     export type GetBatchCatalogsMutationBody = BodyType<BatchRequests>
-    export type GetBatchCatalogsMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse>
+    export type GetBatchCatalogsMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
 
     /**
- * @summary Get several catalogs by id
+ * @summary Catalogs by id
  */
-export const useGetBatchCatalogs = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+export const useGetBatchCatalogs = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getBatchCatalogs>>, TError,{data: BodyType<BatchRequests>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof getBatchCatalogs>>,
@@ -459,10 +498,10 @@ export const useGetBatchCatalogs = <TError = ErrorType<BadRequestResponse | Unau
       return useMutation(getGetBatchCatalogsMutationOptions(options), queryClient);
     }
     /**
- * @summary The connector's main catalog
+ * @summary The connector's main Catalog
  */
 export type getMainCatalogsResponse200 = {
-  data: CatalogDto
+  data: CatalogDocument
   status: 200
 }
 
@@ -568,7 +607,7 @@ export function useGetMainCatalogsInfinite<TData = InfiniteData<Awaited<ReturnTy
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary The connector's main catalog
+ * @summary The connector's main Catalog
  */
 
 export function useGetMainCatalogsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMainCatalogs>>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
@@ -633,7 +672,7 @@ export function useGetMainCatalogs<TData = Awaited<ReturnType<typeof getMainCata
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary The connector's main catalog
+ * @summary The connector's main Catalog
  */
 
 export function useGetMainCatalogs<TData = Awaited<ReturnType<typeof getMainCatalogs>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
@@ -652,10 +691,11 @@ export function useGetMainCatalogs<TData = Awaited<ReturnType<typeof getMainCata
 
 
 /**
- * @summary Create the connector's main catalog
+ * Idempotent: an existing main one is returned. `{}` is a valid body.
+ * @summary Create the main Catalog (root only)
  */
 export type createMainCatalogResponse201 = {
-  data: CatalogDto
+  data: CatalogDocument
   status: 201
 }
 
@@ -691,7 +731,7 @@ export const getCreateMainCatalogUrl = () => {
   return `/catalogs/main`
 }
 
-export const createMainCatalog = async (newCatalogDto: NewCatalogDto, options?: RequestInit): Promise<createMainCatalogResponse> => {
+export const createMainCatalog = async (catalogDocument: NonReadonly<CatalogDocument>, options?: RequestInit): Promise<createMainCatalogResponse> => {
   
   return customInstance<createMainCatalogResponse>(getCreateMainCatalogUrl(),
   {      
@@ -699,7 +739,7 @@ export const createMainCatalog = async (newCatalogDto: NewCatalogDto, options?: 
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      newCatalogDto,)
+      catalogDocument,)
   }
 );}
 
@@ -707,8 +747,8 @@ export const createMainCatalog = async (newCatalogDto: NewCatalogDto, options?: 
 
 
 export const getCreateMainCatalogMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMainCatalog>>, TError,{data: BodyType<NewCatalogDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createMainCatalog>>, TError,{data: BodyType<NewCatalogDto>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMainCatalog>>, TError,{data: BodyType<NonReadonly<CatalogDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof createMainCatalog>>, TError,{data: BodyType<NonReadonly<CatalogDocument>>}, TContext> => {
 
 const mutationKey = ['createMainCatalog'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -720,7 +760,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMainCatalog>>, {data: BodyType<NewCatalogDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMainCatalog>>, {data: BodyType<NonReadonly<CatalogDocument>>}> = (props) => {
           const {data} = props ?? {};
 
           return  createMainCatalog(data,requestOptions)
@@ -734,27 +774,27 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CreateMainCatalogMutationResult = NonNullable<Awaited<ReturnType<typeof createMainCatalog>>>
-    export type CreateMainCatalogMutationBody = BodyType<NewCatalogDto>
+    export type CreateMainCatalogMutationBody = BodyType<NonReadonly<CatalogDocument>>
     export type CreateMainCatalogMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
 
     /**
- * @summary Create the connector's main catalog
+ * @summary Create the main Catalog (root only)
  */
 export const useCreateMainCatalog = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMainCatalog>>, TError,{data: BodyType<NewCatalogDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMainCatalog>>, TError,{data: BodyType<NonReadonly<CatalogDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createMainCatalog>>,
         TError,
-        {data: BodyType<NewCatalogDto>},
+        {data: BodyType<NonReadonly<CatalogDocument>>},
         TContext
       > => {
       return useMutation(getCreateMainCatalogMutationOptions(options), queryClient);
     }
     /**
- * @summary Get a catalog
+ * @summary One Catalog
  */
 export type getCatalogByIdResponse200 = {
-  data: CatalogDto
+  data: CatalogDocument
   status: 200
 }
 
@@ -865,7 +905,7 @@ export function useGetCatalogByIdInfinite<TData = InfiniteData<Awaited<ReturnTyp
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary Get a catalog
+ * @summary One Catalog
  */
 
 export function useGetCatalogByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getCatalogById>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
@@ -930,7 +970,7 @@ export function useGetCatalogById<TData = Awaited<ReturnType<typeof getCatalogBy
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary Get a catalog
+ * @summary One Catalog
  */
 
 export function useGetCatalogById<TData = Awaited<ReturnType<typeof getCatalogById>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
@@ -949,11 +989,12 @@ export function useGetCatalogById<TData = Awaited<ReturnType<typeof getCatalogBy
 
 
 /**
- * @summary Update a catalog
+ * The body replaces the description whole; the parent cannot change. With `If-Match`, a stored version other than the one named is a 412.
+ * @summary Replace a Catalog's description
  */
-export type updateCatalogResponse202 = {
-  data: CatalogDto
-  status: 202
+export type updateCatalogResponse200 = {
+  data: CatalogDocument
+  status: 200
 }
 
 export type updateCatalogResponse400 = {
@@ -966,20 +1007,25 @@ export type updateCatalogResponse401 = {
   status: 401
 }
 
-export type updateCatalogResponse403 = {
-  data: ForbiddenResponse
-  status: 403
-}
-
 export type updateCatalogResponse404 = {
   data: NotFoundResponse
   status: 404
 }
+
+export type updateCatalogResponse409 = {
+  data: ConflictResponse
+  status: 409
+}
+
+export type updateCatalogResponse412 = {
+  data: PreconditionFailedResponse
+  status: 412
+}
     
-export type updateCatalogResponseSuccess = (updateCatalogResponse202) & {
+export type updateCatalogResponseSuccess = (updateCatalogResponse200) & {
   headers: Headers;
 };
-export type updateCatalogResponseError = (updateCatalogResponse400 | updateCatalogResponse401 | updateCatalogResponse403 | updateCatalogResponse404) & {
+export type updateCatalogResponseError = (updateCatalogResponse400 | updateCatalogResponse401 | updateCatalogResponse404 | updateCatalogResponse409 | updateCatalogResponse412) & {
   headers: Headers;
 };
 
@@ -994,7 +1040,7 @@ export const getUpdateCatalogUrl = (id: string,) => {
 }
 
 export const updateCatalog = async (id: string,
-    editCatalogDto: EditCatalogDto, options?: RequestInit): Promise<updateCatalogResponse> => {
+    catalogDocument: NonReadonly<CatalogDocument>, options?: RequestInit): Promise<updateCatalogResponse> => {
   
   return customInstance<updateCatalogResponse>(getUpdateCatalogUrl(id),
   {      
@@ -1002,16 +1048,16 @@ export const updateCatalog = async (id: string,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      editCatalogDto,)
+      catalogDocument,)
   }
 );}
 
 
 
 
-export const getUpdateCatalogMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCatalog>>, TError,{id: string;data: BodyType<EditCatalogDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateCatalog>>, TError,{id: string;data: BodyType<EditCatalogDto>}, TContext> => {
+export const getUpdateCatalogMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCatalog>>, TError,{id: string;data: BodyType<NonReadonly<CatalogDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCatalog>>, TError,{id: string;data: BodyType<NonReadonly<CatalogDocument>>}, TContext> => {
 
 const mutationKey = ['updateCatalog'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1023,7 +1069,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCatalog>>, {id: string;data: BodyType<EditCatalogDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCatalog>>, {id: string;data: BodyType<NonReadonly<CatalogDocument>>}> = (props) => {
           const {id,data} = props ?? {};
 
           return  updateCatalog(id,data,requestOptions)
@@ -1037,33 +1083,29 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateCatalogMutationResult = NonNullable<Awaited<ReturnType<typeof updateCatalog>>>
-    export type UpdateCatalogMutationBody = BodyType<EditCatalogDto>
-    export type UpdateCatalogMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+    export type UpdateCatalogMutationBody = BodyType<NonReadonly<CatalogDocument>>
+    export type UpdateCatalogMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>
 
     /**
- * @summary Update a catalog
+ * @summary Replace a Catalog's description
  */
-export const useUpdateCatalog = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCatalog>>, TError,{id: string;data: BodyType<EditCatalogDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useUpdateCatalog = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCatalog>>, TError,{id: string;data: BodyType<NonReadonly<CatalogDocument>>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateCatalog>>,
         TError,
-        {id: string;data: BodyType<EditCatalogDto>},
+        {id: string;data: BodyType<NonReadonly<CatalogDocument>>},
         TContext
       > => {
       return useMutation(getUpdateCatalogMutationOptions(options), queryClient);
     }
     /**
- * @summary Delete a catalog
+ * What hangs from it goes with it; a resource others link to is a 409.
+ * @summary Delete a Catalog
  */
-export type deleteCatalogResponse202 = {
+export type deleteCatalogResponse204 = {
   data: void
-  status: 202
-}
-
-export type deleteCatalogResponse400 = {
-  data: BadRequestResponse
-  status: 400
+  status: 204
 }
 
 export type deleteCatalogResponse401 = {
@@ -1071,20 +1113,25 @@ export type deleteCatalogResponse401 = {
   status: 401
 }
 
-export type deleteCatalogResponse403 = {
-  data: ForbiddenResponse
-  status: 403
-}
-
 export type deleteCatalogResponse404 = {
   data: NotFoundResponse
   status: 404
 }
+
+export type deleteCatalogResponse409 = {
+  data: ConflictResponse
+  status: 409
+}
+
+export type deleteCatalogResponse412 = {
+  data: PreconditionFailedResponse
+  status: 412
+}
     
-export type deleteCatalogResponseSuccess = (deleteCatalogResponse202) & {
+export type deleteCatalogResponseSuccess = (deleteCatalogResponse204) & {
   headers: Headers;
 };
-export type deleteCatalogResponseError = (deleteCatalogResponse400 | deleteCatalogResponse401 | deleteCatalogResponse403 | deleteCatalogResponse404) & {
+export type deleteCatalogResponseError = (deleteCatalogResponse401 | deleteCatalogResponse404 | deleteCatalogResponse409 | deleteCatalogResponse412) & {
   headers: Headers;
 };
 
@@ -1112,7 +1159,7 @@ export const deleteCatalog = async (id: string, options?: RequestInit): Promise<
 
 
 
-export const getDeleteCatalogMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+export const getDeleteCatalogMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCatalog>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteCatalog>>, TError,{id: string}, TContext> => {
 
@@ -1141,12 +1188,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DeleteCatalogMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCatalog>>>
     
-    export type DeleteCatalogMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+    export type DeleteCatalogMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>
 
     /**
- * @summary Delete a catalog
+ * @summary Delete a Catalog
  */
-export const useDeleteCatalog = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+export const useDeleteCatalog = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ConflictResponse | PreconditionFailedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCatalog>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteCatalog>>,
@@ -1157,10 +1204,8 @@ export const useDeleteCatalog = <TError = ErrorType<BadRequestResponse | Unautho
       return useMutation(getDeleteCatalogMutationOptions(options), queryClient);
     }
     /**
- * Without `dataset.catalogId` the dataset goes to the connector's main catalog; without
-`distribution.accessServiceId` the distribution uses the main data service.
-
- * @summary Publish a dataset with its distribution and policy
+ * Without `inCatalog` the dataset goes to the main catalog; without `accessService`, `accessURL` or `downloadURL` the main data service serves the distribution. A failure after the dataset removes it again.
+ * @summary Publish a dataset, its distribution and a policy in one call
  */
 export type createDatasetOfferingResponse201 = {
   data: DatasetOfferingDto
@@ -1182,15 +1227,15 @@ export type createDatasetOfferingResponse403 = {
   status: 403
 }
 
-export type createDatasetOfferingResponse404 = {
-  data: NotFoundResponse
-  status: 404
+export type createDatasetOfferingResponse409 = {
+  data: ConflictResponse
+  status: 409
 }
     
 export type createDatasetOfferingResponseSuccess = (createDatasetOfferingResponse201) & {
   headers: Headers;
 };
-export type createDatasetOfferingResponseError = (createDatasetOfferingResponse400 | createDatasetOfferingResponse401 | createDatasetOfferingResponse403 | createDatasetOfferingResponse404) & {
+export type createDatasetOfferingResponseError = (createDatasetOfferingResponse400 | createDatasetOfferingResponse401 | createDatasetOfferingResponse403 | createDatasetOfferingResponse409) & {
   headers: Headers;
 };
 
@@ -1219,7 +1264,7 @@ export const createDatasetOffering = async (newDatasetOfferingDto: NewDatasetOff
 
 
 
-export const getCreateDatasetOfferingMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+export const getCreateDatasetOfferingMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDatasetOffering>>, TError,{data: BodyType<NewDatasetOfferingDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createDatasetOffering>>, TError,{data: BodyType<NewDatasetOfferingDto>}, TContext> => {
 
@@ -1248,12 +1293,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateDatasetOfferingMutationResult = NonNullable<Awaited<ReturnType<typeof createDatasetOffering>>>
     export type CreateDatasetOfferingMutationBody = BodyType<NewDatasetOfferingDto>
-    export type CreateDatasetOfferingMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+    export type CreateDatasetOfferingMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>
 
     /**
- * @summary Publish a dataset with its distribution and policy
+ * @summary Publish a dataset, its distribution and a policy in one call
  */
-export const useCreateDatasetOffering = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+export const useCreateDatasetOffering = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDatasetOffering>>, TError,{data: BodyType<NewDatasetOfferingDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createDatasetOffering>>,

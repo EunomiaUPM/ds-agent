@@ -16,13 +16,15 @@
  */
 
 //! The RDF engine, split by behaviour: typed extraction, expansion and canonicalization,
-//! protocol messages and document navigation. Shares a sample DSP transfer request.
+//! protocol messages, document navigation, plain graphs and SHACL. Shares a sample DSP transfer request.
 
 mod context_resolver;
 mod expanded_doc;
 mod expansion;
 mod extraction;
+mod graph;
 mod message;
+mod shacl;
 
 use serde_json::json;
 

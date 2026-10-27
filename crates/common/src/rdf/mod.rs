@@ -196,20 +196,25 @@ pub mod canonical;
 pub mod context_cache;
 pub mod context_resolver;
 pub mod engine;
+pub mod graph;
 pub mod loader;
 pub mod message;
 pub mod node;
 pub mod profile;
+pub mod shacl;
+pub mod syntax;
 pub mod traits;
 
 pub use canonical::{RdfCanonicalizer, RdfExpansion};
 pub use context_cache::RdfContextCache;
 pub use context_resolver::RdfContextResolver;
 pub use engine::RdfEngine;
+pub use graph::RdfGraph;
 pub use loader::{RdfContextLoader, RdfLoaderError};
 pub use message::{RdfMessage, RdfProtocolTrait};
 pub use node::{ExpandedDoc, RdfNode};
 pub use profile::{DefaultProfile, RdfProfile};
+pub use syntax::RdfSyntax;
 pub use traits::FromRdf;
 
 #[cfg(test)]

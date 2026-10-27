@@ -59,6 +59,11 @@ contextual = "=0.1.6"
 sha2 = { workspace = true }
 arc-swap = { workspace = true }
 jsonschema = { workspace = true }
+shacl = { workspace = true }
+rudof_rdf = { workspace = true }
+oxrdf = { workspace = true }
+oxttl = { workspace = true }
+oxrdfxml = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }

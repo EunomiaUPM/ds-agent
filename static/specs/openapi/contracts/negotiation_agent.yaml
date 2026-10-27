@@ -524,6 +524,28 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /api/v1/negotiation-agent/offers/process/{process_id}/last:
+    get:
+      tags:
+      - Offers
+      operationId: getLastOfferByNegotiationProcess
+      summary: Most recent offer of a negotiation
+      description: The offer either side made last; 404 while the negotiation has none.
+      parameters:
+      - $ref: '#/components/parameters/ProcessIdPath'
+      responses:
+        '200':
+          description: The last offer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/v1/negotiation-agent/offers/offer-id/{offer_id}:
     get:
       tags:

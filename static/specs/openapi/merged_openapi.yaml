@@ -6881,6 +6881,30 @@ paths:
           $ref: '#/components/responses/Unauthorized'
       security:
       - bearerAuth: []
+  /api/v1/negotiation-agent/offers/process/{process_id}/last:
+    get:
+      tags:
+      - Offers
+      operationId: getLastOfferByNegotiationProcess
+      summary: Most recent offer of a negotiation
+      description: The offer either side made last; 404 while the negotiation has none.
+      parameters:
+      - $ref: '#/components/parameters/ProcessIdPath'
+      responses:
+        '200':
+          description: The last offer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      security:
+      - bearerAuth: []
   /api/v1/negotiation-agent/offers/offer-id/{offer_id}:
     get:
       tags:
@@ -7584,14 +7608,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RpcNegotiationPidsDto'
+              $ref: '#/components/schemas/RpcNegotiationProcessDto'
       responses:
         '200':
           description: Event sent
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RpcNegotiationPidsResult'
+                $ref: '#/components/schemas/RpcNegotiationProcessResult'
         '400':
           $ref: '#/components/responses/RpcNegotiationError'
         '401':
@@ -7615,14 +7639,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RpcNegotiationPidsDto'
+              $ref: '#/components/schemas/RpcNegotiationProcessDto'
       responses:
         '200':
           description: Agreement sent
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RpcNegotiationPidsResult'
+                $ref: '#/components/schemas/RpcNegotiationProcessResult'
         '400':
           $ref: '#/components/responses/RpcNegotiationError'
         '401':
@@ -7646,14 +7670,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RpcNegotiationPidsDto'
+              $ref: '#/components/schemas/RpcNegotiationProcessDto'
       responses:
         '200':
           description: Verification sent
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RpcNegotiationPidsResult'
+                $ref: '#/components/schemas/RpcNegotiationProcessResult'
         '400':
           $ref: '#/components/responses/RpcNegotiationError'
         '401':
@@ -7678,14 +7702,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RpcNegotiationPidsDto'
+              $ref: '#/components/schemas/RpcNegotiationProcessDto'
       responses:
         '200':
           description: Event sent
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RpcNegotiationPidsResult'
+                $ref: '#/components/schemas/RpcNegotiationProcessResult'
         '400':
           $ref: '#/components/responses/RpcNegotiationError'
         '401':
@@ -7830,14 +7854,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RpcNegotiationPidsDto'
+              $ref: '#/components/schemas/RpcNegotiationProcessDto'
       responses:
         '200':
           description: Event sent
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RpcNegotiationPidsResult'
+                $ref: '#/components/schemas/RpcNegotiationProcessResult'
         '400':
           $ref: '#/components/responses/RpcNegotiationError'
         '401':
@@ -7863,14 +7887,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RpcNegotiationPidsDto'
+              $ref: '#/components/schemas/RpcNegotiationProcessDto'
       responses:
         '200':
           description: Agreement sent
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RpcNegotiationPidsResult'
+                $ref: '#/components/schemas/RpcNegotiationProcessResult'
         '400':
           $ref: '#/components/responses/RpcNegotiationError'
         '401':
@@ -14226,6 +14250,7 @@ components:
       required:
       - '@context'
       - '@type'
+      - '@id'
       - offer
       properties:
         '@context':
@@ -14236,11 +14261,10 @@ components:
           const: RpcNegotiationOfferMessage
         offer:
           $ref: '#/components/schemas/ContractRequestOffer'
-        providerPid:
+        '@id':
           type: string
-        consumerPid:
-          type: string
-      description: Identifies the negotiation by `providerPid` or `consumerPid`.
+          description: URN of the process on this agent (its `id`), never a DSP pid.
+      description: Names the negotiation by its process `@id` on this agent.
     RpcNegotiationOfferResult:
       allOf:
       - $ref: '#/components/schemas/RpcNegotiationResultBase'
@@ -14250,14 +14274,15 @@ components:
         properties:
           request:
             $ref: '#/components/schemas/RpcNegotiationOfferMessageDto'
-    RpcNegotiationPidsDto:
+    RpcNegotiationProcessDto:
       type: object
-      description: Identifies the negotiation; `providerPid` or `consumerPid` is enough. `@type` says
-        which message goes out.
+      description: Names the negotiation by its process `@id` on this agent. `@type` says which message
+        goes out.
       additionalProperties: false
       required:
       - '@context'
       - '@type'
+      - '@id'
       properties:
         '@context':
           type: string
@@ -14269,11 +14294,10 @@ components:
           - RpcNegotiationAgreementMessage
           - RpcNegotiationVerificationMessage
           - RpcNegotiationFinalizationMessage
-        providerPid:
+        '@id':
           type: string
-        consumerPid:
-          type: string
-    RpcNegotiationPidsResult:
+          description: URN of the process on this agent (its `id`), never a DSP pid.
+    RpcNegotiationProcessResult:
       allOf:
       - $ref: '#/components/schemas/RpcNegotiationResultBase'
       - type: object
@@ -14281,7 +14305,7 @@ components:
         - request
         properties:
           request:
-            $ref: '#/components/schemas/RpcNegotiationPidsDto'
+            $ref: '#/components/schemas/RpcNegotiationProcessDto'
     RpcNegotiationRequestInitMessageDto:
       type: object
       additionalProperties: false
@@ -14324,6 +14348,7 @@ components:
       required:
       - '@context'
       - '@type'
+      - '@id'
       - offer
       properties:
         '@context':
@@ -14334,11 +14359,10 @@ components:
           const: RpcNegotiationRequestMessage
         offer:
           $ref: '#/components/schemas/ContractRequestOffer'
-        providerPid:
+        '@id':
           type: string
-        consumerPid:
-          type: string
-      description: Identifies the negotiation by `providerPid` or `consumerPid`.
+          description: URN of the process on this agent (its `id`), never a DSP pid.
+      description: Names the negotiation by its process `@id` on this agent.
     RpcNegotiationRequestResult:
       allOf:
       - $ref: '#/components/schemas/RpcNegotiationResultBase'
@@ -14381,6 +14405,7 @@ components:
       required:
       - '@context'
       - '@type'
+      - '@id'
       properties:
         '@context':
           type: string
@@ -14388,10 +14413,9 @@ components:
         '@type':
           type: string
           const: RpcNegotiationTerminationMessage
-        consumerPid:
+        '@id':
           type: string
-        providerPid:
-          type: string
+          description: URN of the process on this agent (its `id`), never a DSP pid.
         code:
           type:
           - string
@@ -14402,7 +14426,7 @@ components:
           - 'null'
           items:
             type: string
-      description: Identifies the negotiation by `providerPid` or `consumerPid`.
+      description: Names the negotiation by its process `@id` on this agent.
     RpcNegotiationTerminationResult:
       allOf:
       - $ref: '#/components/schemas/RpcNegotiationResultBase'

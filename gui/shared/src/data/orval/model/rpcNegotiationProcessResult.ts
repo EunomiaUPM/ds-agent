@@ -12,14 +12,9 @@ are calls the GUI still makes to routes the backend no longer serves.
 
  * OpenAPI spec version: 1.0.0
  */
-import type { RpcNegotiationPidsDtoType } from './rpcNegotiationPidsDtoType';
+import type { RpcNegotiationProcessDto } from './rpcNegotiationProcessDto';
+import type { RpcNegotiationResultBase } from './rpcNegotiationResultBase';
 
-/**
- * Identifies the negotiation; `providerPid` or `consumerPid` is enough. `@type` says which message goes out.
- */
-export interface RpcNegotiationPidsDto {
-  '@context': 'https://w3id.org/eunomia/v1/context.jsonld';
-  '@type': RpcNegotiationPidsDtoType;
-  providerPid?: string;
-  consumerPid?: string;
-}
+export type RpcNegotiationProcessResult = RpcNegotiationResultBase & {
+  request: RpcNegotiationProcessDto;
+};

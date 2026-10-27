@@ -17,7 +17,7 @@ import type { DataAddressDto } from './dataAddressDto';
 export interface TransferRPCStartBody {
   '@context': 'https://w3id.org/eunomia/v1/context.jsonld';
   '@type': 'RpcTransferStartMessage';
-  consumerPid: string;
-  providerPid: string;
+  /** URN of the process on this agent (its `id`), never a DSP pid. */
+  '@id': string;
   dataAddress?: DataAddressDto;
 }

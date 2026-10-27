@@ -4264,6 +4264,205 @@ export function useGetOffersByProcessId<TData = Awaited<ReturnType<typeof getOff
 
 
 /**
+ * The offer either side made last; 404 while the negotiation has none.
+ * @summary Most recent offer of a negotiation
+ */
+export type getLastOfferByProcessIdResponse200 = {
+  data: OfferDto
+  status: 200
+}
+
+export type getLastOfferByProcessIdResponse400 = {
+  data: BadRequestResponse
+  status: 400
+}
+
+export type getLastOfferByProcessIdResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type getLastOfferByProcessIdResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type getLastOfferByProcessIdResponseSuccess = (getLastOfferByProcessIdResponse200) & {
+  headers: Headers;
+};
+export type getLastOfferByProcessIdResponseError = (getLastOfferByProcessIdResponse400 | getLastOfferByProcessIdResponse401 | getLastOfferByProcessIdResponse404) & {
+  headers: Headers;
+};
+
+export type getLastOfferByProcessIdResponse = (getLastOfferByProcessIdResponseSuccess | getLastOfferByProcessIdResponseError)
+
+export const getGetLastOfferByProcessIdUrl = (processId: string,) => {
+
+
+  
+
+  return `/negotiations/offers/process/${processId}/last`
+}
+
+export const getLastOfferByProcessId = async (processId: string, options?: RequestInit): Promise<getLastOfferByProcessIdResponse> => {
+  
+  return customInstance<getLastOfferByProcessIdResponse>(getGetLastOfferByProcessIdUrl(processId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetLastOfferByProcessIdInfiniteQueryKey = (processId: string,) => {
+    return [
+    'infinite', `/negotiations/offers/process/${processId}/last`
+    ] as const;
+    }
+
+export const getGetLastOfferByProcessIdQueryKey = (processId: string,) => {
+    return [
+    `/negotiations/offers/process/${processId}/last`
+    ] as const;
+    }
+
+    
+export const getGetLastOfferByProcessIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getLastOfferByProcessId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(processId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLastOfferByProcessIdInfiniteQueryKey(processId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLastOfferByProcessId>>> = ({ signal }) => getLastOfferByProcessId(processId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(processId),  ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetLastOfferByProcessIdInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getLastOfferByProcessId>>>
+export type GetLastOfferByProcessIdInfiniteQueryError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>
+
+
+export function useGetLastOfferByProcessIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getLastOfferByProcessId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
+ processId: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLastOfferByProcessId>>,
+          TError,
+          Awaited<ReturnType<typeof getLastOfferByProcessId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetLastOfferByProcessIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getLastOfferByProcessId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
+ processId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLastOfferByProcessId>>,
+          TError,
+          Awaited<ReturnType<typeof getLastOfferByProcessId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetLastOfferByProcessIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getLastOfferByProcessId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
+ processId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Most recent offer of a negotiation
+ */
+
+export function useGetLastOfferByProcessIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getLastOfferByProcessId>>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
+ processId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getGetLastOfferByProcessIdInfiniteQueryOptions(processId,options)
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+export const getGetLastOfferByProcessIdQueryOptions = <TData = Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(processId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLastOfferByProcessIdQueryKey(processId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLastOfferByProcessId>>> = ({ signal }) => getLastOfferByProcessId(processId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(processId),  ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetLastOfferByProcessIdQueryResult = NonNullable<Awaited<ReturnType<typeof getLastOfferByProcessId>>>
+export type GetLastOfferByProcessIdQueryError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>
+
+
+export function useGetLastOfferByProcessId<TData = Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
+ processId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLastOfferByProcessId>>,
+          TError,
+          Awaited<ReturnType<typeof getLastOfferByProcessId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetLastOfferByProcessId<TData = Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
+ processId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLastOfferByProcessId>>,
+          TError,
+          Awaited<ReturnType<typeof getLastOfferByProcessId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetLastOfferByProcessId<TData = Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
+ processId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Most recent offer of a negotiation
+ */
+
+export function useGetLastOfferByProcessId<TData = Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>>(
+ processId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLastOfferByProcessId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getGetLastOfferByProcessIdQueryOptions(processId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+/**
  * @summary Get an offer
  */
 export type getOfferByIdResponse200 = {

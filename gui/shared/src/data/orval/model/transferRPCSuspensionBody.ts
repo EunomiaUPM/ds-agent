@@ -16,8 +16,8 @@ are calls the GUI still makes to routes the backend no longer serves.
 export interface TransferRPCSuspensionBody {
   '@context': 'https://w3id.org/eunomia/v1/context.jsonld';
   '@type': 'RpcTransferSuspensionMessage';
-  consumerPid: string;
-  providerPid: string;
+  /** URN of the process on this agent (its `id`), never a DSP pid. */
+  '@id': string;
   code: string;
   reason?: string[];
 }

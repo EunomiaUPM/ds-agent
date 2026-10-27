@@ -12,13 +12,14 @@ are calls the GUI still makes to routes the backend no longer serves.
 
  * OpenAPI spec version: 1.0.0
  */
+import type { RpcNegotiationProcessDtoType } from './rpcNegotiationProcessDtoType';
 
-export type RpcNegotiationPidsDtoType = typeof RpcNegotiationPidsDtoType[keyof typeof RpcNegotiationPidsDtoType];
-
-
-export const RpcNegotiationPidsDtoType = {
-  RpcNegotiationAcceptanceMessage: 'RpcNegotiationAcceptanceMessage',
-  RpcNegotiationAgreementMessage: 'RpcNegotiationAgreementMessage',
-  RpcNegotiationVerificationMessage: 'RpcNegotiationVerificationMessage',
-  RpcNegotiationFinalizationMessage: 'RpcNegotiationFinalizationMessage',
-} as const;
+/**
+ * Names the negotiation by its process `@id` on this agent. `@type` says which message goes out.
+ */
+export interface RpcNegotiationProcessDto {
+  '@context': 'https://w3id.org/eunomia/v1/context.jsonld';
+  '@type': RpcNegotiationProcessDtoType;
+  /** URN of the process on this agent (its `id`), never a DSP pid. */
+  '@id': string;
+}

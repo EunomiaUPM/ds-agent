@@ -12,9 +12,13 @@ are calls the GUI still makes to routes the backend no longer serves.
 
  * OpenAPI spec version: 1.0.0
  */
-import type { RpcNegotiationPidsDto } from './rpcNegotiationPidsDto';
-import type { RpcNegotiationResultBase } from './rpcNegotiationResultBase';
 
-export type RpcNegotiationPidsResult = RpcNegotiationResultBase & {
-  request: RpcNegotiationPidsDto;
-};
+export type RpcNegotiationProcessDtoType = typeof RpcNegotiationProcessDtoType[keyof typeof RpcNegotiationProcessDtoType];
+
+
+export const RpcNegotiationProcessDtoType = {
+  RpcNegotiationAcceptanceMessage: 'RpcNegotiationAcceptanceMessage',
+  RpcNegotiationAgreementMessage: 'RpcNegotiationAgreementMessage',
+  RpcNegotiationVerificationMessage: 'RpcNegotiationVerificationMessage',
+  RpcNegotiationFinalizationMessage: 'RpcNegotiationFinalizationMessage',
+} as const;

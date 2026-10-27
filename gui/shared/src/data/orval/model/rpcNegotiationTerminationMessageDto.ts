@@ -14,13 +14,13 @@ are calls the GUI still makes to routes the backend no longer serves.
  */
 
 /**
- * Identifies the negotiation by `providerPid` or `consumerPid`.
+ * Names the negotiation by its process `@id` on this agent.
  */
 export interface RpcNegotiationTerminationMessageDto {
   '@context': 'https://w3id.org/eunomia/v1/context.jsonld';
   '@type': 'RpcNegotiationTerminationMessage';
-  consumerPid?: string;
-  providerPid?: string;
+  /** URN of the process on this agent (its `id`), never a DSP pid. */
+  '@id': string;
   /** @nullable */
   code?: string | null;
   /** @nullable */

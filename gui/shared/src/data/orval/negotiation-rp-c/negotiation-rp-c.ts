@@ -28,8 +28,8 @@ import type {
   RpcNegotiationOfferInitResult,
   RpcNegotiationOfferMessageDto,
   RpcNegotiationOfferResult,
-  RpcNegotiationPidsDto,
-  RpcNegotiationPidsResult,
+  RpcNegotiationProcessDto,
+  RpcNegotiationProcessResult,
   RpcNegotiationRequestInitMessageDto,
   RpcNegotiationRequestInitResult,
   RpcNegotiationRequestMessageDto,
@@ -52,7 +52,7 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
  * @summary Accept the current offer (consumer)
  */
 export type bffRpcSetupAcceptanceResponse200 = {
-  data: RpcNegotiationPidsResult
+  data: RpcNegotiationProcessResult
   status: 200
 }
 
@@ -98,7 +98,7 @@ export const getBffRpcSetupAcceptanceUrl = () => {
   return `/dsp/current/negotiations/bff-rpc/setup-acceptance`
 }
 
-export const bffRpcSetupAcceptance = async (rpcNegotiationPidsDto: RpcNegotiationPidsDto, options?: RequestInit): Promise<bffRpcSetupAcceptanceResponse> => {
+export const bffRpcSetupAcceptance = async (rpcNegotiationProcessDto: RpcNegotiationProcessDto, options?: RequestInit): Promise<bffRpcSetupAcceptanceResponse> => {
   
   return customInstance<bffRpcSetupAcceptanceResponse>(getBffRpcSetupAcceptanceUrl(),
   {      
@@ -106,7 +106,7 @@ export const bffRpcSetupAcceptance = async (rpcNegotiationPidsDto: RpcNegotiatio
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      rpcNegotiationPidsDto,)
+      rpcNegotiationProcessDto,)
   }
 );}
 
@@ -114,8 +114,8 @@ export const bffRpcSetupAcceptance = async (rpcNegotiationPidsDto: RpcNegotiatio
 
 
 export const getBffRpcSetupAcceptanceMutationOptions = <TError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAcceptance>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAcceptance>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAcceptance>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAcceptance>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext> => {
 
 const mutationKey = ['bffRpcSetupAcceptance'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -127,7 +127,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bffRpcSetupAcceptance>>, {data: BodyType<RpcNegotiationPidsDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bffRpcSetupAcceptance>>, {data: BodyType<RpcNegotiationProcessDto>}> = (props) => {
           const {data} = props ?? {};
 
           return  bffRpcSetupAcceptance(data,requestOptions)
@@ -141,18 +141,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type BffRpcSetupAcceptanceMutationResult = NonNullable<Awaited<ReturnType<typeof bffRpcSetupAcceptance>>>
-    export type BffRpcSetupAcceptanceMutationBody = BodyType<RpcNegotiationPidsDto>
+    export type BffRpcSetupAcceptanceMutationBody = BodyType<RpcNegotiationProcessDto>
     export type BffRpcSetupAcceptanceMutationError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>
 
     /**
  * @summary Accept the current offer (consumer)
  */
 export const useBffRpcSetupAcceptance = <TError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAcceptance>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAcceptance>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof bffRpcSetupAcceptance>>,
         TError,
-        {data: BodyType<RpcNegotiationPidsDto>},
+        {data: BodyType<RpcNegotiationProcessDto>},
         TContext
       > => {
       return useMutation(getBffRpcSetupAcceptanceMutationOptions(options), queryClient);
@@ -162,7 +162,7 @@ export const useBffRpcSetupAcceptance = <TError = ErrorType<RpcNegotiationErrorR
  * @summary Agree (provider)
  */
 export type bffRpcSetupAgreementResponse200 = {
-  data: RpcNegotiationPidsResult
+  data: RpcNegotiationProcessResult
   status: 200
 }
 
@@ -208,7 +208,7 @@ export const getBffRpcSetupAgreementUrl = () => {
   return `/dsp/current/negotiations/bff-rpc/setup-agreement`
 }
 
-export const bffRpcSetupAgreement = async (rpcNegotiationPidsDto: RpcNegotiationPidsDto, options?: RequestInit): Promise<bffRpcSetupAgreementResponse> => {
+export const bffRpcSetupAgreement = async (rpcNegotiationProcessDto: RpcNegotiationProcessDto, options?: RequestInit): Promise<bffRpcSetupAgreementResponse> => {
   
   return customInstance<bffRpcSetupAgreementResponse>(getBffRpcSetupAgreementUrl(),
   {      
@@ -216,7 +216,7 @@ export const bffRpcSetupAgreement = async (rpcNegotiationPidsDto: RpcNegotiation
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      rpcNegotiationPidsDto,)
+      rpcNegotiationProcessDto,)
   }
 );}
 
@@ -224,8 +224,8 @@ export const bffRpcSetupAgreement = async (rpcNegotiationPidsDto: RpcNegotiation
 
 
 export const getBffRpcSetupAgreementMutationOptions = <TError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAgreement>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAgreement>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAgreement>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAgreement>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext> => {
 
 const mutationKey = ['bffRpcSetupAgreement'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -237,7 +237,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bffRpcSetupAgreement>>, {data: BodyType<RpcNegotiationPidsDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bffRpcSetupAgreement>>, {data: BodyType<RpcNegotiationProcessDto>}> = (props) => {
           const {data} = props ?? {};
 
           return  bffRpcSetupAgreement(data,requestOptions)
@@ -251,18 +251,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type BffRpcSetupAgreementMutationResult = NonNullable<Awaited<ReturnType<typeof bffRpcSetupAgreement>>>
-    export type BffRpcSetupAgreementMutationBody = BodyType<RpcNegotiationPidsDto>
+    export type BffRpcSetupAgreementMutationBody = BodyType<RpcNegotiationProcessDto>
     export type BffRpcSetupAgreementMutationError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>
 
     /**
  * @summary Agree (provider)
  */
 export const useBffRpcSetupAgreement = <TError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAgreement>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAgreement>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof bffRpcSetupAgreement>>,
         TError,
-        {data: BodyType<RpcNegotiationPidsDto>},
+        {data: BodyType<RpcNegotiationProcessDto>},
         TContext
       > => {
       return useMutation(getBffRpcSetupAgreementMutationOptions(options), queryClient);
@@ -599,7 +599,7 @@ export const useBffRpcSetupTermination = <TError = ErrorType<RpcNegotiationError
  * @summary Accept the current offer (consumer)
  */
 export type rpcSetupAcceptanceResponse200 = {
-  data: RpcNegotiationPidsResult
+  data: RpcNegotiationProcessResult
   status: 200
 }
 
@@ -645,7 +645,7 @@ export const getRpcSetupAcceptanceUrl = () => {
   return `/dsp/current/negotiations/rpc/setup-acceptance`
 }
 
-export const rpcSetupAcceptance = async (rpcNegotiationPidsDto: RpcNegotiationPidsDto, options?: RequestInit): Promise<rpcSetupAcceptanceResponse> => {
+export const rpcSetupAcceptance = async (rpcNegotiationProcessDto: RpcNegotiationProcessDto, options?: RequestInit): Promise<rpcSetupAcceptanceResponse> => {
   
   return customInstance<rpcSetupAcceptanceResponse>(getRpcSetupAcceptanceUrl(),
   {      
@@ -653,7 +653,7 @@ export const rpcSetupAcceptance = async (rpcNegotiationPidsDto: RpcNegotiationPi
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      rpcNegotiationPidsDto,)
+      rpcNegotiationProcessDto,)
   }
 );}
 
@@ -661,8 +661,8 @@ export const rpcSetupAcceptance = async (rpcNegotiationPidsDto: RpcNegotiationPi
 
 
 export const getRpcSetupAcceptanceMutationOptions = <TError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAcceptance>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAcceptance>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAcceptance>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAcceptance>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext> => {
 
 const mutationKey = ['rpcSetupAcceptance'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -674,7 +674,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupAcceptance>>, {data: BodyType<RpcNegotiationPidsDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupAcceptance>>, {data: BodyType<RpcNegotiationProcessDto>}> = (props) => {
           const {data} = props ?? {};
 
           return  rpcSetupAcceptance(data,requestOptions)
@@ -688,18 +688,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type RpcSetupAcceptanceMutationResult = NonNullable<Awaited<ReturnType<typeof rpcSetupAcceptance>>>
-    export type RpcSetupAcceptanceMutationBody = BodyType<RpcNegotiationPidsDto>
+    export type RpcSetupAcceptanceMutationBody = BodyType<RpcNegotiationProcessDto>
     export type RpcSetupAcceptanceMutationError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>
 
     /**
  * @summary Accept the current offer (consumer)
  */
 export const useRpcSetupAcceptance = <TError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAcceptance>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAcceptance>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof rpcSetupAcceptance>>,
         TError,
-        {data: BodyType<RpcNegotiationPidsDto>},
+        {data: BodyType<RpcNegotiationProcessDto>},
         TContext
       > => {
       return useMutation(getRpcSetupAcceptanceMutationOptions(options), queryClient);
@@ -708,7 +708,7 @@ export const useRpcSetupAcceptance = <TError = ErrorType<RpcNegotiationErrorResp
  * @summary Send the agreement (provider)
  */
 export type rpcSetupAgreementResponse200 = {
-  data: RpcNegotiationPidsResult
+  data: RpcNegotiationProcessResult
   status: 200
 }
 
@@ -754,7 +754,7 @@ export const getRpcSetupAgreementUrl = () => {
   return `/dsp/current/negotiations/rpc/setup-agreement`
 }
 
-export const rpcSetupAgreement = async (rpcNegotiationPidsDto: RpcNegotiationPidsDto, options?: RequestInit): Promise<rpcSetupAgreementResponse> => {
+export const rpcSetupAgreement = async (rpcNegotiationProcessDto: RpcNegotiationProcessDto, options?: RequestInit): Promise<rpcSetupAgreementResponse> => {
   
   return customInstance<rpcSetupAgreementResponse>(getRpcSetupAgreementUrl(),
   {      
@@ -762,7 +762,7 @@ export const rpcSetupAgreement = async (rpcNegotiationPidsDto: RpcNegotiationPid
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      rpcNegotiationPidsDto,)
+      rpcNegotiationProcessDto,)
   }
 );}
 
@@ -770,8 +770,8 @@ export const rpcSetupAgreement = async (rpcNegotiationPidsDto: RpcNegotiationPid
 
 
 export const getRpcSetupAgreementMutationOptions = <TError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAgreement>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAgreement>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAgreement>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAgreement>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext> => {
 
 const mutationKey = ['rpcSetupAgreement'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -783,7 +783,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupAgreement>>, {data: BodyType<RpcNegotiationPidsDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupAgreement>>, {data: BodyType<RpcNegotiationProcessDto>}> = (props) => {
           const {data} = props ?? {};
 
           return  rpcSetupAgreement(data,requestOptions)
@@ -797,18 +797,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type RpcSetupAgreementMutationResult = NonNullable<Awaited<ReturnType<typeof rpcSetupAgreement>>>
-    export type RpcSetupAgreementMutationBody = BodyType<RpcNegotiationPidsDto>
+    export type RpcSetupAgreementMutationBody = BodyType<RpcNegotiationProcessDto>
     export type RpcSetupAgreementMutationError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>
 
     /**
  * @summary Send the agreement (provider)
  */
 export const useRpcSetupAgreement = <TError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAgreement>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAgreement>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof rpcSetupAgreement>>,
         TError,
-        {data: BodyType<RpcNegotiationPidsDto>},
+        {data: BodyType<RpcNegotiationProcessDto>},
         TContext
       > => {
       return useMutation(getRpcSetupAgreementMutationOptions(options), queryClient);
@@ -818,7 +818,7 @@ export const useRpcSetupAgreement = <TError = ErrorType<RpcNegotiationErrorRespo
  * @summary Finalize the negotiation (provider)
  */
 export type rpcSetupFinalizationResponse200 = {
-  data: RpcNegotiationPidsResult
+  data: RpcNegotiationProcessResult
   status: 200
 }
 
@@ -864,7 +864,7 @@ export const getRpcSetupFinalizationUrl = () => {
   return `/dsp/current/negotiations/rpc/setup-finalization`
 }
 
-export const rpcSetupFinalization = async (rpcNegotiationPidsDto: RpcNegotiationPidsDto, options?: RequestInit): Promise<rpcSetupFinalizationResponse> => {
+export const rpcSetupFinalization = async (rpcNegotiationProcessDto: RpcNegotiationProcessDto, options?: RequestInit): Promise<rpcSetupFinalizationResponse> => {
   
   return customInstance<rpcSetupFinalizationResponse>(getRpcSetupFinalizationUrl(),
   {      
@@ -872,7 +872,7 @@ export const rpcSetupFinalization = async (rpcNegotiationPidsDto: RpcNegotiation
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      rpcNegotiationPidsDto,)
+      rpcNegotiationProcessDto,)
   }
 );}
 
@@ -880,8 +880,8 @@ export const rpcSetupFinalization = async (rpcNegotiationPidsDto: RpcNegotiation
 
 
 export const getRpcSetupFinalizationMutationOptions = <TError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupFinalization>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupFinalization>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupFinalization>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupFinalization>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext> => {
 
 const mutationKey = ['rpcSetupFinalization'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -893,7 +893,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupFinalization>>, {data: BodyType<RpcNegotiationPidsDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupFinalization>>, {data: BodyType<RpcNegotiationProcessDto>}> = (props) => {
           const {data} = props ?? {};
 
           return  rpcSetupFinalization(data,requestOptions)
@@ -907,18 +907,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type RpcSetupFinalizationMutationResult = NonNullable<Awaited<ReturnType<typeof rpcSetupFinalization>>>
-    export type RpcSetupFinalizationMutationBody = BodyType<RpcNegotiationPidsDto>
+    export type RpcSetupFinalizationMutationBody = BodyType<RpcNegotiationProcessDto>
     export type RpcSetupFinalizationMutationError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>
 
     /**
  * @summary Finalize the negotiation (provider)
  */
 export const useRpcSetupFinalization = <TError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupFinalization>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupFinalization>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof rpcSetupFinalization>>,
         TError,
-        {data: BodyType<RpcNegotiationPidsDto>},
+        {data: BodyType<RpcNegotiationProcessDto>},
         TContext
       > => {
       return useMutation(getRpcSetupFinalizationMutationOptions(options), queryClient);
@@ -1472,7 +1472,7 @@ export const useRpcSetupTermination = <TError = ErrorType<RpcNegotiationErrorRes
  * @summary Verify the agreement (consumer)
  */
 export type rpcSetupVerificationResponse200 = {
-  data: RpcNegotiationPidsResult
+  data: RpcNegotiationProcessResult
   status: 200
 }
 
@@ -1518,7 +1518,7 @@ export const getRpcSetupVerificationUrl = () => {
   return `/dsp/current/negotiations/rpc/setup-verification`
 }
 
-export const rpcSetupVerification = async (rpcNegotiationPidsDto: RpcNegotiationPidsDto, options?: RequestInit): Promise<rpcSetupVerificationResponse> => {
+export const rpcSetupVerification = async (rpcNegotiationProcessDto: RpcNegotiationProcessDto, options?: RequestInit): Promise<rpcSetupVerificationResponse> => {
   
   return customInstance<rpcSetupVerificationResponse>(getRpcSetupVerificationUrl(),
   {      
@@ -1526,7 +1526,7 @@ export const rpcSetupVerification = async (rpcNegotiationPidsDto: RpcNegotiation
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      rpcNegotiationPidsDto,)
+      rpcNegotiationProcessDto,)
   }
 );}
 
@@ -1534,8 +1534,8 @@ export const rpcSetupVerification = async (rpcNegotiationPidsDto: RpcNegotiation
 
 
 export const getRpcSetupVerificationMutationOptions = <TError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupVerification>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupVerification>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupVerification>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupVerification>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext> => {
 
 const mutationKey = ['rpcSetupVerification'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1547,7 +1547,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupVerification>>, {data: BodyType<RpcNegotiationPidsDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupVerification>>, {data: BodyType<RpcNegotiationProcessDto>}> = (props) => {
           const {data} = props ?? {};
 
           return  rpcSetupVerification(data,requestOptions)
@@ -1561,18 +1561,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type RpcSetupVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof rpcSetupVerification>>>
-    export type RpcSetupVerificationMutationBody = BodyType<RpcNegotiationPidsDto>
+    export type RpcSetupVerificationMutationBody = BodyType<RpcNegotiationProcessDto>
     export type RpcSetupVerificationMutationError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>
 
     /**
  * @summary Verify the agreement (consumer)
  */
 export const useRpcSetupVerification = <TError = ErrorType<RpcNegotiationErrorResponse | UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupVerification>>, TError,{data: BodyType<RpcNegotiationPidsDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupVerification>>, TError,{data: BodyType<RpcNegotiationProcessDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof rpcSetupVerification>>,
         TError,
-        {data: BodyType<RpcNegotiationPidsDto>},
+        {data: BodyType<RpcNegotiationProcessDto>},
         TContext
       > => {
       return useMutation(getRpcSetupVerificationMutationOptions(options), queryClient);

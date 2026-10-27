@@ -15,12 +15,12 @@ are calls the GUI still makes to routes the backend no longer serves.
 import type { ContractRequestOffer } from './contractRequestOffer';
 
 /**
- * Identifies the negotiation by `providerPid` or `consumerPid`.
+ * Names the negotiation by its process `@id` on this agent.
  */
 export interface RpcNegotiationOfferMessageDto {
   '@context': 'https://w3id.org/eunomia/v1/context.jsonld';
   '@type': 'RpcNegotiationOfferMessage';
   offer: ContractRequestOffer;
-  providerPid?: string;
-  consumerPid?: string;
+  /** URN of the process on this agent (its `id`), never a DSP pid. */
+  '@id': string;
 }

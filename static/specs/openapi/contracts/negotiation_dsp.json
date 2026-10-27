@@ -625,7 +625,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RpcNegotiationPidsDto"
+                "$ref": "#/components/schemas/RpcNegotiationProcessDto"
               }
             }
           }
@@ -636,7 +636,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RpcNegotiationPidsResult"
+                  "$ref": "#/components/schemas/RpcNegotiationProcessResult"
                 }
               }
             }
@@ -676,7 +676,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RpcNegotiationPidsDto"
+                "$ref": "#/components/schemas/RpcNegotiationProcessDto"
               }
             }
           }
@@ -687,7 +687,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RpcNegotiationPidsResult"
+                  "$ref": "#/components/schemas/RpcNegotiationProcessResult"
                 }
               }
             }
@@ -727,7 +727,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RpcNegotiationPidsDto"
+                "$ref": "#/components/schemas/RpcNegotiationProcessDto"
               }
             }
           }
@@ -738,7 +738,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RpcNegotiationPidsResult"
+                  "$ref": "#/components/schemas/RpcNegotiationProcessResult"
                 }
               }
             }
@@ -779,7 +779,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RpcNegotiationPidsDto"
+                "$ref": "#/components/schemas/RpcNegotiationProcessDto"
               }
             }
           }
@@ -790,7 +790,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RpcNegotiationPidsResult"
+                  "$ref": "#/components/schemas/RpcNegotiationProcessResult"
                 }
               }
             }
@@ -1025,7 +1025,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RpcNegotiationPidsDto"
+                "$ref": "#/components/schemas/RpcNegotiationProcessDto"
               }
             }
           }
@@ -1036,7 +1036,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RpcNegotiationPidsResult"
+                  "$ref": "#/components/schemas/RpcNegotiationProcessResult"
                 }
               }
             }
@@ -1077,7 +1077,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RpcNegotiationPidsDto"
+                "$ref": "#/components/schemas/RpcNegotiationProcessDto"
               }
             }
           }
@@ -1088,7 +1088,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RpcNegotiationPidsResult"
+                  "$ref": "#/components/schemas/RpcNegotiationProcessResult"
                 }
               }
             }
@@ -2251,6 +2251,7 @@
         "required": [
           "@context",
           "@type",
+          "@id",
           "offer"
         ],
         "properties": {
@@ -2265,14 +2266,12 @@
           "offer": {
             "$ref": "#/components/schemas/ContractRequestOffer"
           },
-          "providerPid": {
-            "type": "string"
-          },
-          "consumerPid": {
-            "type": "string"
+          "@id": {
+            "type": "string",
+            "description": "URN of the process on this agent (its `id`), never a DSP pid."
           }
         },
-        "description": "Identifies the negotiation by `providerPid` or `consumerPid`."
+        "description": "Names the negotiation by its process `@id` on this agent."
       },
       "RpcNegotiationOfferResult": {
         "allOf": [
@@ -2292,13 +2291,14 @@
           }
         ]
       },
-      "RpcNegotiationPidsDto": {
+      "RpcNegotiationProcessDto": {
         "type": "object",
-        "description": "Identifies the negotiation; `providerPid` or `consumerPid` is enough. `@type` says which message goes out.",
+        "description": "Names the negotiation by its process `@id` on this agent. `@type` says which message goes out.",
         "additionalProperties": false,
         "required": [
           "@context",
-          "@type"
+          "@type",
+          "@id"
         ],
         "properties": {
           "@context": {
@@ -2314,15 +2314,13 @@
               "RpcNegotiationFinalizationMessage"
             ]
           },
-          "providerPid": {
-            "type": "string"
-          },
-          "consumerPid": {
-            "type": "string"
+          "@id": {
+            "type": "string",
+            "description": "URN of the process on this agent (its `id`), never a DSP pid."
           }
         }
       },
-      "RpcNegotiationPidsResult": {
+      "RpcNegotiationProcessResult": {
         "allOf": [
           {
             "$ref": "#/components/schemas/RpcNegotiationResultBase"
@@ -2334,7 +2332,7 @@
             ],
             "properties": {
               "request": {
-                "$ref": "#/components/schemas/RpcNegotiationPidsDto"
+                "$ref": "#/components/schemas/RpcNegotiationProcessDto"
               }
             }
           }
@@ -2400,6 +2398,7 @@
         "required": [
           "@context",
           "@type",
+          "@id",
           "offer"
         ],
         "properties": {
@@ -2414,14 +2413,12 @@
           "offer": {
             "$ref": "#/components/schemas/ContractRequestOffer"
           },
-          "providerPid": {
-            "type": "string"
-          },
-          "consumerPid": {
-            "type": "string"
+          "@id": {
+            "type": "string",
+            "description": "URN of the process on this agent (its `id`), never a DSP pid."
           }
         },
-        "description": "Identifies the negotiation by `providerPid` or `consumerPid`."
+        "description": "Names the negotiation by its process `@id` on this agent."
       },
       "RpcNegotiationRequestResult": {
         "allOf": [
@@ -2484,7 +2481,8 @@
         "additionalProperties": false,
         "required": [
           "@context",
-          "@type"
+          "@type",
+          "@id"
         ],
         "properties": {
           "@context": {
@@ -2495,11 +2493,9 @@
             "type": "string",
             "const": "RpcNegotiationTerminationMessage"
           },
-          "consumerPid": {
-            "type": "string"
-          },
-          "providerPid": {
-            "type": "string"
+          "@id": {
+            "type": "string",
+            "description": "URN of the process on this agent (its `id`), never a DSP pid."
           },
           "code": {
             "type": [
@@ -2517,7 +2513,7 @@
             }
           }
         },
-        "description": "Identifies the negotiation by `providerPid` or `consumerPid`."
+        "description": "Names the negotiation by its process `@id` on this agent."
       },
       "RpcNegotiationTerminationResult": {
         "allOf": [

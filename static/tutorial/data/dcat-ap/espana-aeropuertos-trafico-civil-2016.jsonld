@@ -1,0 +1,202 @@
+{
+  "@context": {
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dcatap": "http://data.europa.eu/r5r/",
+    "dct": "http://purl.org/dc/terms/",
+    "foaf": "http://xmlns.com/foaf/0.1/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@graph": [
+
+    {
+      "@id": "urn:catalog:ign-ane",
+      "@type": "dcat:Catalog",
+      "dct:title": {
+        "@value": "Catálogo de mapas temáticos ANE – Instituto Geográfico Nacional",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Catálogo de productos cartográficos temáticos del Atlas Nacional de España (ANE) publicados por el Instituto Geográfico Nacional conforme al perfil DCAT-AP 3.0.1.",
+        "@language": "es"
+      },
+      "dct:publisher": {
+        "@id": "urn:org:ign"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "foaf:homepage": {
+        "@id": "https://www.ign.es"
+      },
+      "dcat:themeTaxonomy": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme"
+        }
+      ],
+      "dcat:dataset": [
+        {
+          "@id": "urn:dataset:espana-aeropuertos-trafico-civil-2016"
+        }
+      ],
+      "dcat:record": [
+        {
+          "@id": "urn:record:espana-aeropuertos-trafico-civil-2016"
+        }
+      ]
+    },
+
+    {
+      "@id": "urn:org:ign",
+      "@type": "foaf:Agent",
+      "foaf:name": {
+        "@value": "Instituto Geográfico Nacional (IGN)",
+        "@language": "es"
+      },
+      "foaf:homepage": {
+        "@id": "https://www.ign.es"
+      }
+    },
+
+    {
+      "@id": "urn:dataset:espana-aeropuertos-trafico-civil-2016",
+      "@type": "dcat:Dataset",
+      "dct:identifier": "espana-aeropuertos-trafico-civil-2016",
+
+      "dct:title": {
+        "@value": "España – Aeropuertos abiertos al tráfico civil (2016)",
+        "@language": "es"
+      },
+
+      "dct:description": {
+        "@value": "Mapa temático del Atlas Nacional de España (ANE) que representa los aeropuertos abiertos al tráfico civil en España en 2016. El producto cartográfico tiene escala 1:6.500.000 y se distribuye en formatos SHAPE, PDF y JPG. Los datos utilizan sistemas de referencia geodésicos ETRS89 y REGCAN95 en España y proyecciones cartográficas como Lambert y Winkel III.",
+        "@language": "es"
+      },
+
+      "dct:publisher": {
+        "@id": "urn:org:ign"
+      },
+
+      "dct:creator": {
+        "@id": "urn:org:ign"
+      },
+
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+
+      "dct:license": {
+        "@id": "https://creativecommons.org/licenses/by/4.0/"
+      },
+
+      "dct:accessRights": {
+        "@id": "http://publications.europa.eu/resource/authority/access-right/PUBLIC"
+      },
+
+      "dct:spatial": {
+        "@id": "http://publications.europa.eu/resource/authority/country/ESP"
+      },
+
+      "dct:issued": {
+        "@value": "2016",
+        "@type": "xsd:gYear"
+      },
+
+      "dct:temporal": {
+        "@type": "dct:PeriodOfTime",
+        "dcat:startDate": {
+          "@value": "2016-01-01",
+          "@type": "xsd:date"
+        },
+        "dcat:endDate": {
+          "@value": "2016-12-31",
+          "@type": "xsd:date"
+        }
+      },
+
+      "dcat:theme": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme/TRAN"
+        }
+      ],
+
+      "dcat:landingPage": {
+        "@id": "https://centrodedescargas.cnig.es"
+      },
+
+      "dcat:keyword": [
+        { "@value": "aeropuertos", "@language": "es" },
+        { "@value": "transporte aéreo", "@language": "es" },
+        { "@value": "infraestructura aeroportuaria", "@language": "es" },
+        { "@value": "cartografía", "@language": "es" },
+        { "@value": "Atlas Nacional de España", "@language": "es" },
+        { "@value": "IGN", "@language": "es" }
+      ],
+
+      "dcat:distribution": [
+        {
+          "@id": "urn:distribution:aeropuertos-ane-2016-zip"
+        }
+      ]
+    },
+
+    {
+      "@id": "urn:distribution:aeropuertos-ane-2016-zip",
+      "@type": "dcat:Distribution",
+
+      "dct:title": {
+        "@value": "Descarga del mapa temático en formatos SHAPE, PDF y JPG",
+        "@language": "es"
+      },
+
+      "dct:format": {
+        "@id": "http://publications.europa.eu/resource/authority/file-type/ZIP"
+      },
+
+      "dcat:mediaType": {
+        "@id": "https://www.iana.org/assignments/media-types/application/zip"
+      },
+
+      "dcat:accessURL": {
+        "@id": "https://centrodedescargas.cnig.es/CentroDescargas/busquedaRedirigida.do?ruta=PUBLICACION_CNIG_DATOS_VARIOS/aneTematico/Espana_Aeropuertos-abiertos-al-trafico-civil_2016_mapa_14974_spa.zip"
+      },
+
+      "dct:description": {
+        "@value": "Archivo comprimido que contiene el mapa temático de aeropuertos abiertos al tráfico civil en España (2016) en formatos SHAPE, PDF y JPG.",
+        "@language": "es"
+      }
+    },
+
+    {
+      "@id": "urn:record:espana-aeropuertos-trafico-civil-2016",
+      "@type": "dcat:CatalogRecord",
+
+      "foaf:primaryTopic": {
+        "@id": "urn:dataset:espana-aeropuertos-trafico-civil-2016"
+      },
+
+      "dct:title": {
+        "@value": "Registro DCAT-AP del mapa temático de aeropuertos abiertos al tráfico civil en España (2016)",
+        "@language": "es"
+      },
+
+      "dct:conformsTo": {
+        "@id": "https://semiceu.github.io/DCAT-AP/releases/3.0.1/"
+      },
+
+      "dct:issued": {
+        "@value": "2026-03-06",
+        "@type": "xsd:date"
+      },
+
+      "dct:modified": {
+        "@value": "2026-03-06",
+        "@type": "xsd:date"
+      }
+    }
+
+  ]
+}

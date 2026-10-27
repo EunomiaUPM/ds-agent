@@ -55,6 +55,11 @@ jupyter lab
   - Same catalog & ODRL policy workflow as `setup_catalog_policies.ipynb`, plus secret provisioning in the Keystore (`POST/GET/PUT /api/v1/keystore/secrets`) at `/ecostars/api_key`, as a `Secret` in the keystore context (`https://w3id.org/eunomia/v1/keystore-context.jsonld`).
   - Registers a `BEARER_TOKEN` PULL connector template and instance that injects the secret token from Vault when forwarding requests through the dataplane proxy.
 
+- `catalog_import_export.ipynb` (Provider only, no onboarding needed):
+  - Reads the Provider's catalog in each profile (`GET /api/v1/catalog-agent/catalogs/{id}/profiles/{dsp|dcat3|dcat-ap}`): a preview cut with `limit` (`X-Total-Count`, `X-Shown-Count`), and downloads with `download=true` in JSON-LD, Turtle, N-Triples or RDF/XML (`format=` or `Accept`).
+  - Validates DCAT-AP documents with SEMIC's official DCAT-AP 3.0.1 SHACL shapes and imports them (`POST /api/v1/catalog-agent/catalogs/import`, `dryRun`, `mode=upsert|create`, `target`, `checks`): the SHACL report, a broken document answered `422`, re-imports updating, DCAT 3 in Turtle with `http` IRIs given stable URNs, and the shape groups that need background knowledge.
+  - Imports the EDACCIT DCAT-AP catalogs of `data/dcat-ap/` and checks them with the doctor.
+
 ### 2. Contract Negotiation (DSP Control Plane RPC & Management API)
 - `contract_negotiation.ipynb`:
   - Full canonical DSP 2025-1 manual step-by-step Contract Negotiation sequence over `/dsp/current/negotiations/rpc/...` (`setup-request` -> `setup-offer` -> counter `setup-request` -> `setup-acceptance` -> `setup-agreement` -> `setup-verification` -> `setup-finalization`).

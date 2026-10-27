@@ -2710,6 +2710,637 @@
 			]
 		},
 		{
+			"name": "Catalog Exchange",
+			"description": "A catalog in any profile and RDF syntax (preview cut to `limit` datasets, or the whole document with `download=true`), and the import of DCAT-AP / DCAT 3 documents validated with SHACL (SEMIC's official shapes for DCAT-AP 3.0.1). Its first request resolves the main catalog.",
+			"item": [
+				{
+					"name": "Main catalog",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/main",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"main"
+							]
+						},
+						"description": "Sets `catalogId` and `mainCatalogId` to the main catalog, which the requests below read and import into."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const id = pm.response.json()[\"@id\"];",
+									"pm.collectionVariables.set(\"catalogId\", id);",
+									"pm.collectionVariables.set(\"mainCatalogId\", id);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DCAT-AP preview",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/{{catalogId}}/profiles/dcat-ap?limit=10",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"{{catalogId}}",
+								"profiles",
+								"dcat-ap"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "The catalog in DCAT-AP JSON-LD with its first 10 datasets."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"says how much it shows\", () => {",
+									"  pm.expect(pm.response.headers.has(\"X-Total-Count\")).to.be.true;",
+									"  pm.expect(Number(pm.response.headers.get(\"X-Shown-Count\"))).to.be.at.most(Number(pm.response.headers.get(\"X-Total-Count\")));",
+									"});",
+									"pm.test(\"names its profile\", () => pm.expect(pm.response.headers.get(\"Link\")).to.include(\"rel=\\\"profile\\\"\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DCAT 3 preview",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/{{catalogId}}/profiles/dcat3?limit=10",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"{{catalogId}}",
+								"profiles",
+								"dcat3"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "The catalog in DCAT 3 JSON-LD with its first 10 datasets."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"says how much it shows\", () => {",
+									"  pm.expect(pm.response.headers.has(\"X-Total-Count\")).to.be.true;",
+									"  pm.expect(Number(pm.response.headers.get(\"X-Shown-Count\"))).to.be.at.most(Number(pm.response.headers.get(\"X-Total-Count\")));",
+									"});",
+									"pm.test(\"names its profile\", () => pm.expect(pm.response.headers.get(\"Link\")).to.include(\"rel=\\\"profile\\\"\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DSP preview",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/{{catalogId}}/profiles/dsp?limit=10",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"{{catalogId}}",
+								"profiles",
+								"dsp"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "The catalog as DSP serves it (DSP 6), first 10 datasets."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"says how much it shows\", () => {",
+									"  pm.expect(pm.response.headers.has(\"X-Total-Count\")).to.be.true;",
+									"  pm.expect(Number(pm.response.headers.get(\"X-Shown-Count\"))).to.be.at.most(Number(pm.response.headers.get(\"X-Total-Count\")));",
+									"});",
+									"pm.test(\"names its profile\", () => pm.expect(pm.response.headers.get(\"Link\")).to.include(\"rel=\\\"profile\\\"\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DCAT-AP as Turtle",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/{{catalogId}}/profiles/dcat-ap?format=turtle&limit=5",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"{{catalogId}}",
+								"profiles",
+								"dcat-ap"
+							],
+							"query": [
+								{
+									"key": "format",
+									"value": "turtle"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						},
+						"description": "`format` picks the syntax: jsonld, turtle, ntriples or rdfxml."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"is Turtle\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/turtle\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DCAT-AP as RDF/XML (Accept)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/rdf+xml",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/{{catalogId}}/profiles/dcat-ap?limit=5",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"{{catalogId}}",
+								"profiles",
+								"dcat-ap"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						},
+						"description": "Without `format`, the `Accept` header picks the syntax."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"is RDF/XML\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/rdf+xml\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Download DCAT-AP (Turtle)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/{{catalogId}}/profiles/dcat-ap?download=true&format=turtle",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"{{catalogId}}",
+								"profiles",
+								"dcat-ap"
+							],
+							"query": [
+								{
+									"key": "download",
+									"value": "true"
+								},
+								{
+									"key": "format",
+									"value": "turtle"
+								}
+							]
+						},
+						"description": "The whole catalog as an attachment; `limit` is ignored."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"is an attachment\", () => pm.expect(pm.response.headers.get(\"Content-Disposition\")).to.include(\"attachment\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Validate DCAT-AP (dry run)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/ld+json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"@context\": {\n    \"dcat\": \"http://www.w3.org/ns/dcat#\",\n    \"dcatap\": \"http://data.europa.eu/r5r/\",\n    \"dct\": \"http://purl.org/dc/terms/\",\n    \"foaf\": \"http://xmlns.com/foaf/0.1/\",\n    \"vcard\": \"http://www.w3.org/2006/vcard/ns#\",\n    \"xsd\": \"http://www.w3.org/2001/XMLSchema#\",\n    \"rdfs\": \"http://www.w3.org/2000/01/rdf-schema#\"\n  },\n  \"@graph\": [\n    {\n      \"@id\": \"urn:catalog:puertos-es-ocean-forecast\",\n      \"@type\": \"dcat:Catalog\",\n      \"dct:title\": {\n        \"@value\": \"Catálogo de datos oceanográficos de Puertos del Estado\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Catálogo de metadatos para conjuntos de datos oceanográficos y de predicción marina publicados por Puertos del Estado conforme a DCAT-AP 3.0.1.\",\n        \"@language\": \"es\"\n      },\n      \"dct:publisher\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"foaf:homepage\": {\n        \"@id\": \"https://www.puertos.es/\"\n      },\n      \"dcat:themeTaxonomy\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/data-theme\"\n        }\n      ],\n      \"dcat:dataset\": [\n        {\n          \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\"\n        }\n      ],\n      \"dcat:record\": [\n        {\n          \"@id\": \"urn:record:fc-lastcycle-daily-palma\"\n        }\n      ]\n    },\n    {\n      \"@id\": \"urn:org:puertos-del-estado\",\n      \"@type\": \"foaf:Agent\",\n      \"foaf:name\": \"Puertos del Estado\",\n      \"foaf:homepage\": {\n        \"@id\": \"https://www.puertos.es/\"\n      }\n    },\n    {\n      \"@id\": \"urn:contact:puertos-del-estado\",\n      \"@type\": \"vcard:Kind\",\n      \"vcard:fn\": \"Contacto Puertos del Estado\",\n      \"vcard:url\": {\n        \"@id\": \"https://www.puertos.es/\"\n      }\n    },\n    {\n      \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\",\n      \"@type\": \"dcat:Dataset\",\n      \"dct:identifier\": \"fc-lastcycle-daily-palma\",\n      \"dct:title\": {\n        \"@value\": \"Predicción oceanográfica diaria de Palma - último ciclo\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Conjunto de datos oceanográficos para la zona de Palma publicado a través del catálogo THREDDS de Puertos del Estado. El fichero está en formato NetCDF y contiene variables para nivel del mar (marea) y corriente marina, incluyendo velocidad y dirección o sus componentes.\",\n        \"@language\": \"es\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"dct:publisher\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:creator\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:license\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/licence/UNKNOWN\"\n      },\n      \"dct:accessRights\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/access-right/PUBLIC\"\n      },\n      \"dct:accrualPeriodicity\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/frequency/DAILY\"\n      },\n      \"dct:spatial\": {\n        \"@type\": \"dct:Location\",\n        \"rdfs:label\": {\n          \"@value\": \"Zona marítima de Palma (Islas Baleares, España).\",\n          \"@language\": \"es\"\n        }\n      },\n      \"dct:issued\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:modified\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:temporal\": {\n        \"@type\": \"dct:PeriodOfTime\",\n        \"dcat:startDate\": {\n          \"@value\": \"2026-04-10T12:00:00\",\n          \"@type\": \"xsd:dateTime\"\n        },\n        \"dcat:endDate\": {\n          \"@value\": \"2026-04-12T12:00:00\",\n          \"@type\": \"xsd:dateTime\"\n        }\n      },\n      \"dcat:theme\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/data-theme/ENVI\"\n        }\n      ],\n      \"dcat:landingPage\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html\"\n      },\n      \"foaf:page\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html\"\n      },\n      \"dcat:contactPoint\": {\n        \"@id\": \"urn:contact:puertos-del-estado\"\n      },\n      \"dcat:keyword\": [\n        {\n          \"@value\": \"oceanografía\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"predicción marina\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"nivel del mar\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"marea\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"corriente marina\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"velocidad de corriente\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"dirección de corriente\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"NetCDF\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"THREDDS\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"OPeNDAP\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"Palma\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"Islas Baleares\",\n          \"@language\": \"es\"\n        }\n      ],\n      \"dcat:distribution\": [\n        {\n          \"@id\": \"urn:distribution:fc-lastcycle-daily-palma:netcdf\"\n        }\n      ]\n    },\n    {\n      \"@id\": \"urn:distribution:fc-lastcycle-daily-palma:netcdf\",\n      \"@type\": \"dcat:Distribution\",\n      \"dct:title\": {\n        \"@value\": \"Distribución NetCDF de la predicción oceanográfica diaria de Palma\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Fichero NetCDF accesible mediante THREDDS/OPeNDAP con variables de nivel del mar y corriente marina para la zona de Palma.\",\n        \"@language\": \"es\"\n      },\n      \"dcat:accessURL\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html?dataset=circulation_coastal_pam/latest-files/FC-lastcycle-daily.nc\"\n      },\n      \"dct:format\": {\n        \"@type\": \"dct:MediaTypeOrExtent\",\n        \"rdfs:label\": {\n          \"@value\": \"application/x-netcdf\",\n          \"@language\": \"en\"\n        }\n      },\n      \"dcat:mediaType\": {\n        \"@id\": \"https://www.iana.org/assignments/media-types/application/netcdf\"\n      },\n      \"dct:license\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/licence/UNKNOWN\"\n      }\n    },\n    {\n      \"@id\": \"urn:record:fc-lastcycle-daily-palma\",\n      \"@type\": \"dcat:CatalogRecord\",\n      \"foaf:primaryTopic\": {\n        \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\"\n      },\n      \"dct:title\": {\n        \"@value\": \"Registro de catálogo de la predicción oceanográfica diaria de Palma\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Registro DCAT-AP para el conjunto de datos de predicción oceanográfica diaria de Palma publicado por Puertos del Estado.\",\n        \"@language\": \"es\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"dct:conformsTo\": {\n        \"@id\": \"https://semiceu.github.io/DCAT-AP/releases/3.0.1/\"\n      },\n      \"dct:issued\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:modified\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      }\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/import?profile=dcat-ap&dryRun=true",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"import"
+							],
+							"query": [
+								{
+									"key": "profile",
+									"value": "dcat-ap"
+								},
+								{
+									"key": "dryRun",
+									"value": "true"
+								}
+							]
+						},
+						"description": "Validates the EDACCIT Palma document with SEMIC's Base, Recommendations and deprecated-URI shapes and plans it; writes nothing."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200\", () => pm.response.to.have.status(200));",
+									"const report = pm.response.json();",
+									"pm.test(\"has a SHACL report\", () => pm.expect(report.validation).to.have.property(\"conforms\"));",
+									"console.log(`conforms=${report.conforms} imported=${report.imported} created=${report.created} updated=${report.updated}`);",
+									"report.validation.results.forEach(r => console.log(`${r.severity} ${r.focusNode} ${r.path || \"\"}: ${r.message}`));",
+									"report.issues.forEach(i => console.log(`${i.severity} ${i.resource}: ${i.message}`));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Import DCAT-AP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/ld+json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"@context\": {\n    \"dcat\": \"http://www.w3.org/ns/dcat#\",\n    \"dcatap\": \"http://data.europa.eu/r5r/\",\n    \"dct\": \"http://purl.org/dc/terms/\",\n    \"foaf\": \"http://xmlns.com/foaf/0.1/\",\n    \"vcard\": \"http://www.w3.org/2006/vcard/ns#\",\n    \"xsd\": \"http://www.w3.org/2001/XMLSchema#\",\n    \"rdfs\": \"http://www.w3.org/2000/01/rdf-schema#\"\n  },\n  \"@graph\": [\n    {\n      \"@id\": \"urn:catalog:puertos-es-ocean-forecast\",\n      \"@type\": \"dcat:Catalog\",\n      \"dct:title\": {\n        \"@value\": \"Catálogo de datos oceanográficos de Puertos del Estado\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Catálogo de metadatos para conjuntos de datos oceanográficos y de predicción marina publicados por Puertos del Estado conforme a DCAT-AP 3.0.1.\",\n        \"@language\": \"es\"\n      },\n      \"dct:publisher\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"foaf:homepage\": {\n        \"@id\": \"https://www.puertos.es/\"\n      },\n      \"dcat:themeTaxonomy\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/data-theme\"\n        }\n      ],\n      \"dcat:dataset\": [\n        {\n          \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\"\n        }\n      ],\n      \"dcat:record\": [\n        {\n          \"@id\": \"urn:record:fc-lastcycle-daily-palma\"\n        }\n      ]\n    },\n    {\n      \"@id\": \"urn:org:puertos-del-estado\",\n      \"@type\": \"foaf:Agent\",\n      \"foaf:name\": \"Puertos del Estado\",\n      \"foaf:homepage\": {\n        \"@id\": \"https://www.puertos.es/\"\n      }\n    },\n    {\n      \"@id\": \"urn:contact:puertos-del-estado\",\n      \"@type\": \"vcard:Kind\",\n      \"vcard:fn\": \"Contacto Puertos del Estado\",\n      \"vcard:url\": {\n        \"@id\": \"https://www.puertos.es/\"\n      }\n    },\n    {\n      \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\",\n      \"@type\": \"dcat:Dataset\",\n      \"dct:identifier\": \"fc-lastcycle-daily-palma\",\n      \"dct:title\": {\n        \"@value\": \"Predicción oceanográfica diaria de Palma - último ciclo\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Conjunto de datos oceanográficos para la zona de Palma publicado a través del catálogo THREDDS de Puertos del Estado. El fichero está en formato NetCDF y contiene variables para nivel del mar (marea) y corriente marina, incluyendo velocidad y dirección o sus componentes.\",\n        \"@language\": \"es\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"dct:publisher\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:creator\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:license\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/licence/UNKNOWN\"\n      },\n      \"dct:accessRights\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/access-right/PUBLIC\"\n      },\n      \"dct:accrualPeriodicity\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/frequency/DAILY\"\n      },\n      \"dct:spatial\": {\n        \"@type\": \"dct:Location\",\n        \"rdfs:label\": {\n          \"@value\": \"Zona marítima de Palma (Islas Baleares, España).\",\n          \"@language\": \"es\"\n        }\n      },\n      \"dct:issued\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:modified\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:temporal\": {\n        \"@type\": \"dct:PeriodOfTime\",\n        \"dcat:startDate\": {\n          \"@value\": \"2026-04-10T12:00:00\",\n          \"@type\": \"xsd:dateTime\"\n        },\n        \"dcat:endDate\": {\n          \"@value\": \"2026-04-12T12:00:00\",\n          \"@type\": \"xsd:dateTime\"\n        }\n      },\n      \"dcat:theme\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/data-theme/ENVI\"\n        }\n      ],\n      \"dcat:landingPage\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html\"\n      },\n      \"foaf:page\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html\"\n      },\n      \"dcat:contactPoint\": {\n        \"@id\": \"urn:contact:puertos-del-estado\"\n      },\n      \"dcat:keyword\": [\n        {\n          \"@value\": \"oceanografía\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"predicción marina\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"nivel del mar\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"marea\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"corriente marina\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"velocidad de corriente\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"dirección de corriente\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"NetCDF\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"THREDDS\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"OPeNDAP\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"Palma\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"Islas Baleares\",\n          \"@language\": \"es\"\n        }\n      ],\n      \"dcat:distribution\": [\n        {\n          \"@id\": \"urn:distribution:fc-lastcycle-daily-palma:netcdf\"\n        }\n      ]\n    },\n    {\n      \"@id\": \"urn:distribution:fc-lastcycle-daily-palma:netcdf\",\n      \"@type\": \"dcat:Distribution\",\n      \"dct:title\": {\n        \"@value\": \"Distribución NetCDF de la predicción oceanográfica diaria de Palma\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Fichero NetCDF accesible mediante THREDDS/OPeNDAP con variables de nivel del mar y corriente marina para la zona de Palma.\",\n        \"@language\": \"es\"\n      },\n      \"dcat:accessURL\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html?dataset=circulation_coastal_pam/latest-files/FC-lastcycle-daily.nc\"\n      },\n      \"dct:format\": {\n        \"@type\": \"dct:MediaTypeOrExtent\",\n        \"rdfs:label\": {\n          \"@value\": \"application/x-netcdf\",\n          \"@language\": \"en\"\n        }\n      },\n      \"dcat:mediaType\": {\n        \"@id\": \"https://www.iana.org/assignments/media-types/application/netcdf\"\n      },\n      \"dct:license\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/licence/UNKNOWN\"\n      }\n    },\n    {\n      \"@id\": \"urn:record:fc-lastcycle-daily-palma\",\n      \"@type\": \"dcat:CatalogRecord\",\n      \"foaf:primaryTopic\": {\n        \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\"\n      },\n      \"dct:title\": {\n        \"@value\": \"Registro de catálogo de la predicción oceanográfica diaria de Palma\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Registro DCAT-AP para el conjunto de datos de predicción oceanográfica diaria de Palma publicado por Puertos del Estado.\",\n        \"@language\": \"es\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"dct:conformsTo\": {\n        \"@id\": \"https://semiceu.github.io/DCAT-AP/releases/3.0.1/\"\n      },\n      \"dct:issued\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:modified\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      }\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/import?profile=dcat-ap",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"import"
+							],
+							"query": [
+								{
+									"key": "profile",
+									"value": "dcat-ap"
+								}
+							]
+						},
+						"description": "Validates and loads it in one transaction; importing again updates the same resources (`mode=upsert`). 422 with the report when it does not conform."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200\", () => pm.response.to.have.status(200));",
+									"const report = pm.response.json();",
+									"pm.test(\"has a SHACL report\", () => pm.expect(report.validation).to.have.property(\"conforms\"));",
+									"console.log(`conforms=${report.conforms} imported=${report.imported} created=${report.created} updated=${report.updated}`);",
+									"report.validation.results.forEach(r => console.log(`${r.severity} ${r.focusNode} ${r.path || \"\"}: ${r.message}`));",
+									"report.issues.forEach(i => console.log(`${i.severity} ${i.resource}: ${i.message}`));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Import DCAT-AP, ranges too",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/ld+json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"@context\": {\n    \"dcat\": \"http://www.w3.org/ns/dcat#\",\n    \"dcatap\": \"http://data.europa.eu/r5r/\",\n    \"dct\": \"http://purl.org/dc/terms/\",\n    \"foaf\": \"http://xmlns.com/foaf/0.1/\",\n    \"vcard\": \"http://www.w3.org/2006/vcard/ns#\",\n    \"xsd\": \"http://www.w3.org/2001/XMLSchema#\",\n    \"rdfs\": \"http://www.w3.org/2000/01/rdf-schema#\"\n  },\n  \"@graph\": [\n    {\n      \"@id\": \"urn:catalog:puertos-es-ocean-forecast\",\n      \"@type\": \"dcat:Catalog\",\n      \"dct:title\": {\n        \"@value\": \"Catálogo de datos oceanográficos de Puertos del Estado\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Catálogo de metadatos para conjuntos de datos oceanográficos y de predicción marina publicados por Puertos del Estado conforme a DCAT-AP 3.0.1.\",\n        \"@language\": \"es\"\n      },\n      \"dct:publisher\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"foaf:homepage\": {\n        \"@id\": \"https://www.puertos.es/\"\n      },\n      \"dcat:themeTaxonomy\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/data-theme\"\n        }\n      ],\n      \"dcat:dataset\": [\n        {\n          \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\"\n        }\n      ],\n      \"dcat:record\": [\n        {\n          \"@id\": \"urn:record:fc-lastcycle-daily-palma\"\n        }\n      ]\n    },\n    {\n      \"@id\": \"urn:org:puertos-del-estado\",\n      \"@type\": \"foaf:Agent\",\n      \"foaf:name\": \"Puertos del Estado\",\n      \"foaf:homepage\": {\n        \"@id\": \"https://www.puertos.es/\"\n      }\n    },\n    {\n      \"@id\": \"urn:contact:puertos-del-estado\",\n      \"@type\": \"vcard:Kind\",\n      \"vcard:fn\": \"Contacto Puertos del Estado\",\n      \"vcard:url\": {\n        \"@id\": \"https://www.puertos.es/\"\n      }\n    },\n    {\n      \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\",\n      \"@type\": \"dcat:Dataset\",\n      \"dct:identifier\": \"fc-lastcycle-daily-palma\",\n      \"dct:title\": {\n        \"@value\": \"Predicción oceanográfica diaria de Palma - último ciclo\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Conjunto de datos oceanográficos para la zona de Palma publicado a través del catálogo THREDDS de Puertos del Estado. El fichero está en formato NetCDF y contiene variables para nivel del mar (marea) y corriente marina, incluyendo velocidad y dirección o sus componentes.\",\n        \"@language\": \"es\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"dct:publisher\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:creator\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:license\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/licence/UNKNOWN\"\n      },\n      \"dct:accessRights\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/access-right/PUBLIC\"\n      },\n      \"dct:accrualPeriodicity\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/frequency/DAILY\"\n      },\n      \"dct:spatial\": {\n        \"@type\": \"dct:Location\",\n        \"rdfs:label\": {\n          \"@value\": \"Zona marítima de Palma (Islas Baleares, España).\",\n          \"@language\": \"es\"\n        }\n      },\n      \"dct:issued\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:modified\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:temporal\": {\n        \"@type\": \"dct:PeriodOfTime\",\n        \"dcat:startDate\": {\n          \"@value\": \"2026-04-10T12:00:00\",\n          \"@type\": \"xsd:dateTime\"\n        },\n        \"dcat:endDate\": {\n          \"@value\": \"2026-04-12T12:00:00\",\n          \"@type\": \"xsd:dateTime\"\n        }\n      },\n      \"dcat:theme\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/data-theme/ENVI\"\n        }\n      ],\n      \"dcat:landingPage\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html\"\n      },\n      \"foaf:page\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html\"\n      },\n      \"dcat:contactPoint\": {\n        \"@id\": \"urn:contact:puertos-del-estado\"\n      },\n      \"dcat:keyword\": [\n        {\n          \"@value\": \"oceanografía\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"predicción marina\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"nivel del mar\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"marea\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"corriente marina\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"velocidad de corriente\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"dirección de corriente\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"NetCDF\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"THREDDS\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"OPeNDAP\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"Palma\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"Islas Baleares\",\n          \"@language\": \"es\"\n        }\n      ],\n      \"dcat:distribution\": [\n        {\n          \"@id\": \"urn:distribution:fc-lastcycle-daily-palma:netcdf\"\n        }\n      ]\n    },\n    {\n      \"@id\": \"urn:distribution:fc-lastcycle-daily-palma:netcdf\",\n      \"@type\": \"dcat:Distribution\",\n      \"dct:title\": {\n        \"@value\": \"Distribución NetCDF de la predicción oceanográfica diaria de Palma\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Fichero NetCDF accesible mediante THREDDS/OPeNDAP con variables de nivel del mar y corriente marina para la zona de Palma.\",\n        \"@language\": \"es\"\n      },\n      \"dcat:accessURL\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html?dataset=circulation_coastal_pam/latest-files/FC-lastcycle-daily.nc\"\n      },\n      \"dct:format\": {\n        \"@type\": \"dct:MediaTypeOrExtent\",\n        \"rdfs:label\": {\n          \"@value\": \"application/x-netcdf\",\n          \"@language\": \"en\"\n        }\n      },\n      \"dcat:mediaType\": {\n        \"@id\": \"https://www.iana.org/assignments/media-types/application/netcdf\"\n      },\n      \"dct:license\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/licence/UNKNOWN\"\n      }\n    },\n    {\n      \"@id\": \"urn:record:fc-lastcycle-daily-palma\",\n      \"@type\": \"dcat:CatalogRecord\",\n      \"foaf:primaryTopic\": {\n        \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\"\n      },\n      \"dct:title\": {\n        \"@value\": \"Registro de catálogo de la predicción oceanográfica diaria de Palma\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Registro DCAT-AP para el conjunto de datos de predicción oceanográfica diaria de Palma publicado por Puertos del Estado.\",\n        \"@language\": \"es\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"dct:conformsTo\": {\n        \"@id\": \"https://semiceu.github.io/DCAT-AP/releases/3.0.1/\"\n      },\n      \"dct:issued\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:modified\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      }\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/import?profile=dcat-ap&dryRun=true&checks=base,range",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"import"
+							],
+							"query": [
+								{
+									"key": "profile",
+									"value": "dcat-ap"
+								},
+								{
+									"key": "dryRun",
+									"value": "true"
+								},
+								{
+									"key": "checks",
+									"value": "base,range"
+								}
+							]
+						},
+						"description": "SEMIC's range shapes need every object typed (background knowledge): EU vocabulary IRIs fail them."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200\", () => pm.response.to.have.status(200));",
+									"const report = pm.response.json();",
+									"pm.test(\"has a SHACL report\", () => pm.expect(report.validation).to.have.property(\"conforms\"));",
+									"console.log(`conforms=${report.conforms} imported=${report.imported} created=${report.created} updated=${report.updated}`);",
+									"report.validation.results.forEach(r => console.log(`${r.severity} ${r.focusNode} ${r.path || \"\"}: ${r.message}`));",
+									"report.issues.forEach(i => console.log(`${i.severity} ${i.resource}: ${i.message}`));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Import DCAT 3 Turtle into the main catalog",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "text/turtle",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "@prefix dcat: <http://www.w3.org/ns/dcat#> .\n@prefix dct: <http://purl.org/dc/terms/> .\n@prefix foaf: <http://xmlns.com/foaf/0.1/> .\n\n<https://data.example.org/catalog> a dcat:Catalog ;\n    dct:title \"Example open data\"@en ;\n    dcat:dataset <https://data.example.org/dataset/air-quality> .\n\n<https://data.example.org/dataset/air-quality> a dcat:Dataset ;\n    dct:title \"Air quality, hourly\"@en ;\n    dct:description \"Hourly NO2 and PM10 readings.\"@en ;\n    dcat:keyword \"air\"@en ;\n    dcat:distribution <https://data.example.org/dataset/air-quality/csv> .\n\n<https://data.example.org/dataset/air-quality/csv> a dcat:Distribution ;\n    dcat:accessURL <https://data.example.org/files/air-quality.csv> ;\n    dcat:mediaType <https://www.iana.org/assignments/media-types/text/csv> .\n",
+							"options": {
+								"raw": {
+									"language": "text"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/import?profile=dcat3&target={{mainCatalogId}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"import"
+							],
+							"query": [
+								{
+									"key": "profile",
+									"value": "dcat3"
+								},
+								{
+									"key": "target",
+									"value": "{{mainCatalogId}}"
+								}
+							]
+						},
+						"description": "Turtle works like JSON-LD. With `target`, the document's catalogs are not stored and what they list goes into that catalog; IRIs that are not URNs get stable URNs."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200\", () => pm.response.to.have.status(200));",
+									"const report = pm.response.json();",
+									"pm.test(\"has a SHACL report\", () => pm.expect(report.validation).to.have.property(\"conforms\"));",
+									"console.log(`conforms=${report.conforms} imported=${report.imported} created=${report.created} updated=${report.updated}`);",
+									"report.validation.results.forEach(r => console.log(`${r.severity} ${r.focusNode} ${r.path || \"\"}: ${r.message}`));",
+									"report.issues.forEach(i => console.log(`${i.severity} ${i.resource}: ${i.message}`));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Import refused (create mode)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/ld+json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"@context\": {\n    \"dcat\": \"http://www.w3.org/ns/dcat#\",\n    \"dcatap\": \"http://data.europa.eu/r5r/\",\n    \"dct\": \"http://purl.org/dc/terms/\",\n    \"foaf\": \"http://xmlns.com/foaf/0.1/\",\n    \"vcard\": \"http://www.w3.org/2006/vcard/ns#\",\n    \"xsd\": \"http://www.w3.org/2001/XMLSchema#\",\n    \"rdfs\": \"http://www.w3.org/2000/01/rdf-schema#\"\n  },\n  \"@graph\": [\n    {\n      \"@id\": \"urn:catalog:puertos-es-ocean-forecast\",\n      \"@type\": \"dcat:Catalog\",\n      \"dct:title\": {\n        \"@value\": \"Catálogo de datos oceanográficos de Puertos del Estado\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Catálogo de metadatos para conjuntos de datos oceanográficos y de predicción marina publicados por Puertos del Estado conforme a DCAT-AP 3.0.1.\",\n        \"@language\": \"es\"\n      },\n      \"dct:publisher\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"foaf:homepage\": {\n        \"@id\": \"https://www.puertos.es/\"\n      },\n      \"dcat:themeTaxonomy\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/data-theme\"\n        }\n      ],\n      \"dcat:dataset\": [\n        {\n          \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\"\n        }\n      ],\n      \"dcat:record\": [\n        {\n          \"@id\": \"urn:record:fc-lastcycle-daily-palma\"\n        }\n      ]\n    },\n    {\n      \"@id\": \"urn:org:puertos-del-estado\",\n      \"@type\": \"foaf:Agent\",\n      \"foaf:name\": \"Puertos del Estado\",\n      \"foaf:homepage\": {\n        \"@id\": \"https://www.puertos.es/\"\n      }\n    },\n    {\n      \"@id\": \"urn:contact:puertos-del-estado\",\n      \"@type\": \"vcard:Kind\",\n      \"vcard:fn\": \"Contacto Puertos del Estado\",\n      \"vcard:url\": {\n        \"@id\": \"https://www.puertos.es/\"\n      }\n    },\n    {\n      \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\",\n      \"@type\": \"dcat:Dataset\",\n      \"dct:identifier\": \"fc-lastcycle-daily-palma\",\n      \"dct:title\": {\n        \"@value\": \"Predicción oceanográfica diaria de Palma - último ciclo\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Conjunto de datos oceanográficos para la zona de Palma publicado a través del catálogo THREDDS de Puertos del Estado. El fichero está en formato NetCDF y contiene variables para nivel del mar (marea) y corriente marina, incluyendo velocidad y dirección o sus componentes.\",\n        \"@language\": \"es\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"dct:publisher\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:creator\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:license\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/licence/UNKNOWN\"\n      },\n      \"dct:accessRights\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/access-right/PUBLIC\"\n      },\n      \"dct:accrualPeriodicity\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/frequency/DAILY\"\n      },\n      \"dct:spatial\": {\n        \"@type\": \"dct:Location\",\n        \"rdfs:label\": {\n          \"@value\": \"Zona marítima de Palma (Islas Baleares, España).\",\n          \"@language\": \"es\"\n        }\n      },\n      \"dct:issued\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:modified\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:temporal\": {\n        \"@type\": \"dct:PeriodOfTime\",\n        \"dcat:startDate\": {\n          \"@value\": \"2026-04-10T12:00:00\",\n          \"@type\": \"xsd:dateTime\"\n        },\n        \"dcat:endDate\": {\n          \"@value\": \"2026-04-12T12:00:00\",\n          \"@type\": \"xsd:dateTime\"\n        }\n      },\n      \"dcat:theme\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/data-theme/ENVI\"\n        }\n      ],\n      \"dcat:landingPage\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html\"\n      },\n      \"foaf:page\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html\"\n      },\n      \"dcat:contactPoint\": {\n        \"@id\": \"urn:contact:puertos-del-estado\"\n      },\n      \"dcat:keyword\": [\n        {\n          \"@value\": \"oceanografía\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"predicción marina\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"nivel del mar\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"marea\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"corriente marina\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"velocidad de corriente\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"dirección de corriente\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"NetCDF\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"THREDDS\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"OPeNDAP\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"Palma\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"Islas Baleares\",\n          \"@language\": \"es\"\n        }\n      ],\n      \"dcat:distribution\": [\n        {\n          \"@id\": \"urn:distribution:fc-lastcycle-daily-palma:netcdf\"\n        }\n      ]\n    },\n    {\n      \"@id\": \"urn:distribution:fc-lastcycle-daily-palma:netcdf\",\n      \"@type\": \"dcat:Distribution\",\n      \"dct:title\": {\n        \"@value\": \"Distribución NetCDF de la predicción oceanográfica diaria de Palma\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Fichero NetCDF accesible mediante THREDDS/OPeNDAP con variables de nivel del mar y corriente marina para la zona de Palma.\",\n        \"@language\": \"es\"\n      },\n      \"dcat:accessURL\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html?dataset=circulation_coastal_pam/latest-files/FC-lastcycle-daily.nc\"\n      },\n      \"dct:format\": {\n        \"@type\": \"dct:MediaTypeOrExtent\",\n        \"rdfs:label\": {\n          \"@value\": \"application/x-netcdf\",\n          \"@language\": \"en\"\n        }\n      },\n      \"dcat:mediaType\": {\n        \"@id\": \"https://www.iana.org/assignments/media-types/application/netcdf\"\n      },\n      \"dct:license\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/licence/UNKNOWN\"\n      }\n    },\n    {\n      \"@id\": \"urn:record:fc-lastcycle-daily-palma\",\n      \"@type\": \"dcat:CatalogRecord\",\n      \"foaf:primaryTopic\": {\n        \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\"\n      },\n      \"dct:title\": {\n        \"@value\": \"Registro de catálogo de la predicción oceanográfica diaria de Palma\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Registro DCAT-AP para el conjunto de datos de predicción oceanográfica diaria de Palma publicado por Puertos del Estado.\",\n        \"@language\": \"es\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"dct:conformsTo\": {\n        \"@id\": \"https://semiceu.github.io/DCAT-AP/releases/3.0.1/\"\n      },\n      \"dct:issued\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:modified\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      }\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/import?profile=dcat-ap&mode=create",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"import"
+							],
+							"query": [
+								{
+									"key": "profile",
+									"value": "dcat-ap"
+								},
+								{
+									"key": "mode",
+									"value": "create"
+								}
+							]
+						},
+						"description": "With `mode=create` a document whose resources are already stored is refused: 422 and the report."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 422\", () => pm.response.to.have.status(422));",
+									"const report = pm.response.json();",
+									"pm.test(\"has a SHACL report\", () => pm.expect(report.validation).to.have.property(\"conforms\"));",
+									"console.log(`conforms=${report.conforms} imported=${report.imported} created=${report.created} updated=${report.updated}`);",
+									"report.validation.results.forEach(r => console.log(`${r.severity} ${r.focusNode} ${r.path || \"\"}: ${r.message}`));",
+									"report.issues.forEach(i => console.log(`${i.severity} ${i.resource}: ${i.message}`));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
 			"name": "DSP",
 			"item": [
 				{
@@ -3358,6 +3989,245 @@
 						}
 					},
 					"response": []
+				}
+			]
+		},
+		{
+			"name": "Run - Import DCAT-AP",
+			"description": "Main catalog, dry run, import, then the imported catalog projected back in DCAT-AP and its doctor.",
+			"item": [
+				{
+					"name": "Main catalog",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/main",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"main"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set(\"mainCatalogId\", pm.response.json()[\"@id\"]);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Dry run",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/ld+json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"@context\": {\n    \"dcat\": \"http://www.w3.org/ns/dcat#\",\n    \"dcatap\": \"http://data.europa.eu/r5r/\",\n    \"dct\": \"http://purl.org/dc/terms/\",\n    \"foaf\": \"http://xmlns.com/foaf/0.1/\",\n    \"vcard\": \"http://www.w3.org/2006/vcard/ns#\",\n    \"xsd\": \"http://www.w3.org/2001/XMLSchema#\",\n    \"rdfs\": \"http://www.w3.org/2000/01/rdf-schema#\"\n  },\n  \"@graph\": [\n    {\n      \"@id\": \"urn:catalog:puertos-es-ocean-forecast\",\n      \"@type\": \"dcat:Catalog\",\n      \"dct:title\": {\n        \"@value\": \"Catálogo de datos oceanográficos de Puertos del Estado\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Catálogo de metadatos para conjuntos de datos oceanográficos y de predicción marina publicados por Puertos del Estado conforme a DCAT-AP 3.0.1.\",\n        \"@language\": \"es\"\n      },\n      \"dct:publisher\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"foaf:homepage\": {\n        \"@id\": \"https://www.puertos.es/\"\n      },\n      \"dcat:themeTaxonomy\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/data-theme\"\n        }\n      ],\n      \"dcat:dataset\": [\n        {\n          \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\"\n        }\n      ],\n      \"dcat:record\": [\n        {\n          \"@id\": \"urn:record:fc-lastcycle-daily-palma\"\n        }\n      ]\n    },\n    {\n      \"@id\": \"urn:org:puertos-del-estado\",\n      \"@type\": \"foaf:Agent\",\n      \"foaf:name\": \"Puertos del Estado\",\n      \"foaf:homepage\": {\n        \"@id\": \"https://www.puertos.es/\"\n      }\n    },\n    {\n      \"@id\": \"urn:contact:puertos-del-estado\",\n      \"@type\": \"vcard:Kind\",\n      \"vcard:fn\": \"Contacto Puertos del Estado\",\n      \"vcard:url\": {\n        \"@id\": \"https://www.puertos.es/\"\n      }\n    },\n    {\n      \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\",\n      \"@type\": \"dcat:Dataset\",\n      \"dct:identifier\": \"fc-lastcycle-daily-palma\",\n      \"dct:title\": {\n        \"@value\": \"Predicción oceanográfica diaria de Palma - último ciclo\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Conjunto de datos oceanográficos para la zona de Palma publicado a través del catálogo THREDDS de Puertos del Estado. El fichero está en formato NetCDF y contiene variables para nivel del mar (marea) y corriente marina, incluyendo velocidad y dirección o sus componentes.\",\n        \"@language\": \"es\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"dct:publisher\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:creator\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:license\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/licence/UNKNOWN\"\n      },\n      \"dct:accessRights\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/access-right/PUBLIC\"\n      },\n      \"dct:accrualPeriodicity\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/frequency/DAILY\"\n      },\n      \"dct:spatial\": {\n        \"@type\": \"dct:Location\",\n        \"rdfs:label\": {\n          \"@value\": \"Zona marítima de Palma (Islas Baleares, España).\",\n          \"@language\": \"es\"\n        }\n      },\n      \"dct:issued\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:modified\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:temporal\": {\n        \"@type\": \"dct:PeriodOfTime\",\n        \"dcat:startDate\": {\n          \"@value\": \"2026-04-10T12:00:00\",\n          \"@type\": \"xsd:dateTime\"\n        },\n        \"dcat:endDate\": {\n          \"@value\": \"2026-04-12T12:00:00\",\n          \"@type\": \"xsd:dateTime\"\n        }\n      },\n      \"dcat:theme\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/data-theme/ENVI\"\n        }\n      ],\n      \"dcat:landingPage\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html\"\n      },\n      \"foaf:page\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html\"\n      },\n      \"dcat:contactPoint\": {\n        \"@id\": \"urn:contact:puertos-del-estado\"\n      },\n      \"dcat:keyword\": [\n        {\n          \"@value\": \"oceanografía\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"predicción marina\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"nivel del mar\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"marea\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"corriente marina\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"velocidad de corriente\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"dirección de corriente\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"NetCDF\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"THREDDS\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"OPeNDAP\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"Palma\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"Islas Baleares\",\n          \"@language\": \"es\"\n        }\n      ],\n      \"dcat:distribution\": [\n        {\n          \"@id\": \"urn:distribution:fc-lastcycle-daily-palma:netcdf\"\n        }\n      ]\n    },\n    {\n      \"@id\": \"urn:distribution:fc-lastcycle-daily-palma:netcdf\",\n      \"@type\": \"dcat:Distribution\",\n      \"dct:title\": {\n        \"@value\": \"Distribución NetCDF de la predicción oceanográfica diaria de Palma\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Fichero NetCDF accesible mediante THREDDS/OPeNDAP con variables de nivel del mar y corriente marina para la zona de Palma.\",\n        \"@language\": \"es\"\n      },\n      \"dcat:accessURL\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html?dataset=circulation_coastal_pam/latest-files/FC-lastcycle-daily.nc\"\n      },\n      \"dct:format\": {\n        \"@type\": \"dct:MediaTypeOrExtent\",\n        \"rdfs:label\": {\n          \"@value\": \"application/x-netcdf\",\n          \"@language\": \"en\"\n        }\n      },\n      \"dcat:mediaType\": {\n        \"@id\": \"https://www.iana.org/assignments/media-types/application/netcdf\"\n      },\n      \"dct:license\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/licence/UNKNOWN\"\n      }\n    },\n    {\n      \"@id\": \"urn:record:fc-lastcycle-daily-palma\",\n      \"@type\": \"dcat:CatalogRecord\",\n      \"foaf:primaryTopic\": {\n        \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\"\n      },\n      \"dct:title\": {\n        \"@value\": \"Registro de catálogo de la predicción oceanográfica diaria de Palma\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Registro DCAT-AP para el conjunto de datos de predicción oceanográfica diaria de Palma publicado por Puertos del Estado.\",\n        \"@language\": \"es\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"dct:conformsTo\": {\n        \"@id\": \"https://semiceu.github.io/DCAT-AP/releases/3.0.1/\"\n      },\n      \"dct:issued\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:modified\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      }\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/import?dryRun=true",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"import"
+							],
+							"query": [
+								{
+									"key": "dryRun",
+									"value": "true"
+								}
+							]
+						},
+						"description": "Validate and plan."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200\", () => pm.response.to.have.status(200));",
+									"const report = pm.response.json();",
+									"pm.test(\"has a SHACL report\", () => pm.expect(report.validation).to.have.property(\"conforms\"));",
+									"console.log(`conforms=${report.conforms} imported=${report.imported} created=${report.created} updated=${report.updated}`);",
+									"report.validation.results.forEach(r => console.log(`${r.severity} ${r.focusNode} ${r.path || \"\"}: ${r.message}`));",
+									"report.issues.forEach(i => console.log(`${i.severity} ${i.resource}: ${i.message}`));",
+									"pm.test(\"conforms\", () => pm.expect(report.conforms).to.be.true);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Import",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/ld+json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"@context\": {\n    \"dcat\": \"http://www.w3.org/ns/dcat#\",\n    \"dcatap\": \"http://data.europa.eu/r5r/\",\n    \"dct\": \"http://purl.org/dc/terms/\",\n    \"foaf\": \"http://xmlns.com/foaf/0.1/\",\n    \"vcard\": \"http://www.w3.org/2006/vcard/ns#\",\n    \"xsd\": \"http://www.w3.org/2001/XMLSchema#\",\n    \"rdfs\": \"http://www.w3.org/2000/01/rdf-schema#\"\n  },\n  \"@graph\": [\n    {\n      \"@id\": \"urn:catalog:puertos-es-ocean-forecast\",\n      \"@type\": \"dcat:Catalog\",\n      \"dct:title\": {\n        \"@value\": \"Catálogo de datos oceanográficos de Puertos del Estado\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Catálogo de metadatos para conjuntos de datos oceanográficos y de predicción marina publicados por Puertos del Estado conforme a DCAT-AP 3.0.1.\",\n        \"@language\": \"es\"\n      },\n      \"dct:publisher\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"foaf:homepage\": {\n        \"@id\": \"https://www.puertos.es/\"\n      },\n      \"dcat:themeTaxonomy\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/data-theme\"\n        }\n      ],\n      \"dcat:dataset\": [\n        {\n          \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\"\n        }\n      ],\n      \"dcat:record\": [\n        {\n          \"@id\": \"urn:record:fc-lastcycle-daily-palma\"\n        }\n      ]\n    },\n    {\n      \"@id\": \"urn:org:puertos-del-estado\",\n      \"@type\": \"foaf:Agent\",\n      \"foaf:name\": \"Puertos del Estado\",\n      \"foaf:homepage\": {\n        \"@id\": \"https://www.puertos.es/\"\n      }\n    },\n    {\n      \"@id\": \"urn:contact:puertos-del-estado\",\n      \"@type\": \"vcard:Kind\",\n      \"vcard:fn\": \"Contacto Puertos del Estado\",\n      \"vcard:url\": {\n        \"@id\": \"https://www.puertos.es/\"\n      }\n    },\n    {\n      \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\",\n      \"@type\": \"dcat:Dataset\",\n      \"dct:identifier\": \"fc-lastcycle-daily-palma\",\n      \"dct:title\": {\n        \"@value\": \"Predicción oceanográfica diaria de Palma - último ciclo\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Conjunto de datos oceanográficos para la zona de Palma publicado a través del catálogo THREDDS de Puertos del Estado. El fichero está en formato NetCDF y contiene variables para nivel del mar (marea) y corriente marina, incluyendo velocidad y dirección o sus componentes.\",\n        \"@language\": \"es\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"dct:publisher\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:creator\": {\n        \"@id\": \"urn:org:puertos-del-estado\"\n      },\n      \"dct:license\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/licence/UNKNOWN\"\n      },\n      \"dct:accessRights\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/access-right/PUBLIC\"\n      },\n      \"dct:accrualPeriodicity\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/frequency/DAILY\"\n      },\n      \"dct:spatial\": {\n        \"@type\": \"dct:Location\",\n        \"rdfs:label\": {\n          \"@value\": \"Zona marítima de Palma (Islas Baleares, España).\",\n          \"@language\": \"es\"\n        }\n      },\n      \"dct:issued\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:modified\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:temporal\": {\n        \"@type\": \"dct:PeriodOfTime\",\n        \"dcat:startDate\": {\n          \"@value\": \"2026-04-10T12:00:00\",\n          \"@type\": \"xsd:dateTime\"\n        },\n        \"dcat:endDate\": {\n          \"@value\": \"2026-04-12T12:00:00\",\n          \"@type\": \"xsd:dateTime\"\n        }\n      },\n      \"dcat:theme\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/data-theme/ENVI\"\n        }\n      ],\n      \"dcat:landingPage\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html\"\n      },\n      \"foaf:page\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html\"\n      },\n      \"dcat:contactPoint\": {\n        \"@id\": \"urn:contact:puertos-del-estado\"\n      },\n      \"dcat:keyword\": [\n        {\n          \"@value\": \"oceanografía\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"predicción marina\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"nivel del mar\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"marea\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"corriente marina\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"velocidad de corriente\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"dirección de corriente\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"NetCDF\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"THREDDS\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"OPeNDAP\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"Palma\",\n          \"@language\": \"es\"\n        },\n        {\n          \"@value\": \"Islas Baleares\",\n          \"@language\": \"es\"\n        }\n      ],\n      \"dcat:distribution\": [\n        {\n          \"@id\": \"urn:distribution:fc-lastcycle-daily-palma:netcdf\"\n        }\n      ]\n    },\n    {\n      \"@id\": \"urn:distribution:fc-lastcycle-daily-palma:netcdf\",\n      \"@type\": \"dcat:Distribution\",\n      \"dct:title\": {\n        \"@value\": \"Distribución NetCDF de la predicción oceanográfica diaria de Palma\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Fichero NetCDF accesible mediante THREDDS/OPeNDAP con variables de nivel del mar y corriente marina para la zona de Palma.\",\n        \"@language\": \"es\"\n      },\n      \"dcat:accessURL\": {\n        \"@id\": \"https://opendap.puertos.es/thredds/catalog/circulation_coastal_pam/latest-files/catalog.html?dataset=circulation_coastal_pam/latest-files/FC-lastcycle-daily.nc\"\n      },\n      \"dct:format\": {\n        \"@type\": \"dct:MediaTypeOrExtent\",\n        \"rdfs:label\": {\n          \"@value\": \"application/x-netcdf\",\n          \"@language\": \"en\"\n        }\n      },\n      \"dcat:mediaType\": {\n        \"@id\": \"https://www.iana.org/assignments/media-types/application/netcdf\"\n      },\n      \"dct:license\": {\n        \"@id\": \"http://publications.europa.eu/resource/authority/licence/UNKNOWN\"\n      }\n    },\n    {\n      \"@id\": \"urn:record:fc-lastcycle-daily-palma\",\n      \"@type\": \"dcat:CatalogRecord\",\n      \"foaf:primaryTopic\": {\n        \"@id\": \"urn:dataset:fc-lastcycle-daily-palma\"\n      },\n      \"dct:title\": {\n        \"@value\": \"Registro de catálogo de la predicción oceanográfica diaria de Palma\",\n        \"@language\": \"es\"\n      },\n      \"dct:description\": {\n        \"@value\": \"Registro DCAT-AP para el conjunto de datos de predicción oceanográfica diaria de Palma publicado por Puertos del Estado.\",\n        \"@language\": \"es\"\n      },\n      \"dct:language\": [\n        {\n          \"@id\": \"http://publications.europa.eu/resource/authority/language/SPA\"\n        }\n      ],\n      \"dct:conformsTo\": {\n        \"@id\": \"https://semiceu.github.io/DCAT-AP/releases/3.0.1/\"\n      },\n      \"dct:issued\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      },\n      \"dct:modified\": {\n        \"@value\": \"2026-04-12\",\n        \"@type\": \"xsd:date\"\n      }\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/import",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"import"
+							]
+						},
+						"description": "Write it."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200\", () => pm.response.to.have.status(200));",
+									"const report = pm.response.json();",
+									"pm.test(\"has a SHACL report\", () => pm.expect(report.validation).to.have.property(\"conforms\"));",
+									"console.log(`conforms=${report.conforms} imported=${report.imported} created=${report.created} updated=${report.updated}`);",
+									"report.validation.results.forEach(r => console.log(`${r.severity} ${r.focusNode} ${r.path || \"\"}: ${r.message}`));",
+									"report.issues.forEach(i => console.log(`${i.severity} ${i.resource}: ${i.message}`));",
+									"pm.test(\"is written\", () => pm.expect(report.imported).to.be.true);",
+									"const catalog = report.resources.find(r => r.type === \"Catalog\");",
+									"pm.collectionVariables.set(\"catalogId\", catalog.id);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Imported catalog in DCAT-AP",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/{{catalogId}}/profiles/dcat-ap",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"{{catalogId}}",
+								"profiles",
+								"dcat-ap"
+							]
+						},
+						"description": "What was imported, as the agent publishes it."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"says how much it shows\", () => {",
+									"  pm.expect(pm.response.headers.has(\"X-Total-Count\")).to.be.true;",
+									"  pm.expect(Number(pm.response.headers.get(\"X-Shown-Count\"))).to.be.at.most(Number(pm.response.headers.get(\"X-Total-Count\")));",
+									"});",
+									"pm.test(\"names its profile\", () => pm.expect(pm.response.headers.get(\"Link\")).to.include(\"rel=\\\"profile\\\"\"));",
+									"pm.test(\"has the Palma dataset\", () => pm.expect(pm.response.text()).to.include(\"urn:dataset:fc-lastcycle-daily-palma\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Doctor",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/{{catalogId}}/doctor?profile=dcat-ap&deep=true",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"{{catalogId}}",
+								"doctor"
+							],
+							"query": [
+								{
+									"key": "profile",
+									"value": "dcat-ap"
+								},
+								{
+									"key": "deep",
+									"value": "true"
+								}
+							]
+						},
+						"description": "DCAT-AP conformance, checked with the same SEMIC shapes."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"is DCAT-AP compliant\", () => pm.expect(pm.response.json().profiles[0].compliant).to.be.true);"
+								]
+							}
+						}
+					]
 				}
 			]
 		},

@@ -1,0 +1,258 @@
+{
+  "@context": {
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dcatap": "http://data.europa.eu/r5r/",
+    "dct": "http://purl.org/dc/terms/",
+    "foaf": "http://xmlns.com/foaf/0.1/",
+    "vcard": "http://www.w3.org/2006/vcard/ns#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#"
+  },
+  "@graph": [
+    {
+      "@id": "urn:catalog:puertos-es-ocean-forecast",
+      "@type": "dcat:Catalog",
+      "dct:title": {
+        "@value": "Catálogo de datos oceanográficos de Puertos del Estado",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Catálogo de metadatos para conjuntos de datos oceanográficos y de predicción marina publicados por Puertos del Estado conforme a DCAT-AP 3.0.1.",
+        "@language": "es"
+      },
+      "dct:publisher": {
+        "@id": "urn:org:puertos-del-estado"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "foaf:homepage": {
+        "@id": "https://www.puertos.es/"
+      },
+      "dcat:themeTaxonomy": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme"
+        }
+      ],
+      "dcat:dataset": [
+        {
+          "@id": "urn:dataset:fc-lastcycle-daily-mahon"
+        }
+      ],
+      "dcat:record": [
+        {
+          "@id": "urn:record:fc-lastcycle-daily-mahon"
+        }
+      ]
+    },
+    {
+      "@id": "urn:org:puertos-del-estado",
+      "@type": "foaf:Agent",
+      "foaf:name": "Puertos del Estado",
+      "foaf:homepage": {
+        "@id": "https://www.puertos.es/"
+      }
+    },
+    {
+      "@id": "urn:contact:puertos-del-estado",
+      "@type": "vcard:Kind",
+      "vcard:fn": "Contacto Puertos del Estado",
+      "vcard:url": {
+        "@id": "https://www.puertos.es/"
+      }
+    },
+    {
+      "@id": "urn:dataset:fc-lastcycle-daily-mahon",
+      "@type": "dcat:Dataset",
+      "dct:identifier": "fc-lastcycle-daily-mahon",
+      "dct:title": {
+        "@value": "Predicción oceanográfica diaria de Maó / Mahón - último ciclo",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Conjunto de datos oceanográficos para la zona de Maó / Mahón publicado a través del catálogo THREDDS de Puertos del Estado. El fichero está en formato NetCDF y contiene variables para nivel del mar (marea) y corriente marina, incluyendo velocidad y dirección o sus componentes.",
+        "@language": "es"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "dct:publisher": {
+        "@id": "urn:org:puertos-del-estado"
+      },
+      "dct:creator": {
+        "@id": "urn:org:puertos-del-estado"
+      },
+      "dct:license": {
+        "@id": "http://publications.europa.eu/resource/authority/licence/UNKNOWN"
+      },
+      "dct:accessRights": {
+        "@id": "http://publications.europa.eu/resource/authority/access-right/PUBLIC"
+      },
+      "dct:accrualPeriodicity": {
+        "@id": "http://publications.europa.eu/resource/authority/frequency/DAILY"
+      },
+      "dct:spatial": {
+        "@type": "dct:Location",
+        "rdfs:label": {
+          "@value": "Zona marítima de Maó / Mahón (Menorca, Islas Baleares, España).",
+          "@language": "es"
+        }
+      },
+      "dct:issued": {
+        "@value": "2026-04-12",
+        "@type": "xsd:date"
+      },
+      "dct:modified": {
+        "@value": "2026-04-12",
+        "@type": "xsd:date"
+      },
+      "dct:temporal": {
+        "@type": "dct:PeriodOfTime",
+        "dcat:startDate": {
+          "@value": "2026-04-10T12:00:00",
+          "@type": "xsd:dateTime"
+        },
+        "dcat:endDate": {
+          "@value": "2026-04-12T12:00:00",
+          "@type": "xsd:dateTime"
+        }
+      },
+      "dcat:theme": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme/ENVI"
+        }
+      ],
+      "dcat:landingPage": {
+        "@id": "https://opendap.puertos.es/thredds/catalog/circulation_coastal_mao/latest-files/catalog.html"
+      },
+      "foaf:page": {
+        "@id": "https://opendap.puertos.es/thredds/catalog/circulation_coastal_mao/latest-files/catalog.html"
+      },
+      "dcat:contactPoint": {
+        "@id": "urn:contact:puertos-del-estado"
+      },
+      "dcat:keyword": [
+        {
+          "@value": "oceanografía",
+          "@language": "es"
+        },
+        {
+          "@value": "predicción marina",
+          "@language": "es"
+        },
+        {
+          "@value": "nivel del mar",
+          "@language": "es"
+        },
+        {
+          "@value": "marea",
+          "@language": "es"
+        },
+        {
+          "@value": "corriente marina",
+          "@language": "es"
+        },
+        {
+          "@value": "velocidad de corriente",
+          "@language": "es"
+        },
+        {
+          "@value": "dirección de corriente",
+          "@language": "es"
+        },
+        {
+          "@value": "NetCDF",
+          "@language": "es"
+        },
+        {
+          "@value": "THREDDS",
+          "@language": "es"
+        },
+        {
+          "@value": "OPeNDAP",
+          "@language": "es"
+        },
+        {
+          "@value": "Maó",
+          "@language": "es"
+        },
+        {
+          "@value": "Mahón",
+          "@language": "es"
+        },
+        {
+          "@value": "Menorca",
+          "@language": "es"
+        }
+      ],
+      "dcat:distribution": [
+        {
+          "@id": "urn:distribution:fc-lastcycle-daily-mahon:netcdf"
+        }
+      ]
+    },
+    {
+      "@id": "urn:distribution:fc-lastcycle-daily-mahon:netcdf",
+      "@type": "dcat:Distribution",
+      "dct:title": {
+        "@value": "Distribución NetCDF de la predicción oceanográfica diaria de Maó / Mahón",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Fichero NetCDF accesible mediante THREDDS/OPeNDAP con variables de nivel del mar y corriente marina para la zona de Maó / Mahón.",
+        "@language": "es"
+      },
+      "dcat:accessURL": {
+        "@id": "https://opendap.puertos.es/thredds/catalog/circulation_coastal_mao/latest-files/catalog.html?dataset=circulation_coastal_mao/latest-files/FC-lastcycle-daily.nc"
+      },
+      "dct:format": {
+        "@type": "dct:MediaTypeOrExtent",
+        "rdfs:label": {
+          "@value": "application/x-netcdf",
+          "@language": "en"
+        }
+      },
+      "dcat:mediaType": {
+        "@id": "https://www.iana.org/assignments/media-types/application/netcdf"
+      },
+      "dct:license": {
+        "@id": "http://publications.europa.eu/resource/authority/licence/UNKNOWN"
+      }
+    },
+    {
+      "@id": "urn:record:fc-lastcycle-daily-mahon",
+      "@type": "dcat:CatalogRecord",
+      "foaf:primaryTopic": {
+        "@id": "urn:dataset:fc-lastcycle-daily-mahon"
+      },
+      "dct:title": {
+        "@value": "Registro de catálogo de la predicción oceanográfica diaria de Maó / Mahón",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Registro DCAT-AP para el conjunto de datos de predicción oceanográfica diaria de Maó / Mahón publicado por Puertos del Estado.",
+        "@language": "es"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "dct:conformsTo": {
+        "@id": "https://semiceu.github.io/DCAT-AP/releases/3.0.1/"
+      },
+      "dct:issued": {
+        "@value": "2026-04-12",
+        "@type": "xsd:date"
+      },
+      "dct:modified": {
+        "@value": "2026-04-12",
+        "@type": "xsd:date"
+      }
+    }
+  ]
+}

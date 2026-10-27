@@ -1,0 +1,337 @@
+{
+  "@context": {
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dcatap": "http://data.europa.eu/r5r/",
+    "dct": "http://purl.org/dc/terms/",
+    "foaf": "http://xmlns.com/foaf/0.1/",
+    "vcard": "http://www.w3.org/2006/vcard/ns#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@graph": [
+    {
+      "@id": "urn:catalog:copernicus-cds",
+      "@type": "dcat:Catalog",
+      "dct:title": {
+        "@value": "Copernicus Climate Data Store Catalogue",
+        "@language": "en"
+      },
+      "dct:description": {
+        "@value": "Catalogue entry for datasets published through the Copernicus Climate Data Store (CDS) and described using DCAT-AP 3.0.1.",
+        "@language": "en"
+      },
+      "dct:publisher": {
+        "@id": "urn:org:copernicus-c3s"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/ENG"
+        }
+      ],
+      "foaf:homepage": {
+        "@id": "https://cds.climate.copernicus.eu/"
+      },
+      "dcat:themeTaxonomy": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme"
+        }
+      ],
+      "dcat:dataset": [
+        {
+          "@id": "urn:dataset:copernicus-era5-single-levels-u10-v10-hourly-global-subset-v1"
+        }
+      ],
+      "dcat:service": [
+        {
+          "@id": "urn:service:copernicus-cds-api"
+        }
+      ],
+      "dcat:record": [
+        {
+          "@id": "urn:record:copernicus-era5-single-levels-u10-v10-hourly-global-subset-v1"
+        }
+      ]
+    },
+    {
+      "@id": "urn:org:copernicus-c3s",
+      "@type": "foaf:Agent",
+      "foaf:name": [
+        {
+          "@value": "Copernicus Climate Change Service (C3S)",
+          "@language": "en"
+        }
+      ],
+      "foaf:homepage": {
+        "@id": "https://cds.climate.copernicus.eu/"
+      }
+    },
+    {
+      "@id": "urn:org:ecmwf",
+      "@type": "foaf:Agent",
+      "foaf:name": [
+        {
+          "@value": "European Centre for Medium-Range Weather Forecasts",
+          "@language": "en"
+        }
+      ],
+      "foaf:homepage": {
+        "@id": "https://www.ecmwf.int/"
+      }
+    },
+    {
+      "@id": "urn:contact:cds-help",
+      "@type": "vcard:Kind",
+      "vcard:fn": {
+        "@value": "Climate Data Store Help",
+        "@language": "en"
+      },
+      "vcard:url": {
+        "@id": "https://cds.climate.copernicus.eu/help"
+      }
+    },
+    {
+      "@id": "urn:dataset:copernicus-era5-single-levels-u10-v10-hourly-global-subset-v1",
+      "@type": "dcat:Dataset",
+      "dct:identifier": "copernicus-era5-single-levels-u10-v10-hourly-global-subset-v1",
+      "dct:title": {
+        "@value": "ERA5 hourly single levels subset – 10 m wind components (NetCDF extract)",
+        "@language": "en"
+      },
+      "dct:description": {
+        "@value": "Subset extract derived from the Copernicus Climate Data Store dataset 'ERA5 hourly data on single levels from 1940 to present'. This NetCDF file contains hourly global reanalysis data for the 10 metre U wind component and the 10 metre V wind component on a regular latitude-longitude grid with 0.25 degree spacing. The extract covers the period from 2026-02-01T00:00:00Z to 2026-02-03T23:00:00Z. The parent ERA5 dataset is part of the fifth generation ECMWF reanalysis distributed through the Copernicus Climate Data Store.",
+        "@language": "en"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/ENG"
+        }
+      ],
+      "dct:publisher": {
+        "@id": "urn:org:copernicus-c3s"
+      },
+      "dct:creator": {
+        "@id": "urn:org:ecmwf"
+      },
+      "dct:source": {
+        "@id": "https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels"
+      },
+      "dct:license": {
+        "@id": "https://cds.climate.copernicus.eu/licences/creative-commons-attribution-4-0-international-public-licence"
+      },
+      "dct:accessRights": {
+        "@id": "http://publications.europa.eu/resource/authority/access-right/RESTRICTED"
+      },
+      "dct:issued": {
+        "@value": "2018-06-14",
+        "@type": "xsd:date"
+      },
+      "dct:modified": {
+        "@value": "2026-03-06",
+        "@type": "xsd:date"
+      },
+      "dct:temporal": {
+        "@type": "dct:PeriodOfTime",
+        "dcat:startDate": {
+          "@value": "2026-02-01T00:00:00Z",
+          "@type": "xsd:dateTime"
+        },
+        "dcat:endDate": {
+          "@value": "2026-02-03T23:00:00Z",
+          "@type": "xsd:dateTime"
+        }
+      },
+      "dcat:theme": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme/ENVI"
+        }
+      ],
+      "dcat:landingPage": {
+        "@id": "https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=download"
+      },
+      "foaf:page": [
+        {
+          "@id": "https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=documentation"
+        },
+        {
+          "@id": "https://cds.climate.copernicus.eu/how-to-api"
+        }
+      ],
+      "dcat:contactPoint": {
+        "@id": "urn:contact:cds-help"
+      },
+      "dcat:keyword": [
+        {
+          "@value": "ERA5",
+          "@language": "en"
+        },
+        {
+          "@value": "Copernicus",
+          "@language": "en"
+        },
+        {
+          "@value": "C3S",
+          "@language": "en"
+        },
+        {
+          "@value": "reanalysis",
+          "@language": "en"
+        },
+        {
+          "@value": "hourly",
+          "@language": "en"
+        },
+        {
+          "@value": "single levels",
+          "@language": "en"
+        },
+        {
+          "@value": "10m u component of wind",
+          "@language": "en"
+        },
+        {
+          "@value": "10m v component of wind",
+          "@language": "en"
+        },
+        {
+          "@value": "global",
+          "@language": "en"
+        },
+        {
+          "@value": "NetCDF",
+          "@language": "en"
+        }
+      ],
+      "dcat:distribution": [
+        {
+          "@id": "urn:distribution:copernicus-era5-single-levels-u10-v10-hourly-global-subset-v1:netcdf"
+        }
+      ]
+    },
+    {
+      "@id": "urn:distribution:copernicus-era5-single-levels-u10-v10-hourly-global-subset-v1:netcdf",
+      "@type": "dcat:Distribution",
+      "dct:title": {
+        "@value": "NetCDF distribution of the ERA5 hourly single-level subset",
+        "@language": "en"
+      },
+      "dct:description": {
+        "@value": "NetCDF distribution of a CDS ERA5 subset containing hourly 10 metre U and V wind components. Access to the parent dataset is provided through the CDS download interface and the CDS API, subject to user registration and acceptance of the dataset terms of use.",
+        "@language": "en"
+      },
+      "dcat:accessURL": {
+        "@id": "https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=download"
+      },
+      "dct:format": {
+        "@id": "http://publications.europa.eu/resource/authority/file-type/NETCDF"
+      },
+      "dcat:mediaType": {
+        "@id": "https://www.iana.org/assignments/media-types/application/netcdf"
+      },
+      "dct:license": {
+        "@id": "https://cds.climate.copernicus.eu/licences/creative-commons-attribution-4-0-international-public-licence"
+      },
+      "dcat:accessService": {
+        "@id": "urn:service:copernicus-cds-api"
+      }
+    },
+    {
+      "@id": "urn:service:copernicus-cds-api",
+      "@type": "dcat:DataService",
+      "dct:title": {
+        "@value": "Copernicus Climate Data Store API",
+        "@language": "en"
+      },
+      "dct:description": {
+        "@value": "Programmatic access service for datasets distributed through the Copernicus Climate Data Store. The service supports dataset retrieval through the CDS API. Users must sign in, configure a personal access token, and agree to the terms of use of a dataset before downloading data.",
+        "@language": "en"
+      },
+      "dcat:endpointURL": {
+        "@id": "https://cds.climate.copernicus.eu/api"
+      },
+      "dcat:endpointDescription": {
+        "@id": "https://cds.climate.copernicus.eu/how-to-api"
+      },
+      "dct:publisher": {
+        "@id": "urn:org:copernicus-c3s"
+      },
+      "dct:accessRights": {
+        "@id": "http://publications.europa.eu/resource/authority/access-right/RESTRICTED"
+      },
+      "dct:license": {
+        "@id": "https://cds.climate.copernicus.eu/licences/creative-commons-attribution-4-0-international-public-licence"
+      },
+      "dcat:theme": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme/ENVI"
+        }
+      ],
+      "dcat:contactPoint": {
+        "@id": "urn:contact:cds-help"
+      },
+      "dcat:keyword": [
+        {
+          "@value": "API",
+          "@language": "en"
+        },
+        {
+          "@value": "CDS",
+          "@language": "en"
+        },
+        {
+          "@value": "ERA5",
+          "@language": "en"
+        },
+        {
+          "@value": "NetCDF",
+          "@language": "en"
+        }
+      ],
+      "foaf:page": [
+        {
+          "@id": "https://cds.climate.copernicus.eu/how-to-api"
+        },
+        {
+          "@id": "https://cds.climate.copernicus.eu/api/catalogue/v1/docs"
+        }
+      ],
+      "dcat:servesDataset": {
+        "@id": "urn:dataset:copernicus-era5-single-levels-u10-v10-hourly-global-subset-v1"
+      }
+    },
+    {
+      "@id": "urn:record:copernicus-era5-single-levels-u10-v10-hourly-global-subset-v1",
+      "@type": "dcat:CatalogRecord",
+      "foaf:primaryTopic": {
+        "@id": "urn:dataset:copernicus-era5-single-levels-u10-v10-hourly-global-subset-v1"
+      },
+      "dct:title": {
+        "@value": "DCAT-AP record for the ERA5 hourly single-level subset dataset",
+        "@language": "en"
+      },
+      "dct:description": {
+        "@value": "Catalog record describing a NetCDF subset derived from the ERA5 hourly single-level dataset in the Copernicus Climate Data Store.",
+        "@language": "en"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/ENG"
+        }
+      ],
+      "dct:conformsTo": [
+        {
+          "@id": "https://semiceu.github.io/DCAT-AP/releases/3.0.1/"
+        }
+      ],
+      "dct:source": {
+        "@id": "https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels"
+      },
+      "dct:issued": {
+        "@value": "2026-03-06",
+        "@type": "xsd:date"
+      },
+      "dct:modified": {
+        "@value": "2026-03-06",
+        "@type": "xsd:date"
+      }
+    }
+  ]
+}

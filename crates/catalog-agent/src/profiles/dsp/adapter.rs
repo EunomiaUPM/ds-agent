@@ -21,6 +21,8 @@
 
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::odrl::{OdrlOffer, OdrlPolicyInfo, OdrlTypes};
+use common::dsp_common::rdf::DspProfile;
+use common::rdf::RdfEngine;
 use serde_json::{json, Map, Value};
 use ymir::errors::Outcome;
 
@@ -98,7 +100,10 @@ impl DspProfileAdapter {
     fn catalog(&self, set: &ResourceSet, catalog: &CatalogResource) -> Map<String, Value> {
         let id = catalog.id().to_string();
         let mut node = self.properties(catalog, ResourceKind::Catalog);
-        if let Some(participant) = catalog.description().first_value(Vocab::DSPACE_PARTICIPANT_ID) {
+        if let Some(participant) = catalog
+            .description()
+            .first_value(Vocab::DSPACE_PARTICIPANT_ID)
+        {
             node.insert("participantId".into(), json!(participant));
         }
         if catalog.is_main() {
@@ -138,7 +143,11 @@ impl DspProfileAdapter {
         node
     }
 
-    fn distribution(&self, set: &ResourceSet, distribution: &CatalogResource) -> Map<String, Value> {
+    fn distribution(
+        &self,
+        set: &ResourceSet,
+        distribution: &CatalogResource,
+    ) -> Map<String, Value> {
         let mut node = self.properties(distribution, ResourceKind::Distribution);
         let description = distribution.description();
         if let Some(format) = description.first_value(Vocab::DCT_FORMAT) {
@@ -270,14 +279,22 @@ impl ProfileAdapterTrait for DspProfileAdapter {
             }
             other => {
                 let mut node = Compactor::new(&self.terms).node(root.description().as_map());
-                node.insert("@type".into(), json!(self.terms.class_term(other.class_iri())));
+                node.insert(
+                    "@type".into(),
+                    json!(self.terms.class_term(other.class_iri())),
+                );
                 node.insert("@context".into(), Self::context_field());
                 Value::Object(node)
             }
         })
     }
 
-    fn diagnose(&self, set: &ResourceSet, root: &CatalogResource, deep: bool) -> Outcome<ProfileDiagnosis> {
+    fn diagnose(
+        &self,
+        set: &ResourceSet,
+        root: &CatalogResource,
+        deep: bool,
+    ) -> Outcome<ProfileDiagnosis> {
         let checked: Vec<&CatalogResource> = if deep {
             std::iter::once(root)
                 .chain(set.iter().filter(|r| r.id() != root.id()))
@@ -287,7 +304,10 @@ impl ProfileAdapterTrait for DspProfileAdapter {
         };
         let mut findings = Vec::new();
         for resource in checked {
-            findings.extend(self.rules.check(resource.kind(), &EffectiveGraph::of(resource, set)));
+            findings.extend(
+                self.rules
+                    .check(resource.kind(), &EffectiveGraph::of(resource, set)),
+            );
             if resource.kind() == ResourceKind::Catalog {
                 findings.extend(Self::participant_finding(resource));
                 findings.extend(Self::catalog_offer_finding(set, resource));
@@ -300,7 +320,14 @@ impl ProfileAdapterTrait for DspProfileAdapter {
             ResourceKind::Dataset => ResourceKind::Dataset,
             _ => ResourceKind::Agent,
         };
-        findings.extend(self.schemas.check_schema(schema_kind, root.id().as_ref(), &projection));
+        findings.extend(
+            self.schemas
+                .check_schema(schema_kind, root.id().as_ref(), &projection),
+        );
         Ok(ProfileDiagnosis::from_findings(self, findings))
+    }
+
+    fn engine(&self) -> &'static RdfEngine {
+        DspProfile::shared()
     }
 }

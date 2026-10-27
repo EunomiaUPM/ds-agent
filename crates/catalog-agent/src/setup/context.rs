@@ -29,6 +29,8 @@ use crate::cache::CatalogCacheTrait;
 use crate::data::factory::DataFactory;
 use crate::data::sea_orm::factory::SeaOrmDataFactory;
 use crate::profiles::ProfileRegistry;
+use crate::services::catalog_import::service::CatalogImportService;
+use crate::services::catalog_import::CatalogImportServiceTrait;
 use crate::services::closure::service::ClosureService;
 use crate::services::closure::ClosureServiceTrait;
 use crate::services::dataset_offerings::service::DatasetOfferingService;
@@ -45,6 +47,8 @@ use crate::services::policy_instantiation::service::PolicyInstantiationService;
 use crate::services::policy_instantiation::PolicyInstantiationServiceTrait;
 use crate::services::policy_templates::service::PolicyTemplateService;
 use crate::services::policy_templates::PolicyTemplateServiceTrait;
+use crate::services::projection::service::ProjectionService;
+use crate::services::projection::ProjectionServiceTrait;
 use crate::services::resources::service::ResourceService;
 use crate::services::resources::ResourceServiceTrait;
 use crate::setup::ports::CatalogPorts;
@@ -74,6 +78,8 @@ pub struct CatalogServices {
     pub peer_catalogs: Arc<dyn PeerCatalogServiceTrait>,
     pub main_catalog: Arc<dyn MainCatalogServiceTrait>,
     pub doctor: Arc<dyn DoctorServiceTrait>,
+    pub projections: Arc<dyn ProjectionServiceTrait>,
+    pub imports: Arc<dyn CatalogImportServiceTrait>,
 }
 
 impl CatalogServices {
@@ -89,6 +95,8 @@ impl CatalogServices {
             peer_catalogs: Arc::new(PeerCatalogService::new(ctx.clone())),
             main_catalog: Arc::new(MainCatalogService::new(ctx.clone())),
             doctor: Arc::new(DoctorService::new(ctx.clone())),
+            projections: Arc::new(ProjectionService::new(ctx.clone())),
+            imports: Arc::new(CatalogImportService::new(ctx.clone())),
         }
     }
 }
@@ -174,6 +182,14 @@ impl AppContext {
 
     pub fn doctor(&self) -> &Arc<dyn DoctorServiceTrait> {
         &self.services().doctor
+    }
+
+    pub fn projections(&self) -> &Arc<dyn ProjectionServiceTrait> {
+        &self.services().projections
+    }
+
+    pub fn imports(&self) -> &Arc<dyn CatalogImportServiceTrait> {
+        &self.services().imports
     }
 
     fn services(&self) -> &CatalogServices {

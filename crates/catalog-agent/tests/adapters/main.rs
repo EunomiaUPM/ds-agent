@@ -15,13 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! The driving adapters over mocked services: the management API, the DSP routes, the public
-//! profile routes and the gRPC mirror.
+//! The driving adapters over mocked services: the management API, catalog import and export,
+//! the DSP routes, the public profile routes and the gRPC mirror.
 
 #[path = "../support/mod.rs"]
 mod support;
 
 mod grpc_resources;
+mod http_catalog_exchange;
 mod http_dsp;
 mod http_odrl_policies;
 mod http_public;

@@ -24,3 +24,4 @@ mod dcat3;
 mod dcat_ap;
 mod dsp;
 mod registry;
+mod shacl;

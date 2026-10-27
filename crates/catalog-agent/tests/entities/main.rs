@@ -23,6 +23,8 @@ mod support;
 mod admin_document;
 mod compaction;
 mod graph;
+mod import_plan;
 mod policy_instantiation;
 mod resource;
 mod resource_kind;
+mod resource_set;

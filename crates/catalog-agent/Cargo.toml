@@ -45,6 +45,7 @@ regex = { workspace = true }
 ymir = { workspace = true }
 sha2 = { workspace = true }
 hex = "0.4"
+oxrdf = { workspace = true }
 
 [build-dependencies]
 tonic-prost-build = { workspace = true }

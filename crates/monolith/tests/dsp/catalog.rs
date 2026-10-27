@@ -103,3 +103,37 @@ async fn published_dataset_is_seen_by_every_profile() {
         .await;
     assert_eq!(found["response"]["distribution"][0]["format"], "http+pull", "{found}");
 }
+
+/// A DCAT-AP document of the EDACCIT deployment is validated, imported in one go, projected
+/// back in DCAT-AP and found conforming; importing it again updates the same resources.
+#[tokio::test]
+#[ignore = "needs DATABASE_URL"]
+async fn dcat_ap_document_is_imported_and_projected_back() {
+    let ds = Dataspace::start().await;
+    let document: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../catalog-agent/tests/fixtures/dcat-ap/fc-lastcycle-daily-palma.jsonld"
+    ))
+    .unwrap();
+
+    let dry = ds.provider.post("/api/v1/catalog-agent/catalogs/import?dryRun=true", document.clone()).await;
+    assert_eq!(dry["conforms"], true, "{dry}");
+    assert_eq!(dry["imported"], false, "{dry}");
+
+    let report = ds.provider.post("/api/v1/catalog-agent/catalogs/import", document.clone()).await;
+    assert_eq!(report["imported"], true, "{report}");
+    assert_eq!(report["created"], 5, "{report}");
+    let catalog = "urn:catalog:puertos-es-ocean-forecast";
+
+    let projected = ds.provider.get(&format!("/api/v1/catalog-agent/catalogs/{catalog}/profiles/dcat-ap")).await;
+    let ids: Vec<&str> = projected["@graph"].as_array().unwrap().iter().filter_map(|n| n["@id"].as_str()).collect();
+    assert!(ids.contains(&"urn:dataset:fc-lastcycle-daily-palma"), "{projected}");
+
+    let doctor = ds
+        .provider
+        .get(&format!("/api/v1/catalog-agent/catalogs/{catalog}/doctor?profile=dcat-ap&deep=true"))
+        .await;
+    assert_eq!(doctor["profiles"][0]["compliant"], true, "{doctor}");
+
+    let again = ds.provider.post("/api/v1/catalog-agent/catalogs/import", document).await;
+    assert_eq!((again["created"].as_u64(), again["updated"].as_u64()), (Some(0), Some(5)), "{again}");
+}

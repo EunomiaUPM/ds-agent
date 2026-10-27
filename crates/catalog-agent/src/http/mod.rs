@@ -16,8 +16,9 @@
  */
 
 //! The management API (internal: users): every kind of resource as JSON-LD, plus offers,
-//! templates, offerings and the catalogs fetched from peers.
+//! templates, offerings, the catalogs fetched from peers and catalog import and export.
 
+pub mod catalog_exchange;
 pub mod common;
 pub mod dataset_offerings;
 pub mod odrl_policies;

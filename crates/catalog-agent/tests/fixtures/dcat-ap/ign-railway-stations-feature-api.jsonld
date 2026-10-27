@@ -1,0 +1,226 @@
+{
+  "@context": {
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dcatap": "http://data.europa.eu/r5r/",
+    "dct": "http://purl.org/dc/terms/",
+    "foaf": "http://xmlns.com/foaf/0.1/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@graph": [
+    {
+      "@id": "urn:catalog:ign",
+      "@type": "dcat:Catalog",
+      "dct:title": {
+        "@value": "Catálogo de recursos del IGN",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Entrada de catálogo para recursos geográficos del Instituto Geográfico Nacional descritos conforme a DCAT-AP 3.0.1.",
+        "@language": "es"
+      },
+      "dct:publisher": {
+        "@id": "urn:org:ign"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "foaf:homepage": {
+        "@id": "https://www.ign.es/"
+      },
+      "dcat:themeTaxonomy": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme"
+        }
+      ],
+      "dcat:dataset": [
+        {
+          "@id": "urn:dataset:ign-red-ferrocarriles-estaciones"
+        }
+      ],
+      "dcat:record": [
+        {
+          "@id": "urn:record:ign-red-ferrocarriles-estaciones"
+        }
+      ]
+    },
+    {
+      "@id": "urn:org:ign",
+      "@type": "foaf:Agent",
+      "foaf:name": [
+        {
+          "@value": "Instituto Geográfico Nacional (IGN)",
+          "@language": "es"
+        }
+      ],
+      "foaf:homepage": {
+        "@id": "https://www.ign.es/"
+      }
+    },
+    {
+      "@id": "urn:dataset:ign-red-ferrocarriles-estaciones",
+      "@type": "dcat:Dataset",
+      "dct:identifier": "ign-red-ferrocarriles-estaciones",
+      "dct:title": {
+        "@value": "Red de ferrocarriles de España – Estaciones",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Capa de entidades de estaciones de la Red de ferrocarriles de España, basada en datos del Instituto Geográfico Nacional. Forma parte de una base de datos de la red intermodal de transporte, tridimensional, lineal, continua y con topología implícita, que contiene las infraestructuras y conexiones de la red de transporte por ferrocarril en España. La información tiene ámbito nacional. En la capa Estaciones las geometrías son puntuales y se incluyen campos como fecha_alta, cod_est, estadofis, estadofisd, id_estfc, n_andenes, nombre, tipo_estfc, tipo_estfd, tipo_uso y tipo_usod. La ficha indica que la fecha de última actualización de los datos por la fuente oficial es 2024-05-27 y la fecha de descarga y publicación en ArcGIS Online es 2024-06-14.",
+        "@language": "es"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "dct:publisher": {
+        "@id": "urn:org:ign"
+      },
+      "dct:creator": {
+        "@id": "urn:org:ign"
+      },
+      "dct:license": {
+        "@id": "https://www.scne.es/productos/licencia-cc-by-40"
+      },
+      "dct:accessRights": {
+        "@id": "http://publications.europa.eu/resource/authority/access-right/PUBLIC"
+      },
+      "dct:spatial": {
+        "@id": "http://publications.europa.eu/resource/authority/country/ESP"
+      },
+      "dct:issued": {
+        "@value": "2024-06-14",
+        "@type": "xsd:date"
+      },
+      "dct:modified": {
+        "@value": "2025-07-17",
+        "@type": "xsd:date"
+      },
+      "dct:temporal": {
+        "@type": "dct:PeriodOfTime",
+        "dcat:startDate": {
+          "@value": "2018-09-24",
+          "@type": "xsd:date"
+        },
+        "dcat:endDate": {
+          "@value": "2024-12-09",
+          "@type": "xsd:date"
+        }
+      },
+      "dcat:theme": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme/TRAN"
+        }
+      ],
+      "dcat:landingPage": {
+        "@id": "https://www.arcgis.com/home/item.html?id=c68d7c5e350c47cb9ad7ac491c327115"
+      },
+      "foaf:page": [
+        {
+          "@id": "https://www.arcgis.com/home/item.html?id=a8b2fbacecc347acb1ef013c48bb25f9"
+        }
+      ],
+      "dcat:keyword": [
+        {
+          "@value": "IGN",
+          "@language": "es"
+        },
+        {
+          "@value": "ferrocarril",
+          "@language": "es"
+        },
+        {
+          "@value": "estaciones",
+          "@language": "es"
+        },
+        {
+          "@value": "infraestructura ferroviaria",
+          "@language": "es"
+        },
+        {
+          "@value": "red de transporte",
+          "@language": "es"
+        },
+        {
+          "@value": "España",
+          "@language": "es"
+        },
+        {
+          "@value": "ArcGIS",
+          "@language": "es"
+        },
+        {
+          "@value": "Living Atlas",
+          "@language": "es"
+        }
+      ],
+      "dcat:distribution": [
+        {
+          "@id": "urn:distribution:ign-red-ferrocarriles-estaciones:json-feature-layer"
+        }
+      ]
+    },
+    {
+      "@id": "urn:distribution:ign-red-ferrocarriles-estaciones:json-feature-layer",
+      "@type": "dcat:Distribution",
+      "dct:title": {
+        "@value": "Distribución JSON de la capa Estaciones",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Distribución accesible mediante una feature layer de ArcGIS Online correspondiente a la capa Estaciones de la Red de ferrocarriles de España. La respuesta incluye atributos y geometrías puntuales en referencia espacial EPSG:4258 según el JSON proporcionado.",
+        "@language": "es"
+      },
+      "dcat:accessURL": {
+        "@id": "https://edaccit.esrilab.es/server"
+      },
+      "dct:format": {
+        "@id": "http://publications.europa.eu/resource/authority/file-type/JSON"
+      },
+      "dcat:mediaType": {
+        "@id": "https://www.iana.org/assignments/media-types/application/json"
+      },
+      "dct:license": {
+        "@id": "https://www.scne.es/productos/licencia-cc-by-40"
+      }
+    },
+    {
+      "@id": "urn:record:ign-red-ferrocarriles-estaciones",
+      "@type": "dcat:CatalogRecord",
+      "foaf:primaryTopic": {
+        "@id": "urn:dataset:ign-red-ferrocarriles-estaciones"
+      },
+      "dct:title": {
+        "@value": "Registro DCAT-AP de la capa Estaciones de la Red de ferrocarriles de España",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Registro de catálogo para la descripción DCAT-AP de la capa Estaciones de la Red de ferrocarriles de España con datos del IGN.",
+        "@language": "es"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "dct:conformsTo": [
+        {
+          "@id": "https://semiceu.github.io/DCAT-AP/releases/3.0.1/"
+        }
+      ],
+      "dct:source": {
+        "@id": "https://www.arcgis.com/home/item.html?id=c68d7c5e350c47cb9ad7ac491c327115"
+      },
+      "dct:issued": {
+        "@value": "2026-03-06",
+        "@type": "xsd:date"
+      },
+      "dct:modified": {
+        "@value": "2026-03-06",
+        "@type": "xsd:date"
+      }
+    }
+  ]
+}

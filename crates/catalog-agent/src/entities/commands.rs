@@ -56,6 +56,32 @@ pub struct ReplaceResourceCommand {
     pub expected_version: Option<i64>,
 }
 
+/// What an import does with a resource that is already stored.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ImportMode {
+    /// Replaces its description, one version on.
+    #[default]
+    Upsert,
+    /// Refuses the import.
+    Create,
+}
+
+/// A DCAT document to validate and load.
+#[derive(Debug, Clone)]
+pub struct ImportCatalogCommand {
+    /// The profile whose shapes validate it (`dcat-ap`, `dcat3`).
+    pub profile: String,
+    pub mode: ImportMode,
+    /// Validates and plans without writing.
+    pub dry_run: bool,
+    /// The catalog the document's resources go into; its own catalogs are then not stored.
+    pub target: Option<Urn>,
+    /// The shape groups to run; the profile's defaults when empty.
+    pub checks: Vec<String>,
+    pub visibility: Option<Visibility>,
+}
+
 /// New ODRL offer on a catalog resource.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]

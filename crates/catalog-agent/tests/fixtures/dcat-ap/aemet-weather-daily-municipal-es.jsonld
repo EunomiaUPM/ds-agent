@@ -1,0 +1,322 @@
+{
+  "@context": {
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dcatap": "http://data.europa.eu/r5r/",
+    "dct": "http://purl.org/dc/terms/",
+    "foaf": "http://xmlns.com/foaf/0.1/",
+    "vcard": "http://www.w3.org/2006/vcard/ns#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@graph": [
+    {
+      "@id": "urn:catalog:esri-spain-aemet",
+      "@type": "dcat:Catalog",
+      "dct:title": {
+        "@value": "Catálogo de recursos meteorológicos AEMET publicados por Esri España",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Entrada de catálogo para recursos meteorológicos publicados conforme a DCAT-AP 3.0.1.",
+        "@language": "es"
+      },
+      "dct:publisher": {
+        "@id": "urn:org:esri-spain"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "foaf:homepage": {
+        "@id": "https://www.esri.es/es-es/home"
+      },
+      "dcat:themeTaxonomy": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme"
+        }
+      ],
+      "dcat:dataset": [
+        {
+          "@id": "urn:dataset:aemet-weather-daily-municipal-es"
+        }
+      ],
+      "dcat:service": [
+        {
+          "@id": "urn:service:aemet-weather-daily-municipal-es:arcgis-feature-service"
+        }
+      ],
+      "dcat:record": [
+        {
+          "@id": "urn:record:aemet-weather-daily-municipal-es"
+        }
+      ]
+    },
+    {
+      "@id": "urn:org:esri-spain",
+      "@type": "foaf:Agent",
+      "foaf:name": [
+        {
+          "@value": "Esri España",
+          "@language": "es"
+        }
+      ],
+      "foaf:homepage": {
+        "@id": "https://www.esri.es/es-es/home"
+      }
+    },
+    {
+      "@id": "urn:org:aemet",
+      "@type": "foaf:Agent",
+      "foaf:name": [
+        {
+          "@value": "Agencia Estatal de Meteorología (AEMET)",
+          "@language": "es"
+        }
+      ],
+      "foaf:homepage": {
+        "@id": "https://www.aemet.es/es/portada"
+      }
+    },
+    {
+      "@id": "urn:contact:esri-spain",
+      "@type": "vcard:Kind",
+      "vcard:fn": {
+        "@value": "Contacto Esri España",
+        "@language": "es"
+      },
+      "vcard:hasEmail": {
+        "@value": "mailto:informacion@esri.es"
+      },
+      "vcard:hasTelephone": {
+        "@value": "tel:+34915594375"
+      },
+      "vcard:url": {
+        "@id": "https://www.esri.es/es-es/acerca-de/contacto/contacto"
+      }
+    },
+    {
+      "@id": "urn:dataset:aemet-weather-daily-municipal-es",
+      "@type": "dcat:Dataset",
+      "dct:identifier": "aemet-weather-daily-municipal-es",
+      "dct:title": {
+        "@value": "Predicción meteorológica diaria por municipio en España (fuente AEMET)",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Dataset de predicción meteorológica diaria por municipio en España. El recurso es ofrecido por Esri España y la información meteorológica procede de la Agencia Estatal de Meteorología (AEMET). Se actualiza diariamente a las 09:15 GMT mediante un procedimiento automatizado. El servicio cubre más de 1.700 municipios distribuidos de forma uniforme por el territorio nacional y representa cada municipio mediante una entidad puntual correspondiente a su centroide. Incluye variables como probabilidad de precipitación, cota de nieve, estado y descripción del cielo, racha máxima, temperatura máxima y mínima, sensación térmica máxima y mínima, humedad relativa máxima y mínima, velocidad y dirección del viento e índice UV máximo. El sistema de coordenadas utilizado es WGS84 Web Mercator. La información se ofrece con fines de demostración y no se permite su uso en entornos productivos según las condiciones indicadas por el proveedor.",
+        "@language": "es"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "dct:publisher": {
+        "@id": "urn:org:esri-spain"
+      },
+      "dct:creator": {
+        "@id": "urn:org:aemet"
+      },
+      "dct:source": {
+        "@id": "https://www.aemet.es/es/portada"
+      },
+      "dct:accessRights": {
+        "@id": "http://publications.europa.eu/resource/authority/access-right/PUBLIC"
+      },
+      "dct:accrualPeriodicity": {
+        "@id": "http://publications.europa.eu/resource/authority/frequency/DAILY"
+      },
+      "dct:spatial": {
+        "@id": "http://publications.europa.eu/resource/authority/country/ESP"
+      },
+      "dct:issued": {
+        "@value": "2025-12-01T15:56:15Z",
+        "@type": "xsd:dateTime"
+      },
+      "dct:modified": {
+        "@value": "2025-12-02T14:17:55Z",
+        "@type": "xsd:dateTime"
+      },
+      "dcat:theme": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme/ENVI"
+        }
+      ],
+      "dcat:landingPage": {
+        "@id": "https://services1.arcgis.com/nCKYwcSONQTkPA4K/arcgis/rest/services/Predicción_Meteorológica_diaria_de_España_(Fuente_Aemet)/FeatureServer"
+      },
+      "dcat:contactPoint": {
+        "@id": "urn:contact:esri-spain"
+      },
+      "dcat:keyword": [
+        {
+          "@value": "predicción meteorológica",
+          "@language": "es"
+        },
+        {
+          "@value": "meteorología",
+          "@language": "es"
+        },
+        {
+          "@value": "AEMET",
+          "@language": "es"
+        },
+        {
+          "@value": "municipios",
+          "@language": "es"
+        },
+        {
+          "@value": "España",
+          "@language": "es"
+        },
+        {
+          "@value": "precipitación",
+          "@language": "es"
+        },
+        {
+          "@value": "temperatura",
+          "@language": "es"
+        },
+        {
+          "@value": "viento",
+          "@language": "es"
+        },
+        {
+          "@value": "humedad",
+          "@language": "es"
+        },
+        {
+          "@value": "índice UV",
+          "@language": "es"
+        }
+      ],
+      "dcat:distribution": [
+        {
+          "@id": "urn:distribution:aemet-weather-daily-municipal-es:feature-service-access"
+        }
+      ]
+    },
+    {
+      "@id": "urn:distribution:aemet-weather-daily-municipal-es:feature-service-access",
+      "@type": "dcat:Distribution",
+      "dct:title": {
+        "@value": "Acceso al servicio ArcGIS Feature Service",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Distribución de acceso al recurso mediante servicio ArcGIS REST FeatureServer de acceso público. La información se ofrece con fines de demostración y no se permite su uso en entornos productivos según las condiciones indicadas por el proveedor.",
+        "@language": "es"
+      },
+      "dcat:accessURL": {
+        "@id": "https://services1.arcgis.com/nCKYwcSONQTkPA4K/arcgis/rest/services/Predicción_Meteorológica_diaria_de_España_(Fuente_Aemet)/FeatureServer"
+      },
+      "dct:format": {
+        "@id": "http://publications.europa.eu/resource/authority/file-type/JSON"
+      },
+      "dcat:mediaType": {
+        "@id": "https://www.iana.org/assignments/media-types/application/json"
+      },
+      "dct:license": {
+        "@id": "https://www.aemet.es/es/nota_legal"
+      },
+      "dcat:accessService": {
+        "@id": "urn:service:aemet-weather-daily-municipal-es:arcgis-feature-service"
+      }
+    },
+    {
+      "@id": "urn:service:aemet-weather-daily-municipal-es:arcgis-feature-service",
+      "@type": "dcat:DataService",
+      "dct:title": {
+        "@value": "Servicio ArcGIS Feature Service de predicción meteorológica diaria por municipio en España",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Servicio de datos geográficos tipo ArcGIS Feature Service que proporciona acceso a la predicción meteorológica diaria por municipio en España, a partir de información de AEMET publicada por Esri España.",
+        "@language": "es"
+      },
+      "dcat:endpointURL": {
+        "@id": "https://services1.arcgis.com/nCKYwcSONQTkPA4K/arcgis/rest/services/Predicción_Meteorológica_diaria_de_España_(Fuente_Aemet)/FeatureServer"
+      },
+      "dcat:endpointDescription": {
+        "@id": "https://services1.arcgis.com/nCKYwcSONQTkPA4K/arcgis/rest/services/Predicción_Meteorológica_diaria_de_España_(Fuente_Aemet)/FeatureServer"
+      },
+      "dct:publisher": {
+        "@id": "urn:org:esri-spain"
+      },
+      "dct:license": {
+        "@id": "https://www.aemet.es/es/nota_legal"
+      },
+      "dct:accessRights": {
+        "@id": "http://publications.europa.eu/resource/authority/access-right/PUBLIC"
+      },
+      "dcat:theme": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme/ENVI"
+        }
+      ],
+      "dcat:contactPoint": {
+        "@id": "urn:contact:esri-spain"
+      },
+      "dcat:keyword": [
+        {
+          "@value": "meteorología",
+          "@language": "es"
+        },
+        {
+          "@value": "predicción meteorológica",
+          "@language": "es"
+        },
+        {
+          "@value": "ArcGIS Feature Service",
+          "@language": "es"
+        },
+        {
+          "@value": "AEMET",
+          "@language": "es"
+        }
+      ],
+      "foaf:page": {
+        "@id": "https://www.esri.es/es-es/acerca-de/contacto/contacto"
+      },
+      "dcat:servesDataset": {
+        "@id": "urn:dataset:aemet-weather-daily-municipal-es"
+      }
+    },
+    {
+      "@id": "urn:record:aemet-weather-daily-municipal-es",
+      "@type": "dcat:CatalogRecord",
+      "foaf:primaryTopic": {
+        "@id": "urn:dataset:aemet-weather-daily-municipal-es"
+      },
+      "dct:title": {
+        "@value": "Registro DCAT-AP del dataset de predicción meteorológica diaria por municipio en España",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Registro de catálogo para la descripción DCAT-AP del dataset de predicción meteorológica diaria por municipio en España publicado por Esri España con información procedente de AEMET.",
+        "@language": "es"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "dct:conformsTo": [
+        {
+          "@id": "https://semiceu.github.io/DCAT-AP/releases/3.0.1/"
+        }
+      ],
+      "dct:source": {
+        "@id": "https://services1.arcgis.com/nCKYwcSONQTkPA4K/arcgis/rest/services/Predicción_Meteorológica_diaria_de_España_(Fuente_Aemet)/FeatureServer"
+      },
+      "dct:issued": {
+        "@value": "2026-03-06",
+        "@type": "xsd:date"
+      },
+      "dct:modified": {
+        "@value": "2026-03-06",
+        "@type": "xsd:date"
+      }
+    }
+  ]
+}

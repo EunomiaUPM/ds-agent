@@ -131,12 +131,20 @@ impl RuleSet {
                     Requirement::Mandatory => found(
                         Severity::Violation,
                         rule.property,
-                        format!("{} is mandatory on a {}", Self::name(rule.property), kind.term()),
+                        format!(
+                            "{} is mandatory on a {}",
+                            Self::name(rule.property),
+                            kind.term()
+                        ),
                     ),
                     Requirement::Recommended => found(
                         Severity::Warning,
                         rule.property,
-                        format!("{} is recommended on a {}", Self::name(rule.property), kind.term()),
+                        format!(
+                            "{} is recommended on a {}",
+                            Self::name(rule.property),
+                            kind.term()
+                        ),
                     ),
                     Requirement::Optional => {}
                 }
@@ -147,21 +155,35 @@ impl RuleSet {
                     found(
                         Severity::Violation,
                         rule.property,
-                        format!("{} takes at most {max} value(s), it has {}", Self::name(rule.property), terms.len()),
+                        format!(
+                            "{} takes at most {max} value(s), it has {}",
+                            Self::name(rule.property),
+                            terms.len()
+                        ),
                     );
                 }
             }
             for term in &terms {
                 if let Some(problem) = Self::kind_problem(rule.expect, term) {
-                    found(Severity::Violation, rule.property, format!("{}: {problem}", Self::name(rule.property)));
+                    found(
+                        Severity::Violation,
+                        rule.property,
+                        format!("{}: {problem}", Self::name(rule.property)),
+                    );
                     continue;
                 }
-                if let (Some(severity), Expect::Text, Term::Literal(literal)) = (self.language_tags, rule.expect, term) {
+                if let (Some(severity), Expect::Text, Term::Literal(literal)) =
+                    (self.language_tags, rule.expect, term)
+                {
                     if literal.language.is_none() {
                         found(
                             severity,
                             rule.property,
-                            format!("{} \"{}\" has no language tag", Self::name(rule.property), literal.lexical()),
+                            format!(
+                                "{} \"{}\" has no language tag",
+                                Self::name(rule.property),
+                                literal.lexical()
+                            ),
                         );
                     }
                 }
@@ -171,13 +193,109 @@ impl RuleSet {
                         found(
                             severity,
                             rule.property,
-                            format!("{} {value} is not from the vocabulary {namespace}", Self::name(rule.property)),
+                            format!(
+                                "{} {value} is not from the vocabulary {namespace}",
+                                Self::name(rule.property)
+                            ),
                         );
                     }
                 }
             }
         }
         findings
+    }
+
+    /// The same requirements as a SHACL shapes graph in Turtle, one node shape per class under
+    /// `base`, so an import is checked as the doctor would check it.
+    pub fn shapes_turtle(&self, base: &str) -> String {
+        let mut turtle = String::from(
+            "@prefix sh: <http://www.w3.org/ns/shacl#> .\n\
+             @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n\
+             @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\n",
+        );
+        for class in &self.classes {
+            let mut targets = vec![class.kind.class_iri()];
+            if class.kind == ResourceKind::Agent {
+                targets.extend([Vocab::FOAF_ORGANIZATION, Vocab::FOAF_PERSON]);
+            }
+            let properties: Vec<String> = class
+                .properties
+                .iter()
+                .flat_map(|rule| self.property_shapes(rule))
+                .collect();
+            turtle.push_str(&format!(
+                "<{base}#{}Shape> a sh:NodeShape",
+                class.kind.term()
+            ));
+            for target in targets {
+                turtle.push_str(&format!(" ;\n  sh:targetClass <{target}>"));
+            }
+            for property in properties {
+                turtle.push_str(&format!(" ;\n  sh:property {property}"));
+            }
+            turtle.push_str(" .\n\n");
+        }
+        turtle
+    }
+
+    /// The property shapes one rule makes: presence, count, kind of value, tags and vocabulary.
+    fn property_shapes(&self, rule: &PropertyRule) -> Vec<String> {
+        let path = format!("sh:path <{}>", rule.property);
+        let mut shapes = Vec::new();
+        match rule.requirement {
+            Requirement::Mandatory => shapes.push(format!(
+                "[ {path} ; sh:minCount 1 ; sh:severity sh:Violation ]"
+            )),
+            Requirement::Recommended => shapes.push(format!(
+                "[ {path} ; sh:minCount 1 ; sh:severity sh:Warning ]"
+            )),
+            Requirement::Optional => {}
+        }
+        if let Some(max) = rule.max {
+            shapes.push(format!("[ {path} ; sh:maxCount {max} ]"));
+        }
+        let datatypes = |types: &[&str]| {
+            let alternatives: Vec<String> = types
+                .iter()
+                .map(|t| format!("[ sh:datatype <{t}> ]"))
+                .collect();
+            format!("[ {path} ; sh:or ( {} ) ]", alternatives.join(" "))
+        };
+        match rule.expect {
+            Expect::Iri => shapes.push(format!("[ {path} ; sh:nodeKind sh:IRI ]")),
+            Expect::Literal => shapes.push(format!("[ {path} ; sh:nodeKind sh:Literal ]")),
+            Expect::Text => shapes.push(datatypes(&[Vocab::XSD_STRING, Vocab::RDF_LANG_STRING])),
+            Expect::Temporal => shapes.push(datatypes(&[
+                Vocab::XSD_DATE,
+                Vocab::XSD_DATE_TIME,
+                Vocab::XSD_G_YEAR,
+                Vocab::XSD_G_YEAR_MONTH,
+            ])),
+            Expect::Any => {}
+        }
+        if let (Some(severity), Expect::Text) = (self.language_tags, rule.expect) {
+            shapes.push(format!(
+                "[ {path} ; sh:datatype <{}> ; sh:severity {} ]",
+                Vocab::RDF_LANG_STRING,
+                Self::shacl_severity(severity)
+            ));
+        }
+        if let Some((namespace, severity)) = rule.vocabulary {
+            let pattern = format!("^{}", regex::escape(namespace)).replace('\\', "\\\\");
+            shapes.push(format!(
+                "[ {path} ; sh:pattern \"{pattern}\" ; sh:severity {} ]",
+                Self::shacl_severity(severity)
+            ));
+        }
+        shapes
+    }
+
+    fn shacl_severity(severity: Severity) -> &'static str {
+        match severity {
+            Severity::Violation => "sh:Violation",
+            Severity::Warning => "sh:Warning",
+            Severity::Info => "sh:Info",
+        }
     }
 
     fn kind_problem(expect: Expect, term: &Term<'_>) -> Option<String> {
@@ -191,8 +309,15 @@ impl RuleSet {
             (Expect::Literal, Term::Literal(_)) => None,
             (Expect::Literal, _) => Some("must be a literal".to_string()),
             (Expect::Temporal, Term::Literal(l)) => match l.datatype {
-                Some(Vocab::XSD_DATE | Vocab::XSD_DATE_TIME | Vocab::XSD_G_YEAR | Vocab::XSD_G_YEAR_MONTH) => None,
-                _ => Some("must be typed xsd:date, xsd:dateTime, xsd:gYear or xsd:gYearMonth".to_string()),
+                Some(
+                    Vocab::XSD_DATE
+                    | Vocab::XSD_DATE_TIME
+                    | Vocab::XSD_G_YEAR
+                    | Vocab::XSD_G_YEAR_MONTH,
+                ) => None,
+                _ => Some(
+                    "must be typed xsd:date, xsd:dateTime, xsd:gYear or xsd:gYearMonth".to_string(),
+                ),
             },
             (Expect::Temporal, _) => Some("must be a typed date literal".to_string()),
         }
@@ -210,13 +335,7 @@ impl RuleSet {
         }
     }
 
-    /// `dct:title` rather than the whole IRI, for messages.
     fn name(property: &str) -> String {
-        Vocab::PREFIXES
-            .iter()
-            .filter(|(_, ns)| property.starts_with(ns))
-            .max_by_key(|(_, ns)| ns.len())
-            .map(|(prefix, ns)| format!("{prefix}:{}", &property[ns.len()..]))
-            .unwrap_or_else(|| property.to_string())
+        Vocab::compact(property)
     }
 }

@@ -118,6 +118,10 @@ pub mod catalog {
 
     pub mod catalogs {
         pub const PREFIX: &str = "/catalogs";
+        /// A catalog in one profile (`?limit=`, `?format=`, `?download=true`).
+        pub const PROFILE: &str = "/{id}/profiles/{profile}";
+        /// Validates a DCAT document with SHACL and loads it (`?profile=`, `?dryRun=true`...).
+        pub const IMPORT: &str = "/import";
     }
 
     pub mod data_services {

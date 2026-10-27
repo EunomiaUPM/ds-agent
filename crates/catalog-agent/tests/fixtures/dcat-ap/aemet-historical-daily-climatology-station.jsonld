@@ -1,0 +1,321 @@
+{
+  "@context": {
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dct": "http://purl.org/dc/terms/",
+    "foaf": "http://xmlns.com/foaf/0.1/",
+    "vcard": "http://www.w3.org/2006/vcard/ns#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@graph": [
+    {
+      "@id": "urn:catalog:aemet-opendata",
+      "@type": "dcat:Catalog",
+      "dct:title": {
+        "@value": "Catálogo AEMET OpenData",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Catálogo de metadatos para conjuntos de datos meteorológicos y climatológicos publicados por AEMET a través de AEMET OpenData.",
+        "@language": "es"
+      },
+      "dct:publisher": {
+        "@id": "urn:org:aemet"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "dcat:themeTaxonomy": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme"
+        }
+      ],
+      "foaf:homepage": {
+        "@id": "https://www.aemet.es/es/datos_abiertos"
+      },
+      "dcat:dataset": [
+        {
+          "@id": "urn:dataset:aemet-valores-climatologicos-diarios-estacion"
+        }
+      ],
+      "dcat:service": [
+        {
+          "@id": "urn:service:aemet-opendata-api"
+        }
+      ],
+      "dcat:record": [
+        {
+          "@id": "urn:record:aemet-valores-climatologicos-diarios-estacion"
+        }
+      ]
+    },
+    {
+      "@id": "urn:org:aemet",
+      "@type": "foaf:Agent",
+      "foaf:name": {
+        "@value": "Agencia Estatal de Meteorología (AEMET)",
+        "@language": "es"
+      },
+      "foaf:homepage": {
+        "@id": "https://www.aemet.es/es/portada"
+      }
+    },
+    {
+      "@id": "urn:contact:aemet-opendata",
+      "@type": "vcard:Kind",
+      "vcard:fn": {
+        "@value": "AEMET OpenData",
+        "@language": "es"
+      },
+      "vcard:url": {
+        "@id": "https://opendata.aemet.es/centrodedescargas/contacta"
+      }
+    },
+    {
+      "@id": "urn:dataset:aemet-valores-climatologicos-diarios-estacion",
+      "@type": "dcat:Dataset",
+      "dct:identifier": "aemet-valores-climatologicos-diarios-estacion",
+      "dct:title": {
+        "@value": "Valores climatológicos diarios por estación meteorológica (AEMET)",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Conjunto de datos de observaciones climatológicas diarias por estación meteorológica publicado por AEMET. Cada registro se referencia por fecha de observación e identificador de estación e incluye variables como temperatura media, mínima y máxima, precipitación, dirección y velocidad media del viento, racha máxima, insolación, presión atmosférica y humedad relativa, junto con las horas asociadas a determinados extremos. También incorpora metadatos de estación como indicativo, nombre, provincia y altitud. El acceso se realiza a través de AEMET OpenData mediante la operación de valores climatológicos diarios y requiere API key.",
+        "@language": "es"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "dct:publisher": {
+        "@id": "urn:org:aemet"
+      },
+      "dct:creator": {
+        "@id": "urn:org:aemet"
+      },
+      "dct:license": {
+        "@id": "https://www.aemet.es/es/nota_legal"
+      },
+      "dct:accessRights": {
+        "@id": "http://publications.europa.eu/resource/authority/access-right/PUBLIC"
+      },
+      "dct:accrualPeriodicity": {
+        "@id": "http://publications.europa.eu/resource/authority/frequency/DAILY"
+      },
+      "dct:spatial": {
+        "@id": "http://publications.europa.eu/resource/authority/country/ESP"
+      },
+      "dcat:theme": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme/ENVI"
+        }
+      ],
+      "dcat:landingPage": {
+        "@id": "https://www.aemet.es/es/datos_abiertos"
+      },
+      "foaf:page": [
+        {
+          "@id": "https://www.aemet.es/es/datos_abiertos/AEMET_OpenData"
+        },
+        {
+          "@id": "https://opendata.aemet.es/dist/"
+        }
+      ],
+      "dcat:keyword": [
+        {
+          "@value": "climatología",
+          "@language": "es"
+        },
+        {
+          "@value": "observación meteorológica",
+          "@language": "es"
+        },
+        {
+          "@value": "valores diarios",
+          "@language": "es"
+        },
+        {
+          "@value": "estaciones meteorológicas",
+          "@language": "es"
+        },
+        {
+          "@value": "AEMET",
+          "@language": "es"
+        },
+        {
+          "@value": "temperatura",
+          "@language": "es"
+        },
+        {
+          "@value": "precipitación",
+          "@language": "es"
+        },
+        {
+          "@value": "viento",
+          "@language": "es"
+        },
+        {
+          "@value": "humedad relativa",
+          "@language": "es"
+        },
+        {
+          "@value": "presión atmosférica",
+          "@language": "es"
+        },
+        {
+          "@value": "España",
+          "@language": "es"
+        }
+      ],
+      "dcat:contactPoint": {
+        "@id": "urn:contact:aemet-opendata"
+      },
+      "dcat:distribution": [
+        {
+          "@id": "urn:distribution:aemet-valores-climatologicos-diarios-estacion:json-api"
+        }
+      ]
+    },
+    {
+      "@id": "urn:distribution:aemet-valores-climatologicos-diarios-estacion:json-api",
+      "@type": "dcat:Distribution",
+      "dct:title": {
+        "@value": "Distribución JSON a través de AEMET OpenData",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Distribución accesible mediante la API REST de AEMET OpenData. La consulta requiere API key y devuelve una URL temporal para recuperar el conjunto de datos solicitado en formato JSON.",
+        "@language": "es"
+      },
+      "dcat:accessURL": {
+        "@id": "https://opendata.aemet.es/dist/"
+      },
+      "dct:format": {
+        "@id": "http://publications.europa.eu/resource/authority/file-type/JSON"
+      },
+      "dcat:mediaType": {
+        "@id": "https://www.iana.org/assignments/media-types/application/json"
+      },
+      "dct:license": {
+        "@id": "https://www.aemet.es/es/nota_legal"
+      },
+      "dcat:accessService": {
+        "@id": "urn:service:aemet-opendata-api"
+      },
+      "foaf:page": {
+        "@id": "https://opendata.aemet.es/dist/"
+      }
+    },
+    {
+      "@id": "urn:service:aemet-opendata-api",
+      "@type": "dcat:DataService",
+      "dct:title": {
+        "@value": "AEMET OpenData API",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Servicio de datos REST de AEMET OpenData para la difusión y reutilización de información meteorológica y climatológica. Requiere autenticación mediante API key y dispone de documentación dinámica y especificación OpenAPI.",
+        "@language": "es"
+      },
+      "dcat:endpointURL": {
+        "@id": "https://opendata.aemet.es/opendata/api"
+      },
+      "dcat:endpointDescription": {
+        "@id": "https://opendata.aemet.es/AEMET_OpenData_specification.json"
+      },
+      "dct:publisher": {
+        "@id": "urn:org:aemet"
+      },
+      "dct:license": {
+        "@id": "https://www.aemet.es/es/nota_legal"
+      },
+      "dct:accessRights": {
+        "@id": "http://publications.europa.eu/resource/authority/access-right/PUBLIC"
+      },
+      "dcat:theme": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme/ENVI"
+        }
+      ],
+      "dcat:keyword": [
+        {
+          "@value": "API",
+          "@language": "es"
+        },
+        {
+          "@value": "OpenData",
+          "@language": "es"
+        },
+        {
+          "@value": "meteorología",
+          "@language": "es"
+        },
+        {
+          "@value": "climatología",
+          "@language": "es"
+        },
+        {
+          "@value": "JSON",
+          "@language": "es"
+        }
+      ],
+      "dcat:contactPoint": {
+        "@id": "urn:contact:aemet-opendata"
+      },
+      "dct:conformsTo": [
+        {
+          "@id": "https://opendata.aemet.es/AEMET_OpenData_specification.json"
+        }
+      ],
+      "foaf:page": [
+        {
+          "@id": "https://opendata.aemet.es/dist/"
+        },
+        {
+          "@id": "https://www.aemet.es/es/datos_abiertos/AEMET_OpenData"
+        }
+      ],
+      "dcat:servesDataset": {
+        "@id": "urn:dataset:aemet-valores-climatologicos-diarios-estacion"
+      }
+    },
+    {
+      "@id": "urn:record:aemet-valores-climatologicos-diarios-estacion",
+      "@type": "dcat:CatalogRecord",
+      "foaf:primaryTopic": {
+        "@id": "urn:dataset:aemet-valores-climatologicos-diarios-estacion"
+      },
+      "dct:title": {
+        "@value": "Registro DCAT-AP del conjunto de datos de valores climatológicos diarios por estación",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Registro de catálogo para la descripción DCAT-AP del conjunto de datos de valores climatológicos diarios por estación meteorológica de AEMET.",
+        "@language": "es"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "dct:conformsTo": [
+        {
+          "@id": "https://semiceu.github.io/DCAT-AP/releases/3.0.1/"
+        }
+      ],
+      "dct:source": {
+        "@id": "https://www.aemet.es/es/datos_abiertos/AEMET_OpenData"
+      },
+      "dct:issued": {
+        "@value": "2026-03-06",
+        "@type": "xsd:date"
+      },
+      "dct:modified": {
+        "@value": "2026-03-06",
+        "@type": "xsd:date"
+      }
+    }
+  ]
+}

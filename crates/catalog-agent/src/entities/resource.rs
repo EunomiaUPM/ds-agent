@@ -110,6 +110,46 @@ impl CatalogResource {
         revised
     }
 
+    /// A resource read from an imported document: the dates the document gives are kept, the
+    /// agent's only fill in what it lacks.
+    pub fn imported(
+        id: Urn,
+        kind: ResourceKind,
+        owner: Owner,
+        catalog_id: Option<Urn>,
+        dataset_id: Option<Urn>,
+        description: ResourceGraph,
+    ) -> Self {
+        let mut resource = Self {
+            id,
+            kind,
+            owner,
+            catalog_id,
+            dataset_id,
+            main: false,
+            issued: Self::date_of(&description, Vocab::DCT_ISSUED).unwrap_or_else(Self::now),
+            modified: Self::date_of(&description, Vocab::DCT_MODIFIED),
+            description,
+            version: 1,
+        };
+        resource.stamp_missing();
+        resource
+    }
+
+    /// This resource with the description a new import of it gives, one version on.
+    pub fn reimported(&self, description: ResourceGraph) -> Self {
+        let mut revised = Self {
+            modified: Some(
+                Self::date_of(&description, Vocab::DCT_MODIFIED).unwrap_or_else(Self::now),
+            ),
+            description,
+            version: self.version + 1,
+            ..self.clone()
+        };
+        revised.stamp_missing();
+        revised
+    }
+
     /// The same resource under `owner`; a revision is what moves the version.
     pub fn with_owner(self, owner: Owner) -> Self {
         Self { owner, ..self }
@@ -172,22 +212,55 @@ impl CatalogResource {
 
     /// Writes `@id`, class, issue and modification dates and a default identifier.
     fn stamp(&mut self) {
+        self.description.remove(Vocab::DCT_ISSUED);
+        self.description.remove(Vocab::DCT_MODIFIED);
+        self.stamp_missing();
+    }
+
+    /// Writes `@id`, class and identifier, and the dates the description does not give.
+    fn stamp_missing(&mut self) {
         let id = self.id.to_string();
         self.description.set_id(&id);
         self.description.ensure_type(self.kind.class_iri());
-        self.description.put(
-            Vocab::DCT_ISSUED,
-            vec![ResourceGraph::typed(&Self::lexical(self.issued), Vocab::XSD_DATE_TIME)],
-        );
-        let modified = self
-            .modified
-            .map(|at| vec![ResourceGraph::typed(&Self::lexical(at), Vocab::XSD_DATE_TIME)])
-            .unwrap_or_default();
-        self.description.put(Vocab::DCT_MODIFIED, modified);
-        if !self.description.has(Vocab::DCT_IDENTIFIER) {
-            self.description
-                .put(Vocab::DCT_IDENTIFIER, vec![ResourceGraph::literal(&id, None)]);
+        if !self.description.has(Vocab::DCT_ISSUED) {
+            self.description.put(
+                Vocab::DCT_ISSUED,
+                vec![ResourceGraph::typed(
+                    &Self::lexical(self.issued),
+                    Vocab::XSD_DATE_TIME,
+                )],
+            );
         }
+        if let (Some(at), false) = (self.modified, self.description.has(Vocab::DCT_MODIFIED)) {
+            self.description.put(
+                Vocab::DCT_MODIFIED,
+                vec![ResourceGraph::typed(
+                    &Self::lexical(at),
+                    Vocab::XSD_DATE_TIME,
+                )],
+            );
+        }
+        if !self.description.has(Vocab::DCT_IDENTIFIER) {
+            self.description.put(
+                Vocab::DCT_IDENTIFIER,
+                vec![ResourceGraph::literal(&id, None)],
+            );
+        }
+    }
+
+    /// The first date `predicate` gives, as `xsd:dateTime` or `xsd:date` (midnight UTC).
+    fn date_of(description: &ResourceGraph, predicate: &str) -> Option<DateTime<Utc>> {
+        let lexical = description.first_value(predicate)?;
+        DateTime::parse_from_rfc3339(&lexical)
+            .map(|at| at.with_timezone(&Utc))
+            .ok()
+            .or_else(|| {
+                chrono::NaiveDate::parse_from_str(lexical.get(..10)?, "%Y-%m-%d")
+                    .ok()?
+                    .and_hms_opt(0, 0, 0)
+                    .map(|at| at.and_utc())
+            })
+            .map(|at| DateTime::from_timestamp_millis(at.timestamp_millis()).unwrap_or(at))
     }
 
     fn lexical(at: DateTime<Utc>) -> String {

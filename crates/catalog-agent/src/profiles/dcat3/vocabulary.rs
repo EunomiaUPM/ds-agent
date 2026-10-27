@@ -15,7 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! The DCAT 3 profile: its terms (with `dcterms:` as the recommendation uses) and its few rules.
+//! The DCAT 3 profile: its terms (with `dcterms:` as the recommendation uses), its few rules
+//! and the SHACL shapes made from them, as W3C publishes none.
+
+use std::borrow::Cow;
+
+use common::rdf::shacl::ShapeSource;
 
 use crate::entities::jsonld::{Coercion, TermDef, TermTable};
 use crate::entities::resource_kind::ResourceKind;
@@ -56,11 +61,21 @@ impl Dcat3 {
 
     const TERMS: [TermDef; 36] = [
         TermDef::new("title", Vocab::DCT_TITLE, Coercion::Language, false),
-        TermDef::new("description", Vocab::DCT_DESCRIPTION, Coercion::Language, false),
+        TermDef::new(
+            "description",
+            Vocab::DCT_DESCRIPTION,
+            Coercion::Language,
+            false,
+        ),
         TermDef::new("keyword", Vocab::DCAT_KEYWORD, Coercion::Language, false),
         TermDef::new("name", Vocab::FOAF_NAME, Coercion::Language, false),
         TermDef::new("theme", Vocab::DCAT_THEME, Coercion::Id, true),
-        TermDef::new("themeTaxonomy", Vocab::DCAT_THEME_TAXONOMY, Coercion::Id, true),
+        TermDef::new(
+            "themeTaxonomy",
+            Vocab::DCAT_THEME_TAXONOMY,
+            Coercion::Id,
+            true,
+        ),
         TermDef::new("issued", Vocab::DCT_ISSUED, Coercion::None, false),
         TermDef::new("modified", Vocab::DCT_MODIFIED, Coercion::None, false),
         TermDef::new("identifier", Vocab::DCT_IDENTIFIER, Coercion::None, false),
@@ -68,49 +83,73 @@ impl Dcat3 {
         TermDef::new("conformsTo", Vocab::DCT_CONFORMS_TO, Coercion::Id, true),
         TermDef::new("creator", Vocab::DCT_CREATOR, Coercion::Id, false),
         TermDef::new("publisher", Vocab::DCT_PUBLISHER, Coercion::Id, false),
-        TermDef::new("contactPoint", Vocab::DCAT_CONTACT_POINT, Coercion::None, true),
+        TermDef::new(
+            "contactPoint",
+            Vocab::DCAT_CONTACT_POINT,
+            Coercion::None,
+            true,
+        ),
         TermDef::new("homepage", Vocab::FOAF_HOMEPAGE, Coercion::Id, false),
         TermDef::new("landingPage", Vocab::DCAT_LANDING_PAGE, Coercion::Id, true),
         TermDef::new("language", Vocab::DCT_LANGUAGE, Coercion::Id, true),
         TermDef::new("license", Vocab::DCT_LICENSE, Coercion::Id, false),
-        TermDef::new("accessRights", Vocab::DCT_ACCESS_RIGHTS, Coercion::Id, false),
+        TermDef::new(
+            "accessRights",
+            Vocab::DCT_ACCESS_RIGHTS,
+            Coercion::Id,
+            false,
+        ),
         TermDef::new("spatial", Vocab::DCT_SPATIAL, Coercion::Id, true),
         TermDef::new("temporal", Vocab::DCT_TEMPORAL, Coercion::None, true),
-        TermDef::new("accrualPeriodicity", Vocab::DCT_ACCRUAL_PERIODICITY, Coercion::Id, false),
+        TermDef::new(
+            "accrualPeriodicity",
+            Vocab::DCT_ACCRUAL_PERIODICITY,
+            Coercion::Id,
+            false,
+        ),
         TermDef::new("endpointURL", Vocab::DCAT_ENDPOINT_URL, Coercion::Id, false),
-        TermDef::new("endpointDescription", Vocab::DCAT_ENDPOINT_DESCRIPTION, Coercion::Id, false),
-        TermDef::new("servesDataset", Vocab::DCAT_SERVES_DATASET, Coercion::Id, true),
+        TermDef::new(
+            "endpointDescription",
+            Vocab::DCAT_ENDPOINT_DESCRIPTION,
+            Coercion::Id,
+            false,
+        ),
+        TermDef::new(
+            "servesDataset",
+            Vocab::DCAT_SERVES_DATASET,
+            Coercion::Id,
+            true,
+        ),
         TermDef::new("format", Vocab::DCT_FORMAT, Coercion::None, false),
         TermDef::new("mediaType", Vocab::DCAT_MEDIA_TYPE, Coercion::Id, false),
         TermDef::new("accessURL", Vocab::DCAT_ACCESS_URL, Coercion::Id, true),
         TermDef::new("downloadURL", Vocab::DCAT_DOWNLOAD_URL, Coercion::Id, true),
-        TermDef::new("accessService", Vocab::DCAT_ACCESS_SERVICE, Coercion::Id, true),
+        TermDef::new(
+            "accessService",
+            Vocab::DCAT_ACCESS_SERVICE,
+            Coercion::Id,
+            true,
+        ),
         TermDef::new("inSeries", Vocab::DCAT_IN_SERIES, Coercion::Id, true),
-        TermDef::new("primaryTopic", Vocab::FOAF_PRIMARY_TOPIC, Coercion::Id, false),
+        TermDef::new(
+            "primaryTopic",
+            Vocab::FOAF_PRIMARY_TOPIC,
+            Coercion::Id,
+            false,
+        ),
         TermDef::new("dataset", Vocab::DCAT_DATASET_P, Coercion::Id, true),
         TermDef::new("service", Vocab::DCAT_SERVICE, Coercion::Id, true),
-        TermDef::new("distribution", Vocab::DCAT_DISTRIBUTION_P, Coercion::Id, true),
+        TermDef::new(
+            "distribution",
+            Vocab::DCAT_DISTRIBUTION_P,
+            Coercion::Id,
+            true,
+        ),
         TermDef::new("hasPolicy", Vocab::ODRL_HAS_POLICY, Coercion::Id, true),
     ];
-}
-
-impl DcatProfileSpec for Dcat3 {
-    const KEY: &'static str = "dcat3";
-    const PROFILE_IRI: &'static str = "https://www.w3.org/TR/vocab-dcat-3/";
-
-    fn terms() -> TermTable {
-        let mut table = TermTable::new(&Self::PREFIXES, &Self::CLASSES, &Self::TERMS);
-        table
-            .terms
-            .push(TermDef::new("catalog", Vocab::DCAT_CATALOG_P, Coercion::Id, true));
-        table
-            .terms
-            .push(TermDef::new("record", Vocab::DCAT_RECORD, Coercion::Id, true));
-        table
-    }
 
     /// DCAT 3 requires nothing; it only constrains what a value is when it is given.
-    fn rules() -> RuleSet {
+    fn rule_set() -> RuleSet {
         let resource = |kind| ClassRules {
             kind,
             properties: vec![
@@ -130,9 +169,10 @@ impl DcatProfileSpec for Dcat3 {
             PropertyRule::optional(Vocab::DCAT_MEDIA_TYPE, Expect::Iri).single(),
         ]);
         let mut service = resource(ResourceKind::DataService);
-        service
-            .properties
-            .push(PropertyRule::recommended(Vocab::DCAT_ENDPOINT_URL, Expect::Iri));
+        service.properties.push(PropertyRule::recommended(
+            Vocab::DCAT_ENDPOINT_URL,
+            Expect::Iri,
+        ));
         RuleSet {
             classes: vec![
                 resource(ResourceKind::Catalog),
@@ -147,5 +187,40 @@ impl DcatProfileSpec for Dcat3 {
             ],
             language_tags: None,
         }
+    }
+}
+
+impl DcatProfileSpec for Dcat3 {
+    const KEY: &'static str = "dcat3";
+    const PROFILE_IRI: &'static str = "https://www.w3.org/TR/vocab-dcat-3/";
+
+    fn terms() -> TermTable {
+        let mut table = TermTable::new(&Self::PREFIXES, &Self::CLASSES, &Self::TERMS);
+        table.terms.push(TermDef::new(
+            "catalog",
+            Vocab::DCAT_CATALOG_P,
+            Coercion::Id,
+            true,
+        ));
+        table.terms.push(TermDef::new(
+            "record",
+            Vocab::DCAT_RECORD,
+            Coercion::Id,
+            true,
+        ));
+        table
+    }
+
+    fn rules() -> Option<RuleSet> {
+        Some(Self::rule_set())
+    }
+
+    fn shapes() -> Vec<ShapeSource> {
+        vec![ShapeSource {
+            name: "base",
+            description: "the DCAT 3 rules of the doctor, as SHACL",
+            default: true,
+            turtle: Cow::Owned(Self::rule_set().shapes_turtle(Self::PROFILE_IRI)),
+        }]
     }
 }

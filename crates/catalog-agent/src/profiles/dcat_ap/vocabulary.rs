@@ -15,9 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! The DCAT-AP 3.0.1 profile: its terms, the requirements of each class as the specification
-//! states them, and the rewrites into its controlled vocabularies.
+//! The DCAT-AP 3.0.1 profile: its terms, the official SEMIC shapes it is checked with, and the
+//! rewrites into its controlled vocabularies.
 
+use std::borrow::Cow;
+
+use common::rdf::shacl::ShapeSource;
 use serde_json::Value;
 
 use crate::entities::graph::{ResourceGraph, Term};
@@ -27,8 +30,6 @@ use crate::entities::resource_kind::ResourceKind;
 use crate::entities::resource_set::ResourceSet;
 use crate::entities::vocab::Vocab;
 use crate::profiles::shared::dcat::DcatProfileSpec;
-use crate::profiles::shared::rules::{ClassRules, Expect, PropertyRule, RuleSet};
-use crate::profiles::Severity;
 
 /// DCAT-AP 3.0.1 as a DCAT-family spec.
 pub struct DcatAp;
@@ -66,11 +67,21 @@ impl DcatAp {
 
     const TERMS: [TermDef; 40] = [
         TermDef::new("title", Vocab::DCT_TITLE, Coercion::Language, false),
-        TermDef::new("description", Vocab::DCT_DESCRIPTION, Coercion::Language, false),
+        TermDef::new(
+            "description",
+            Vocab::DCT_DESCRIPTION,
+            Coercion::Language,
+            false,
+        ),
         TermDef::new("keyword", Vocab::DCAT_KEYWORD, Coercion::Language, false),
         TermDef::new("name", Vocab::FOAF_NAME, Coercion::Language, false),
         TermDef::new("theme", Vocab::DCAT_THEME, Coercion::Id, true),
-        TermDef::new("themeTaxonomy", Vocab::DCAT_THEME_TAXONOMY, Coercion::Id, true),
+        TermDef::new(
+            "themeTaxonomy",
+            Vocab::DCAT_THEME_TAXONOMY,
+            Coercion::Id,
+            true,
+        ),
         TermDef::new("issued", Vocab::DCT_ISSUED, Coercion::None, false),
         TermDef::new("modified", Vocab::DCT_MODIFIED, Coercion::None, false),
         TermDef::new("identifier", Vocab::DCT_IDENTIFIER, Coercion::None, false),
@@ -78,33 +89,123 @@ impl DcatAp {
         TermDef::new("conformsTo", Vocab::DCT_CONFORMS_TO, Coercion::Id, true),
         TermDef::new("creator", Vocab::DCT_CREATOR, Coercion::Id, false),
         TermDef::new("publisher", Vocab::DCT_PUBLISHER, Coercion::Id, false),
-        TermDef::new("rightsHolder", Vocab::DCT_RIGHTS_HOLDER, Coercion::Id, false),
-        TermDef::new("contactPoint", Vocab::DCAT_CONTACT_POINT, Coercion::None, true),
+        TermDef::new(
+            "rightsHolder",
+            Vocab::DCT_RIGHTS_HOLDER,
+            Coercion::Id,
+            false,
+        ),
+        TermDef::new(
+            "contactPoint",
+            Vocab::DCAT_CONTACT_POINT,
+            Coercion::None,
+            true,
+        ),
         TermDef::new("homepage", Vocab::FOAF_HOMEPAGE, Coercion::Id, false),
         TermDef::new("landingPage", Vocab::DCAT_LANDING_PAGE, Coercion::Id, true),
         TermDef::new("language", Vocab::DCT_LANGUAGE, Coercion::Id, true),
         TermDef::new("license", Vocab::DCT_LICENSE, Coercion::Id, false),
-        TermDef::new("accessRights", Vocab::DCT_ACCESS_RIGHTS, Coercion::Id, false),
+        TermDef::new(
+            "accessRights",
+            Vocab::DCT_ACCESS_RIGHTS,
+            Coercion::Id,
+            false,
+        ),
         TermDef::new("rights", Vocab::DCT_RIGHTS, Coercion::Id, false),
         TermDef::new("spatial", Vocab::DCT_SPATIAL, Coercion::Id, true),
         TermDef::new("temporal", Vocab::DCT_TEMPORAL, Coercion::None, true),
-        TermDef::new("accrualPeriodicity", Vocab::DCT_ACCRUAL_PERIODICITY, Coercion::Id, false),
+        TermDef::new(
+            "accrualPeriodicity",
+            Vocab::DCT_ACCRUAL_PERIODICITY,
+            Coercion::Id,
+            false,
+        ),
         TermDef::new("status", Vocab::ADMS_STATUS, Coercion::Id, false),
         TermDef::new("type", Vocab::DCT_TYPE, Coercion::Id, false),
         TermDef::new("endpointURL", Vocab::DCAT_ENDPOINT_URL, Coercion::Id, false),
-        TermDef::new("endpointDescription", Vocab::DCAT_ENDPOINT_DESCRIPTION, Coercion::Id, false),
-        TermDef::new("servesDataset", Vocab::DCAT_SERVES_DATASET, Coercion::Id, true),
+        TermDef::new(
+            "endpointDescription",
+            Vocab::DCAT_ENDPOINT_DESCRIPTION,
+            Coercion::Id,
+            false,
+        ),
+        TermDef::new(
+            "servesDataset",
+            Vocab::DCAT_SERVES_DATASET,
+            Coercion::Id,
+            true,
+        ),
         TermDef::new("format", Vocab::DCT_FORMAT, Coercion::Id, false),
         TermDef::new("mediaType", Vocab::DCAT_MEDIA_TYPE, Coercion::Id, false),
         TermDef::new("accessURL", Vocab::DCAT_ACCESS_URL, Coercion::Id, true),
         TermDef::new("downloadURL", Vocab::DCAT_DOWNLOAD_URL, Coercion::Id, true),
-        TermDef::new("accessService", Vocab::DCAT_ACCESS_SERVICE, Coercion::Id, true),
+        TermDef::new(
+            "accessService",
+            Vocab::DCAT_ACCESS_SERVICE,
+            Coercion::Id,
+            true,
+        ),
         TermDef::new("inSeries", Vocab::DCAT_IN_SERIES, Coercion::Id, true),
-        TermDef::new("primaryTopic", Vocab::FOAF_PRIMARY_TOPIC, Coercion::Id, false),
+        TermDef::new(
+            "primaryTopic",
+            Vocab::FOAF_PRIMARY_TOPIC,
+            Coercion::Id,
+            false,
+        ),
         TermDef::new("dataset", Vocab::DCAT_DATASET_P, Coercion::Id, true),
         TermDef::new("service", Vocab::DCAT_SERVICE, Coercion::Id, true),
-        TermDef::new("distribution", Vocab::DCAT_DISTRIBUTION_P, Coercion::Id, true),
+        TermDef::new(
+            "distribution",
+            Vocab::DCAT_DISTRIBUTION_P,
+            Coercion::Id,
+            true,
+        ),
         TermDef::new("hasPolicy", Vocab::ODRL_HAS_POLICY, Coercion::Id, true),
+    ];
+
+    /// SEMIC's shapes as the Interoperable Europe Testbed groups them (see the assets' SOURCE.md);
+    /// the two needing background knowledge only run when asked for.
+    const SHAPES: [ShapeSource; 5] = [
+        ShapeSource {
+            name: "base",
+            description: "existence, literal ranges and cardinalities",
+            default: true,
+            turtle: Cow::Borrowed(include_str!(
+                "../../../assets/shacl/dcat-ap/3.0.1/shapes.ttl"
+            )),
+        },
+        ShapeSource {
+            name: "recommended",
+            description: "recommended properties, as warnings",
+            default: true,
+            turtle: Cow::Borrowed(include_str!(
+                "../../../assets/shacl/dcat-ap/3.0.1/shapes_recommended.ttl"
+            )),
+        },
+        ShapeSource {
+            name: "deprecated",
+            description: "DCAT-AP 2 properties deprecated in 3, as warnings",
+            default: true,
+            turtle: Cow::Borrowed(include_str!(
+                "../../../assets/shacl/dcat-ap/3.0.1/deprecateduris.ttl"
+            )),
+        },
+        ShapeSource {
+            name: "range",
+            description: "classes of the objects; needs them typed in the document",
+            default: false,
+            turtle: Cow::Borrowed(include_str!(
+                "../../../assets/shacl/dcat-ap/3.0.1/range.ttl"
+            )),
+        },
+        ShapeSource {
+            name: "codelists",
+            description: "EU controlled vocabularies; needs the code lists in the document",
+            default: false,
+            turtle: Cow::Borrowed(include_str!(
+                "../../../assets/shacl/dcat-ap/3.0.1/mdr-vocabularies.shape.ttl"
+            )),
+        },
     ];
 
     /// ISO 639-1 codes and their EU language authority code.
@@ -202,8 +303,12 @@ impl DcatAp {
             .terms(Vocab::DCT_FORMAT)
             .into_iter()
             .filter_map(|term| match term {
-                Term::Iri(iri) if iri.starts_with(Vocab::NAL_FILE_TYPE) => Some(ResourceGraph::iri(iri)),
-                Term::Literal(l) => Self::file_type_iri(&l.lexical()).map(|iri| ResourceGraph::iri(&iri)),
+                Term::Iri(iri) if iri.starts_with(Vocab::NAL_FILE_TYPE) => {
+                    Some(ResourceGraph::iri(iri))
+                }
+                Term::Literal(l) => {
+                    Self::file_type_iri(&l.lexical()).map(|iri| ResourceGraph::iri(&iri))
+                }
                 _ => None,
             })
             .collect();
@@ -254,143 +359,24 @@ impl DcatProfileSpec for DcatAp {
             TermDef::new("catalog", Vocab::DCAT_CATALOG_P, Coercion::Id, true),
             TermDef::new("record", Vocab::DCAT_RECORD, Coercion::Id, true),
             TermDef::new("byteSize", Vocab::DCAT_BYTE_SIZE, Coercion::None, false),
-            TermDef::new("availability", "http://data.europa.eu/r5r/availability", Coercion::Id, false),
-            TermDef::new("participantId", Vocab::DSPACE_PARTICIPANT_ID, Coercion::Id, false),
+            TermDef::new(
+                "availability",
+                "http://data.europa.eu/r5r/availability",
+                Coercion::Id,
+                false,
+            ),
+            TermDef::new(
+                "participantId",
+                Vocab::DSPACE_PARTICIPANT_ID,
+                Coercion::Id,
+                false,
+            ),
         ]);
         table
     }
 
-    fn rules() -> RuleSet {
-        use Expect::{Any, Iri, Literal, Temporal, Text};
-        let language = PropertyRule::optional(Vocab::DCT_LANGUAGE, Iri)
-            .from_vocabulary(Vocab::NAL_LANGUAGE, Severity::Violation);
-        let issued = PropertyRule::optional(Vocab::DCT_ISSUED, Temporal).single();
-        let modified = PropertyRule::optional(Vocab::DCT_MODIFIED, Temporal).single();
-        RuleSet {
-            classes: vec![
-                ClassRules {
-                    kind: ResourceKind::Catalog,
-                    properties: vec![
-                        PropertyRule::mandatory(Vocab::DCT_DESCRIPTION, Text),
-                        PropertyRule::mandatory(Vocab::DCT_PUBLISHER, Iri).single(),
-                        PropertyRule::mandatory(Vocab::DCT_TITLE, Text),
-                        PropertyRule::recommended(Vocab::DCAT_DATASET_P, Iri),
-                        PropertyRule::recommended(Vocab::FOAF_HOMEPAGE, Iri).single(),
-                        PropertyRule::recommended(Vocab::DCT_LANGUAGE, Iri)
-                            .from_vocabulary(Vocab::NAL_LANGUAGE, Severity::Violation),
-                        PropertyRule::recommended(Vocab::DCT_LICENSE, Iri).single(),
-                        PropertyRule::recommended(Vocab::DCT_ISSUED, Temporal).single(),
-                        PropertyRule::recommended(Vocab::DCAT_THEME_TAXONOMY, Iri),
-                        PropertyRule::recommended(Vocab::DCT_MODIFIED, Temporal).single(),
-                        PropertyRule::recommended(Vocab::DCT_SPATIAL, Iri),
-                        PropertyRule::optional(Vocab::DCAT_SERVICE, Iri),
-                        PropertyRule::optional(Vocab::DCAT_CATALOG_P, Iri),
-                        PropertyRule::optional(Vocab::DCAT_RECORD, Iri),
-                        PropertyRule::optional(Vocab::DCT_CREATOR, Iri).single(),
-                    ],
-                },
-                ClassRules {
-                    kind: ResourceKind::Dataset,
-                    properties: vec![
-                        PropertyRule::mandatory(Vocab::DCT_DESCRIPTION, Text),
-                        PropertyRule::mandatory(Vocab::DCT_TITLE, Text),
-                        PropertyRule::recommended(Vocab::DCAT_CONTACT_POINT, Any),
-                        PropertyRule::recommended(Vocab::DCAT_DISTRIBUTION_P, Iri),
-                        PropertyRule::recommended(Vocab::DCAT_KEYWORD, Text),
-                        PropertyRule::recommended(Vocab::DCT_PUBLISHER, Iri).single(),
-                        PropertyRule::recommended(Vocab::DCT_SPATIAL, Iri),
-                        PropertyRule::recommended(Vocab::DCT_TEMPORAL, Any),
-                        PropertyRule::recommended(Vocab::DCAT_THEME, Iri)
-                            .from_vocabulary(Vocab::NAL_DATA_THEME, Severity::Warning),
-                        PropertyRule::optional(Vocab::DCT_ACCESS_RIGHTS, Iri)
-                            .single()
-                            .from_vocabulary(Vocab::NAL_ACCESS_RIGHT, Severity::Violation),
-                        PropertyRule::optional(Vocab::DCT_ACCRUAL_PERIODICITY, Iri)
-                            .single()
-                            .from_vocabulary(Vocab::NAL_FREQUENCY, Severity::Violation),
-                        PropertyRule::optional(Vocab::DCT_CONFORMS_TO, Iri),
-                        PropertyRule::optional(Vocab::DCAT_LANDING_PAGE, Iri),
-                        PropertyRule::optional(Vocab::DCAT_VERSION, Literal).single(),
-                        PropertyRule::optional(Vocab::DCAT_IN_SERIES, Iri),
-                        language,
-                        issued,
-                        modified,
-                    ],
-                },
-                ClassRules {
-                    kind: ResourceKind::DatasetSeries,
-                    properties: vec![
-                        PropertyRule::mandatory(Vocab::DCT_DESCRIPTION, Text),
-                        PropertyRule::mandatory(Vocab::DCT_TITLE, Text),
-                        PropertyRule::optional(Vocab::DCT_PUBLISHER, Iri).single(),
-                        PropertyRule::optional(Vocab::DCT_ACCRUAL_PERIODICITY, Iri)
-                            .single()
-                            .from_vocabulary(Vocab::NAL_FREQUENCY, Severity::Violation),
-                        issued,
-                        modified,
-                    ],
-                },
-                ClassRules {
-                    kind: ResourceKind::Distribution,
-                    properties: vec![
-                        PropertyRule::mandatory(Vocab::DCAT_ACCESS_URL, Iri),
-                        PropertyRule::recommended(Vocab::DCT_DESCRIPTION, Text),
-                        PropertyRule::recommended(Vocab::DCT_FORMAT, Iri)
-                            .single()
-                            .from_vocabulary(Vocab::NAL_FILE_TYPE, Severity::Violation),
-                        PropertyRule::recommended(Vocab::DCT_LICENSE, Iri).single(),
-                        PropertyRule::optional(Vocab::DCAT_DOWNLOAD_URL, Iri),
-                        PropertyRule::optional(Vocab::DCAT_ACCESS_SERVICE, Iri),
-                        PropertyRule::optional(Vocab::DCT_TITLE, Text),
-                        PropertyRule::optional(Vocab::DCAT_BYTE_SIZE, Literal).single(),
-                        PropertyRule::optional(Vocab::DCAT_MEDIA_TYPE, Iri)
-                            .single()
-                            .from_vocabulary(Vocab::IANA_MEDIA_TYPES, Severity::Violation),
-                        PropertyRule::optional(Vocab::ADMS_STATUS, Iri)
-                            .single()
-                            .from_vocabulary(Vocab::NAL_DISTRIBUTION_STATUS, Severity::Violation),
-                        PropertyRule::optional(Vocab::ODRL_HAS_POLICY, Iri),
-                        language,
-                        issued,
-                        modified,
-                    ],
-                },
-                ClassRules {
-                    kind: ResourceKind::DataService,
-                    properties: vec![
-                        PropertyRule::mandatory(Vocab::DCAT_ENDPOINT_URL, Iri),
-                        PropertyRule::mandatory(Vocab::DCT_TITLE, Text),
-                        PropertyRule::recommended(Vocab::DCAT_ENDPOINT_DESCRIPTION, Iri),
-                        PropertyRule::recommended(Vocab::DCAT_SERVES_DATASET, Iri),
-                        PropertyRule::optional(Vocab::DCT_ACCESS_RIGHTS, Iri)
-                            .single()
-                            .from_vocabulary(Vocab::NAL_ACCESS_RIGHT, Severity::Violation),
-                        PropertyRule::optional(Vocab::DCT_DESCRIPTION, Text),
-                        PropertyRule::optional(Vocab::DCT_LICENSE, Iri).single(),
-                        PropertyRule::optional(Vocab::DCT_PUBLISHER, Iri).single(),
-                        PropertyRule::optional(Vocab::DCAT_KEYWORD, Text),
-                    ],
-                },
-                ClassRules {
-                    kind: ResourceKind::Agent,
-                    properties: vec![
-                        PropertyRule::mandatory(Vocab::FOAF_NAME, Text),
-                        PropertyRule::recommended(Vocab::DCT_TYPE, Iri).single(),
-                    ],
-                },
-                ClassRules {
-                    kind: ResourceKind::CatalogRecord,
-                    properties: vec![
-                        PropertyRule::mandatory(Vocab::FOAF_PRIMARY_TOPIC, Iri).single(),
-                        PropertyRule::mandatory(Vocab::DCT_MODIFIED, Temporal).single(),
-                        PropertyRule::recommended(Vocab::DCT_CONFORMS_TO, Iri),
-                        PropertyRule::recommended(Vocab::ADMS_STATUS, Iri).single(),
-                        PropertyRule::recommended(Vocab::DCT_ISSUED, Temporal).single(),
-                    ],
-                },
-            ],
-            language_tags: Some(Severity::Warning),
-        }
+    fn shapes() -> Vec<ShapeSource> {
+        Self::SHAPES.to_vec()
     }
 
     fn transform(resource: &CatalogResource, set: &ResourceSet, graph: &mut ResourceGraph) {

@@ -24,14 +24,14 @@ use common::oauth::OwnerScope;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use sea_orm::sea_query::{Condition, Expr};
 use sea_orm::{
-    ColumnTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait,
-    QueryFilter, QueryOrder, Select, SqlErr, TransactionTrait,
+    ColumnTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
+    Select, SqlErr, TransactionTrait,
 };
 use serde_json::json;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome, RepoIntoErrors};
 
-use crate::data::repo::resource::{ResourceRepoErrors, ResourceRepoTrait};
+use crate::data::repo::resource::{ImportWrite, ResourceRepoErrors, ResourceRepoTrait};
 use crate::data::sea_orm::orm::resource as orm;
 use crate::data::sea_orm::orm::resource_link as links;
 use crate::entities::errors::CatalogErrors;
@@ -135,7 +135,9 @@ impl SeaOrmResourceRepo {
     }
 
     fn like_escaped(text: &str) -> String {
-        text.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")
+        text.replace('\\', "\\\\")
+            .replace('%', "\\%")
+            .replace('_', "\\_")
     }
 
     fn decode(models: Vec<orm::Model>) -> Outcome<Vec<CatalogResource>> {
@@ -147,7 +149,10 @@ impl SeaOrmResourceRepo {
     }
 
     /// Key violations are the caller's to fix (409); anything else is ours.
-    fn write_err(e: DbErr, fallback: fn(Box<dyn std::error::Error + Send + Sync>) -> ResourceRepoErrors) -> Errors {
+    fn write_err(
+        e: DbErr,
+        fallback: fn(Box<dyn std::error::Error + Send + Sync>) -> ResourceRepoErrors,
+    ) -> Errors {
         match e.sql_err() {
             Some(SqlErr::ForeignKeyConstraintViolation(detail)) => CatalogErrors::conflict(format!(
                 "the resource links to one that does not exist, or one that is linked cannot go: {detail}"
@@ -182,7 +187,12 @@ impl ResourceRepoTrait for SeaOrmResourceRepo {
         sort: &Sort,
     ) -> Outcome<Vec<CatalogResource>> {
         let models = Self::filtered(scope, filter)
-            .apply_cursor_pagination_with_tie_break(page, sort, orm::Column::Issued, orm::Column::Id)
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                orm::Column::Issued,
+                orm::Column::Id,
+            )
             .all(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?;
@@ -198,7 +208,11 @@ impl ResourceRepoTrait for SeaOrmResourceRepo {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn get_all(&self, scope: &OwnerScope, filter: &ResourceFilter) -> Outcome<Vec<CatalogResource>> {
+    async fn get_all(
+        &self,
+        scope: &OwnerScope,
+        filter: &ResourceFilter,
+    ) -> Outcome<Vec<CatalogResource>> {
         let models = Self::filtered(scope, filter)
             .order_by_asc(orm::Column::Issued)
             .order_by_asc(orm::Column::Id)
@@ -347,6 +361,56 @@ impl ResourceRepoTrait for SeaOrmResourceRepo {
             .await
             .map_err(|e| ResourceRepoErrors::Updating(Box::new(e)).into_errors())?;
         Ok(resource.clone())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all, err, fields(writes = writes.len()))]
+    async fn import(&self, scope: &OwnerScope, writes: &[ImportWrite]) -> Outcome<()> {
+        let txn = self.db.begin().await.map_err(Self::fetch_err)?;
+        for write in writes {
+            let resource = &write.resource;
+            let id = resource.id().to_string();
+            match write.expected {
+                None => {
+                    orm::Entity::insert(orm::ActiveModel::from_domain(resource))
+                        .exec_without_returning(&txn)
+                        .await
+                        .map_err(|e| Self::write_err(e, ResourceRepoErrors::Creating))?;
+                }
+                Some(expected) => {
+                    let updated = orm::Entity::update_many()
+                        .set(orm::ActiveModel::from_domain(resource))
+                        .filter(orm::Column::Id.eq(id.as_str()))
+                        .filter(orm::Column::Version.eq(expected))
+                        .filter(scope.condition(
+                            orm::Column::UserId,
+                            orm::Column::UserRole,
+                            orm::Column::Visibility,
+                        ))
+                        .exec(&txn)
+                        .await
+                        .map_err(|e| Self::write_err(e, ResourceRepoErrors::Updating))?;
+                    if updated.rows_affected == 0 {
+                        return Err(CatalogErrors::stale(format!(
+                            "{id} is no longer at version {expected}"
+                        )));
+                    }
+                }
+            }
+        }
+        let subjects: Vec<String> = writes.iter().map(|w| w.resource.id().to_string()).collect();
+        links::Entity::delete_many()
+            .filter(links::Column::Subject.is_in(subjects))
+            .exec(&txn)
+            .await
+            .map_err(|e| Self::write_err(e, ResourceRepoErrors::Updating))?;
+        for write in writes {
+            Self::insert_links(&txn, &write.resource)
+                .await
+                .map_err(|e| Self::write_err(e, ResourceRepoErrors::Creating))?;
+        }
+        txn.commit()
+            .await
+            .map_err(|e| ResourceRepoErrors::Creating(Box::new(e)).into_errors())
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]

@@ -22,15 +22,19 @@ use std::sync::Arc;
 use catalog_agent::cache::{CatalogCacheTrait, NoopCatalogCache};
 use catalog_agent::data::factory::DataFactory;
 use catalog_agent::data::repo::odrl_offer::{MockOdrlOfferRepoTrait, OdrlOfferRepoTrait};
-use catalog_agent::data::repo::policy_template::{MockPolicyTemplateRepoTrait, PolicyTemplateRepoTrait};
+use catalog_agent::data::repo::policy_template::{
+    MockPolicyTemplateRepoTrait, PolicyTemplateRepoTrait,
+};
 use catalog_agent::data::repo::resource::{MockResourceRepoTrait, ResourceRepoTrait};
 use catalog_agent::profiles::dcat3::Dcat3;
 use catalog_agent::profiles::dcat_ap::DcatAp;
 use catalog_agent::profiles::dsp::DspProfileAdapter;
 use catalog_agent::profiles::shared::dcat::DcatAdapter;
+use catalog_agent::services::catalog_import::CatalogImportServiceTrait;
 use catalog_agent::services::closure::ClosureServiceTrait;
 use catalog_agent::services::doctor::DoctorServiceTrait;
 use catalog_agent::services::odrl_policies::OdrlPolicyServiceTrait;
+use catalog_agent::services::projection::ProjectionServiceTrait;
 use catalog_agent::services::resources::ResourceServiceTrait;
 use catalog_agent::setup::context::{AppContext, CatalogServices};
 use catalog_agent::setup::CatalogPorts;
@@ -73,6 +77,8 @@ pub struct TestContext {
     closures: Option<Arc<dyn ClosureServiceTrait>>,
     offers: Option<Arc<dyn OdrlPolicyServiceTrait>>,
     doctor: Option<Arc<dyn DoctorServiceTrait>>,
+    projections: Option<Arc<dyn ProjectionServiceTrait>>,
+    imports: Option<Arc<dyn CatalogImportServiceTrait>>,
 }
 
 impl TestContext {
@@ -90,6 +96,8 @@ impl TestContext {
             closures: None,
             offers: None,
             doctor: None,
+            projections: None,
+            imports: None,
         }
     }
 
@@ -143,6 +151,16 @@ impl TestContext {
         self
     }
 
+    pub fn projections(mut self, service: impl ProjectionServiceTrait + 'static) -> Self {
+        self.projections = Some(Arc::new(service));
+        self
+    }
+
+    pub fn imports(mut self, service: impl CatalogImportServiceTrait + 'static) -> Self {
+        self.imports = Some(Arc::new(service));
+        self
+    }
+
     pub fn build(self) -> Arc<AppContext> {
         let ports = CatalogPorts::local(AuthPorts {
             mates: self.mates,
@@ -169,10 +187,18 @@ impl TestContext {
         if let Some(doctor) = self.doctor {
             services.doctor = doctor;
         }
+        if let Some(projections) = self.projections {
+            services.projections = projections;
+        }
+        if let Some(imports) = self.imports {
+            services.imports = imports;
+        }
         ctx.attach(services);
         ctx.profiles.register(Arc::new(DspProfileAdapter::new()));
-        ctx.profiles.register(Arc::new(DcatAdapter::<Dcat3>::default()));
-        ctx.profiles.register(Arc::new(DcatAdapter::<DcatAp>::default()));
+        ctx.profiles
+            .register(Arc::new(DcatAdapter::<Dcat3>::default()));
+        ctx.profiles
+            .register(Arc::new(DcatAdapter::<DcatAp>::default()));
         ctx
     }
 }

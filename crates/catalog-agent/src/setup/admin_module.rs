@@ -34,6 +34,7 @@ use crate::grpc::api::FILE_DESCRIPTOR_SET;
 use crate::grpc::odrl_offers::OdrlOfferGrpc;
 use crate::grpc::policy_templates::PolicyTemplateGrpc;
 use crate::grpc::resources::CatalogResourceGrpc;
+use crate::http::catalog_exchange::CatalogExchangeRouter;
 use crate::http::dataset_offerings::DatasetOfferingRouter;
 use crate::http::odrl_policies::OdrlOfferEntityRouter;
 use crate::http::peer_catalogs::PeerCatalogRouter;
@@ -53,7 +54,10 @@ impl CatalogAdminModule {
 
     /// Mount prefix of this agent's own API, e.g. `/api/v1/catalog-agent`.
     fn base_path(&self) -> String {
-        format!("{}/{SERVICE_NAME}", self.ctx.config.common().get_api_version())
+        format!(
+            "{}/{SERVICE_NAME}",
+            self.ctx.config.common().get_api_version()
+        )
     }
 
     /// The prefix and router of each kind of resource.
@@ -81,14 +85,29 @@ impl ServiceModuleTrait for CatalogAdminModule {
     fn http(&self) -> Option<(String, Router)> {
         let ctx = &self.ctx;
         let mut router = Router::new();
-        for (prefix, resources) in self.resources() {
+        for (prefix, mut resources) in self.resources() {
+            if prefix == routes::catalogs::PREFIX {
+                resources = resources.merge(CatalogExchangeRouter::new(ctx.clone()).router());
+            }
             router = router.nest(prefix, resources);
         }
         let router = router
-            .nest(routes::odrl_policies::PREFIX, OdrlOfferEntityRouter::new(ctx.clone()).router())
-            .nest(routes::policy_templates::PREFIX, PolicyTemplateEntityRouter::new(ctx.clone()).router())
-            .nest(routes::peer_catalogs::PREFIX, PeerCatalogRouter::new(ctx.clone()).router())
-            .nest(routes::dataset_offerings::PREFIX, DatasetOfferingRouter::new(ctx.clone()).router())
+            .nest(
+                routes::odrl_policies::PREFIX,
+                OdrlOfferEntityRouter::new(ctx.clone()).router(),
+            )
+            .nest(
+                routes::policy_templates::PREFIX,
+                PolicyTemplateEntityRouter::new(ctx.clone()).router(),
+            )
+            .nest(
+                routes::peer_catalogs::PREFIX,
+                PeerCatalogRouter::new(ctx.clone()).router(),
+            )
+            .nest(
+                routes::dataset_offerings::PREFIX,
+                DatasetOfferingRouter::new(ctx.clone()).router(),
+            )
             .route_layer(axum::middleware::from_fn_with_state(
                 ctx.oauth_validator.clone(),
                 ymir::http::OauthHttpMiddleware::run,
@@ -98,9 +117,15 @@ impl ServiceModuleTrait for CatalogAdminModule {
 
     fn grpc(&self, routes: &mut RoutesBuilder) {
         routes
-            .add_service(CatalogResourceServiceServer::new(CatalogResourceGrpc::new(self.ctx.clone())))
-            .add_service(OdrlOfferServiceServer::new(OdrlOfferGrpc::new(self.ctx.clone())))
-            .add_service(PolicyTemplateServiceServer::new(PolicyTemplateGrpc::new(self.ctx.clone())));
+            .add_service(CatalogResourceServiceServer::new(CatalogResourceGrpc::new(
+                self.ctx.clone(),
+            )))
+            .add_service(OdrlOfferServiceServer::new(OdrlOfferGrpc::new(
+                self.ctx.clone(),
+            )))
+            .add_service(PolicyTemplateServiceServer::new(PolicyTemplateGrpc::new(
+                self.ctx.clone(),
+            )));
     }
 
     fn grpc_descriptors(&self) -> Vec<&'static [u8]> {

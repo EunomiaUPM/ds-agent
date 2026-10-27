@@ -29,13 +29,17 @@ use std::sync::{Arc, RwLock};
 use axum::Router;
 use common::boot::seeders::BootSeeder;
 use common::boot::workers::BackgroundWorker;
+use common::eunomia::EunomiaProfile;
 use common::module_loader::module_group::ModuleGroup;
 use common::module_loader::service_module::ServiceModuleTrait;
+use common::rdf::shacl::ShapeSet;
+use common::rdf::RdfEngine;
 use serde::Serialize;
 use serde_json::Value;
 use tonic::service::RoutesBuilder;
 use ymir::errors::Outcome;
 
+pub use crate::entities::findings::{Finding, Severity};
 use crate::entities::resource::CatalogResource;
 use crate::entities::resource_set::ResourceSet;
 use crate::setup::context::AppContext;
@@ -51,7 +55,21 @@ pub trait ProfileAdapterTrait: Send + Sync {
     /// `root` and what hangs from it, in the profile's vocabulary.
     fn project(&self, set: &ResourceSet, root: &CatalogResource) -> Outcome<Value>;
     /// Whether `root` (with `deep`, its whole closure) conforms, and the findings.
-    fn diagnose(&self, set: &ResourceSet, root: &CatalogResource, deep: bool) -> Outcome<ProfileDiagnosis>;
+    fn diagnose(
+        &self,
+        set: &ResourceSet,
+        root: &CatalogResource,
+        deep: bool,
+    ) -> Outcome<ProfileDiagnosis>;
+    /// The SHACL shapes documents in this profile are validated with; a profile without them
+    /// imports nothing.
+    fn shapes(&self) -> Option<&ShapeSet> {
+        None
+    }
+    /// The engine that expands the profile's output, with its contexts embedded.
+    fn engine(&self) -> &'static RdfEngine {
+        EunomiaProfile::shared()
+    }
 }
 
 /// A profile as a composable module: its own routes, plus the adapter the registry keeps.
@@ -133,27 +151,6 @@ impl ServiceModuleTrait for ProfileModules {
     fn seeders(&self) -> Vec<Box<dyn BootSeeder>> {
         self.group.seeders()
     }
-}
-
-/// How bad a finding is: a violation breaks conformance, the rest do not.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Severity {
-    Violation,
-    Warning,
-    Info,
-}
-
-/// One thing a profile found about one resource.
-#[derive(Debug, Clone, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Finding {
-    pub severity: Severity,
-    pub resource: String,
-    /// The property concerned, as an IRI, when there is one.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub property: Option<String>,
-    pub message: String,
 }
 
 /// A profile's verdict on a resource.

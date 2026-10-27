@@ -1,0 +1,210 @@
+{
+  "@context": {
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dcatap": "http://data.europa.eu/r5r/",
+    "dct": "http://purl.org/dc/terms/",
+    "foaf": "http://xmlns.com/foaf/0.1/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@graph": [
+
+    {
+      "@id": "urn:catalog:nap-transportes",
+      "@type": "dcat:Catalog",
+      "dct:title": {
+        "@value": "Catálogo NAP Transporte",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Catálogo de datasets publicados en el Punto de Acceso Nacional de Transporte",
+        "@language": "es"
+      },
+      "dct:publisher": {
+        "@id": "urn:org:ministerio-transportes"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "foaf:homepage": {
+        "@id": "https://nap.transportes.gob.es"
+      },
+      "dcat:themeTaxonomy": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme"
+        }
+      ],
+      "dcat:dataset": [
+        {
+          "@id": "urn:dataset:aecfa-slots"
+        }
+      ],
+      "dcat:record": [
+        {
+          "@id": "urn:record:aecfa-slots"
+        }
+      ]
+    },
+
+    {
+      "@id": "urn:org:ministerio-transportes",
+      "@type": "foaf:Agent",
+      "foaf:name": {
+        "@value": "Ministerio de Transportes y Movilidad Sostenible",
+        "@language": "es"
+      },
+      "foaf:homepage": {
+        "@id": "https://www.transportes.gob.es"
+      }
+    },
+
+    {
+      "@id": "urn:dataset:aecfa-slots",
+      "@type": "dcat:Dataset",
+      "dct:identifier": "aecfa-slots",
+      "dct:title": {
+        "@value": "AECFA Slots – Datos de vuelos y slots aeroportuarios",
+        "@language": "es"
+      },
+
+      "dct:description": {
+        "@value": "Conjunto de datos de slots de vuelos publicados por AECFA a través del Punto de Acceso Nacional de Transporte (NAP). Incluye información sobre llegadas y salidas de vuelos en aeropuertos nacionales. El dataset se publica en dos formatos: GTFS con vuelos nacionales y TXT con todos los slots de llegadas y salidas de aeropuertos nacionales.",
+        "@language": "es"
+      },
+
+      "dct:publisher": {
+        "@id": "urn:org:ministerio-transportes"
+      },
+
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+
+      "dct:license": {
+        "@id": "https://nap.transportes.gob.es/Legal"
+      },
+
+      "dct:accessRights": {
+        "@id": "http://publications.europa.eu/resource/authority/access-right/PUBLIC"
+      },
+
+      "dct:spatial": {
+        "@id": "http://publications.europa.eu/resource/authority/country/ESP"
+      },
+
+      "dct:issued": {
+        "@value": "2026-02-14",
+        "@type": "xsd:date"
+      },
+
+      "dct:modified": {
+        "@value": "2026-02-14",
+        "@type": "xsd:date"
+      },
+
+      "dct:temporal": {
+        "@type": "dct:PeriodOfTime",
+        "dcat:startDate": {
+          "@value": "2026-02-13",
+          "@type": "xsd:date"
+        },
+        "dcat:endDate": {
+          "@value": "2026-03-27",
+          "@type": "xsd:date"
+        }
+      },
+
+      "dcat:theme": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme/TRAN"
+        }
+      ],
+
+      "dcat:landingPage": {
+        "@id": "https://nap.transportes.gob.es/Files/Detail/920"
+      },
+
+      "dcat:keyword": [
+        { "@value": "slots aeroportuarios", "@language": "es" },
+        { "@value": "aviación", "@language": "es" },
+        { "@value": "vuelos", "@language": "es" },
+        { "@value": "aeropuertos", "@language": "es" },
+        { "@value": "GTFS", "@language": "es" },
+        { "@value": "movilidad aérea", "@language": "es" },
+        { "@value": "NAP transporte", "@language": "es" }
+      ],
+
+      "dcat:distribution": [
+        {
+          "@id": "urn:distribution:aecfa-slots-gtfs"
+        },
+        {
+          "@id": "urn:distribution:aecfa-slots-txt"
+        }
+      ]
+    },
+
+    {
+      "@id": "urn:distribution:aecfa-slots-gtfs",
+      "@type": "dcat:Distribution",
+      "dct:title": {
+        "@value": "Distribución GTFS de vuelos nacionales",
+        "@language": "es"
+      },
+      "dcat:accessURL": {
+        "@id": "https://nap.transportes.gob.es/Files/Detail/920"
+      },
+      "dct:format": {
+        "@id": "http://publications.europa.eu/resource/authority/file-type/GTFS"
+      },
+      "dcat:mediaType": {
+        "@id": "https://www.iana.org/assignments/media-types/application/zip"
+      }
+    },
+
+    {
+      "@id": "urn:distribution:aecfa-slots-txt",
+      "@type": "dcat:Distribution",
+      "dct:title": {
+        "@value": "Distribución TXT con todos los slots",
+        "@language": "es"
+      },
+      "dcat:accessURL": {
+        "@id": "https://nap.transportes.gob.es/Files/Detail/920"
+      },
+      "dct:format": {
+        "@id": "http://publications.europa.eu/resource/authority/file-type/TXT"
+      },
+      "dcat:mediaType": {
+        "@id": "https://www.iana.org/assignments/media-types/text/plain"
+      }
+    },
+
+    {
+      "@id": "urn:record:aecfa-slots",
+      "@type": "dcat:CatalogRecord",
+      "foaf:primaryTopic": {
+        "@id": "urn:dataset:aecfa-slots"
+      },
+      "dct:title": {
+        "@value": "Registro DCAT-AP del dataset AECFA Slots",
+        "@language": "es"
+      },
+      "dct:conformsTo": {
+        "@id": "https://semiceu.github.io/DCAT-AP/releases/3.0.1/"
+      },
+      "dct:issued": {
+        "@value": "2026-03-06",
+        "@type": "xsd:date"
+      },
+      "dct:modified": {
+        "@value": "2026-03-06",
+        "@type": "xsd:date"
+      }
+    }
+
+  ]
+}

@@ -1,0 +1,349 @@
+{
+  "@context": {
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dcatap": "http://data.europa.eu/r5r/",
+    "dct": "http://purl.org/dc/terms/",
+    "foaf": "http://xmlns.com/foaf/0.1/",
+    "vcard": "http://www.w3.org/2006/vcard/ns#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@graph": [
+    {
+      "@id": "urn:catalog:adif-ideadif",
+      "@type": "dcat:Catalog",
+      "dct:title": {
+        "@value": "Catálogo IDEADIF de recursos geográficos de ADIF",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Entrada de catálogo para recursos geográficos de ADIF publicados a través de IDEADIF y descritos conforme a DCAT-AP 3.0.1.",
+        "@language": "es"
+      },
+      "dct:publisher": {
+        "@id": "urn:org:adif"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "foaf:homepage": {
+        "@id": "https://ideadif.adif.es/"
+      },
+      "dcat:themeTaxonomy": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme"
+        }
+      ],
+      "dcat:dataset": [
+        {
+          "@id": "urn:dataset:adif-tramificacion-comun-railwaylink"
+        }
+      ],
+      "dcat:service": [
+        {
+          "@id": "urn:service:adif-tramificacion-comun-wfs"
+        }
+      ],
+      "dcat:record": [
+        {
+          "@id": "urn:record:adif-tramificacion-comun-railwaylink"
+        }
+      ]
+    },
+    {
+      "@id": "urn:org:adif",
+      "@type": "foaf:Agent",
+      "foaf:name": [
+        {
+          "@value": "Adif",
+          "@language": "es"
+        },
+        {
+          "@value": "Administrador de Infraestructuras Ferroviarias",
+          "@language": "es"
+        }
+      ],
+      "foaf:homepage": {
+        "@id": "https://www.adif.es/"
+      }
+    },
+    {
+      "@id": "urn:contact:adif-ideadif",
+      "@type": "vcard:Kind",
+      "vcard:fn": {
+        "@value": "Adif (Responsable de SIG IDEADIF)",
+        "@language": "es"
+      },
+      "vcard:street-address": {
+        "@value": "Paseo de las Delicias, 61",
+        "@language": "es"
+      },
+      "vcard:locality": {
+        "@value": "Madrid",
+        "@language": "es"
+      },
+      "vcard:region": {
+        "@value": "Dirección de Sistemas y Tecnologías de la Información",
+        "@language": "es"
+      },
+      "vcard:postal-code": "28045",
+      "vcard:country-name": {
+        "@value": "España",
+        "@language": "es"
+      },
+      "vcard:url": {
+        "@id": "https://ideadif.adif.es/"
+      }
+    },
+    {
+      "@id": "urn:dataset:adif-tramificacion-comun-railwaylink",
+      "@type": "dcat:Dataset",
+      "dct:identifier": "adif-tramificacion-comun-railwaylink",
+      "dct:title": {
+        "@value": "Tramificación Común de ADIF – RailwayLink (INSPIRE/WFS)",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Conjunto de datos geográficos de carácter público sobre la Tramificación Común de ADIF accesible mediante un servicio WFS conforme a OGC WFS 1.1.0 y 2.0.0. El recurso permite el acceso, consulta, localización y descarga de información geográfica de la infraestructura ferroviaria generada en el marco del proyecto IDEADIF. En este caso se describe la capa INSPIRE tn-ra:RailwayLink, con geometrías lineales de eje, identificadores INSPIRE, nodos inicial y final, fechas de validez y geometría en GML. La actualización de la información del servicio es trimestral. La versión indicada en la ficha es Julio 2025 (tercer trimestre).",
+        "@language": "es"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "dct:publisher": {
+        "@id": "urn:org:adif"
+      },
+      "dct:creator": {
+        "@id": "urn:org:adif"
+      },
+      "dct:accessRights": {
+        "@id": "http://publications.europa.eu/resource/authority/access-right/PUBLIC"
+      },
+      "dct:accrualPeriodicity": {
+        "@id": "http://publications.europa.eu/resource/authority/frequency/QUARTERLY"
+      },
+      "dct:spatial": {
+        "@id": "http://publications.europa.eu/resource/authority/country/ESP"
+      },
+      "dct:modified": {
+        "@value": "2025-09-26T12:19:45",
+        "@type": "xsd:dateTime"
+      },
+      "dct:temporal": {
+        "@type": "dct:PeriodOfTime",
+        "dcat:startDate": {
+          "@value": "2009-12-31T23:00:00Z",
+          "@type": "xsd:dateTime"
+        },
+        "dcat:endDate": {
+          "@value": "2026-02-12T11:32:11Z",
+          "@type": "xsd:dateTime"
+        }
+      },
+      "dcat:theme": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme/TRAN"
+        }
+      ],
+      "dcat:landingPage": {
+        "@id": "https://ideadif.adif.es/catalog/srv/spa/catalog.search#/metadata/7b6a0fdc-bcc4-40e9-a913-74fc6ef10914"
+      },
+      "foaf:page": [
+        {
+          "@id": "https://ideadif.adif.es/"
+        }
+      ],
+      "dcat:contactPoint": {
+        "@id": "urn:contact:adif-ideadif"
+      },
+      "dcat:keyword": [
+        {
+          "@value": "WFS",
+          "@language": "es"
+        },
+        {
+          "@value": "OGC",
+          "@language": "es"
+        },
+        {
+          "@value": "Tramificación Común",
+          "@language": "es"
+        },
+        {
+          "@value": "Tramo",
+          "@language": "es"
+        },
+        {
+          "@value": "Dependencia",
+          "@language": "es"
+        },
+        {
+          "@value": "Adif",
+          "@language": "es"
+        },
+        {
+          "@value": "IDEADIF",
+          "@language": "es"
+        },
+        {
+          "@value": "Infraestructura ferroviaria",
+          "@language": "es"
+        },
+        {
+          "@value": "RailwayLink",
+          "@language": "es"
+        },
+        {
+          "@value": "INSPIRE",
+          "@language": "es"
+        }
+      ],
+      "dcat:distribution": [
+        {
+          "@id": "urn:distribution:adif-tramificacion-comun-railwaylink:gml"
+        }
+      ]
+    },
+    {
+      "@id": "urn:distribution:adif-tramificacion-comun-railwaylink:gml",
+      "@type": "dcat:Distribution",
+      "dct:title": {
+        "@value": "Distribución GML del servicio WFS de Tramificación Común",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Distribución accesible mediante el servicio WFS de ADIF/IDEADIF. El servicio devuelve datos geográficos en application/gml+xml y permite consulta y descarga de la capa tn-ra:RailwayLink mediante operaciones WFS.",
+        "@language": "es"
+      },
+      "dcat:accessURL": {
+        "@id": "https://ideadif.adif.es/services/wfs"
+      },
+      "dct:format": {
+        "@id": "http://publications.europa.eu/resource/authority/file-type/GML"
+      },
+      "dcat:mediaType": {
+        "@id": "https://www.iana.org/assignments/media-types/application/gml+xml"
+      },
+      "dct:license": {
+        "@id": "https://www.adif.es/es_ES/conoceradif/transparencia/datos-abiertos.shtml"
+      },
+      "dcat:accessService": {
+        "@id": "urn:service:adif-tramificacion-comun-wfs"
+      }
+    },
+    {
+      "@id": "urn:service:adif-tramificacion-comun-wfs",
+      "@type": "dcat:DataService",
+      "dct:title": {
+        "@value": "Servicio WFS de Tramificación Común",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Servicio web de fenómenos de ADIF conforme a OGC WFS 1.1.0 y 2.0.0 para acceso, consulta, localización y descarga de información geográfica de la infraestructura ferroviaria de ADIF generada en el marco del proyecto IDEADIF.",
+        "@language": "es"
+      },
+      "dcat:endpointURL": {
+        "@id": "https://ideadif.adif.es/services/wfs"
+      },
+      "dcat:endpointDescription": {
+        "@id": "https://ideadif.adif.es/catalog/srv/spa/catalog.search#/metadata/7b6a0fdc-bcc4-40e9-a913-74fc6ef10914"
+      },
+      "dct:publisher": {
+        "@id": "urn:org:adif"
+      },
+      "dct:accessRights": {
+        "@id": "http://publications.europa.eu/resource/authority/access-right/PUBLIC"
+      },
+      "dct:license": {
+        "@id": "https://www.adif.es/es_ES/conoceradif/transparencia/datos-abiertos.shtml"
+      },
+      "dct:conformsTo": [
+        {
+          "@type": "dct:Standard",
+          "dct:title": {
+            "@value": "OGC WFS 1.1.0",
+            "@language": "en"
+          }
+        },
+        {
+          "@type": "dct:Standard",
+          "dct:title": {
+            "@value": "OGC WFS 2.0.0",
+            "@language": "en"
+          }
+        }
+      ],
+      "dcat:theme": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/data-theme/TRAN"
+        }
+      ],
+      "dcat:contactPoint": {
+        "@id": "urn:contact:adif-ideadif"
+      },
+      "dcat:keyword": [
+        {
+          "@value": "WFS",
+          "@language": "es"
+        },
+        {
+          "@value": "IDEADIF",
+          "@language": "es"
+        },
+        {
+          "@value": "infraestructura ferroviaria",
+          "@language": "es"
+        },
+        {
+          "@value": "INSPIRE",
+          "@language": "es"
+        }
+      ],
+      "foaf:page": {
+        "@id": "https://ideadif.adif.es/catalog/srv/spa/catalog.search#/metadata/7b6a0fdc-bcc4-40e9-a913-74fc6ef10914"
+      },
+      "dcat:servesDataset": {
+        "@id": "urn:dataset:adif-tramificacion-comun-railwaylink"
+      }
+    },
+    {
+      "@id": "urn:record:adif-tramificacion-comun-railwaylink",
+      "@type": "dcat:CatalogRecord",
+      "foaf:primaryTopic": {
+        "@id": "urn:dataset:adif-tramificacion-comun-railwaylink"
+      },
+      "dct:title": {
+        "@value": "Registro DCAT-AP del recurso Tramificación Común de ADIF – RailwayLink",
+        "@language": "es"
+      },
+      "dct:description": {
+        "@value": "Registro de catálogo para la descripción DCAT-AP del recurso geográfico RailwayLink de la Tramificación Común de ADIF publicado a través de IDEADIF.",
+        "@language": "es"
+      },
+      "dct:language": [
+        {
+          "@id": "http://publications.europa.eu/resource/authority/language/SPA"
+        }
+      ],
+      "dct:conformsTo": [
+        {
+          "@id": "https://semiceu.github.io/DCAT-AP/releases/3.0.1/"
+        }
+      ],
+      "dct:source": {
+        "@id": "https://ideadif.adif.es/catalog/srv/spa/catalog.search#/metadata/7b6a0fdc-bcc4-40e9-a913-74fc6ef10914"
+      },
+      "dct:issued": {
+        "@value": "2026-03-06",
+        "@type": "xsd:date"
+      },
+      "dct:modified": {
+        "@value": "2026-03-06",
+        "@type": "xsd:date"
+      }
+    }
+  ]
+}

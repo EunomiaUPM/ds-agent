@@ -23,6 +23,7 @@ use serde_json::{json, Map, Value};
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
+use crate::entities::resource_kind::ResourceKind;
 use crate::entities::vocab::Vocab;
 
 /// One object of a triple, borrowed from the node.
@@ -132,7 +133,10 @@ impl ResourceGraph {
 
     /// The values of `predicate` as terms.
     pub fn terms(&self, predicate: &str) -> Vec<Term<'_>> {
-        self.values(predicate).iter().filter_map(Self::term_of).collect()
+        self.values(predicate)
+            .iter()
+            .filter_map(Self::term_of)
+            .collect()
     }
 
     /// Every IRI object of `predicate`, inline nodes with an `@id` included.
@@ -173,11 +177,13 @@ impl ResourceGraph {
 
     /// The literal or IRI value of `predicate` as text: what a single-valued lookup reads.
     pub fn first_value(&self, predicate: &str) -> Option<String> {
-        self.terms(predicate).into_iter().find_map(|term| match term {
-            Term::Iri(iri) => Some(iri.to_string()),
-            Term::Literal(literal) => Some(literal.lexical()),
-            Term::Node(_) => None,
-        })
+        self.terms(predicate)
+            .into_iter()
+            .find_map(|term| match term {
+                Term::Iri(iri) => Some(iri.to_string()),
+                Term::Literal(literal) => Some(literal.lexical()),
+                Term::Node(_) => None,
+            })
     }
 
     /// Replaces the values of `predicate`; no values removes it.
@@ -220,7 +226,8 @@ impl ResourceGraph {
     }
 
     /// Inline descriptions of other catalog resources become plain references to them: each
-    /// resource is described once, in its own record.
+    /// resource is described once, in its own record. A node typed as something else (a vCard
+    /// contact, a period) stays inline, whatever its `@id`.
     pub fn reduce_embedded_resources(&mut self) {
         let predicates: Vec<String> = self.predicates().map(str::to_string).collect();
         for predicate in predicates {
@@ -228,7 +235,7 @@ impl ResourceGraph {
                 .values(&predicate)
                 .iter()
                 .map(|value| match value.get("@id").and_then(Value::as_str) {
-                    Some(id) if id.starts_with("urn:") && value.get("@value").is_none() => {
+                    Some(id) if id.starts_with("urn:") && Self::is_resource_reference(value) => {
                         Self::iri(id)
                     }
                     _ => value.clone(),
@@ -236,6 +243,22 @@ impl ResourceGraph {
                 .collect();
             self.put(&predicate, reduced);
         }
+    }
+
+    /// A node with no type, or typed as one of the catalog's own resources.
+    fn is_resource_reference(value: &Value) -> bool {
+        let Some(node) = value.as_object() else {
+            return false;
+        };
+        if node.contains_key("@value") {
+            return false;
+        }
+        let types: Vec<&str> = match node.get("@type") {
+            Some(Value::Array(types)) => types.iter().filter_map(Value::as_str).collect(),
+            Some(Value::String(t)) => vec![t.as_str()],
+            _ => vec![],
+        };
+        types.is_empty() || ResourceKind::from_classes(types).is_some()
     }
 
     /// The links to other local resources (`urn:` objects of the link predicates).

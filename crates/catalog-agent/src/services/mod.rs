@@ -16,8 +16,9 @@
  */
 
 //! Use cases: resources, their closures, offers, templates, offerings, peer catalogs, the main
-//! catalog and the doctor.
+//! catalog, the doctor, projections and imports.
 
+pub mod catalog_import;
 pub mod closure;
 pub mod dataset_offerings;
 pub mod doctor;
@@ -26,4 +27,5 @@ pub mod odrl_policies;
 pub mod peer_catalogs;
 pub mod policy_instantiation;
 pub mod policy_templates;
+pub mod projection;
 pub mod resources;

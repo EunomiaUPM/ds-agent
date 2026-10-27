@@ -27,6 +27,14 @@ use crate::entities::filters::ResourceFilter;
 use crate::entities::resource::CatalogResource;
 use crate::entities::resource_kind::ResourceKind;
 
+/// One write of an import: a new resource, or a stored one over the version read.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ImportWrite {
+    pub resource: CatalogResource,
+    /// The stored version it replaces; none inserts it.
+    pub expected: Option<i64>,
+}
+
 /// Resources within the owner scope each call gives; the links of a resource are derived from
 /// its description on every write.
 #[mockall::automock]
@@ -42,7 +50,11 @@ pub trait ResourceRepoTrait: Send + Sync {
     ) -> Outcome<Vec<CatalogResource>>;
     async fn count(&self, scope: &OwnerScope, filter: &ResourceFilter) -> Outcome<u64>;
     /// Every resource matching the filter, unpaged: for the closures a projection needs whole.
-    async fn get_all(&self, scope: &OwnerScope, filter: &ResourceFilter) -> Outcome<Vec<CatalogResource>>;
+    async fn get_all(
+        &self,
+        scope: &OwnerScope,
+        filter: &ResourceFilter,
+    ) -> Outcome<Vec<CatalogResource>>;
     async fn get_batch(&self, scope: &OwnerScope, ids: &[Urn]) -> Outcome<Vec<CatalogResource>>;
     async fn get_by_id(&self, scope: &OwnerScope, id: &Urn) -> Outcome<Option<CatalogResource>>;
     /// The connector's main resource of `kind`, whoever asks.
@@ -71,6 +83,8 @@ pub trait ResourceRepoTrait: Send + Sync {
     ) -> Outcome<CatalogResource>;
     /// Removes the resource (and what hangs from it) and returns it.
     async fn delete(&self, scope: &OwnerScope, id: &Urn) -> Outcome<CatalogResource>;
+    /// Writes every resource, in order, then all their links, in one transaction: all or none.
+    async fn import(&self, scope: &OwnerScope, writes: &[ImportWrite]) -> Outcome<()>;
     /// The `(subject, predicate)` pairs linking to `id`.
     async fn referrers(&self, id: &Urn) -> Outcome<Vec<(String, String)>>;
 }

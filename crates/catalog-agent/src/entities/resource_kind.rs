@@ -24,6 +24,7 @@ use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
 use ymir::errors::{BadFormat, Errors, Outcome};
 
+use crate::entities::graph::ResourceGraph;
 use crate::entities::vocab::Vocab;
 
 /// What a catalog resource is; each one maps to one RDF class.
@@ -146,6 +147,56 @@ impl ResourceKind {
         Self::ALL.into_iter().find(|kind| kind.class_iri() == iri)
     }
 
+    /// The kinds a link through `predicate` must reach, for the link predicates that constrain it.
+    pub fn linked_by(predicate: &str) -> Option<&'static [ResourceKind]> {
+        match predicate {
+            Vocab::DCAT_ACCESS_SERVICE => Some(&[Self::DataService]),
+            Vocab::DCAT_SERVES_DATASET => Some(&[Self::Dataset, Self::DatasetSeries]),
+            Vocab::DCT_PUBLISHER | Vocab::DCT_CREATOR | Vocab::DCT_RIGHTS_HOLDER => {
+                Some(&[Self::Agent])
+            }
+            Vocab::DCAT_IN_SERIES => Some(&[Self::DatasetSeries]),
+            _ => None,
+        }
+    }
+
+    /// What every resource of this kind needs before it is stored, as `(term, reason)` when it
+    /// lacks it; the rest is the doctor's.
+    pub fn missing_essential(
+        &self,
+        description: &ResourceGraph,
+    ) -> Option<(&'static str, &'static str)> {
+        (*self == Self::DataService && description.first_iri(Vocab::DCAT_ENDPOINT_URL).is_none())
+            .then_some((
+                "endpointURL",
+                "a DataService needs its endpointURL (an IRI)",
+            ))
+    }
+
+    /// Of several classes a node has, the kind it is stored as: a catalog is also a dataset in
+    /// DCAT and a series is one too, so the narrower kind wins.
+    pub fn from_classes<'a>(classes: impl IntoIterator<Item = &'a str>) -> Option<Self> {
+        const PRECEDENCE: [ResourceKind; 7] = [
+            ResourceKind::Catalog,
+            ResourceKind::DatasetSeries,
+            ResourceKind::Dataset,
+            ResourceKind::DataService,
+            ResourceKind::Distribution,
+            ResourceKind::CatalogRecord,
+            ResourceKind::Agent,
+        ];
+        let kinds: Vec<Self> = classes.into_iter().filter_map(Self::from_class).collect();
+        PRECEDENCE.into_iter().find(|kind| kinds.contains(kind))
+    }
+
+    /// The URN a resource known elsewhere by `iri` takes here: the same on every import.
+    pub fn mint_for(&self, iri: &str) -> Urn {
+        let uuid = uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_URL, iri.as_bytes());
+        UrnBuilder::new(self.urn_nid(), &uuid.to_string())
+            .build()
+            .expect("a UUID is a valid URN NSS")
+    }
+
     /// A fresh URN in the kind's namespace.
     pub fn mint(&self) -> Urn {
         UrnBuilder::new(self.urn_nid(), &uuid::Uuid::new_v4().to_string())
@@ -168,7 +219,11 @@ impl FromStr for ResourceKind {
             .into_iter()
             .find(|kind| kind.as_str() == s || kind.term() == s)
             .ok_or_else(|| {
-                Errors::format(BadFormat::Received, format!("unknown resource kind {s}"), None)
+                Errors::format(
+                    BadFormat::Received,
+                    format!("unknown resource kind {s}"),
+                    None,
+                )
             })
     }
 }

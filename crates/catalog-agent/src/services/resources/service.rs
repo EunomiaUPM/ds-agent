@@ -39,7 +39,6 @@ use crate::entities::filters::ResourceFilter;
 use crate::entities::graph::ResourceGraph;
 use crate::entities::resource::CatalogResource;
 use crate::entities::resource_kind::{Parent, ResourceKind};
-use crate::entities::vocab::Vocab;
 use crate::services::resources::ResourceServiceTrait;
 use crate::setup::context::AppContext;
 
@@ -57,7 +56,12 @@ impl ResourceService {
     }
 
     /// The resource as `user` sees it, if it is of `kind`.
-    async fn seen(&self, user: &UserInfo, kind: ResourceKind, id: &Urn) -> Outcome<CatalogResource> {
+    async fn seen(
+        &self,
+        user: &UserInfo,
+        kind: ResourceKind,
+        id: &Urn,
+    ) -> Outcome<CatalogResource> {
         self.repo()
             .get_by_id(&OwnerScope::seeing(user), id)
             .await?
@@ -66,7 +70,12 @@ impl ResourceService {
     }
 
     /// The resource as `user` may change it, if it is of `kind`.
-    async fn acted_on(&self, user: &UserInfo, kind: ResourceKind, id: &Urn) -> Outcome<CatalogResource> {
+    async fn acted_on(
+        &self,
+        user: &UserInfo,
+        kind: ResourceKind,
+        id: &Urn,
+    ) -> Outcome<CatalogResource> {
         self.repo()
             .get_by_id(&OwnerScope::acting(user), id)
             .await?
@@ -94,9 +103,16 @@ impl ResourceService {
             Parent::Catalog => ResourceKind::Catalog,
             Parent::Dataset => ResourceKind::Dataset,
         };
-        let term = if required == ResourceKind::Dataset { "ofDataset" } else { "inCatalog" };
+        let term = if required == ResourceKind::Dataset {
+            "ofDataset"
+        } else {
+            "inCatalog"
+        };
         let parent = parent.ok_or_else(|| {
-            Self::invalid(term, format!("a {} needs its {}", kind.term(), required.term()))
+            Self::invalid(
+                term,
+                format!("a {} needs its {}", kind.term(), required.term()),
+            )
         })?;
         let found = self
             .repo()
@@ -104,7 +120,10 @@ impl ResourceService {
             .await?
             .filter(|p| p.kind() == required)
             .ok_or_else(|| {
-                Self::invalid(term, format!("{parent} is not a {} you can see", required.term()))
+                Self::invalid(
+                    term,
+                    format!("{parent} is not a {} you can see", required.term()),
+                )
             })?;
         let id = found.id().clone();
         Ok(match required {
@@ -124,13 +143,19 @@ impl ResourceService {
             .map(|(_, id)| id.clone())
             .collect::<HashSet<_>>()
             .into_iter()
-            .map(|id| id.parse::<Urn>().map_err(|_| Self::invalid("@id", format!("{id} is not a URN"))))
+            .map(|id| {
+                id.parse::<Urn>()
+                    .map_err(|_| Self::invalid("@id", format!("{id} is not a URN")))
+            })
             .collect::<Outcome<_>>()?;
-        let targets = self.repo().get_batch(&OwnerScope::seeing(user), &ids).await?;
+        let targets = self
+            .repo()
+            .get_batch(&OwnerScope::seeing(user), &ids)
+            .await?;
         let mut reasons = Vec::new();
         for (predicate, id) in &links {
             let found = targets.iter().find(|t| t.id().to_string() == *id);
-            match (found, Self::expected_kinds(predicate)) {
+            match (found, ResourceKind::linked_by(predicate)) {
                 (None, _) => reasons.push(Self::reason(
                     predicate,
                     format!("links to {id}, which does not exist or you cannot see"),
@@ -151,24 +176,12 @@ impl ResourceService {
         }
     }
 
-    fn expected_kinds(predicate: &str) -> Option<&'static [ResourceKind]> {
-        match predicate {
-            Vocab::DCAT_ACCESS_SERVICE => Some(&[ResourceKind::DataService]),
-            Vocab::DCAT_SERVES_DATASET => Some(&[ResourceKind::Dataset, ResourceKind::DatasetSeries]),
-            Vocab::DCT_PUBLISHER | Vocab::DCT_CREATOR | Vocab::DCT_RIGHTS_HOLDER => {
-                Some(&[ResourceKind::Agent])
-            }
-            Vocab::DCAT_IN_SERIES => Some(&[ResourceKind::DatasetSeries]),
-            _ => None,
-        }
-    }
-
     /// What every resource of a kind needs before it is stored; the rest is the doctor's.
     fn check_shape(kind: ResourceKind, description: &ResourceGraph) -> Outcome<()> {
-        if kind == ResourceKind::DataService && description.first_iri(Vocab::DCAT_ENDPOINT_URL).is_none() {
-            return Err(Self::invalid("endpointURL", "a DataService needs its endpointURL (an IRI)"));
+        match kind.missing_essential(description) {
+            Some((term, reason)) => Err(Self::invalid(term, reason)),
+            None => Ok(()),
         }
-        Ok(())
     }
 
     /// Cached projections are stale after any write; a cache failure never fails it.
@@ -254,11 +267,21 @@ impl ResourceServiceTrait for ResourceService {
         let scope = OwnerScope::seeing(user);
         let items = self.repo().get_page(&scope, filter, &page, sort).await?;
         let total = self.repo().count(&scope, filter).await?;
-        Ok(Paginated::from_page(items, &page, Some(total), Self::cursor))
+        Ok(Paginated::from_page(
+            items,
+            &page,
+            Some(total),
+            Self::cursor,
+        ))
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn batch(&self, user: &UserInfo, kind: ResourceKind, ids: &[Urn]) -> Outcome<Vec<CatalogResource>> {
+    async fn batch(
+        &self,
+        user: &UserInfo,
+        kind: ResourceKind,
+        ids: &[Urn],
+    ) -> Outcome<Vec<CatalogResource>> {
         Ok(self
             .repo()
             .get_batch(&OwnerScope::seeing(user), ids)
@@ -286,14 +309,26 @@ impl ResourceServiceTrait for ResourceService {
         parent: &Urn,
     ) -> Outcome<Vec<CatalogResource>> {
         self.repo()
-            .get_children(&OwnerScope::seeing(user), Some(kind), std::slice::from_ref(parent))
+            .get_children(
+                &OwnerScope::seeing(user),
+                Some(kind),
+                std::slice::from_ref(parent),
+            )
             .await
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn distributions_of(&self, user: &UserInfo, datasets: &[Urn]) -> Outcome<Vec<CatalogResource>> {
+    async fn distributions_of(
+        &self,
+        user: &UserInfo,
+        datasets: &[Urn],
+    ) -> Outcome<Vec<CatalogResource>> {
         self.repo()
-            .get_children(&OwnerScope::seeing(user), Some(ResourceKind::Distribution), datasets)
+            .get_children(
+                &OwnerScope::seeing(user),
+                Some(ResourceKind::Distribution),
+                datasets,
+            )
             .await
     }
 
@@ -317,9 +352,15 @@ impl ResourceServiceTrait for ResourceService {
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn create(&self, user: &UserInfo, command: &NewResourceCommand) -> Outcome<CatalogResource> {
+    async fn create(
+        &self,
+        user: &UserInfo,
+        command: &NewResourceCommand,
+    ) -> Outcome<CatalogResource> {
         let kind = command.kind;
-        if kind == ResourceKind::Catalog && self.repo().get_main(ResourceKind::Catalog).await?.is_none() {
+        if kind == ResourceKind::Catalog
+            && self.repo().get_main(ResourceKind::Catalog).await?.is_none()
+        {
             return Err(CatalogErrors::conflict(
                 "the connector's main catalog is created first",
             ));
@@ -352,7 +393,9 @@ impl ResourceServiceTrait for ResourceService {
         user.require_root()?;
         let kind = command.kind;
         if !kind.has_main() {
-            return Err(Self::format_error("only catalogs and data services have a main one"));
+            return Err(Self::format_error(
+                "only catalogs and data services have a main one",
+            ));
         }
         if let Some(existing) = self.repo().get_main(kind).await? {
             return Ok(existing);
@@ -423,7 +466,11 @@ impl ResourceServiceTrait for ResourceService {
         let document = Self::read_document(kind, document).await?;
         let mut parent = document.parent;
         if main && parent.is_none() && kind.parent() == Parent::Catalog {
-            parent = self.repo().get_main(ResourceKind::Catalog).await?.map(|c| c.id().clone());
+            parent = self
+                .repo()
+                .get_main(ResourceKind::Catalog)
+                .await?
+                .map(|c| c.id().clone());
         }
         let command = NewResourceCommand {
             kind,
@@ -452,7 +499,9 @@ impl ResourceServiceTrait for ResourceService {
     ) -> Outcome<CatalogResource> {
         let document = Self::read_document(kind, document).await?;
         if let Some(named) = document.id.as_ref().filter(|named| *named != id) {
-            return Err(Self::format_error(&format!("the document describes {named}, not {id}")));
+            return Err(Self::format_error(&format!(
+                "the document describes {named}, not {id}"
+            )));
         }
         let command = ReplaceResourceCommand {
             description: document.description,

@@ -98,6 +98,9 @@ impl Vocab {
     pub const ODRL_HAS_POLICY: &'static str = "http://www.w3.org/ns/odrl/2/hasPolicy";
     pub const XSD_DATE_TIME: &'static str = "http://www.w3.org/2001/XMLSchema#dateTime";
     pub const XSD_DATE: &'static str = "http://www.w3.org/2001/XMLSchema#date";
+    pub const XSD_STRING: &'static str = "http://www.w3.org/2001/XMLSchema#string";
+    pub const RDF_LANG_STRING: &'static str =
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString";
     pub const XSD_G_YEAR: &'static str = "http://www.w3.org/2001/XMLSchema#gYear";
     pub const XSD_G_YEAR_MONTH: &'static str = "http://www.w3.org/2001/XMLSchema#gYearMonth";
 
@@ -150,4 +153,14 @@ impl Vocab {
         ("dcatap", Self::DCATAP),
         ("eunomia", "https://w3id.org/eunomia/v1/"),
     ];
+
+    /// `dct:title` rather than the whole IRI, for messages; an IRI no prefix covers stays whole.
+    pub fn compact(iri: &str) -> String {
+        Self::PREFIXES
+            .iter()
+            .filter(|(_, ns)| iri.starts_with(ns))
+            .max_by_key(|(_, ns)| ns.len())
+            .map(|(prefix, ns)| format!("{prefix}:{}", &iri[ns.len()..]))
+            .unwrap_or_else(|| iri.to_string())
+    }
 }

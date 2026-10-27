@@ -40,7 +40,10 @@ fn distribution_is_rewritten_into_the_profile() {
     let distribution = set.get(&id(ResourceKind::Distribution, 4)).unwrap();
     let graph = adapter().graph(distribution, &set);
 
-    assert_eq!(graph.first_iri(Vocab::DCAT_ACCESS_URL), Some("https://provider.example/dsp"));
+    assert_eq!(
+        graph.first_iri(Vocab::DCAT_ACCESS_URL),
+        Some("https://provider.example/dsp")
+    );
     assert!(!graph.has(Vocab::DCT_FORMAT));
 }
 
@@ -50,13 +53,22 @@ fn literals_become_nal_concepts() {
     let (_, mut set) = provider_set();
     let mut csv = distribution(7, 3, 2, "text/csv");
     let mut description = csv.description().clone();
-    description.put(Vocab::DCT_LANGUAGE, vec![ResourceGraph::literal("en", None)]);
+    description.put(
+        Vocab::DCT_LANGUAGE,
+        vec![ResourceGraph::literal("en", None)],
+    );
     csv = csv.revise(description);
     set.insert(csv.clone());
     let graph = adapter().graph(&csv, &set);
 
-    assert_eq!(graph.first_iri(Vocab::DCT_FORMAT), Some("http://publications.europa.eu/resource/authority/file-type/CSV"));
-    assert_eq!(graph.first_iri(Vocab::DCT_LANGUAGE), Some("http://publications.europa.eu/resource/authority/language/ENG"));
+    assert_eq!(
+        graph.first_iri(Vocab::DCT_FORMAT),
+        Some("http://publications.europa.eu/resource/authority/file-type/CSV")
+    );
+    assert_eq!(
+        graph.first_iri(Vocab::DCT_LANGUAGE),
+        Some("http://publications.europa.eu/resource/authority/language/ENG")
+    );
 }
 
 /// A catalog without description or publisher breaks DCAT-AP.
@@ -76,14 +88,23 @@ fn catalog_needs_description_and_publisher() {
     assert!(missing.contains(&Vocab::DCT_PUBLISHER));
 }
 
-/// A described dataset conforms; an untagged title and a theme from elsewhere are warnings.
+/// A described dataset conforms; what SEMIC only recommends (contact point, keyword) is a warning.
 #[test]
-fn described_dataset_conforms_with_warnings() {
+fn described_dataset_conforms_with_recommendations() {
     let (_, mut set) = provider_set();
     let mut description = ResourceGraph::default();
-    description.put(Vocab::DCT_TITLE, vec![ResourceGraph::literal("Readings", None)]);
-    description.put(Vocab::DCT_DESCRIPTION, vec![ResourceGraph::literal("Hourly readings", Some("en"))]);
-    description.put(Vocab::DCAT_THEME, vec![ResourceGraph::iri("https://example.org/themes/energy")]);
+    description.put(
+        Vocab::DCT_TITLE,
+        vec![ResourceGraph::literal("Readings", None)],
+    );
+    description.put(
+        Vocab::DCT_DESCRIPTION,
+        vec![ResourceGraph::literal("Hourly readings", Some("en"))],
+    );
+    description.put(
+        Vocab::DCAT_THEME,
+        vec![ResourceGraph::iri("https://example.org/themes/energy")],
+    );
     let dataset = resource(ResourceKind::Dataset, 8, Some(1), None, description);
     set.insert(dataset.clone());
     let diagnosis = adapter().diagnose(&set, &dataset, false).unwrap();
@@ -95,8 +116,36 @@ fn described_dataset_conforms_with_warnings() {
         .filter(|f| f.severity == Severity::Warning)
         .filter_map(|f| f.property.as_deref())
         .collect();
-    assert!(warned.contains(&Vocab::DCT_TITLE));
-    assert!(warned.contains(&Vocab::DCAT_THEME));
+    assert!(warned.contains(&Vocab::DCAT_CONTACT_POINT));
+    assert!(warned.contains(&Vocab::DCAT_KEYWORD));
+    assert!(!warned.contains(&Vocab::DCAT_THEME));
+}
+
+/// Only the root's findings count unless the diagnosis is deep: the publisher agent is not
+/// checked with its catalog.
+#[test]
+fn shallow_diagnosis_reports_the_root_only() {
+    let (main, set) = provider_set();
+    let diagnosis = adapter().diagnose(&set, &main, false).unwrap();
+
+    assert!(diagnosis
+        .findings
+        .iter()
+        .all(|f| f.resource == main.id().to_string()));
+}
+
+/// The default checks are SEMIC's Base, Recommendations and deprecated URIs; ranges and code
+/// lists need background knowledge and only run when asked for.
+#[test]
+fn official_shape_groups_are_registered() {
+    let adapter = adapter();
+    let shapes = adapter.shapes().unwrap();
+
+    assert_eq!(shapes.defaults(), vec!["base", "recommended", "deprecated"]);
+    assert_eq!(
+        shapes.groups().map(|g| g.name).collect::<Vec<_>>(),
+        vec!["base", "recommended", "deprecated", "range", "codelists"]
+    );
 }
 
 /// A publisher agent and a full catalog description make the catalog itself conform.
@@ -105,8 +154,14 @@ fn catalog_with_publisher_conforms() {
     let (main, mut set) = provider_set();
     let publisher = agent(9, "ACME");
     let mut description = main.description().clone();
-    description.put(Vocab::DCT_DESCRIPTION, vec![ResourceGraph::literal("Provider catalog", Some("en"))]);
-    description.put(Vocab::DCT_PUBLISHER, vec![ResourceGraph::iri(publisher.id().as_ref())]);
+    description.put(
+        Vocab::DCT_DESCRIPTION,
+        vec![ResourceGraph::literal("Provider catalog", Some("en"))],
+    );
+    description.put(
+        Vocab::DCT_PUBLISHER,
+        vec![ResourceGraph::iri(publisher.id().as_ref())],
+    );
     let main = main.revise(description);
     set.insert(publisher);
     let diagnosis = adapter().diagnose(&set, &main, false).unwrap();
@@ -122,9 +177,22 @@ async fn projection_is_a_graph_that_expands() {
 
     assert_eq!(document["@graph"][0]["@id"], id(ResourceKind::Catalog, 1));
     assert_eq!(document["@graph"].as_array().unwrap().len(), set.len());
-    let quads = EunomiaProfile::shared().expand(&document).await.unwrap().canonical_n_quads;
-    assert!(quads.contains(&format!("<{}> <{}> <{}>", id(ResourceKind::Catalog, 1), Vocab::DCAT_DATASET_P, id(ResourceKind::Dataset, 3))));
-    assert!(quads.contains(&format!("<{}> <{}> <https://provider.example/dsp>", id(ResourceKind::Distribution, 4), Vocab::DCAT_ACCESS_URL)));
+    let quads = EunomiaProfile::shared()
+        .expand(&document)
+        .await
+        .unwrap()
+        .canonical_n_quads;
+    assert!(quads.contains(&format!(
+        "<{}> <{}> <{}>",
+        id(ResourceKind::Catalog, 1),
+        Vocab::DCAT_DATASET_P,
+        id(ResourceKind::Dataset, 3)
+    )));
+    assert!(quads.contains(&format!(
+        "<{}> <{}> <https://provider.example/dsp>",
+        id(ResourceKind::Distribution, 4),
+        Vocab::DCAT_ACCESS_URL
+    )));
 }
 
 /// The served context is the one the projection uses.
@@ -133,7 +201,13 @@ fn context_is_the_projection_context() {
     let (main, set) = provider_set();
     let adapter = adapter();
 
-    assert_eq!(adapter.context()["@context"], adapter.project(&set, &main).unwrap()["@context"]);
-    assert_eq!(adapter.context()["@context"]["title"], json!({"@id": Vocab::DCT_TITLE, "@container": "@language"}));
+    assert_eq!(
+        adapter.context()["@context"],
+        adapter.project(&set, &main).unwrap()["@context"]
+    );
+    assert_eq!(
+        adapter.context()["@context"]["title"],
+        json!({"@id": Vocab::DCT_TITLE, "@container": "@language"})
+    );
     assert_eq!(adapter.key(), "dcat-ap");
 }

@@ -69,14 +69,13 @@ impl RdfProtocolTrait for EunomiaTransfer {
     fn extract(node: &RdfNode<'_, '_>) -> Outcome<TransferRpcBody> {
         let reason: Vec<String> = node.get_strings(&Self::dspace("reason"));
         Ok(TransferRpcBody {
+            id: node.id().map(str::to_string),
             associated_agent_peer: Self::owned(node, &EunomiaProfile::term("associatedAgentPeer")),
             agreement_id: Self::owned(node, &Self::dspace("agreementId")),
             format: Self::owned(node, DCT_FORMAT),
             data_address: DspTransfer::data_address(node)?.map(DataAddressDto::from),
             provider_address: Self::owned(node, &EunomiaProfile::term("providerAddress")),
             callback_address: Self::owned(node, &Self::dspace("callbackAddress")),
-            consumer_pid: Self::owned(node, &Self::dspace("consumerPid")),
-            provider_pid: Self::owned(node, &Self::dspace("providerPid")),
             code: Self::owned(node, &Self::dspace("code")),
             reason: (!reason.is_empty()).then_some(reason),
             auto_start: node.get_opt_bool(&EunomiaProfile::term("autoStart"))?,

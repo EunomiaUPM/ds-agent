@@ -25,7 +25,6 @@ use common::config::types::traits::CommonConfigTrait;
 use common::dsp_common::data_address::DataAddress;
 use common::dsp_common::odrl::OdrlAgreement;
 use common::dsp_common::paths;
-use common::dsp_common::persistence::DspPersistenceTrait;
 use common::dsp_common::{DspActor, DspCaller};
 use common::oauth::Owner;
 use ymir::types::oauth::UserInfo;
@@ -184,19 +183,20 @@ impl TransferRpcLoader {
         RdfMessage::<DspTransfer>::read(Value::Object(json)).await
     }
 
-    /// Any other message moves a process the caller may act on, addressed to the peer's pid.
+    /// Any other message moves the process `@id` names, if the caller may act on it, addressed
+    /// to the peer's pid.
     async fn load_continuation(
         &self,
         caller: &UserInfo,
         typed: TransferRpcTyped,
     ) -> Outcome<TransferRpcDomain> {
-        let pid = typed.pid().unwrap_or_default().to_string();
+        let id = typed.process_id().unwrap_or_default().to_string();
         let process = self
             .persistence
-            .hydrate_process(&pid)
+            .process_by_id(&id)
             .await?
             .ok_or_else(|| {
-                Errors::missing_resource(pid.clone(), "transfer process not found", None)
+                Errors::missing_resource(id.clone(), "transfer process not found", None)
             })?;
         let correlation = process.correlation().clone();
         let peer_id = correlation

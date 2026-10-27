@@ -44,9 +44,9 @@ async fn an_empty_request_reports_every_missing_field() {
     assert_eq!(err.len(), 4, "{err}");
 }
 
-/// A state change needs the pid of the process it moves.
+/// A state change needs the id of the process it moves.
 #[tokio::test]
-async fn a_state_change_needs_a_pid() {
+async fn a_state_change_needs_a_process_id() {
     let without = typed(TransferTerminationMessage, TransferRpcBody::default()).await;
     assert!(TransferRpcRules::input_rules()
         .validate(&TransferTerminationMessage, &without)
@@ -54,7 +54,7 @@ async fn a_state_change_needs_a_pid() {
     let with = typed(
         TransferTerminationMessage,
         TransferRpcBody {
-            provider_pid: Some("urn:uuid:p".into()),
+            id: Some("urn:transfer-process:5c1a7a2e-0000-4000-8000-000000000001".into()),
             ..TransferRpcBody::default()
         },
     )
@@ -72,7 +72,7 @@ async fn a_body_for_another_route_is_rejected() {
         json!({
             "@context": "https://w3id.org/eunomia/v1/context.jsonld",
             "@type": "RpcTransferTerminationMessage",
-            "providerPid": "urn:uuid:p"
+            "@id": "urn:transfer-process:5c1a7a2e-0000-4000-8000-000000000001"
         }),
     );
     let command = TransferRpcTyped::from_rdf(TransferRpcRdf::from_raw(raw).await.unwrap()).unwrap();

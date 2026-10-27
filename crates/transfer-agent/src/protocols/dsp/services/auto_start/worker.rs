@@ -47,29 +47,29 @@ impl AutoStartWorker {
         Self { jobs, runner }
     }
 
-    async fn start(runner: Arc<FlowRunner<TransferRpcFlow>>, provider_pid: String) {
+    async fn start(runner: Arc<FlowRunner<TransferRpcFlow>>, process_id: String) {
         for (attempt, delay) in Self::DELAYS_MS.iter().enumerate() {
             tokio::time::sleep(Duration::from_millis(*delay)).await;
-            match Self::send_start(&runner, &provider_pid).await {
+            match Self::send_start(&runner, &process_id).await {
                 Ok(()) => {
-                    tracing::info!(provider_pid, attempt = attempt + 1, "auto-start sent");
+                    tracing::info!(process_id, attempt = attempt + 1, "auto-start sent");
                     return;
                 }
                 Err(err) => {
-                    tracing::warn!(provider_pid, attempt = attempt + 1, error = %err, "auto-start failed")
+                    tracing::warn!(process_id, attempt = attempt + 1, error = %err, "auto-start failed")
                 }
             }
         }
-        tracing::error!(provider_pid, "auto-start gave up");
+        tracing::error!(process_id, "auto-start gave up");
     }
 
     async fn send_start(
         runner: &FlowRunner<TransferRpcFlow>,
-        provider_pid: &str,
+        process_id: &str,
     ) -> Result<(), FlowError> {
         let message = TransferDSPMessageType::TransferStartMessage;
         let body = TransferRpcBody {
-            provider_pid: Some(provider_pid.to_string()),
+            id: Some(process_id.to_string()),
             ..TransferRpcBody::default()
         };
         let command = TransferRpcTyped::from_body(&message, &body).await?;

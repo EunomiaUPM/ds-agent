@@ -50,7 +50,7 @@ async fn an_empty_request_init_reports_every_missing_member() {
 #[tokio::test]
 async fn a_body_of_another_rpc_is_refused() {
     let body = NegotiationRpcBody {
-        consumer_pid: Some("urn:uuid:c".into()),
+        id: Some("urn:negotiation-process:5c1a7a2e-0000-4000-8000-000000000001".into()),
         ..Default::default()
     };
     let input = typed(
@@ -62,6 +62,21 @@ async fn a_body_of_another_rpc_is_refused() {
     assert!(NegotiationRpcRules::input_rules()
         .validate(&NegotiationRpcMessage::Termination, &input)
         .is_err());
+}
+
+/// A state change names the process it moves by `@id`, a URN.
+#[tokio::test]
+async fn a_state_change_needs_a_process_id() {
+    let message = NegotiationRpcMessage::Acceptance;
+    let rules = NegotiationRpcRules::input_rules();
+    let without = typed(message, message, NegotiationRpcBody::default()).await;
+    assert!(rules.validate(&message, &without).is_err());
+    let body = NegotiationRpcBody {
+        id: Some("urn:negotiation-process:5c1a7a2e-0000-4000-8000-000000000001".into()),
+        ..Default::default()
+    };
+    let with = typed(message, message, body).await;
+    assert!(rules.validate(&message, &with).is_ok());
 }
 
 /// The answer to an opening request is a ContractNegotiation with the provider's pid.

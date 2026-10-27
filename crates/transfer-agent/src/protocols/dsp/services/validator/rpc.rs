@@ -63,9 +63,7 @@ impl TransferRpcRules {
                     message,
                     Stage::Shape,
                     Validator::new()
-                        .ensure_not_empty("providerPid|consumerPid", |c: &TransferRpcTyped| {
-                            c.pid()
-                        }),
+                        .ensure_urn("@id", |c: &TransferRpcTyped| c.process_id()),
                 )
             },
         )

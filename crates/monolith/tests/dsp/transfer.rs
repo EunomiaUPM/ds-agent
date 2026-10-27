@@ -192,6 +192,20 @@ async fn state_of(participant: &Participant, token: &str, pid: &str) -> Value {
     process["state"].clone()
 }
 
+/// `participant`'s own id of the transfer whose provider pid is `provider_pid`.
+async fn process_id_by_provider_pid(participant: &Participant, provider_pid: &str) -> Value {
+    let processes = participant
+        .get("/api/v1/transfer-agent-ref/transfer-processes")
+        .await;
+    processes["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["correlation"]["providerPid"] == provider_pid)
+        .map(|p| p["id"].clone())
+        .unwrap_or_else(|| panic!("no transfer for {provider_pid}: {processes}"))
+}
+
 /// Our consumer and provider run a pull transfer over RPC end to end: request, start,
 /// suspension, restart and termination, each side moving as the other's messages arrive.
 #[tokio::test]
@@ -238,6 +252,9 @@ async fn consumer_and_provider_drive_a_transfer_over_rpc() {
         state_of(provider, TO_PROVIDER, &provider_pid).await,
         "REQUESTED"
     );
+    // Each side names the transfer by its own process id, never by the DSP pids.
+    let mine = model["id"].clone();
+    let theirs = process_id_by_provider_pid(provider, &provider_pid).await;
 
     let steps: [(&Participant, &str, &str, &str); 4] = [
         (provider, "setup-start", "RpcTransferStartMessage", "STARTED"),
@@ -246,11 +263,11 @@ async fn consumer_and_provider_drive_a_transfer_over_rpc() {
         (consumer, "setup-termination", "RpcTransferTerminationMessage", "TERMINATED"),
     ];
     for (who, step, rpc_type, expected) in steps {
+        let id = if std::ptr::eq(who, provider) { &theirs } else { &mine };
         let body = json!({
             "@context": EUNOMIA_CONTEXT_URL,
             "@type": rpc_type,
-            "consumerPid": consumer_pid,
-            "providerPid": provider_pid,
+            "@id": id,
         });
         let answer = who.post(&format!("{TRANSFERS}/rpc/{step}"), body).await;
         assert_eq!(

@@ -66,7 +66,7 @@ async fn a_request_init_body_reads_back() {
     assert_eq!(typed.body.offer.unwrap()["target"], "urn:dataset:1");
 }
 
-/// A termination keeps its pids, code and reasons.
+/// A termination keeps the id of its process, code and reasons.
 #[tokio::test]
 async fn a_termination_body_reads_back() {
     let raw = NegotiationRpcRaw::new(
@@ -74,15 +74,14 @@ async fn a_termination_body_reads_back() {
         json!({
             "@context": "https://w3id.org/eunomia/v1/context.jsonld",
             "@type": "RpcNegotiationTerminationMessage",
-            "consumerPid": "urn:uuid:c",
-            "providerPid": "urn:uuid:p",
+            "@id": "urn:negotiation-process:5c1a7a2e-0000-4000-8000-000000000001",
             "code": "stop",
             "reason": ["no deal"]
         }),
     );
     let typed =
         NegotiationRpcTyped::from_rdf(NegotiationRpcRdf::from_raw(raw).await.unwrap()).unwrap();
-    assert_eq!(typed.body.pid(), Some("urn:uuid:p"));
+    assert_eq!(typed.process_id(), Some("urn:negotiation-process:5c1a7a2e-0000-4000-8000-000000000001"));
     assert_eq!(typed.body.code.as_deref(), Some("stop"));
     assert_eq!(typed.body.reason, Some(vec!["no deal".to_string()]));
 }
@@ -92,7 +91,7 @@ async fn a_termination_body_reads_back() {
 async fn a_body_without_the_eunomia_context_is_refused() {
     let raw = NegotiationRpcRaw::new(
         NegotiationRpcMessage::Acceptance,
-        json!({"consumerPid": "urn:uuid:c", "providerPid": "urn:uuid:p"}),
+        json!({"@id": "urn:negotiation-process:5c1a7a2e-0000-4000-8000-000000000001"}),
     );
     let read = NegotiationRpcTyped::from_rdf(NegotiationRpcRdf::from_raw(raw).await.unwrap());
     assert!(read.is_err());

@@ -45,6 +45,9 @@ use crate::protocols::dsp::facades::dataplane_facade::DataplaneHookContext;
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransferRpcBody {
+    /// The process a continuation moves, by its id here; peers' pids never reach the caller.
+    #[serde(rename = "@id")]
+    pub id: Option<String>,
     /// The provider's participant id, for a request.
     pub associated_agent_peer: Option<String>,
     pub agreement_id: Option<String>,
@@ -55,8 +58,6 @@ pub struct TransferRpcBody {
     pub provider_address: Option<String>,
     /// Our DSP base as the provider will call it back; defaults to this agent's own.
     pub callback_address: Option<String>,
-    pub consumer_pid: Option<String>,
-    pub provider_pid: Option<String>,
     pub code: Option<String>,
     pub reason: Option<Vec<String>>,
     /// Asks the provider to start the transfer as soon as it accepts the request.
@@ -156,12 +157,9 @@ impl TransferRpcTyped {
         &self.rdf.raw.route
     }
 
-    /// The pid of an existing process the body refers to, ours or the peer's.
-    pub fn pid(&self) -> Option<&str> {
-        self.body
-            .provider_pid
-            .as_deref()
-            .or(self.body.consumer_pid.as_deref())
+    /// The id of the existing process the body moves.
+    pub fn process_id(&self) -> Option<&str> {
+        self.body.id.as_deref()
     }
 }
 

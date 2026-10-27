@@ -103,9 +103,7 @@ impl NegotiationRpcRules {
                 t.body.associated_agent_peer.as_deref()
             });
         let pid = Validator::new()
-            .ensure_not_empty("providerPid|consumerPid", |t: &NegotiationRpcTyped| {
-                t.body.pid()
-            });
+            .ensure_urn("@id", |t: &NegotiationRpcTyped| t.process_id());
         match message {
             NegotiationRpcMessage::RequestInit => offer(
                 peer.ensure_not_empty("providerAddress", |t: &NegotiationRpcTyped| {

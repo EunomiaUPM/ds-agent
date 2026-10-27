@@ -22,7 +22,8 @@ use std::sync::Arc;
 use common::dsp_common::persistence::{DspPersistenceTrait, INITIAL_STATE};
 use common::oauth::OwnerScope;
 use ymir::types::oauth::UserInfo;
-use ymir::errors::{Errors, Outcome};
+use urn::Urn;
+use ymir::errors::{BadFormat, Errors, Outcome};
 
 use crate::entities::commands::{
     EditTransferProcessCommand, NewTransferMessageCommand, NewTransferProcessCommand,
@@ -73,6 +74,18 @@ impl TransferDspPersistence {
             .and_then(|ids| ids.get(key))
             .ok_or_else(|| Errors::crazy("a new transfer process needs our pid", None))?;
         self.reload(pid).await
+    }
+
+    /// The process stored under our own `id`, whoever owns it.
+    pub async fn process_by_id(&self, id: &str) -> Outcome<Option<TransferProcess>> {
+        let urn = id.parse::<Urn>().map_err(|_| {
+            Errors::format(BadFormat::Received, format!("not a process id: {id}"), None)
+        })?;
+        self.ctx
+            .repos
+            .transfer_process_repo()
+            .get_transfer_process_by_id(&OwnerScope::All, &urn)
+            .await
     }
 
     /// The process again after a write.

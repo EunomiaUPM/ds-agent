@@ -19,31 +19,44 @@
 
 use std::sync::Arc;
 
+use common::dsp_common::persistence::DspPersistenceTrait;
 use common::dsp_common::DspCaller;
 use common::flow::{FlowError, FlowRunner};
 use ymir::types::oauth::UserInfo;
 use common::tck::TckPlayerTrait;
+use ymir::errors::Errors;
 
 use crate::protocols::dsp::entities::context_rpc::{TransferRpcBody, TransferRpcTyped};
 use crate::protocols::dsp::entities::tck::TckMessage;
+use crate::protocols::dsp::services::dsp_persistence::service::TransferDspPersistence;
 use crate::protocols::dsp::services::rpc_flow::service::TransferRpcFlow;
 
 /// Plays TCK steps on the outbound runner.
 pub struct TransferTckPlayer {
     runner: Arc<FlowRunner<TransferRpcFlow>>,
+    persistence: TransferDspPersistence,
 }
 
 impl TransferTckPlayer {
-    pub fn new(runner: Arc<FlowRunner<TransferRpcFlow>>) -> Self {
-        Self { runner }
+    pub fn new(
+        runner: Arc<FlowRunner<TransferRpcFlow>>,
+        persistence: TransferDspPersistence,
+    ) -> Self {
+        Self {
+            runner,
+            persistence,
+        }
     }
 }
 
 #[async_trait::async_trait]
 impl TckPlayerTrait<TckMessage> for TransferTckPlayer {
     async fn send(&self, pid: &str, message: TckMessage) -> Result<(), FlowError> {
+        let process = self.persistence.hydrate_process(pid).await?.ok_or_else(|| {
+            Errors::missing_resource(pid.to_string(), "transfer process not found", None)
+        })?;
         let body = TransferRpcBody {
-            provider_pid: Some(pid.to_string()),
+            id: Some(process.id().as_urn().to_string()),
             ..TransferRpcBody::default()
         };
         let command = TransferRpcTyped::from_body(&message.message_type(), &body).await?;

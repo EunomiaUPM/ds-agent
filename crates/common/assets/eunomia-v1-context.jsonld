@@ -46,8 +46,6 @@
       "@context": {
         "@version": 1.1,
         "@protected": true,
-        "consumerPid": "dspace:consumerPid",
-        "providerPid": "dspace:providerPid",
         "dataAddress": {
           "@id": "dspace:dataAddress",
           "@context": {
@@ -73,9 +71,7 @@
       "@id": "eunomia:RpcTransferCompletionMessage",
       "@context": {
         "@version": 1.1,
-        "@protected": true,
-        "consumerPid": "dspace:consumerPid",
-        "providerPid": "dspace:providerPid"
+        "@protected": true
       }
     },
     "RpcTransferSuspensionMessage": {
@@ -83,8 +79,6 @@
       "@context": {
         "@version": 1.1,
         "@protected": true,
-        "consumerPid": "dspace:consumerPid",
-        "providerPid": "dspace:providerPid",
         "code": "dspace:code",
         "reason": {
           "@id": "dspace:reason",
@@ -97,8 +91,6 @@
       "@context": {
         "@version": 1.1,
         "@protected": true,
-        "consumerPid": "dspace:consumerPid",
-        "providerPid": "dspace:providerPid",
         "code": "dspace:code",
         "reason": {
           "@id": "dspace:reason",
@@ -144,8 +136,6 @@
       "@context": {
         "@version": 1.1,
         "@protected": true,
-        "consumerPid": "dspace:consumerPid",
-        "providerPid": "dspace:providerPid",
         "offer": {
           "@id": "dspace:offer",
           "@type": "@json"
@@ -171,8 +161,6 @@
       "@context": {
         "@version": 1.1,
         "@protected": true,
-        "consumerPid": "dspace:consumerPid",
-        "providerPid": "dspace:providerPid",
         "offer": {
           "@id": "dspace:offer",
           "@type": "@json"
@@ -183,36 +171,28 @@
       "@id": "eunomia:RpcNegotiationAcceptanceMessage",
       "@context": {
         "@version": 1.1,
-        "@protected": true,
-        "consumerPid": "dspace:consumerPid",
-        "providerPid": "dspace:providerPid"
+        "@protected": true
       }
     },
     "RpcNegotiationAgreementMessage": {
       "@id": "eunomia:RpcNegotiationAgreementMessage",
       "@context": {
         "@version": 1.1,
-        "@protected": true,
-        "consumerPid": "dspace:consumerPid",
-        "providerPid": "dspace:providerPid"
+        "@protected": true
       }
     },
     "RpcNegotiationVerificationMessage": {
       "@id": "eunomia:RpcNegotiationVerificationMessage",
       "@context": {
         "@version": 1.1,
-        "@protected": true,
-        "consumerPid": "dspace:consumerPid",
-        "providerPid": "dspace:providerPid"
+        "@protected": true
       }
     },
     "RpcNegotiationFinalizationMessage": {
       "@id": "eunomia:RpcNegotiationFinalizationMessage",
       "@context": {
         "@version": 1.1,
-        "@protected": true,
-        "consumerPid": "dspace:consumerPid",
-        "providerPid": "dspace:providerPid"
+        "@protected": true
       }
     },
     "RpcNegotiationTerminationMessage": {
@@ -220,8 +200,6 @@
       "@context": {
         "@version": 1.1,
         "@protected": true,
-        "consumerPid": "dspace:consumerPid",
-        "providerPid": "dspace:providerPid",
         "code": "dspace:code",
         "reason": {
           "@id": "dspace:reason",

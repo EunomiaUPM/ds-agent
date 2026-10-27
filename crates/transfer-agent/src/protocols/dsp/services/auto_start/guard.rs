@@ -27,10 +27,10 @@ use crate::protocols::dsp::entities::context_dsp::TransferDspOutcome;
 use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
 use crate::protocols::dsp::services::dsp_flow::service::TransferDspFlow;
 
-/// Provider pids waiting for their `TransferStartMessage`.
+/// Ids of provider processes waiting for their `TransferStartMessage`.
 pub struct AutoStartJobs(pub(crate) UnboundedReceiver<String>);
 
-/// Queues the provider pid of each new request that asked to be started.
+/// Queues the process of each new request that asked to be started.
 #[derive(Clone)]
 pub struct AutoStartGuard {
     queue: UnboundedSender<String>,
@@ -58,7 +58,7 @@ impl FlowGuardTrait<TransferDspFlow> for AutoStartGuard {
             && out.created
             && out.auto_start
         {
-            let _ = self.queue.send(out.ack.provider_pid.clone());
+            let _ = self.queue.send(out.process_id.clone());
         }
         Ok(())
     }

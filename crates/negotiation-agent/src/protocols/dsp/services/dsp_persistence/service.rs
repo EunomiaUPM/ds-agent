@@ -24,8 +24,9 @@ use common::oauth::OwnerScope;
 use ymir::types::oauth::UserInfo;
 use serde_json::json;
 use urn::Urn;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::{BadFormat, Errors, Outcome};
 
+use crate::data::sea_orm::orm::negotiation_process::Model as ProcessModel;
 use crate::data::sea_orm::orm::offer::Model as OfferModel;
 use crate::entities::agreement::{EditAgreementDto, NewAgreementDto};
 use crate::entities::negotiation_message::NewNegotiationMessageDto;
@@ -224,26 +225,26 @@ impl NegotiationDspPersistence {
         Ok(())
     }
 
-    fn urn(id: &str) -> Outcome<Urn> {
-        id.parse()
-            .map_err(|_| Errors::crazy(format!("stored id is not a URN: {id}"), None))
-    }
-}
-
-#[async_trait::async_trait]
-impl DspPersistenceTrait for NegotiationDspPersistence {
-    type Process = NegotiationProcess;
-    type State = NegotiationState;
-    type Message = NegotiationMessageRecord;
-
-    async fn hydrate_process(&self, pid: &str) -> Outcome<Option<NegotiationProcess>> {
-        let Some(model) = self
+    /// The process stored under our own `id`, whoever owns it.
+    pub async fn process_by_id(&self, id: &str) -> Outcome<Option<NegotiationProcess>> {
+        let urn = id.parse::<Urn>().map_err(|_| {
+            Errors::format(BadFormat::Received, format!("not a process id: {id}"), None)
+        })?;
+        let model = self
             .ctx
             .repos
             .negotiation_process_repo()
-            .get_negotiation_process_by_key_value(&OwnerScope::All, pid)
-            .await?
-        else {
+            .get_negotiation_process_by_id(&OwnerScope::All, &urn)
+            .await?;
+        self.with_identifiers(model).await
+    }
+
+    /// The process of a stored row, with its identifiers.
+    async fn with_identifiers(
+        &self,
+        model: Option<ProcessModel>,
+    ) -> Outcome<Option<NegotiationProcess>> {
+        let Some(model) = model else {
             return Ok(None);
         };
         let identifiers = self
@@ -257,6 +258,28 @@ impl DspPersistenceTrait for NegotiationDspPersistence {
             identifiers.into_iter().map(|i| (i.id_key, i.id_value)),
         )
         .map(Some)
+    }
+
+    fn urn(id: &str) -> Outcome<Urn> {
+        id.parse()
+            .map_err(|_| Errors::crazy(format!("stored id is not a URN: {id}"), None))
+    }
+}
+
+#[async_trait::async_trait]
+impl DspPersistenceTrait for NegotiationDspPersistence {
+    type Process = NegotiationProcess;
+    type State = NegotiationState;
+    type Message = NegotiationMessageRecord;
+
+    async fn hydrate_process(&self, pid: &str) -> Outcome<Option<NegotiationProcess>> {
+        let model = self
+            .ctx
+            .repos
+            .negotiation_process_repo()
+            .get_negotiation_process_by_key_value(&OwnerScope::All, pid)
+            .await?;
+        self.with_identifiers(model).await
     }
 
     async fn change_process_state(

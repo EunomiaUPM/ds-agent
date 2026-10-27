@@ -37,6 +37,9 @@ use crate::protocols::dsp::entities::state::NegotiationState;
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NegotiationRpcBody {
+    /// The process a continuation moves, by its id here; peers' pids never reach the caller.
+    #[serde(rename = "@id")]
+    pub id: Option<String>,
     /// The peer's participant id, for an opening message.
     pub associated_agent_peer: Option<String>,
     /// The provider's DSP base, for an opening request.
@@ -45,8 +48,6 @@ pub struct NegotiationRpcBody {
     pub consumer_address: Option<String>,
     /// Our DSP base as the peer will call it back; defaults to this agent's own.
     pub callback_address: Option<String>,
-    pub consumer_pid: Option<String>,
-    pub provider_pid: Option<String>,
     /// The ODRL offer, as DSP sends it, for a request or offer.
     pub offer: Option<Value>,
     pub code: Option<String>,
@@ -68,12 +69,6 @@ impl NegotiationRpcBody {
         json
     }
 
-    /// The pid of an existing process the body refers to, ours or the peer's.
-    pub fn pid(&self) -> Option<&str> {
-        self.provider_pid
-            .as_deref()
-            .or(self.consumer_pid.as_deref())
-    }
 }
 
 /// The RPC body as it arrived, with the RPC its route serves.
@@ -149,6 +144,11 @@ impl NegotiationRpcTyped {
 
     pub fn route(&self) -> NegotiationRpcMessage {
         self.rdf.raw.route
+    }
+
+    /// The id of the existing process the body moves.
+    pub fn process_id(&self) -> Option<&str> {
+        self.body.id.as_deref()
     }
 }
 

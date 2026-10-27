@@ -80,7 +80,8 @@ Failures answer a `TransferError` with every violation.
 
 `/dsp/current/transfers/rpc/setup-{request,start,completion,suspension,termination}` make the
 agent send a message. Bodies are JSON-LD in the eunomia context (`common::eunomia`), typed
-`RpcTransfer{Request,Start,…}Message`; the answer is an `RpcTransferResult` with the request, the
+`RpcTransfer{Request,Start,…}Message`; continuations name the transfer by `@id`, its process
+id on this agent, never by a DSP pid. The answer is an `RpcTransferResult` with the request, the
 peer's answer and the process. The loader reads the process and the agreement it runs under;
 a request must go to the agreement's provider. With `DSP_TCK_MAPPING` set, a worker plays the connector's part of
 each TCK scenario and `/tck/transfers/requests` is mounted.

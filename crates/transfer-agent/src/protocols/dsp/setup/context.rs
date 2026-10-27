@@ -59,7 +59,10 @@ impl DspContext {
         let mut workers: Vec<Box<dyn BackgroundWorker>> =
             vec![Box::new(AutoStartWorker::new(auto_start_jobs, outbound.clone()))];
         if let Some(jobs) = jobs {
-            let player = Arc::new(TransferTckPlayer::new(outbound.clone()));
+            let player = Arc::new(TransferTckPlayer::new(
+                outbound.clone(),
+                TransferDspPersistence::new(app.clone()),
+            ));
             workers.push(Box::new(TckWorker::new("transfer-tck-scenarios", jobs, player)));
         }
         let ctx = Self {

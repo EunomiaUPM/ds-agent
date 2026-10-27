@@ -280,6 +280,9 @@ impl IdempotentFactsTrait for TransferDspDomain {
 #[serde(rename_all = "camelCase")]
 pub struct TransferDspOutcome {
     pub ack: TransferProcessAck,
+    /// Our id of the process the message left.
+    #[serde(default)]
+    pub process_id: String,
     /// A request opened the process (201); any other message moved it (200).
     pub created: bool,
     pub process_version: u64,
@@ -306,6 +309,7 @@ impl TransferDspOutcome {
                 correlation.provider_pid.clone().unwrap_or_default(),
                 state,
             ),
+            process_id: process.id().as_urn().to_string(),
             created,
             process_version: process.version(),
             idempotency_key: domain.typed.idempotency_key.clone(),

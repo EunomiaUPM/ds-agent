@@ -23,7 +23,6 @@ use std::sync::Arc;
 
 use common::config::types::traits::CommonConfigTrait;
 use common::dsp_common::paths;
-use common::dsp_common::persistence::DspPersistenceTrait;
 use common::dsp_common::{DspActor, DspCaller};
 use common::oauth::Owner;
 use ymir::types::oauth::UserInfo;
@@ -127,18 +126,19 @@ impl NegotiationRpcLoader {
         })
     }
 
-    /// Any other message moves a process the caller acts on, addressed to the peer's pid.
+    /// Any other message moves the process `@id` names, if the caller acts on it, addressed to
+    /// the peer's pid.
     async fn load_continuation(
         &self,
         user: &UserInfo,
         typed: NegotiationRpcTyped,
     ) -> Outcome<NegotiationRpcDomain> {
-        let pid = typed.body.pid().unwrap_or_default().to_string();
+        let id = typed.process_id().unwrap_or_default().to_string();
         let process = self
             .persistence
-            .hydrate_process(&pid)
+            .process_by_id(&id)
             .await?
-            .ok_or_else(|| Errors::missing_resource(pid.clone(), "negotiation not found", None))?;
+            .ok_or_else(|| Errors::missing_resource(id.clone(), "negotiation not found", None))?;
         DspActor::user(user).authorize(&process.owner(), process.peer_id(), &process.id()?)?;
 
         let body = &typed.body;

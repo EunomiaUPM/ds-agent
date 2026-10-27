@@ -62,12 +62,11 @@ impl RdfProtocolTrait for EunomiaNegotiation {
     fn extract(node: &RdfNode<'_, '_>) -> Outcome<NegotiationRpcBody> {
         let reason = node.get_strings(&Self::dspace("reason"));
         Ok(NegotiationRpcBody {
+            id: node.id().map(str::to_string),
             associated_agent_peer: Self::owned(node, &EunomiaProfile::term("associatedAgentPeer")),
             provider_address: Self::owned(node, &EunomiaProfile::term("providerAddress")),
             consumer_address: Self::owned(node, &EunomiaProfile::term("consumerAddress")),
             callback_address: Self::owned(node, &Self::dspace("callbackAddress")),
-            consumer_pid: Self::owned(node, &Self::dspace("consumerPid")),
-            provider_pid: Self::owned(node, &Self::dspace("providerPid")),
             offer: node
                 .value(&Self::dspace("offer"))
                 .and_then(|v| v.get("@value"))

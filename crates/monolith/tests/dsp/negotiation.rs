@@ -108,6 +108,20 @@ async fn agreement_of(participant: &Participant, process_id: &Value) -> Value {
     agreements["items"][0].clone()
 }
 
+/// `participant`'s own id of the negotiation whose consumer pid is `consumer_pid`.
+async fn process_id_by_consumer_pid(participant: &Participant, consumer_pid: &Value) -> Value {
+    let processes = participant
+        .get("/api/v1/negotiation-agent/negotiation-processes")
+        .await;
+    processes["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["correlation"]["identifiers"]["consumerPid"] == *consumer_pid)
+        .map(|p| p["id"].clone())
+        .unwrap_or_else(|| panic!("no negotiation for {consumer_pid}: {processes}"))
+}
+
 /// An eunomia RPC body of type `RpcNegotiation{kind}Message` with `members`.
 fn rpc(kind: &str, members: Value) -> Value {
     let mut body = json!({
@@ -163,21 +177,22 @@ pub(crate) async fn negotiate_to_finalized(ds: &Dataspace) -> Negotiated {
     assert_eq!(consumer_process["state"], "REQUESTED", "{init}");
     let pids = consumer_process["correlation"]["identifiers"].clone();
     assert!(pids["consumerPid"].is_string() && pids["providerPid"].is_string(), "{consumer_process}");
-    let with_offer = |kind: &str| {
-        let mut body = pids.clone();
-        body["offer"] = offer(policy_id, target, "use");
-        rpc(kind, body)
+    // Each side names the negotiation by its own process id, never by the DSP pids.
+    let mine = consumer_process["id"].clone();
+    let theirs = process_id_by_consumer_pid(provider, &pids["consumerPid"]).await;
+    let with_offer = |kind: &str, id: &Value| {
+        rpc(kind, json!({"@id": id, "offer": offer(policy_id, target, "use")}))
     };
-    let with_pids = |kind: &str| rpc(kind, pids.clone());
+    let with_id = |kind: &str, id: &Value| rpc(kind, json!({"@id": id}));
 
     let steps: [(&Participant, &str, Value, &str); 7] = [
-        (provider, "setup-offer", with_offer("Offer"), "OFFERED"),
-        (consumer, "setup-request", with_offer("Request"), "REQUESTED"),
-        (provider, "setup-offer", with_offer("Offer"), "OFFERED"),
-        (consumer, "setup-acceptance", with_pids("Acceptance"), "ACCEPTED"),
-        (provider, "setup-agreement", with_pids("Agreement"), "AGREED"),
-        (consumer, "setup-verification", with_pids("Verification"), "VERIFIED"),
-        (provider, "setup-finalization", with_pids("Finalization"), "FINALIZED"),
+        (provider, "setup-offer", with_offer("Offer", &theirs), "OFFERED"),
+        (consumer, "setup-request", with_offer("Request", &mine), "REQUESTED"),
+        (provider, "setup-offer", with_offer("Offer", &theirs), "OFFERED"),
+        (consumer, "setup-acceptance", with_id("Acceptance", &mine), "ACCEPTED"),
+        (provider, "setup-agreement", with_id("Agreement", &theirs), "AGREED"),
+        (consumer, "setup-verification", with_id("Verification", &mine), "VERIFIED"),
+        (provider, "setup-finalization", with_id("Finalization", &theirs), "FINALIZED"),
     ];
     let mut provider_process = Value::Null;
     for (who, step, body, expected) in steps {

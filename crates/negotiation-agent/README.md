@@ -81,7 +81,8 @@ Under the same prefix, bearer required. Each endpoint sends one DSP message to t
 of the user, stores the result locally and answers an eunomia `RpcNegotiationResult`
 (`request`, `response`, `negotiationAgentModel`): 201 when it opened a negotiation, 200 otherwise.
 Bodies are eunomia JSON-LD: `@context` `https://w3id.org/eunomia/v1/context.jsonld` and `@type`
-the RPC; continuations name the negotiation by `providerPid` or `consumerPid`.
+the RPC; continuations name the negotiation by `@id`, its process id on this agent, never by a
+DSP pid.
 
 | Path | `@type` | Message sent |
 |---|---|---|

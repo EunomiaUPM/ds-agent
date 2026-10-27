@@ -26,7 +26,8 @@ use transfer_agent::protocols::dsp::entities::context_rpc::{
 use transfer_agent::protocols::dsp::entities::message_types::TransferDSPMessageType;
 use ymir::errors::Outcome;
 use transfer_agent::protocols::dsp::entities::message_types::TransferDSPMessageType::{
-    TransferRequestMessage, TransferStartMessage, TransferTerminationMessage,
+    TransferCompletionMessage, TransferRequestMessage, TransferStartMessage,
+    TransferTerminationMessage,
 };
 
 const EUNOMIA: &str = "https://w3id.org/eunomia/v1/context.jsonld";
@@ -73,7 +74,7 @@ async fn a_termination_keeps_code_and_reasons() {
     let body = json!({
         "@context": EUNOMIA,
         "@type": "RpcTransferTerminationMessage",
-        "providerPid": "urn:uuid:p",
+        "@id": "urn:transfer-process:5c1a7a2e-0000-4000-8000-000000000001",
         "code": "STOPPED",
         "reason": ["no longer needed"]
     });
@@ -87,7 +88,7 @@ async fn a_termination_keeps_code_and_reasons() {
 /// Plain JSON without the eunomia context declares no RPC type and is rejected.
 #[tokio::test]
 async fn plain_json_is_rejected() {
-    let body = json!({"providerPid": "urn:uuid:p"});
+    let body = json!({"@id": "urn:transfer-process:5c1a7a2e-0000-4000-8000-000000000001"});
     assert!(read(&TransferStartMessage, body).await.is_err());
 }
 
@@ -109,15 +110,27 @@ async fn an_in_process_command_round_trips() {
     let built = TransferRpcTyped::from_body(
         &TransferStartMessage,
         &TransferRpcBody {
-            provider_pid: Some("urn:uuid:p".into()),
-            consumer_pid: Some("urn:uuid:c".into()),
+            id: Some("urn:transfer-process:5c1a7a2e-0000-4000-8000-000000000001".into()),
             ..TransferRpcBody::default()
         },
     )
     .await
     .unwrap();
     assert_eq!(built.rdf.raw.json["@type"], "RpcTransferStartMessage");
+    assert_eq!(built.rdf.raw.json["@id"], "urn:transfer-process:5c1a7a2e-0000-4000-8000-000000000001");
     assert_eq!(built.message, TransferStartMessage);
-    assert_eq!(built.body.provider_pid.as_deref(), Some("urn:uuid:p"));
-    assert_eq!(built.body.consumer_pid.as_deref(), Some("urn:uuid:c"));
+    assert_eq!(built.process_id(), Some("urn:transfer-process:5c1a7a2e-0000-4000-8000-000000000001"));
+}
+
+/// A continuation names its process by `@id`; DSP pids are not RPC terms and are dropped.
+#[tokio::test]
+async fn a_continuation_names_its_process_by_id() {
+    let body = json!({
+        "@context": EUNOMIA,
+        "@type": "RpcTransferCompletionMessage",
+        "@id": "urn:transfer-process:5c1a7a2e-0000-4000-8000-000000000001",
+        "providerPid": "urn:uuid:p"
+    });
+    let command = read(&TransferCompletionMessage, body).await.unwrap();
+    assert_eq!(command.process_id(), Some("urn:transfer-process:5c1a7a2e-0000-4000-8000-000000000001"));
 }

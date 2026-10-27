@@ -33,13 +33,6 @@ use crate::protocols::dsp::entities::context_rpc::{
 use crate::protocols::dsp::services::rpc_flow::service::TransferRpcFlow;
 use crate::protocols::dsp::services::rpc_flow::views::TransferRpcResult;
 
-/// Pids the error names, as the caller sent them.
-#[derive(Debug, Default)]
-pub struct TransferRpcErrorPids {
-    consumer_pid: String,
-    provider_pid: String,
-}
-
 /// Extracts the RPC body for the route's message and answers with the result.
 pub struct TransferRpcAdapter;
 
@@ -47,7 +40,8 @@ pub struct TransferRpcAdapter;
 impl FlowAdapterTrait<TransferRpcFlow> for TransferRpcAdapter {
     type Raw = Request;
     type Response = Response;
-    type ErrorContext = TransferRpcErrorPids;
+    /// The caller names processes by id, so the error carries no pids.
+    type ErrorContext = ();
 
     /// The user OAuth resolved, then the JSON body, expanded through the eunomia context and
     /// read into its fields.
@@ -63,12 +57,7 @@ impl FlowAdapterTrait<TransferRpcFlow> for TransferRpcAdapter {
         Ok((caller, TransferRpcTyped::from_rdf(rdf)?))
     }
 
-    fn error_context(&self, input: &TransferRpcTyped) -> TransferRpcErrorPids {
-        TransferRpcErrorPids {
-            consumer_pid: input.body.consumer_pid.clone().unwrap_or_default(),
-            provider_pid: input.body.provider_pid.clone().unwrap_or_default(),
-        }
-    }
+    fn error_context(&self, _input: &TransferRpcTyped) {}
 
     /// 201 when a request opened a process, 200 for a state change.
     fn respond(&self, key: &TransferDSPMessageType, output: TransferRpcOutcome) -> Response {
@@ -82,14 +71,14 @@ impl FlowAdapterTrait<TransferRpcFlow> for TransferRpcAdapter {
     fn reject(
         &self,
         _key: &TransferDSPMessageType,
-        pids: TransferRpcErrorPids,
+        _context: (),
         error: FlowError,
     ) -> Response {
         let status =
             StatusCode::from_u16(error.status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
         let body = TransferErrorDto::new(
-            pids.consumer_pid,
-            pids.provider_pid,
+            String::new(),
+            String::new(),
             status.as_u16().to_string(),
             error.reasons(),
         );

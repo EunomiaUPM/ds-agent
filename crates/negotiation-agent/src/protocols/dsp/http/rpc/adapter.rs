@@ -33,13 +33,6 @@ use crate::protocols::dsp::entities::negotiation_error::NegotiationErrorDto;
 use crate::protocols::dsp::services::rpc_flow::service::NegotiationRpcFlow;
 use crate::protocols::dsp::services::rpc_flow::views::NegotiationRpcResult;
 
-/// Pids the error names, as the caller sent them.
-#[derive(Debug, Default)]
-pub struct NegotiationRpcErrorPids {
-    consumer_pid: String,
-    provider_pid: String,
-}
-
 /// Extracts the RPC body for the route's message and answers with the result.
 pub struct NegotiationRpcAdapter;
 
@@ -47,7 +40,8 @@ pub struct NegotiationRpcAdapter;
 impl FlowAdapterTrait<NegotiationRpcFlow> for NegotiationRpcAdapter {
     type Raw = Request;
     type Response = Response;
-    type ErrorContext = NegotiationRpcErrorPids;
+    /// The caller names processes by id, so the error carries no pids.
+    type ErrorContext = ();
 
     /// The user OAuth resolved, then the JSON body, expanded through the eunomia context and
     /// read into its fields.
@@ -63,12 +57,7 @@ impl FlowAdapterTrait<NegotiationRpcFlow> for NegotiationRpcAdapter {
         Ok((caller, NegotiationRpcTyped::from_rdf(rdf)?))
     }
 
-    fn error_context(&self, input: &NegotiationRpcTyped) -> NegotiationRpcErrorPids {
-        NegotiationRpcErrorPids {
-            consumer_pid: input.body.consumer_pid.clone().unwrap_or_default(),
-            provider_pid: input.body.provider_pid.clone().unwrap_or_default(),
-        }
-    }
+    fn error_context(&self, _input: &NegotiationRpcTyped) {}
 
     /// 201 when the message opened a negotiation, 200 for a state change.
     fn respond(&self, key: &NegotiationRpcMessage, output: NegotiationRpcOutcome) -> Response {
@@ -83,14 +72,14 @@ impl FlowAdapterTrait<NegotiationRpcFlow> for NegotiationRpcAdapter {
     fn reject(
         &self,
         _key: &NegotiationRpcMessage,
-        pids: NegotiationRpcErrorPids,
+        _context: (),
         error: FlowError,
     ) -> Response {
         let status =
             StatusCode::from_u16(error.status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
         let body = NegotiationErrorDto::new(
-            pids.consumer_pid,
-            pids.provider_pid,
+            String::new(),
+            String::new(),
             status.as_u16().to_string(),
             error.reasons(),
         );

@@ -24,7 +24,7 @@ use common::dsp_common::DspCaller;
 use common::flow::{FlowError, FlowRunner};
 use ymir::types::oauth::UserInfo;
 use common::tck::TckPlayerTrait;
-use ymir::errors::Outcome;
+use ymir::errors::{Errors, Outcome};
 
 use crate::protocols::dsp::entities::context_rpc::{NegotiationRpcBody, NegotiationRpcTyped};
 use crate::protocols::dsp::entities::message_types::NegotiationRpcMessage;
@@ -72,8 +72,11 @@ impl TckPlayerTrait<TckMessage> for NegotiationTckPlayer {
             }
             _ => None,
         };
+        let process = self.persistence.hydrate_process(pid).await?.ok_or_else(|| {
+            Errors::missing_resource(pid.to_string(), "negotiation not found", None)
+        })?;
         let body = NegotiationRpcBody {
-            provider_pid: Some(pid.to_string()),
+            id: Some(process.id()?.to_string()),
             offer,
             ..NegotiationRpcBody::default()
         };

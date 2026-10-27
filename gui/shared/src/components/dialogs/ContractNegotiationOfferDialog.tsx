@@ -8,13 +8,13 @@
  * <ContractNegotiationOfferDialog process={cnProcess} />
  */
 
-import React, { useContext, useMemo, useState } from "react";
+import React, { useContext, useState } from "react";
 import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/GlobalInfoContext";
 import { useRpcSetupOffer } from "shared/src/data/orval/negotiation-rp-c/negotiation-rp-c";
 import { EUNOMIA_CONTEXT } from "shared/src/data/eunomia";
 import {
   useGetNegotiationProcesses,
-  useGetOffersByProcessId,
+  useGetLastOfferByProcessId,
 } from "shared/src/data/orval/negotiations/negotiations";
 import { NegotiationProcessDto } from "shared/src/data/orval/model/negotiationProcessDto";
 import { OdrlOffer } from "shared/src/data/orval/model/odrlOffer";
@@ -65,10 +65,8 @@ export const ContractNegotiationOfferDialog = ({
   const { refetch } = useGetNegotiationProcesses();
   const router = useRouter();
   const { mutateAsync: setupOffer } = useRpcSetupOffer();
-  const { data: offersData } = useGetOffersByProcessId(process.id, { limit: 100 });
-  const lastOffer = useMemo(() => {
-    return offersData?.status === 200 ? offersData.data.items?.at(-1) : undefined;
-  }, [offersData]);
+  const { data: lastOfferData } = useGetLastOfferByProcessId(process.id);
+  const lastOffer = lastOfferData?.status === 200 ? lastOfferData.data : undefined;
 
   // ---------------------------------------------------------------------------
   // Info Items
@@ -81,11 +79,7 @@ export const ContractNegotiationOfferDialog = ({
   // ---------------------------------------------------------------------------
 
   const handleSubmit = async () => {
-    const providerPid =
-      process.correlation.providerPid || process.correlation.identifiers?.providerPid;
-    const consumerPid =
-      process.correlation.consumerPid || process.correlation.identifiers?.consumerPid;
-    if (!providerPid || !consumerPid || !lastOffer || !currentPolicy) {
+    if (!lastOffer || !currentPolicy) {
       console.error("Missing required data for offer");
       return;
     }
@@ -94,8 +88,7 @@ export const ContractNegotiationOfferDialog = ({
       data: {
         "@context": EUNOMIA_CONTEXT,
         "@type": "RpcNegotiationOfferMessage",
-        providerPid,
-        consumerPid,
+        "@id": process.id,
         offer: {
           "@id": (lastOffer.offerContent["@id"] as string) ?? "urn:uuid:placeholder",
           "@type": lastOffer.offerContent["@type"] as any,

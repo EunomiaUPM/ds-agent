@@ -33,20 +33,11 @@ export const ContractNegotiationTerminationDialog = ({
    * The payload differs based on whether the user is a provider or consumer.
    */
   const handleSubmit = async () => {
-    const consumerPid =
-      process.correlation.consumerPid || process.correlation.identifiers?.consumerPid;
-    const providerPid =
-      process.correlation.providerPid || process.correlation.identifiers?.providerPid;
-    if (!consumerPid || !providerPid) {
-      console.error("Missing process identifiers");
-      return;
-    }
     await terminateAsync({
       data: {
         "@context": EUNOMIA_CONTEXT,
         "@type": "RpcNegotiationTerminationMessage",
-        consumerPid,
-        providerPid,
+        "@id": process.id,
         code: "TERMINATED",
         reason: ["Terminated from GUI"],
       },

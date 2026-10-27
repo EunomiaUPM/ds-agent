@@ -34,16 +34,11 @@ export const TransferProcessStartDialog = ({
    * Payload structure differs based on the user's role.
    */
   const handleSubmit = async () => {
-    if (!process.correlation.consumerPid || !process.correlation.providerPid) {
-      console.error("Missing process identifiers");
-      return;
-    }
     await startAsync({
       data: {
         "@context": EUNOMIA_CONTEXT,
         "@type": "RpcTransferStartMessage",
-        consumerPid: process.correlation.consumerPid,
-        providerPid: process.correlation.providerPid,
+        "@id": process.id,
       },
     });
 

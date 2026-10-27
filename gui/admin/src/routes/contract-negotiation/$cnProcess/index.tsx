@@ -4,6 +4,7 @@ import { ArrowUpRight } from "lucide-react";
 import {
   useGetAgreementsByNegotiationProcess,
   useGetNegotiationMessagesByProcessId,
+  useGetLastOfferByProcessId,
   useGetNegotiationProcessById,
   useGetOffersByProcessId,
 } from "shared/src/data/orval/negotiations/negotiations";
@@ -41,7 +42,9 @@ function NegotiationPage() {
   const [mode, setMode] = useActionsMode();
   const { data: processData, isLoading } = useGetNegotiationProcessById(cnProcess);
   const { data: messagesData } = useGetNegotiationMessagesByProcessId(cnProcess, { limit: 100 });
-  const { data: offersData } = useGetOffersByProcessId(cnProcess, { limit: 100 });
+  const { data: lastOfferData } = useGetLastOfferByProcessId(cnProcess);
+  // Only the count is needed from the list.
+  const { data: offersData } = useGetOffersByProcessId(cnProcess, { limit: 1 });
   const process = processData?.status === 200 ? processData.data : undefined;
   const { data: agreementsData } = useGetAgreementsByNegotiationProcess(cnProcess, undefined, {
     query: {
@@ -53,8 +56,8 @@ function NegotiationPage() {
   });
 
   const messages = messagesData?.status === 200 ? messagesData.data.items : [];
-  const offers = offersData?.status === 200 ? offersData.data.items : [];
-  const lastOffer = offers.at(-1);
+  const offerCount = offersData?.status === 200 ? (offersData.data.total ?? 0) : 0;
+  const lastOffer = lastOfferData?.status === 200 ? lastOfferData.data : undefined;
   const agreement = agreementsData?.status === 200 ? agreementsData.data.items?.[0] : undefined;
   const visited = useMemo(
     () =>
@@ -167,8 +170,8 @@ function NegotiationPage() {
       </PageSection>
 
       <PageSection
-        title={agreement ? "Agreed policy" : "Current offer"}
-        action={<CountBadge n={offers.length > 1 ? offers.length : undefined} />}
+        title={agreement ? "Agreed policy" : "Last offer"}
+        action={<CountBadge n={offerCount > 1 ? offerCount : undefined} />}
       >
         {agreement || lastOffer ? (
           <OdrlRulesView policy={agreement?.agreementContent ?? lastOffer?.offerContent} />

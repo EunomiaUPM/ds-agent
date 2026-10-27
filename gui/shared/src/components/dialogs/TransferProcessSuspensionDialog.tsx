@@ -33,16 +33,11 @@ export const TransferProcessSuspensionDialog = ({
    * Handles the suspension submission.
    */
   const handleSubmit = async () => {
-    if (!process.correlation.consumerPid || !process.correlation.providerPid) {
-      console.error("Missing process identifiers");
-      return;
-    }
     await suspendAsync({
       data: {
         "@context": EUNOMIA_CONTEXT,
         "@type": "RpcTransferSuspensionMessage",
-        consumerPid: process.correlation.consumerPid,
-        providerPid: process.correlation.providerPid,
+        "@id": process.id,
         code: "SUSPENDED",
         reason: ["Suspended from GUI"],
       },

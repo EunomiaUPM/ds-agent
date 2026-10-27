@@ -5,7 +5,7 @@ import { useBffRpcSetupAgreement } from "../../data/orval/negotiation-rp-c/negot
 import { EUNOMIA_CONTEXT } from "../../data/eunomia";
 import {
   useGetNegotiationProcesses,
-  useGetOffersByProcessId,
+  useGetLastOfferByProcessId,
 } from "../../data/orval/negotiations/negotiations";
 import { useRouter } from "@tanstack/react-router";
 import { PolicyWrapperShow } from "../PolicyWrapperShow";
@@ -19,28 +19,19 @@ export const ContractNegotiationBusinessAgreementDialog = ({
 }) => {
   const { mutateAsync: agreeAsync } = useBffRpcSetupAgreement();
   const { refetch } = useGetNegotiationProcesses();
-  const { data: offersData } = useGetOffersByProcessId(process.id, { limit: 100 });
+  const { data: lastOfferData } = useGetLastOfferByProcessId(process.id);
+  const lastOffer = lastOfferData?.status === 200 ? lastOfferData.data : undefined;
   const router = useRouter();
 
-  const lastOffer = offersData?.status === 200 ? offersData.data.items?.at(-1) : undefined;
-  const consumerPid =
-    process.correlation.consumerPid || process.correlation.identifiers?.consumerPid;
-  const providerPid =
-    process.correlation.providerPid || process.correlation.identifiers?.providerPid;
   const datasetId = process.correlation.identifiers?.datasetId;
   const catalogId = process.correlation.identifiers?.catalogId;
 
   const handleSubmit = async () => {
-    if (!consumerPid || !providerPid) {
-      console.error("Missing process identifiers");
-      return;
-    }
     await agreeAsync({
       data: {
         "@context": EUNOMIA_CONTEXT,
         "@type": "RpcNegotiationAgreementMessage",
-        consumerPid,
-        providerPid,
+        "@id": process.id,
       },
     });
     await refetch();

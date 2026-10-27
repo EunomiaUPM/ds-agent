@@ -32,10 +32,6 @@ export const ContractNegotiationFinalizationDialog = ({
   const router = useRouter();
 
   const agreement = agreementsData?.status === 200 ? agreementsData.data.items?.[0] : undefined;
-  const consumerPid =
-    process.correlation.consumerPid || process.correlation.identifiers?.consumerPid;
-  const providerPid =
-    process.correlation.providerPid || process.correlation.identifiers?.providerPid;
   const datasetId = process.correlation.identifiers?.datasetId;
   const catalogId = process.correlation.identifiers?.catalogId;
 
@@ -44,16 +40,11 @@ export const ContractNegotiationFinalizationDialog = ({
    * Sends finalization event to close the negotiation.
    */
   const handleSubmit = async () => {
-    if (!consumerPid || !providerPid) {
-      console.error("Missing process identifiers");
-      return;
-    }
     await finalizeAsync({
       data: {
         "@context": EUNOMIA_CONTEXT,
         "@type": "RpcNegotiationFinalizationMessage",
-        consumerPid,
-        providerPid,
+        "@id": process.id,
       },
     });
     await refetch();

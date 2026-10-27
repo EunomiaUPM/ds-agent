@@ -8,7 +8,7 @@
  * <ContractNegotiationRequestDialog process={cnProcess} />
  */
 
-import React, { useContext, useMemo, useState } from "react";
+import React, { useContext, useState } from "react";
 import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/GlobalInfoContext";
 import { PolicyWrapperEdit } from "../PolicyWrapperEdit";
 import { BaseProcessDialog } from "./base";
@@ -22,7 +22,7 @@ import {
 import { EUNOMIA_CONTEXT } from "../../data/eunomia";
 import {
   useGetNegotiationProcesses,
-  useGetOffersByProcessId,
+  useGetLastOfferByProcessId,
 } from "../../data/orval/negotiations/negotiations";
 import { useRouter } from "@tanstack/react-router";
 import { PolicyWrapperShow } from "../PolicyWrapperShow";
@@ -66,15 +66,8 @@ export const ContractNegotiationRequestDialog = ({
   const router = useRouter();
   const [currentPolicy, setCurrentPolicy] = useState<OdrlInfo | null>(null);
   const { mutateAsync: dataRequestAsync } = useRpcSetupRequest();
-  const { data: offersData } = useGetOffersByProcessId(process.id, { limit: 100 });
-  const lastOffer = useMemo(() => {
-    return offersData?.status === 200 ? offersData.data.items?.at(-1) : undefined;
-  }, [offersData]);
-
-  const consumerPid =
-    process.correlation.consumerPid || process.correlation.identifiers?.consumerPid;
-  const providerPid =
-    process.correlation.providerPid || process.correlation.identifiers?.providerPid;
+  const { data: lastOfferData } = useGetLastOfferByProcessId(process.id);
+  const lastOffer = lastOfferData?.status === 200 ? lastOfferData.data : undefined;
 
   // ---------------------------------------------------------------------------
   // Info Items
@@ -87,7 +80,7 @@ export const ContractNegotiationRequestDialog = ({
   // ---------------------------------------------------------------------------
 
   const handleSubmit = async () => {
-    if (!consumerPid || !providerPid || !lastOffer || !currentPolicy) {
+    if (!lastOffer || !currentPolicy) {
       console.error("Missing required data for request");
       return;
     }
@@ -96,8 +89,7 @@ export const ContractNegotiationRequestDialog = ({
       data: {
         "@context": EUNOMIA_CONTEXT,
         "@type": "RpcNegotiationRequestMessage",
-        consumerPid,
-        providerPid,
+        "@id": process.id,
         offer: {
           "@id": (lastOffer.offerContent["@id"] as string) ?? "urn:uuid:placeholder",
           "@type": lastOffer.offerContent["@type"] as any,
@@ -146,7 +138,7 @@ export const ContractNegotiationRequestDialog = ({
       infoItems={infoItems}
       afterInfoContent={policyEditorContent}
       submitLabel="Request"
-      disabledSubmit={!consumerPid || !providerPid || !lastOffer || !currentPolicy}
+      disabledSubmit={!lastOffer || !currentPolicy}
       submitVariant="outline"
       onSubmit={handleSubmit}
       scrollable

@@ -10,6 +10,7 @@ import { Badge } from "shared/src/components/ui/badge";
 import { FormatDate, RelativeTime } from "shared/src/components/ui/format-date";
 import { SegmentedControl } from "shared/src/components/ui/segmented";
 import { ParticipantLabel } from "shared/src/components/identity/ParticipantLabel";
+import { Identifier } from "shared/src/components/identity/Identifier";
 import { AgreementDatasetLabel } from "shared/src/components/identity/AgreementDatasetLabel";
 import { TransferProcessActions } from "shared/src/components/actions/TransferProcessActions";
 import { TransferProcessBusinessActions } from "shared/src/components/actions/TransferProcessBusinessActions";
@@ -114,6 +115,7 @@ function TransfersPage() {
               </Badge>
             ),
           },
+          { header: "Transfer", cell: (tp) => <Identifier value={tp.id} /> },
           {
             header: "Last change",
             cell: (tp) => <RelativeTime date={tp.updatedAt} className="text-ink/70" />,

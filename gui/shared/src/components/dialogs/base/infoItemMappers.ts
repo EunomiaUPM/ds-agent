@@ -31,22 +31,7 @@ export function mapCNProcessToInfoItemsForProvider(
   process: NegotiationProcessDto,
 ): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    {
-      label: "Provider ID",
-      value: {
-        type: "urn" as const,
-        value:
-          process.correlation.providerPid || process.correlation.identifiers?.providerPid || "",
-      },
-    },
-    {
-      label: "Consumer ID",
-      value: {
-        type: "urn" as const,
-        value:
-          process.correlation.consumerPid || process.correlation.identifiers?.consumerPid || "",
-      },
-    },
+    { label: "Negotiation", value: { type: "urn" as const, value: process.id } },
     {
       label: "Associated Consumer",
       value: { type: "urn" as const, value: process.correlation.peerParticipantId || "" },
@@ -69,22 +54,7 @@ export function mapCNProcessToInfoItemsForConsumer(
   process: NegotiationProcessDto,
 ): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    {
-      label: "Provider ID",
-      value: {
-        type: "urn" as const,
-        value:
-          process.correlation.providerPid || process.correlation.identifiers?.providerPid || "",
-      },
-    },
-    {
-      label: "Consumer ID",
-      value: {
-        type: "urn" as const,
-        value:
-          process.correlation.consumerPid || process.correlation.identifiers?.consumerPid || "",
-      },
-    },
+    { label: "Negotiation", value: { type: "urn" as const, value: process.id } },
     {
       label: "Associated Provider",
       value: { type: "urn" as const, value: process.correlation.peerParticipantId || "" },
@@ -105,22 +75,7 @@ export function mapCNProcessToInfoItemsForConsumer(
  */
 export function mapCNProcessToFullInfoItems(process: NegotiationProcessDto): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    {
-      label: "Provider ID",
-      value: {
-        type: "urn" as const,
-        value:
-          process.correlation.providerPid || process.correlation.identifiers?.providerPid || "",
-      },
-    },
-    {
-      label: "Consumer ID",
-      value: {
-        type: "urn" as const,
-        value:
-          process.correlation.consumerPid || process.correlation.identifiers?.consumerPid || "",
-      },
-    },
+    { label: "Negotiation", value: { type: "urn" as const, value: process.id } },
     {
       label: "Associated Peer",
       value: { type: "urn" as const, value: process.correlation.peerParticipantId || "" },
@@ -165,14 +120,7 @@ export function mapTransferProcessToInfoItemsForProvider(
   process: TransferProcessDto,
 ): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    {
-      label: "Provider PID",
-      value: { type: "urn" as const, value: process.correlation.providerPid || "" },
-    },
-    {
-      label: "Consumer PID",
-      value: { type: "urn" as const, value: process.correlation.consumerPid || "" },
-    },
+    { label: "Transfer process", value: { type: "urn" as const, value: process.id } },
     {
       label: "Associated Consumer",
       value: { type: "urn" as const, value: process.correlation.peerParticipantId || "" },
@@ -199,14 +147,7 @@ export function mapTransferProcessToInfoItemsForConsumer(
   process: TransferProcessDto,
 ): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    {
-      label: "Provider PID",
-      value: { type: "urn" as const, value: process.correlation.providerPid || "" },
-    },
-    {
-      label: "Consumer ID",
-      value: { type: "urn" as const, value: process.correlation.consumerPid || "" },
-    },
+    { label: "Transfer process", value: { type: "urn" as const, value: process.id } },
     {
       label: "Associated Provider",
       value: { type: "urn" as const, value: process.correlation.peerParticipantId || "" },

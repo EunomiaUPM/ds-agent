@@ -1,1828 +1,2069 @@
 {
-  "info": {
-    "_postman_id": "ee4f0692-6180-4838-8481-38ebc81ac94e",
-    "name": "Application - Negotiation Agent",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "item": [
-    {
-      "name": "Entities",
-      "item": [
-        {
-          "name": "Get all entities",
-          "id": "7563c128-41a6-4fea-a923-2c9e81688532",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/negotiation-processes?limit=1&page=2",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "negotiation-processes"
-              ],
-              "query": [
-                {
-                  "key": "limit",
-                  "value": "1"
-                },
-                {
-                  "key": "page",
-                  "value": "2"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get entities batch",
-          "id": "8ad413f4-8170-4d80-af6b-15eae6a48366",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"ids\": [\n        \"urn:uuid:0e871069-bf9d-4dd5-998c-b40db05b02d4\"\n    ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/negotiation-processes/batch",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "negotiation-processes",
-                "batch"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get entity",
-          "id": "36722402-78c7-4644-9423-9f193450a7d9",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/negotiation-processes/{{negotiationId}}",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "negotiation-processes",
-                "{{negotiationId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get entity with key",
-          "id": "013276e8-4c9e-4598-9f91-7b2046bc2223",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/negotiation-processes/urn:ads:123/key/consumerPid",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "negotiation-processes",
-                "urn:ads:123",
-                "key",
-                "consumerPid"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create entity",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "id": "7a35d1d8-ba07-463a-a71a-11b332f54cef",
-                "exec": [
-                  "pm.collectionVariables.set(\"negotiationId\", pm.response.json().id);"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "id": "3b01ae94-b6e7-4244-991d-3f44fb0a9ec9",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"state\": \"REQUESTED\",\n    \"stateAttribute\": \"ON_REQUEST\",\n    \"associatedAgentPeer\": \"blabla\",\n    \"protocol\": \"DSP\",\n    \"callbackAddress\": \"http://localhost:1233/hola\",\n    \"role\": \"Provider\",\n    \"properties\": {\n        \"me\": 2\n    },\n    \"identifiers\": {\n        \"consumerPid\": \"urn:ads:123\",\n        \"providerPid\": \"urn:ads:123\"\n    }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/negotiation-processes",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "negotiation-processes"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update entity",
-          "id": "f2a6303c-9f84-475e-9392-16c746a6650f",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"state\": \"FINALIZED\",\n    \"stateAttribute\": \"ON_REQUEST\",\n    \"properties\": {\n        \"me\": 2\n    },\n    \"identifiers\": {\n        \"bla\": \"urn:ads:123\",\n        \"providerPid\": \"urn:ads:123\"\n    }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/negotiation-processes/{{negotiationId}}",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "negotiation-processes",
-                "{{negotiationId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete entity",
-          "id": "9c7753e1-9d75-490f-8920-c21f35c99aef",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"state\": \"a\",\n    \"associated_agent_peer\": \"b\",\n    \"protocol\": \"c\", \n    \"transfer_direction\": \"d\", \n    \"agreement_id\": \"urn:uuid:{{$guid}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/negotiation-processes/{{negotiationId}}",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "negotiation-processes",
-                "{{negotiationId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get all messages",
-          "id": "2e9bbd22-c346-4b75-8530-2f4991f5bfc1",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/negotiation-messages?limit=1&page=2",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "negotiation-messages"
-              ],
-              "query": [
-                {
-                  "key": "limit",
-                  "value": "1"
-                },
-                {
-                  "key": "page",
-                  "value": "2"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get all messages by process",
-          "id": "1db4d839-3462-46a4-9dde-b56edf925547",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/negotiation-messages/process/{{negotiationId}}",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "negotiation-messages",
-                "process",
-                "{{negotiationId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create message",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "id": "370eb9fc-d57b-4dfb-8838-9aef98f23779",
-                "exec": [
-                  "pm.collectionVariables.set(\"negotiationMessageId\", pm.response.json().id);"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "id": "11bfcbc7-bdfb-4f85-9bfd-03a2674513cf",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"negotiationAgentProcessId\": \"{{negotiationId}}\",\n    \"messageType\": \"hola\",\n    \"direction\": \"INBOUND\",\n    \"stateTransitionFrom\": \"a\",\n    \"stateTransitionTo\": \"b\",\n    \"protocol\": \"a\", \n    \"payload\": {\n        \"hola\": 2\n    }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/negotiation-messages",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "negotiation-messages"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get message",
-          "id": "475703b3-b853-4ed0-a181-e3414667d4cf",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/negotiation-messages/{{negotiationTransferId}}",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "negotiation-messages",
-                "{{negotiationTransferId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete message",
-          "id": "449fb3a1-de3a-44db-9500-4487af2c51ac",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"state\": \"a\",\n    \"associated_agent_peer\": \"b\",\n    \"protocol\": \"c\", \n    \"transfer_direction\": \"d\", \n    \"agreement_id\": \"urn:uuid:{{$guid}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/negotiation-messages/{{negotiationMessageId}}",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "negotiation-messages",
-                "{{negotiationMessageId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get all offers",
-          "id": "18df4a4b-e799-4812-87f6-25cbcbf63f03",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/offers?limit=1&page=2",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "offers"
-              ],
-              "query": [
-                {
-                  "key": "limit",
-                  "value": "1"
-                },
-                {
-                  "key": "page",
-                  "value": "2"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get offers batch",
-          "id": "6dde5f00-0bdf-4227-9060-5a1cd04ecc21",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"ids\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/offers/batch",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "offers",
-                "batch"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get all offers by process",
-          "id": "4094d7a5-e2ae-4df3-a72b-01e342428c9c",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/offers/process/{{negotiationId}}",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "offers",
-                "process",
-                "{{negotiationId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get offer by message",
-          "id": "ade20cd2-4f3b-4e37-8e6d-3545936d6665",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/offers/message/{{negotiationId}}",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "offers",
-                "message",
-                "{{negotiationId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create offer",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "id": "370eb9fc-d57b-4dfb-8838-9aef98f23779",
-                "exec": [
-                  "pm.collectionVariables.set(\"offerId\", pm.response.json().id);"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "id": "f5108bde-4318-49a3-95a1-3e503077d458",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"negotiationAgentProcessId\": \"{{negotiationId}}\",\n    \"negotiationAgentMessageId\": \"{{negotiationMessageId}}\",\n    \"offerId\": \"hola\",\n    \"offerContent\": {\n        \"hola\": \"\"\n    }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/offers",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "offers"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get offers",
-          "id": "671ab71e-e116-4aa0-8295-2628f2937934",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/offers/{{offerId}}",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "offers",
-                "{{offerId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete offers",
-          "id": "fc55b577-ee92-4830-8afa-d7cfd28de784",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"state\": \"a\",\n    \"associated_agent_peer\": \"b\",\n    \"protocol\": \"c\", \n    \"transfer_direction\": \"d\", \n    \"agreement_id\": \"urn:uuid:{{$guid}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/offers/{{offerId}}",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "offers",
-                "{{offerId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get all agreements",
-          "id": "7aa08f80-86af-43f1-97b7-b3a3d7524e0c",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/agreements?limit=1&page=2",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "agreements"
-              ],
-              "query": [
-                {
-                  "key": "limit",
-                  "value": "1"
-                },
-                {
-                  "key": "page",
-                  "value": "2"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get agreements batch",
-          "id": "ad0cd9bd-6886-4f24-9d1a-8873e5821f12",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"ids\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/agreements/batch",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "agreements",
-                "batch"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get agreement by process",
-          "id": "f22130e4-b8a4-49f6-8f21-62a475f2033a",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/agreements/process/{{negotiationId}}",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "agreements",
-                "process",
-                "{{negotiationId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get agreement by message",
-          "id": "b9f8bbf1-14e0-48f5-9fd4-d1efde99274f",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/agreements/message/{{negotiationId}}",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "agreements",
-                "message",
-                "{{negotiationId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create agreements",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "id": "370eb9fc-d57b-4dfb-8838-9aef98f23779",
-                "exec": [
-                  "pm.collectionVariables.set(\"agreementId\", pm.response.json().id);"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "id": "9f827541-89a6-4a06-9407-93caae0e778c",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"negotiationAgentProcessId\": \"{{negotiationId}}\",\n    \"negotiationAgentMessageId\": \"{{negotiationMessageId}}\",\n    \"offerId\": \"hola\",\n    \"offerContent\": {\n        \"hola\": \"\"\n    }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/agreements",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "agreements"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update agreement",
-          "id": "d6b46666-8ecc-4ec7-beab-c87644300466",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"state\": \"FINALIZED\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/agreements/{{agreementId}}",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "agreements",
-                "{{agreementId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get agreement",
-          "id": "48a4f3de-fd1e-4fae-9b34-fb3ab09eabd6",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/agreements/{{agreementId}}",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "agreements",
-                "{{agreementId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete agreement",
-          "id": "271c4d9b-6a24-412d-b6b7-ccef8ab61a58",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"state\": \"a\",\n    \"associated_agent_peer\": \"b\",\n    \"protocol\": \"c\", \n    \"transfer_direction\": \"d\", \n    \"agreement_id\": \"urn:uuid:{{$guid}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/agreements/{{agreementId}}",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "agreements",
-                "{{agreementId}}"
-              ]
-            }
-          },
-          "response": []
-        }
-      ],
-      "id": "ec0140f9-fa9e-4510-8180-d9600673708f"
-    },
-    {
-      "name": "DSP",
-      "item": [
-        {
-          "name": "Get negotiation by key value",
-          "id": "bfbb3a08-3d80-4696-8930-b0f30dc5af87",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/urn:consumer-pid:123",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "urn:consumer-pid:123"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "CN Request Init",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "id": "61b80e97-68e8-436b-a081-5bf303fa2830",
-                "exec": [
-                  "pm.collectionVariables.set(\"ContractNegotiationProviderId\", pm.response.json().providerPid);",
-                  "pm.collectionVariables.set(\"ContractNegotiationConsumerId\", pm.response.json().consumerPid);"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "id": "1292489a-5e65-4970-9dc5-4109524261a4",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"ContractRequestMessage\",\n    \"consumerPid\": \"urn:consumer-pid:{{$guid}}\",\n    \"offer\": {\n        \"@id\": \"urn:offer:123\"\n    }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/request",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "request"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "CN Offer Init",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "id": "00057c48-cea8-4bac-882a-64374a474eaa",
-                "exec": [
-                  "pm.collectionVariables.set(\"ContractNegotiationProviderId\", pm.response.json().providerPid);",
-                  "pm.collectionVariables.set(\"ContractNegotiationConsumerId\", pm.response.json().consumerPid);"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "id": "96b0e03d-e2e7-4362-a96b-e79cda206638",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"ContractOfferMessage\",\n    \"providerPid\": \"urn:uuid:{{$guid}}\",\n    \"offer\": {\n        \"@id\": \"urn:offer:123\"\n    }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/offers",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "offers"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "CN Counter Request",
-          "id": "638bb4ad-bf91-4693-86a2-dd23281d3032",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"ContractRequestMessage\",\n    \"consumerPid\": \"{{ContractNegotiationConsumerId}}\",\n    \"providerPid\": \"{{ContractNegotiationProviderId}}\",\n    \"offer\": {\n        \"@id\": \"urn:offer:123\"\n    }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/{{ContractNegotiationProviderId}}/request",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "{{ContractNegotiationProviderId}}",
-                "request"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "CN Counter Offer",
-          "id": "fbb40558-ba1c-47bd-8866-9f88d46dfdbf",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"ContractOfferMessage\",\n    \"consumerPid\": \"{{ContractNegotiationConsumerId}}\",\n    \"providerPid\": \"{{ContractNegotiationProviderId}}\",\n    \"offer\": {\n        \"@id\": \"urn:offer:123\"\n    }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/{{ContractNegotiationConsumerId}}/offers",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "{{ContractNegotiationConsumerId}}",
-                "offers"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "CN Agreement Verification",
-          "id": "1ab1516f-5fd6-483c-b66b-cce81cc47c4e",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"ContractAgreementVerificationMessage\",\n    \"consumerPid\": \"{{ContractNegotiationConsumerId}}\",\n    \"providerPid\": \"{{ContractNegotiationProviderId}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/{{ContractNegotiationProviderId}}/agreement/verification",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "{{ContractNegotiationProviderId}}",
-                "agreement",
-                "verification"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "CN Agreement",
-          "id": "b409c690-cb93-499c-8297-3149824f38d2",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"ContractAgreementMessage\",\n    \"consumerPid\": \"{{ContractNegotiationConsumerId}}\",\n    \"providerPid\": \"{{ContractNegotiationProviderId}}\",\n    \"agreement\": {\n        \"@id\": \"urn:agreement-id:123\", \n        \"@type\": \"Agreement\", \n        \"target\": \"urn:policy-target:123\", \n        \"assigner\": \"did:key:provider\", \n        \"assignee\": \"did:key:consumer\",\n        \"permission\": [\n            {\n                \"action\": \"use\"\n            }\n        ], \n        \"obligation\": [\n            {\n                \"action\": \"pay\", \n                \"constraint\": [\n                    {\n                        \"leftOperand\": \"amount\", \n                        \"operator\": \"eq\",\n                        \"rightOperand\": \"2^^xsd:Currency:EURO\"\n                    }\n                ]\n            }\n        ]\n    }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/{{ContractNegotiationProviderId}}/agreement",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "{{ContractNegotiationProviderId}}",
-                "agreement"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "CN Events",
-          "id": "fdd3e5aa-6d19-4808-849d-a60bc3c0e2e1",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"ContractNegotiationEventMessage\",\n    \"consumerPid\": \"{{ContractNegotiationConsumerId}}\",\n    \"providerPid\": \"{{ContractNegotiationProviderId}}\",\n    \"eventType\": \"ACCEPTED\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/{{ContractNegotiationProviderId}}/events",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "{{ContractNegotiationProviderId}}",
-                "events"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "CN Termination",
-          "id": "85d0c647-61d4-47ee-83cd-b72beb091537",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"ContractNegotiationTerminationMessage\",\n    \"consumerPid\": \"{{ContractNegotiationConsumerId}}\",\n    \"providerPid\": \"{{ContractNegotiationProviderId}}\",\n    \"code\": \"123\",\n    \"reason\": [\n        \"asdasd\", \n        \"asdasd\"\n    ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/{{ContractNegotiationProviderId}}/termination",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "{{ContractNegotiationProviderId}}",
-                "termination"
-              ]
-            }
-          },
-          "response": []
-        }
-      ],
-      "id": "dfb61677-6912-4208-95f2-a31cec5ed1a3"
-    },
-    {
-      "name": "DSP Rpc",
-      "item": [
-        {
-          "name": "Request Init",
-          "id": "6945a87b-b541-440d-8cfd-b7d196b8afa4",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"associatedAgentPeer\": \"did:key:consumer-pid\",\n    \"providerAddress\": \"http://provider-url\",\n    \"callbackAddress\": \"http://abc...\",\n    \"offer\": {\n        \"@id\": \"urn:offer:123\"\n    }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/rpc/setup-request-init",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "rpc",
-                "setup-request-init"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Request",
-          "id": "a163e2db-859c-4c13-ba59-cdaf981097e7",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"providerPid\": \"urn:provider-pid:123\",\n    \"consumerPid\": \"urn:consumer-pid:123\",\n    \"offer\": {\n        \"@id\": \"urn:offer:123\"\n    }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/rpc/setup-request",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "rpc",
-                "setup-request"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Offer Init",
-          "id": "3972da52-c379-413f-bdf0-c9783cad3126",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"associatedAgentPeer\": \"did:key:consumer-pid\",\n    \"providerAddress\": \"http://provider-url\",\n    \"callbackAddress\": \"http://abc...\",\n    \"offer\": {\n        \"@id\": \"urn:offer:123\"\n    }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/rpc/setup-request-init",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "rpc",
-                "setup-request-init"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Offer",
-          "id": "db730461-30d5-4826-8018-1e67e5543dce",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"providerPid\": \"urn:provider-pid:123\",\n    \"consumerPid\": \"urn:consumer-pid:123\",\n    \"offer\": {\n        \"@id\": \"urn:offer:123\"\n    }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/rpc/setup-offer",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "rpc",
-                "setup-offer"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Acceptance",
-          "id": "f7ed2581-fcba-403e-8183-765c067df636",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"providerPid\": \"urn:provider-pid:123\",\n    \"consumerPid\": \"urn:consumer-pid:123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/rpc/setup-acceptance",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "rpc",
-                "setup-acceptance"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Agreement",
-          "id": "84aeaa93-dc68-46b3-9cbc-14625adfaef3",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"providerPid\": \"urn:provider-pid:123\",\n    \"consumerPid\": \"urn:consumer-pid:123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/rpc/setup-acceptance",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "rpc",
-                "setup-acceptance"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Verification",
-          "id": "26f26bde-200e-492e-8340-e644c7958a38",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"providerPid\": \"urn:provider-pid:123\",\n    \"consumerPid\": \"urn:consumer-pid:123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/rpc/setup-verification",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "rpc",
-                "setup-verification"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Finalization",
-          "id": "1fdeba34-54f7-4889-8022-777677300693",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"providerPid\": \"urn:provider-pid:123\",\n    \"consumerPid\": \"urn:consumer-pid:123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/rpc/setup-acceptance",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "rpc",
-                "setup-acceptance"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Termination",
-          "id": "1a9a2eba-3327-482c-8024-006638364786",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"providerPid\": \"urn:provider-pid:123\",\n    \"consumerPid\": \"urn:consumer-pid:123\",\n    \"code\": \"123\",\n    \"reason\": [\n        \"asdasd\",\n        \"asdasd\"\n    ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/negotiation-agent/dsp/current/negotiations/rpc/setup-termination",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "negotiation-agent",
-                "dsp",
-                "current",
-                "negotiations",
-                "rpc",
-                "setup-termination"
-              ]
-            }
-          },
-          "response": []
-        }
-      ],
-      "id": "7305b5c9-72ee-4303-9438-31b8c7ce30eb"
-    },
-    {
-      "name": "well-known",
-      "id": "5500f545-6e8c-4d24-9571-b74dd76ba23f",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{ProviderUrl}}/.well-known/dspace-version",
-          "host": [
-            "{{ProviderUrl}}"
-          ],
-          "path": [
-            ".well-known",
-            "dspace-version"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "health",
-      "id": "aeb2f79b-f2ff-43a1-b79d-90748aa6b320",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{ProviderUrl}}/health",
-          "host": [
-            "{{ProviderUrl}}"
-          ],
-          "path": [
-            "health"
-          ]
-        }
-      },
-      "response": []
-    }
-  ],
-  "variable": [
-    {
-      "id": "fe014354-3cc3-4668-92c0-1b5ded06ccb8",
-      "key": "consumerPid",
-      "value": ""
-    },
-    {
-      "id": "b7784d2c-0249-4738-9964-931ddbed597c",
-      "key": "providerPid",
-      "value": ""
-    },
-    {
-      "id": "2033c2d7-33fe-4317-9d39-49caa639e306",
-      "key": "negotiationId",
-      "value": ""
-    },
-    {
-      "id": "6283b304-7c5b-4ff2-8cdb-017d374568d9",
-      "key": "negotiationTransferId",
-      "value": ""
-    },
-    {
-      "id": "38f74060-c95b-4515-a376-6d322569a82f",
-      "key": "negotiationMessageId",
-      "value": ""
-    },
-    {
-      "id": "bc4ec7b5-cf16-402d-94ee-7362a07afda1",
-      "key": "offerId",
-      "value": ""
-    },
-    {
-      "id": "70998b3f-28ee-45a9-82cf-f02a2a965918",
-      "key": "agreementId",
-      "value": ""
-    },
-    {
-      "id": "4f0cee02-b196-47a7-9f19-46afbc6fa56f",
-      "key": "ContractNegotiationProvider",
-      "value": ""
-    },
-    {
-      "id": "d970178e-bd43-4774-b41f-d4f788aec282",
-      "key": "ContractNegotiationConsumer",
-      "value": ""
-    },
-    {
-      "id": "28083562-939b-4460-af11-7fa47fdeafb9",
-      "key": "ContractNegotiationProviderId",
-      "value": ""
-    },
-    {
-      "id": "4b8f01e4-2b4d-447d-bad8-75a69873eef1",
-      "key": "ContractNegotiationConsumerId",
-      "value": ""
-    }
-  ]
+	"info": {
+		"_postman_id": "ee4f0692-6180-4838-8481-38ebc81ac94e",
+		"name": "Application - Negotiation Agent",
+		"description": "Negotiation agent: eunomia RPC on both sides, the management API and the DSP endpoints.\n\nSet `ContractNegotiationProvider` and `ContractNegotiationConsumer` in the environment and `providerDid`, `consumerDid`, `policyId` and `datasetId` (a published offer and its dataset) here. RPC continuations take `@id`, each agent's own process id, captured by the tests.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "RPC",
+			"item": [
+				{
+					"name": "Consumer requests",
+					"item": [
+						{
+							"name": "Request Init (consumer)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationConsumer}}/dsp/current/negotiations/rpc/setup-request-init",
+									"host": [
+										"{{ContractNegotiationConsumer}}"
+									],
+									"path": [
+										"dsp",
+										"current",
+										"negotiations",
+										"rpc",
+										"setup-request-init"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcNegotiationRequestInitMessage\",\n    \"associatedAgentPeer\": \"{{providerDid}}\",\n    \"providerAddress\": \"{{ContractNegotiationProvider}}/dsp/current\",\n    \"callbackAddress\": \"{{ContractNegotiationConsumer}}/dsp/current\",\n    \"offer\": {\n        \"@id\": \"{{policyId}}\",\n        \"@type\": \"Offer\",\n        \"target\": \"{{datasetId}}\",\n        \"permission\": [\n            {\n                \"action\": \"use\"\n            }\n        ]\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+											"const body = pm.response.json();",
+											"pm.test(\"answers the process as it stands\", () => pm.expect(body.negotiationAgentModel).to.exist);",
+											"pm.collectionVariables.set(\"consumerProcessId\", body.negotiationAgentModel.id);",
+											"pm.collectionVariables.set(\"consumerPid\", body.negotiationAgentModel.correlation.consumerPid);",
+											"pm.collectionVariables.set(\"providerPid\", body.negotiationAgentModel.correlation.providerPid);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Find provider process",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/negotiation-processes?limit=100",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"negotiation-processes"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "100"
+										}
+									]
+								},
+								"description": "The provider's own id of the negotiation; RPC calls never take DSP pids."
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200\", () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+											"const items = pm.response.json().items;",
+											"const process = items.find(p => p.correlation.consumerPid === pm.collectionVariables.get(\"consumerPid\"));",
+											"pm.test(\"finds the process\", () => pm.expect(process, \"no process with that consumerPid\").to.exist);",
+											"pm.collectionVariables.set(\"providerProcessId\", process.id);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Offer (provider)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/dsp/current/negotiations/rpc/setup-offer",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"dsp",
+										"current",
+										"negotiations",
+										"rpc",
+										"setup-offer"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcNegotiationOfferMessage\",\n    \"@id\": \"{{providerProcessId}}\",\n    \"offer\": {\n        \"@id\": \"{{policyId}}\",\n        \"@type\": \"Offer\",\n        \"target\": \"{{datasetId}}\",\n        \"permission\": [\n            {\n                \"action\": \"use\"\n            }\n        ]\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+											"const body = pm.response.json();",
+											"pm.test(\"answers the process as it stands\", () => pm.expect(body.negotiationAgentModel).to.exist);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Request (consumer)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationConsumer}}/dsp/current/negotiations/rpc/setup-request",
+									"host": [
+										"{{ContractNegotiationConsumer}}"
+									],
+									"path": [
+										"dsp",
+										"current",
+										"negotiations",
+										"rpc",
+										"setup-request"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcNegotiationRequestMessage\",\n    \"@id\": \"{{consumerProcessId}}\",\n    \"offer\": {\n        \"@id\": \"{{policyId}}\",\n        \"@type\": \"Offer\",\n        \"target\": \"{{datasetId}}\",\n        \"permission\": [\n            {\n                \"action\": \"use\"\n            }\n        ]\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+											"const body = pm.response.json();",
+											"pm.test(\"answers the process as it stands\", () => pm.expect(body.negotiationAgentModel).to.exist);"
+										]
+									}
+								}
+							]
+						}
+					],
+					"description": "The consumer opens the negotiation; each side then names it by its own process `@id`."
+				},
+				{
+					"name": "Provider offers",
+					"item": [
+						{
+							"name": "Offer Init (provider)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/dsp/current/negotiations/rpc/setup-offer-init",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"dsp",
+										"current",
+										"negotiations",
+										"rpc",
+										"setup-offer-init"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcNegotiationOfferInitMessage\",\n    \"associatedAgentPeer\": \"{{consumerDid}}\",\n    \"consumerAddress\": \"{{ContractNegotiationConsumer}}/dsp/current\",\n    \"callbackAddress\": \"{{ContractNegotiationProvider}}/dsp/current\",\n    \"offer\": {\n        \"@id\": \"{{policyId}}\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"description": "An offer given only by `@id` goes out as the catalog publishes it, with its rules and target."
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+											"const body = pm.response.json();",
+											"pm.test(\"answers the process as it stands\", () => pm.expect(body.negotiationAgentModel).to.exist);",
+											"pm.collectionVariables.set(\"providerProcessId\", body.negotiationAgentModel.id);",
+											"pm.collectionVariables.set(\"consumerPid\", body.negotiationAgentModel.correlation.consumerPid);",
+											"pm.collectionVariables.set(\"providerPid\", body.negotiationAgentModel.correlation.providerPid);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Find consumer process",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationConsumer}}/api/v1/negotiation-agent/negotiation-processes?limit=100",
+									"host": [
+										"{{ContractNegotiationConsumer}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"negotiation-processes"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "100"
+										}
+									]
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200\", () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+											"const items = pm.response.json().items;",
+											"const process = items.find(p => p.correlation.consumerPid === pm.collectionVariables.get(\"consumerPid\"));",
+											"pm.test(\"finds the process\", () => pm.expect(process, \"no process with that consumerPid\").to.exist);",
+											"pm.collectionVariables.set(\"consumerProcessId\", process.id);"
+										]
+									}
+								}
+							]
+						}
+					],
+					"description": "The provider opens the negotiation with a published offer."
+				},
+				{
+					"name": "Closing",
+					"item": [
+						{
+							"name": "Acceptance (consumer)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationConsumer}}/dsp/current/negotiations/rpc/setup-acceptance",
+									"host": [
+										"{{ContractNegotiationConsumer}}"
+									],
+									"path": [
+										"dsp",
+										"current",
+										"negotiations",
+										"rpc",
+										"setup-acceptance"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcNegotiationAcceptanceMessage\",\n    \"@id\": \"{{consumerProcessId}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+											"const body = pm.response.json();",
+											"pm.test(\"answers the process as it stands\", () => pm.expect(body.negotiationAgentModel).to.exist);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Agreement (provider)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/dsp/current/negotiations/rpc/setup-agreement",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"dsp",
+										"current",
+										"negotiations",
+										"rpc",
+										"setup-agreement"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcNegotiationAgreementMessage\",\n    \"@id\": \"{{providerProcessId}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+											"const body = pm.response.json();",
+											"pm.test(\"answers the process as it stands\", () => pm.expect(body.negotiationAgentModel).to.exist);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Verification (consumer)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationConsumer}}/dsp/current/negotiations/rpc/setup-verification",
+									"host": [
+										"{{ContractNegotiationConsumer}}"
+									],
+									"path": [
+										"dsp",
+										"current",
+										"negotiations",
+										"rpc",
+										"setup-verification"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcNegotiationVerificationMessage\",\n    \"@id\": \"{{consumerProcessId}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+											"const body = pm.response.json();",
+											"pm.test(\"answers the process as it stands\", () => pm.expect(body.negotiationAgentModel).to.exist);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Finalization (provider)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/dsp/current/negotiations/rpc/setup-finalization",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"dsp",
+										"current",
+										"negotiations",
+										"rpc",
+										"setup-finalization"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcNegotiationFinalizationMessage\",\n    \"@id\": \"{{providerProcessId}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+											"const body = pm.response.json();",
+											"pm.test(\"answers the process as it stands\", () => pm.expect(body.negotiationAgentModel).to.exist);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Termination (consumer)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationConsumer}}/dsp/current/negotiations/rpc/setup-termination",
+									"host": [
+										"{{ContractNegotiationConsumer}}"
+									],
+									"path": [
+										"dsp",
+										"current",
+										"negotiations",
+										"rpc",
+										"setup-termination"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcNegotiationTerminationMessage\",\n    \"@id\": \"{{consumerProcessId}}\",\n    \"code\": \"STOPPED\",\n    \"reason\": [\n        \"No longer needed\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+											"const body = pm.response.json();",
+											"pm.test(\"answers the process as it stands\", () => pm.expect(body.negotiationAgentModel).to.exist);"
+										]
+									}
+								}
+							]
+						}
+					],
+					"description": "Acceptance, agreement, verification and finalization, after either opening."
+				}
+			],
+			"description": "Eunomia JSON-LD bodies: the agent sends one DSP message per call. Continuations name the negotiation by `@id`, the process id on the agent called."
+		},
+		{
+			"name": "BFF RPC",
+			"item": [
+				{
+					"name": "Request Init",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{ContractNegotiationConsumer}}/dsp/current/negotiations/bff-rpc/setup-request-init",
+							"host": [
+								"{{ContractNegotiationConsumer}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"negotiations",
+								"bff-rpc",
+								"setup-request-init"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcNegotiationRequestInitMessage\",\n    \"associatedAgentPeer\": \"{{providerDid}}\",\n    \"providerAddress\": \"{{ContractNegotiationProvider}}/dsp/current\",\n    \"offer\": {\n        \"@id\": \"{{policyId}}\",\n        \"@type\": \"Offer\",\n        \"target\": \"{{datasetId}}\",\n        \"permission\": [\n            {\n                \"action\": \"use\"\n            }\n        ]\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+									"const body = pm.response.json();",
+									"pm.test(\"answers the process as it stands\", () => pm.expect(body.negotiationAgentModel).to.exist);",
+									"pm.collectionVariables.set(\"consumerProcessId\", body.negotiationAgentModel.id);",
+									"pm.collectionVariables.set(\"consumerPid\", body.negotiationAgentModel.correlation.consumerPid);",
+									"pm.collectionVariables.set(\"providerPid\", body.negotiationAgentModel.correlation.providerPid);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Offer Init",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{ContractNegotiationProvider}}/dsp/current/negotiations/bff-rpc/setup-offer-init",
+							"host": [
+								"{{ContractNegotiationProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"negotiations",
+								"bff-rpc",
+								"setup-offer-init"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcNegotiationOfferInitMessage\",\n    \"associatedAgentPeer\": \"{{consumerDid}}\",\n    \"consumerAddress\": \"{{ContractNegotiationConsumer}}/dsp/current\",\n    \"offer\": {\n        \"@id\": \"{{policyId}}\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+									"const body = pm.response.json();",
+									"pm.test(\"answers the process as it stands\", () => pm.expect(body.negotiationAgentModel).to.exist);",
+									"pm.collectionVariables.set(\"providerProcessId\", body.negotiationAgentModel.id);",
+									"pm.collectionVariables.set(\"consumerPid\", body.negotiationAgentModel.correlation.consumerPid);",
+									"pm.collectionVariables.set(\"providerPid\", body.negotiationAgentModel.correlation.providerPid);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Acceptance",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{ContractNegotiationConsumer}}/dsp/current/negotiations/bff-rpc/setup-acceptance",
+							"host": [
+								"{{ContractNegotiationConsumer}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"negotiations",
+								"bff-rpc",
+								"setup-acceptance"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcNegotiationAcceptanceMessage\",\n    \"@id\": \"{{consumerProcessId}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+									"const body = pm.response.json();",
+									"pm.test(\"answers the process as it stands\", () => pm.expect(body.negotiationAgentModel).to.exist);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Agreement",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{ContractNegotiationProvider}}/dsp/current/negotiations/bff-rpc/setup-agreement",
+							"host": [
+								"{{ContractNegotiationProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"negotiations",
+								"bff-rpc",
+								"setup-agreement"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcNegotiationAgreementMessage\",\n    \"@id\": \"{{providerProcessId}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+									"const body = pm.response.json();",
+									"pm.test(\"answers the process as it stands\", () => pm.expect(body.negotiationAgentModel).to.exist);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Termination",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{ContractNegotiationConsumer}}/dsp/current/negotiations/bff-rpc/setup-termination",
+							"host": [
+								"{{ContractNegotiationConsumer}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"negotiations",
+								"bff-rpc",
+								"setup-termination"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcNegotiationTerminationMessage\",\n    \"@id\": \"{{consumerProcessId}}\",\n    \"code\": \"STOPPED\",\n    \"reason\": [\n        \"No longer needed\"\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+									"const body = pm.response.json();",
+									"pm.test(\"answers the process as it stands\", () => pm.expect(body.negotiationAgentModel).to.exist);"
+								]
+							}
+						}
+					]
+				}
+			],
+			"description": "What the admin GUI calls; same bodies as the RPC."
+		},
+		{
+			"name": "Entities",
+			"item": [
+				{
+					"name": "Negotiation Process",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/negotiation-processes?limit=20",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"negotiation-processes"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/negotiation-processes/batch",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"negotiation-processes",
+										"batch"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\n        \"{{providerProcessId}}\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/negotiation-processes",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"negotiation-processes"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"state\": \"REQUESTED\",\n    \"associatedAgentPeer\": \"{{consumerDid}}\",\n    \"protocol\": \"DSP\",\n    \"role\": \"Provider\",\n    \"callbackAddress\": \"{{ContractNegotiationConsumer}}/dsp/current\",\n    \"identifiers\": {\n        \"consumerPid\": \"urn:uuid:{{$guid}}\",\n        \"providerPid\": \"urn:uuid:{{$guid}}\"\n    },\n    \"properties\": {}\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 201\", () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+											"pm.collectionVariables.set(\"providerProcessId\", pm.response.json().id);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/negotiation-processes/{{providerProcessId}}",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"negotiation-processes",
+										"{{providerProcessId}}"
+									]
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200\", () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by key",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/negotiation-processes/{{providerProcessId}}/key/consumerPid",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"negotiation-processes",
+										"{{providerProcessId}}",
+										"key",
+										"consumerPid"
+									]
+								},
+								"description": "404 unless the process has an identifier named `consumerPid`."
+							},
+							"response": []
+						},
+						{
+							"name": "Update",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/negotiation-processes/{{providerProcessId}}",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"negotiation-processes",
+										"{{providerProcessId}}"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"state\": \"TERMINATED\",\n    \"properties\": {\n        \"note\": \"edited from Postman\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/negotiation-processes/{{providerProcessId}}",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"negotiation-processes",
+										"{{providerProcessId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Negotiation Message",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/negotiation-messages?limit=20",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"negotiation-messages"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/negotiation-messages/batch",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"negotiation-messages",
+										"batch"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\n        \"{{negotiationMessageId}}\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "By process",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/negotiation-messages/process/{{providerProcessId}}?limit=20",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"negotiation-messages",
+										"process",
+										"{{providerProcessId}}"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/negotiation-messages",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"negotiation-messages"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"negotiationAgentProcessId\": \"{{providerProcessId}}\",\n    \"direction\": \"Inbound\",\n    \"protocol\": \"DSP\",\n    \"messageType\": \"ContractRequestMessage\",\n    \"stateTransitionFrom\": \"-\",\n    \"stateTransitionTo\": \"REQUESTED\",\n    \"payload\": {}\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 201\", () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+											"pm.collectionVariables.set(\"negotiationMessageId\", pm.response.json().id);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/negotiation-messages/{{negotiationMessageId}}",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"negotiation-messages",
+										"{{negotiationMessageId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/negotiation-messages/{{negotiationMessageId}}",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"negotiation-messages",
+										"{{negotiationMessageId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Offer",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/offers?limit=20",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"offers"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/offers/batch",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"offers",
+										"batch"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\n        \"{{offerRecordId}}\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "By process",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/offers/process/{{providerProcessId}}?limit=20",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"offers",
+										"process",
+										"{{providerProcessId}}"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Last by process",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/offers/process/{{providerProcessId}}/last",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"offers",
+										"process",
+										"{{providerProcessId}}",
+										"last"
+									]
+								},
+								"description": "The offer either side made last; 404 while there is none."
+							},
+							"response": []
+						},
+						{
+							"name": "By offer id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/offers/offer-id/{{policyId}}",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"offers",
+										"offer-id",
+										"{{policyId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/offers",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"offers"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"negotiationAgentProcessId\": \"{{providerProcessId}}\",\n    \"negotiationAgentMessageId\": \"{{negotiationMessageId}}\",\n    \"offerId\": \"{{policyId}}\",\n    \"offerContent\": {\n        \"@id\": \"{{policyId}}\",\n        \"@type\": \"Offer\",\n        \"target\": \"{{datasetId}}\",\n        \"permission\": [\n            {\n                \"action\": \"use\"\n            }\n        ]\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 201\", () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+											"pm.collectionVariables.set(\"offerRecordId\", pm.response.json().id);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/offers/{{offerRecordId}}",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"offers",
+										"{{offerRecordId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/offers/{{offerRecordId}}",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"offers",
+										"{{offerRecordId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Agreement",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/agreements?limit=20",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"agreements"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/agreements/batch",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"agreements",
+										"batch"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\n        \"{{agreementId}}\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "By process",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/agreements/process/{{providerProcessId}}",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"agreements",
+										"process",
+										"{{providerProcessId}}"
+									]
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200\", () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+											"const items = pm.response.json().items;",
+											"if (items.length) pm.collectionVariables.set(\"agreementId\", items[0].id);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "By assignee",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/agreements/assignee/{{consumerDid}}",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"agreements",
+										"assignee",
+										"{{consumerDid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "By assigner",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/agreements/assigner/{{providerDid}}",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"agreements",
+										"assigner",
+										"{{providerDid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/agreements",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"agreements"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"negotiationAgentProcessId\": \"{{providerProcessId}}\",\n    \"negotiationAgentMessageId\": \"{{negotiationMessageId}}\",\n    \"consumerParticipantId\": \"{{consumerDid}}\",\n    \"providerParticipantId\": \"{{providerDid}}\",\n    \"target\": \"{{datasetId}}\",\n    \"agreementContent\": {\n        \"@id\": \"urn:agreement:{{$guid}}\",\n        \"@type\": \"Agreement\",\n        \"target\": \"{{datasetId}}\",\n        \"assigner\": \"{{providerDid}}\",\n        \"assignee\": \"{{consumerDid}}\",\n        \"permission\": [\n            {\n                \"action\": \"use\"\n            }\n        ]\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 201\", () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+											"pm.collectionVariables.set(\"agreementId\", pm.response.json().id);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/agreements/{{agreementId}}",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"agreements",
+										"{{agreementId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/agreements/{{agreementId}}",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"agreements",
+										"{{agreementId}}"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"state\": \"ACTIVE\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{ContractNegotiationProvider}}/api/v1/negotiation-agent/agreements/{{agreementId}}",
+									"host": [
+										"{{ContractNegotiationProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"negotiation-agent",
+										"agreements",
+										"{{agreementId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "DSP",
+			"item": [
+				{
+					"name": "Get negotiation",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{ContractNegotiationProvider}}/dsp/current/negotiations/{{providerPid}}",
+							"host": [
+								"{{ContractNegotiationProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"negotiations",
+								"{{providerPid}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Request (initial)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{ContractNegotiationProvider}}/dsp/current/negotiations/request",
+							"host": [
+								"{{ContractNegotiationProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"negotiations",
+								"request"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"ContractRequestMessage\",\n    \"consumerPid\": \"urn:uuid:{{$guid}}\",\n    \"offer\": {\n        \"@id\": \"{{policyId}}\",\n        \"@type\": \"Offer\",\n        \"target\": \"{{datasetId}}\",\n        \"permission\": [\n            {\n                \"action\": \"use\"\n            }\n        ]\n    },\n    \"callbackAddress\": \"{{ContractNegotiationConsumer}}/dsp/current\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 201\", () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+									"const body = pm.response.json();",
+									"pm.collectionVariables.set(\"consumerPid\", body.consumerPid);",
+									"pm.collectionVariables.set(\"providerPid\", body.providerPid);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Request (counter)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{ContractNegotiationProvider}}/dsp/current/negotiations/{{providerPid}}/request",
+							"host": [
+								"{{ContractNegotiationProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"negotiations",
+								"{{providerPid}}",
+								"request"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"ContractRequestMessage\",\n    \"consumerPid\": \"{{consumerPid}}\",\n    \"providerPid\": \"{{providerPid}}\",\n    \"offer\": {\n        \"@id\": \"{{policyId}}\",\n        \"@type\": \"Offer\",\n        \"target\": \"{{datasetId}}\",\n        \"permission\": [\n            {\n                \"action\": \"use\"\n            }\n        ]\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Events (accepted)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{ContractNegotiationProvider}}/dsp/current/negotiations/{{providerPid}}/events",
+							"host": [
+								"{{ContractNegotiationProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"negotiations",
+								"{{providerPid}}",
+								"events"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"ContractNegotiationEventMessage\",\n    \"consumerPid\": \"{{consumerPid}}\",\n    \"providerPid\": \"{{providerPid}}\",\n    \"eventType\": \"ACCEPTED\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Agreement verification",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{ContractNegotiationProvider}}/dsp/current/negotiations/{{providerPid}}/agreement/verification",
+							"host": [
+								"{{ContractNegotiationProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"negotiations",
+								"{{providerPid}}",
+								"agreement",
+								"verification"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"ContractAgreementVerificationMessage\",\n    \"consumerPid\": \"{{consumerPid}}\",\n    \"providerPid\": \"{{providerPid}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Termination",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{ContractNegotiationProvider}}/dsp/current/negotiations/{{providerPid}}/termination",
+							"host": [
+								"{{ContractNegotiationProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"negotiations",
+								"{{providerPid}}",
+								"termination"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"ContractNegotiationTerminationMessage\",\n    \"consumerPid\": \"{{consumerPid}}\",\n    \"providerPid\": \"{{providerPid}}\",\n    \"code\": \"STOPPED\",\n    \"reason\": [\n        \"No longer needed\"\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Dataspace Protocol 2025-1 (DSP 8.2), as a consumer peer calls the provider: these take the DSP pids and a peer token in `dspToken`.",
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{dspToken}}",
+						"type": "string"
+					}
+				]
+			}
+		},
+		{
+			"name": "Well-known DSP version",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ContractNegotiationProvider}}/.well-known/dspace-version",
+					"host": [
+						"{{ContractNegotiationProvider}}"
+					],
+					"path": [
+						".well-known",
+						"dspace-version"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Health",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ContractNegotiationProvider}}/health",
+					"host": [
+						"{{ContractNegotiationProvider}}"
+					],
+					"path": [
+						"health"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "oauth2",
+		"oauth2": [
+			{
+				"key": "client_authentication",
+				"value": "header",
+				"type": "string"
+			},
+			{
+				"key": "addTokenTo",
+				"value": "header",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "providerDid",
+			"value": ""
+		},
+		{
+			"key": "consumerDid",
+			"value": ""
+		},
+		{
+			"key": "policyId",
+			"value": ""
+		},
+		{
+			"key": "datasetId",
+			"value": ""
+		},
+		{
+			"key": "consumerProcessId",
+			"value": ""
+		},
+		{
+			"key": "providerProcessId",
+			"value": ""
+		},
+		{
+			"key": "consumerPid",
+			"value": ""
+		},
+		{
+			"key": "providerPid",
+			"value": ""
+		},
+		{
+			"key": "negotiationMessageId",
+			"value": ""
+		},
+		{
+			"key": "offerRecordId",
+			"value": ""
+		},
+		{
+			"key": "agreementId",
+			"value": ""
+		},
+		{
+			"key": "dspToken",
+			"value": ""
+		}
+	]
 }

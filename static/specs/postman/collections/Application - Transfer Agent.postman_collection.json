@@ -1,1086 +1,1433 @@
 {
-  "info": {
-    "_postman_id": "ea121a3b-eeec-4ecf-8cc5-cdf6d6716244",
-    "name": "Application - Transfer Agent",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "13165791"
-  },
-  "item": [
-    {
-      "name": "Entities",
-      "item": [
-        {
-          "name": "Get all entities",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/transfer-processes?limit=1&page=2",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "transfer-processes"
-              ],
-              "query": [
-                {
-                  "key": "limit",
-                  "value": "1"
-                },
-                {
-                  "key": "page",
-                  "value": "2"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get entities batch",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"ids\": [\n        \"urn:uuid:0e871069-bf9d-4dd5-998c-b40db05b02d4\"\n    ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/transfer-processes/batch",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "transfer-processes",
-                "batch"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get entity",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/transfer-processes/urn:transfer-process:848b608c-983d-454e-ab92-64747b7d3806",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "transfer-processes",
-                "urn:transfer-process:848b608c-983d-454e-ab92-64747b7d3806"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get entity with key",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/transfer-processes/urn:uuid:b:cb6ccb62-81c8-4695-aba9-6582495903d1/key/b",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "transfer-processes",
-                "urn:uuid:b:cb6ccb62-81c8-4695-aba9-6582495903d1",
-                "key",
-                "b"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create entity",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"state\": \"a\",\n    \"associatedAgentPeer\": \"b\",\n    \"protocol\": \"c\", \n    \"transferDirection\": \"d\", \n    \"agreementId\": \"urn:agreement-id:{{$guid}}\",\n    \"role\": \"Provider\",\n    \"identifiers\": {\n        \"a\": \"asd\"\n    }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/transfer-processes",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "transfer-processes"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update entity",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"identifiers\": {\n        \"providerPid\": \"asdas\", \n        \"consumerPid\": \"urn:transfer-process:3ee8f478-191f-42ad-8c91-bac0a21657ee:consumer-pid:{{$guid}}\"\n    }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/transfer-processes/urn:transfer-process:3ee8f478-191f-42ad-8c91-bac0a21657ee",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "transfer-processes",
-                "urn:transfer-process:3ee8f478-191f-42ad-8c91-bac0a21657ee"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete entity",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"state\": \"a\",\n    \"associated_agent_peer\": \"b\",\n    \"protocol\": \"c\", \n    \"transfer_direction\": \"d\", \n    \"agreement_id\": \"urn:uuid:{{$guid}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/transfer-processes/urn:uuid:d278baf4-1090-4ef7-9700-6e269a04e019",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "transfer-processes",
-                "urn:uuid:d278baf4-1090-4ef7-9700-6e269a04e019"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get all messages",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/transfer-messages",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "transfer-messages"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get all messages by process",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/transfer-messages/process/urn:transfer-process:ab8b107b-b468-4257-baa7-ee7b1c640f1e",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "transfer-messages",
-                "process",
-                "urn:transfer-process:ab8b107b-b468-4257-baa7-ee7b1c640f1e"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create message",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"transferAgentProcessId\": \"urn:uuid:asd\",\n    \"direction\": \"INBOUND\",\n    \"protocol\": \"a\",\n    \"messageType\": \"a\",\n    \"stateTransitionFrom\": \"a\",\n    \"stateTransitionTo\": \"a\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/transfer-messages",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "transfer-messages"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get message",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/transfer-messages/urn:uuid:f22169ed-4b09-4126-9b3d-2c56a7301705",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "transfer-messages",
-                "urn:uuid:f22169ed-4b09-4126-9b3d-2c56a7301705"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete message",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"state\": \"a\",\n    \"associated_agent_peer\": \"b\",\n    \"protocol\": \"c\", \n    \"transfer_direction\": \"d\", \n    \"agreement_id\": \"urn:uuid:{{$guid}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/transfer-messages/urn:uuid:f22169ed-4b09-4126-9b3d-2c56a7301705",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "transfer-messages",
-                "urn:uuid:f22169ed-4b09-4126-9b3d-2c56a7301705"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "DSP",
-      "item": [
-        {
-          "name": "Get transfer",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{ProviderUrl}}/dsp/current/transfers/{{providerPid}}",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "dsp",
-                "current",
-                "transfers",
-                "{{providerPid}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Request",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.collectionVariables.set(\"consumerPid\", pm.response.json().consumerPid);",
-                  "pm.collectionVariables.set(\"providerPid\", pm.response.json().providerPid);"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n \"@context\": [\n    \"https://w3id.org/dspace/2025/1/context.jsonld\"\n ], \n \"@type\": \"TransferRequestMessage\", \n \"agreementId\": \"urn:agreement-id:{{$guid}}\", \n \"format\": \"http+pull\",\n \"callbackAddress\": \"http://blabla.es\",\n \"consumerPid\": \"urn:consumer-pid:{{$guid}}\"\n}"
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/dsp/current/transfers/request",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "dsp",
-                "current",
-                "transfers",
-                "request"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Start",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n \"@context\": [\n    \"https://w3id.org/dspace/2025/1/context.jsonld\"\n ], \n \"@type\": \"TransferStartMessage\", \n \"consumerPid\": \"{{consumerPid}}\",\n \"providerPid\": \"{{providerPid}}\"\n}"
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dsp/current/transfers/{{providerPid}}}/start",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "dsp",
-                "current",
-                "transfers",
-                "{{providerPid}}}",
-                "start"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Suspend",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n \"@context\": [\n    \"https://w3id.org/dspace/2025/1/context.jsonld\"\n ], \n \"@type\": \"TransferSuspensionMessage\", \n \"consumerPid\": \"{{consumerPid}}\",\n \"providerPid\": \"{{providerPid}}\",\n \"code\": \"123\",\n \"reason\": [\"yes\"]\n}"
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dsp/current/transfers/{{providerPid}}}/suspension",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "dsp",
-                "current",
-                "transfers",
-                "{{providerPid}}}",
-                "suspension"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Completion",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n \"@context\": [\n    \"https://w3id.org/dspace/2025/1/context.jsonld\"\n ], \n \"@type\": \"TransferCompletionMessage\", \n \"consumerPid\": \"{{consumerPid}}\",\n \"providerPid\": \"{{providerPid}}\"\n}"
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dsp/current/transfers/{{providerPid}}}/completion",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "dsp",
-                "current",
-                "transfers",
-                "{{providerPid}}}",
-                "completion"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Terminate",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n \"@context\": [\n    \"https://w3id.org/dspace/2025/1/context.jsonld\"\n ], \n \"@type\": \"TransferTerminationMessage\", \n \"consumerPid\": \"{{consumerPid}}\",\n \"providerPid\": \"{{providerPid}}\"\n}"
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dsp/current/transfers/{{providerPid}}/termination",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "dsp",
-                "current",
-                "transfers",
-                "{{providerPid}}",
-                "termination"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "DSP Rpc",
-      "item": [
-        {
-          "name": "Request",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n \"@context\": [\n    \"https://w3id.org/dspace/2025/1/context.jsonld\"\n ], \n \"@type\": \"TransferRequestMessage\", \n \"agreementId\": \"urn:agreement-id:{{$guid}}\", \n \"format\": \"http+pull\",\n \"callbackAddress\": \"http://blabla.es\",\n \"consumerPid\": \"urn:consumer-pid:{{$guid}}\"\n}"
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dsp/current/transfers/rpc/setup-request",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "dsp",
-                "current",
-                "transfers",
-                "rpc",
-                "setup-request"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Start",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n \"transferAgentProcessId\": \"urn:transfer-process:{{consumerPid}}\",\n \"dataAddress\": null\n}"
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dsp/current/transfers/rpc/setup-start",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "dsp",
-                "current",
-                "transfers",
-                "rpc",
-                "setup-start"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Suspend",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n \"transferAgentProcessId\": \"urn:transfer-process:{{consumerPid}}\",\n \"code\": \"123\",\n \"reason\": [\"yes\"]\n}"
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dsp/current/transfers/rpc/setup-suspension",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "dsp",
-                "current",
-                "transfers",
-                "rpc",
-                "setup-suspension"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Completion",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n \"transferAgentProcessId\": \"urn:transfer-process:{{consumerPid}}\"\n}"
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dsp/current/transfers/rpc/setup-completion",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "dsp",
-                "current",
-                "transfers",
-                "rpc",
-                "setup-completion"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Terminate",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n \"transferAgentProcessId\": \"urn:transfer-process:ea9f2b9e-5d49-4d92-8704-8ff02787f14f\",\n \"code\": \"123\",\n \"reason\": [\"yes\"]\n}"
-            },
-            "url": {
-              "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dsp/current/transfers/rpc/setup-termination",
-              "host": [
-                "{{ProviderUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transfer-agent",
-                "dsp",
-                "current",
-                "transfers",
-                "rpc",
-                "setup-termination"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Dataplane",
-      "item": [
-        {
-          "name": "Dataplane Processes",
-          "item": [
-            {
-              "name": "Get all",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/dataplane-processes",
-                  "host": [
-                    "{{ProviderUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "transfer-agent",
-                    "dataplane",
-                    "dataplane-processes"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get logs by id",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/dataplane-processes/urn:dataplane-process:123",
-                  "host": [
-                    "{{ProviderUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "transfer-agent",
-                    "dataplane",
-                    "dataplane-processes",
-                    "urn:dataplane-process:123"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get by id",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/dataplane-processes/urn:dataplane-process:123",
-                  "host": [
-                    "{{ProviderUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "transfer-agent",
-                    "dataplane",
-                    "dataplane-processes",
-                    "urn:dataplane-process:123"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get by id transfer process id",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/dataplane-processes/transfer-process/urn:transfer-process:123",
-                  "host": [
-                    "{{ProviderUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "transfer-agent",
-                    "dataplane",
-                    "dataplane-processes",
-                    "transfer-process",
-                    "urn:transfer-process:123"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Batch",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"ids\": [\n        \"urn:uuid:as\"\n    ]\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/dataplane-processes/batch",
-                  "host": [
-                    "{{ProviderUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "transfer-agent",
-                    "dataplane",
-                    "dataplane-processes",
-                    "batch"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Create",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"transferProcessId\": \"urn:transfer-process:113\", \n    \"role\": \"Provider\", \n    \"interactionMode\": \"Push\",\n    \"state\": \"Configuring\", \n    \"ingressConfig\": {},\n    \"egressConfig\": {}\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/dataplane-processes",
-                  "host": [
-                    "{{ProviderUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "transfer-agent",
-                    "dataplane",
-                    "dataplane-processes"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Edit",
-              "request": {
-                "method": "PUT",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"state\": \"Auth\", \n    \"ingressConfig\": {\n        \"morsas\": false\n    }\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/dataplane-processes/urn:dataplane-process:e703f671-e046-497b-b1d5-fd0742758f0f",
-                  "host": [
-                    "{{ProviderUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "transfer-agent",
-                    "dataplane",
-                    "dataplane-processes",
-                    "urn:dataplane-process:e703f671-e046-497b-b1d5-fd0742758f0f"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete",
-              "request": {
-                "method": "DELETE",
-                "header": [],
-                "url": {
-                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/dataplane-processes/urn:dataplane-process:c1e3e1db-1153-45c6-951b-278e80d7d612",
-                  "host": [
-                    "{{ProviderUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "transfer-agent",
-                    "dataplane",
-                    "dataplane-processes",
-                    "urn:dataplane-process:c1e3e1db-1153-45c6-951b-278e80d7d612"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ]
-        },
-        {
-          "name": "Transfer Events",
-          "item": [
-            {
-              "name": "Get all events by dataplane process",
-              "request": {
-                "method": "GET",
-                "header": []
-              },
-              "response": []
-            },
-            {
-              "name": "Get single event",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/transfer-events/urn:transfer-event:a",
-                  "host": [
-                    "{{ProviderUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "transfer-agent",
-                    "dataplane",
-                    "transfer-events",
-                    "urn:transfer-event:a"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "well-known",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": ""
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "health",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{ProviderUrl}}/health",
-          "host": [
-            "{{ProviderUrl}}"
-          ],
-          "path": [
-            "health"
-          ]
-        }
-      },
-      "response": []
-    }
-  ],
-  "variable": [
-    {
-      "key": "consumerPid",
-      "value": ""
-    },
-    {
-      "key": "providerPid",
-      "value": ""
-    }
-  ]
+	"info": {
+		"_postman_id": "ea121a3b-eeec-4ecf-8cc5-cdf6d6716244",
+		"name": "Application - Transfer Agent",
+		"description": "Transfer agent: eunomia RPC on both sides, the management API (processes, messages, dataplane) and the DSP endpoints.\n\nSet `TransferProvider` and `TransferConsumer` in the environment and `providerDid`, `consumerDid` and `agreementId` (a finalized agreement) here. RPC continuations take `@id`, each agent's own process id, captured by the tests.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "RPC",
+			"item": [
+				{
+					"name": "Request (consumer)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{TransferConsumer}}/dsp/current/transfers/rpc/setup-request",
+							"host": [
+								"{{TransferConsumer}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"transfers",
+								"rpc",
+								"setup-request"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcTransferRequestMessage\",\n    \"associatedAgentPeer\": \"{{providerDid}}\",\n    \"providerAddress\": \"{{TransferProvider}}/dsp/current\",\n    \"callbackAddress\": \"{{TransferConsumer}}/dsp/current\",\n    \"agreementId\": \"{{agreementId}}\",\n    \"format\": \"http+pull\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+									"const body = pm.response.json();",
+									"pm.test(\"answers the process as it stands\", () => pm.expect(body.transferAgentModel).to.exist);",
+									"pm.collectionVariables.set(\"consumerProcessId\", body.transferAgentModel.id);",
+									"pm.collectionVariables.set(\"consumerPid\", body.transferAgentModel.correlation.consumerPid);",
+									"pm.collectionVariables.set(\"providerPid\", body.transferAgentModel.correlation.providerPid);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Find provider process",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{TransferProvider}}/api/v1/transfer-agent/transfer-processes?limit=100",
+							"host": [
+								"{{TransferProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"transfer-agent",
+								"transfer-processes"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "100"
+								}
+							]
+						},
+						"description": "The provider's own id of the transfer; RPC calls never take DSP pids."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200\", () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+									"const items = pm.response.json().items;",
+									"const process = items.find(p => p.correlation.providerPid === pm.collectionVariables.get(\"providerPid\"));",
+									"pm.test(\"finds the process\", () => pm.expect(process, \"no process with that providerPid\").to.exist);",
+									"pm.collectionVariables.set(\"providerProcessId\", process.id);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Start (provider)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{TransferProvider}}/dsp/current/transfers/rpc/setup-start",
+							"host": [
+								"{{TransferProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"transfers",
+								"rpc",
+								"setup-start"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcTransferStartMessage\",\n    \"@id\": \"{{providerProcessId}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+									"const body = pm.response.json();",
+									"pm.test(\"answers the process as it stands\", () => pm.expect(body.transferAgentModel).to.exist);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Suspension (provider)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{TransferProvider}}/dsp/current/transfers/rpc/setup-suspension",
+							"host": [
+								"{{TransferProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"transfers",
+								"rpc",
+								"setup-suspension"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcTransferSuspensionMessage\",\n    \"@id\": \"{{providerProcessId}}\",\n    \"code\": \"SUSPEND\",\n    \"reason\": [\n        \"Paused from Postman\"\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+									"const body = pm.response.json();",
+									"pm.test(\"answers the process as it stands\", () => pm.expect(body.transferAgentModel).to.exist);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Restart (provider)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{TransferProvider}}/dsp/current/transfers/rpc/setup-start",
+							"host": [
+								"{{TransferProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"transfers",
+								"rpc",
+								"setup-start"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcTransferStartMessage\",\n    \"@id\": \"{{providerProcessId}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+									"const body = pm.response.json();",
+									"pm.test(\"answers the process as it stands\", () => pm.expect(body.transferAgentModel).to.exist);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Completion (provider)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{TransferProvider}}/dsp/current/transfers/rpc/setup-completion",
+							"host": [
+								"{{TransferProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"transfers",
+								"rpc",
+								"setup-completion"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcTransferCompletionMessage\",\n    \"@id\": \"{{providerProcessId}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+									"const body = pm.response.json();",
+									"pm.test(\"answers the process as it stands\", () => pm.expect(body.transferAgentModel).to.exist);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Termination (consumer)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{TransferConsumer}}/dsp/current/transfers/rpc/setup-termination",
+							"host": [
+								"{{TransferConsumer}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"transfers",
+								"rpc",
+								"setup-termination"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcTransferTerminationMessage\",\n    \"@id\": \"{{consumerProcessId}}\",\n    \"code\": \"STOPPED\",\n    \"reason\": [\n        \"No longer needed\"\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+									"const body = pm.response.json();",
+									"pm.test(\"answers the process as it stands\", () => pm.expect(body.transferAgentModel).to.exist);"
+								]
+							}
+						}
+					]
+				}
+			],
+			"description": "Eunomia JSON-LD bodies: the agent sends one DSP message per call. Continuations name the transfer by `@id`, the process id on the agent called."
+		},
+		{
+			"name": "BFF RPC",
+			"item": [
+				{
+					"name": "Push request with auto-start",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{TransferConsumer}}/dsp/current/transfers/bff-rpc/setup-request",
+							"host": [
+								"{{TransferConsumer}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"transfers",
+								"bff-rpc",
+								"setup-request"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/context.jsonld\",\n    \"@type\": \"RpcTransferRequestMessage\",\n    \"associatedAgentPeer\": \"{{providerDid}}\",\n    \"providerAddress\": \"{{TransferProvider}}/dsp/current\",\n    \"callbackAddress\": \"{{TransferConsumer}}/dsp/current\",\n    \"agreementId\": \"{{agreementId}}\",\n    \"format\": \"http+push\",\n    \"dataAddress\": {\n        \"endpointType\": \"https://w3id.org/idsa/v4.1/HTTP\",\n        \"endpoint\": \"http://127.0.0.1:1112\",\n        \"endpointProperties\": [\n            {\n                \"name\": \"authorization\",\n                \"value\": \"TOKEN-ABCDEFG\"\n            },\n            {\n                \"name\": \"authType\",\n                \"value\": \"bearer\"\n            }\n        ]\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Sets `autoStart`: the provider starts the transfer itself once it accepts."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+									"const body = pm.response.json();",
+									"pm.test(\"answers the process as it stands\", () => pm.expect(body.transferAgentModel).to.exist);",
+									"pm.collectionVariables.set(\"consumerProcessId\", body.transferAgentModel.id);",
+									"pm.collectionVariables.set(\"consumerPid\", body.transferAgentModel.correlation.consumerPid);",
+									"pm.collectionVariables.set(\"providerPid\", body.transferAgentModel.correlation.providerPid);"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Entities",
+			"item": [
+				{
+					"name": "Transfer Process",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/transfer-processes?limit=20",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"transfer-processes"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/transfer-processes/batch",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"transfer-processes",
+										"batch"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\n        \"{{providerProcessId}}\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/transfer-processes",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"transfer-processes"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"role\": \"provider\",\n    \"protocol\": \"dsp2025_1\",\n    \"initialState\": \"REQUESTED\",\n    \"initialStateMetadata\": {},\n    \"agreementId\": \"{{agreementId}}\",\n    \"peerParticipantId\": \"{{consumerDid}}\",\n    \"callbackAddress\": \"{{TransferConsumer}}/dsp/current\",\n    \"identifiers\": {\n        \"consumerPid\": \"urn:uuid:{{$guid}}\",\n        \"providerPid\": \"urn:uuid:{{$guid}}\"\n    },\n    \"properties\": {}\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 201\", () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+											"pm.collectionVariables.set(\"providerProcessId\", pm.response.json().id);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/transfer-processes/{{providerProcessId}}",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"transfer-processes",
+										"{{providerProcessId}}"
+									]
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200\", () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Update",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/transfer-processes/{{providerProcessId}}",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"transfer-processes",
+										"{{providerProcessId}}"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"state\": \"TERMINATED\",\n    \"stateMetadata\": {\n        \"code\": \"STOPPED\",\n        \"reason\": [\n            \"Edited from Postman\"\n        ]\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/transfer-processes/{{providerProcessId}}",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"transfer-processes",
+										"{{providerProcessId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Transfer Message",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/transfer-messages?limit=20",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"transfer-messages"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "By process",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/transfer-messages/process/{{providerProcessId}}?limit=20",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"transfer-messages",
+										"process",
+										"{{providerProcessId}}"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/transfer-messages",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"transfer-messages"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"transferProcessId\": \"{{providerProcessId}}\",\n    \"direction\": \"inbound\",\n    \"protocol\": \"dsp2025_1\",\n    \"messageType\": \"TransferRequestMessage\",\n    \"stateTransitionFrom\": \"-\",\n    \"stateTransitionTo\": \"REQUESTED\",\n    \"envelope\": {\n        \"payload\": {}\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 201\", () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+											"pm.collectionVariables.set(\"transferMessageId\", pm.response.json().id);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/transfer-messages/{{transferMessageId}}",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"transfer-messages",
+										"{{transferMessageId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/transfer-messages/{{transferMessageId}}",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"transfer-messages",
+										"{{transferMessageId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Dataplane Process",
+					"item": [
+						{
+							"name": "List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/dataplane/dataplane-processes?limit=20",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"dataplane",
+										"dataplane-processes"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/dataplane/dataplane-processes/batch",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"dataplane",
+										"dataplane-processes",
+										"batch"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\n        \"{{dataplaneProcessId}}\"\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "By transfer process",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/dataplane/dataplane-processes/transfer-process/{{providerProcessId}}",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"dataplane",
+										"dataplane-processes",
+										"transfer-process",
+										"{{providerProcessId}}"
+									]
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200\", () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+											"const body = pm.response.json();",
+											"if (body.id) pm.collectionVariables.set(\"dataplaneProcessId\", body.id);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/dataplane/dataplane-processes",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"dataplane",
+										"dataplane-processes"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"transferProcessId\": \"{{providerProcessId}}\",\n    \"role\": \"Provider\",\n    \"interactionMode\": \"Pull\",\n    \"state\": \"Init\",\n    \"ingressConfig\": {},\n    \"egressConfig\": {}\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+											"pm.collectionVariables.set(\"dataplaneProcessId\", pm.response.json().id);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Get by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/dataplane/dataplane-processes/{{dataplaneProcessId}}",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"dataplane",
+										"dataplane-processes",
+										"{{dataplaneProcessId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Info",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/dataplane/dataplane-processes/{{dataplaneProcessId}}/info",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"dataplane",
+										"dataplane-processes",
+										"{{dataplaneProcessId}}",
+										"info"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Logs",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/dataplane/dataplane-processes/{{dataplaneProcessId}}/logs",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"dataplane",
+										"dataplane-processes",
+										"{{dataplaneProcessId}}",
+										"logs"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Events",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/dataplane/dataplane-processes/{{dataplaneProcessId}}/events",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"dataplane",
+										"dataplane-processes",
+										"{{dataplaneProcessId}}",
+										"events"
+									]
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"answers 200\", () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+											"const body = pm.response.json();",
+											"const first = (body.items || body)[0];",
+											"if (first) pm.collectionVariables.set(\"transferEventId\", first.id);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Event by id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/dataplane/transfer-events/{{transferEventId}}",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"dataplane",
+										"transfer-events",
+										"{{transferEventId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/dataplane/dataplane-processes/{{dataplaneProcessId}}",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"dataplane",
+										"dataplane-processes",
+										"{{dataplaneProcessId}}"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"state\": \"Stopped\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{TransferProvider}}/api/v1/transfer-agent/dataplane/dataplane-processes/{{dataplaneProcessId}}",
+									"host": [
+										"{{TransferProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-agent",
+										"dataplane",
+										"dataplane-processes",
+										"{{dataplaneProcessId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "DSP",
+			"item": [
+				{
+					"name": "Get transfer",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{TransferProvider}}/dsp/current/transfers/{{providerPid}}",
+							"host": [
+								"{{TransferProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"transfers",
+								"{{providerPid}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{TransferProvider}}/dsp/current/transfers/request",
+							"host": [
+								"{{TransferProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"transfers",
+								"request"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"TransferRequestMessage\",\n    \"consumerPid\": \"urn:uuid:{{$guid}}\",\n    \"agreementId\": \"{{agreementId}}\",\n    \"format\": \"http+pull\",\n    \"callbackAddress\": \"{{TransferConsumer}}/dsp/current\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"answers 201\", () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+									"const body = pm.response.json();",
+									"pm.collectionVariables.set(\"consumerPid\", body.consumerPid);",
+									"pm.collectionVariables.set(\"providerPid\", body.providerPid);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Start",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{TransferProvider}}/dsp/current/transfers/{{providerPid}}/start",
+							"host": [
+								"{{TransferProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"transfers",
+								"{{providerPid}}",
+								"start"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"TransferStartMessage\",\n    \"consumerPid\": \"{{consumerPid}}\",\n    \"providerPid\": \"{{providerPid}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Suspension",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{TransferProvider}}/dsp/current/transfers/{{providerPid}}/suspension",
+							"host": [
+								"{{TransferProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"transfers",
+								"{{providerPid}}",
+								"suspension"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"TransferSuspensionMessage\",\n    \"consumerPid\": \"{{consumerPid}}\",\n    \"providerPid\": \"{{providerPid}}\",\n    \"code\": \"SUSPEND\",\n    \"reason\": [\n        \"Paused\"\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Completion",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{TransferProvider}}/dsp/current/transfers/{{providerPid}}/completion",
+							"host": [
+								"{{TransferProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"transfers",
+								"{{providerPid}}",
+								"completion"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"TransferCompletionMessage\",\n    \"consumerPid\": \"{{consumerPid}}\",\n    \"providerPid\": \"{{providerPid}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Termination",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{TransferProvider}}/dsp/current/transfers/{{providerPid}}/termination",
+							"host": [
+								"{{TransferProvider}}"
+							],
+							"path": [
+								"dsp",
+								"current",
+								"transfers",
+								"{{providerPid}}",
+								"termination"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": [\n        \"https://w3id.org/dspace/2025/1/context.jsonld\"\n    ],\n    \"@type\": \"TransferTerminationMessage\",\n    \"consumerPid\": \"{{consumerPid}}\",\n    \"providerPid\": \"{{providerPid}}\",\n    \"code\": \"STOPPED\",\n    \"reason\": [\n        \"No longer needed\"\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Dataspace Protocol 2025-1 (DSP 10.2), as a consumer peer calls the provider: these take the DSP pids and a peer token in `dspToken`.",
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{dspToken}}",
+						"type": "string"
+					}
+				]
+			}
+		},
+		{
+			"name": "Well-known DSP version",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{TransferProvider}}/.well-known/dspace-version",
+					"host": [
+						"{{TransferProvider}}"
+					],
+					"path": [
+						".well-known",
+						"dspace-version"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Health",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{TransferProvider}}/health",
+					"host": [
+						"{{TransferProvider}}"
+					],
+					"path": [
+						"health"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "oauth2",
+		"oauth2": [
+			{
+				"key": "client_authentication",
+				"value": "header",
+				"type": "string"
+			},
+			{
+				"key": "addTokenTo",
+				"value": "header",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "providerDid",
+			"value": ""
+		},
+		{
+			"key": "consumerDid",
+			"value": ""
+		},
+		{
+			"key": "agreementId",
+			"value": ""
+		},
+		{
+			"key": "consumerProcessId",
+			"value": ""
+		},
+		{
+			"key": "providerProcessId",
+			"value": ""
+		},
+		{
+			"key": "consumerPid",
+			"value": ""
+		},
+		{
+			"key": "providerPid",
+			"value": ""
+		},
+		{
+			"key": "transferMessageId",
+			"value": ""
+		},
+		{
+			"key": "dataplaneProcessId",
+			"value": ""
+		},
+		{
+			"key": "transferEventId",
+			"value": ""
+		},
+		{
+			"key": "dspToken",
+			"value": ""
+		}
+	]
 }

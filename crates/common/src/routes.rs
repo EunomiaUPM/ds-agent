@@ -213,6 +213,8 @@ pub mod negotiation {
     pub mod offers {
         pub const PREFIX: &str = "/offers";
         pub const BY_OFFER_ID: &str = "/offer-id/{offer_id}";
+        /// The most recent offer of a negotiation process.
+        pub const LAST_BY_PROCESS: &str = "/process/{process_id}/last";
     }
 
     pub mod agreements {

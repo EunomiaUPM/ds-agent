@@ -63,6 +63,7 @@ impl NegotiationAgentOffersRouter {
                 get(Self::handle_get_one).delete(Self::handle_delete),
             )
             .route(routes::entity::BY_PROCESS, get(Self::handle_get_by_process))
+            .route(routes::offers::LAST_BY_PROCESS, get(Self::handle_get_last_by_process))
             .route(routes::offers::BY_OFFER_ID, get(Self::handle_get_by_offer_id))
             .with_state(self)
     }
@@ -92,6 +93,17 @@ impl NegotiationAgentOffersRouter {
         let result = state.ctx.offers().get_all(&user, &filter, &page, &sort).await?;
         let response_headers = headers.response_headers_paged(result.total);
         Ok((response_headers, Json(result)))
+    }
+
+    async fn handle_get_last_by_process(
+        State(state): State<Self>,
+        user: UserInfo,
+        headers: ExtractedHeaders,
+        Path(process_id): Path<String>,
+    ) -> AppResult<(HeaderMap, Json<OfferView>)> {
+        let process_urn = extract_path_urn(&process_id)?;
+        let view = state.ctx.offers().get_last_by_process(&user, &process_urn).await?;
+        Ok((headers.response_headers(), Json(view)))
     }
 
     async fn handle_get_by_offer_id(

@@ -237,6 +237,16 @@ async fn negotiation_reaches_finalized_with_an_agreement() {
     assert_eq!(agreement["target"], *target, "{agreement}");
     let consumer_agreement = agreement_of(&ds.consumer, &consumer_process["id"]).await;
     assert_eq!(consumer_agreement["id"], agreement["id"], "{consumer_agreement}");
+
+    // Opening request, offer, counter request, offer: the last is the newest of the four.
+    let offers_path = format!(
+        "/api/v1/negotiation-agent/offers/process/{}",
+        consumer_process["id"].as_str().unwrap()
+    );
+    let offers = ds.consumer.get(&format!("{offers_path}?sort=created_at_desc")).await;
+    assert_eq!(offers["total"], 4, "{offers}");
+    let last = ds.consumer.get(&format!("{offers_path}/last")).await;
+    assert_eq!(last["id"], offers["items"][0]["id"], "{last}");
 }
 
 /// A provider offering its published policy by `@id` sends it with the catalog's rules and

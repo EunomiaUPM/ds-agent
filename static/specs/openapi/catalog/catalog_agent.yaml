@@ -31,6 +31,8 @@ tags:
   description: Records describing a catalog's entries
 - name: Doctor
   description: Conformance of a resource to each registered profile
+- name: Catalog Exchange
+  description: A catalog in any profile and RDF syntax, and DCAT imports validated with SHACL
 - name: Public Profiles
   description: Read-only catalog in each profile, with no authentication
 - name: ODRL Policies
@@ -394,6 +396,99 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /api/v1/catalog-agent/catalogs/{id}/profiles/{profile}:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    - $ref: '#/components/parameters/ProfilePath'
+    get:
+      tags:
+      - Catalog Exchange
+      operationId: getCatalogInProfile
+      summary: The Catalog in one profile
+      description: The catalog as its owner sees it, projected by the profile (DSP, DCAT 3, DCAT-AP) in JSON-LD or any RDF syntax. `limit` keeps the first datasets and series with what hangs from them, for a preview; `download=true` answers the whole document as an attachment. `X-Total-Count` and `X-Shown-Count` say how many datasets there are and how many it shows.
+      parameters:
+      - $ref: '#/components/parameters/DatasetLimitQuery'
+      - $ref: '#/components/parameters/RdfFormatQuery'
+      - $ref: '#/components/parameters/DownloadQuery'
+      responses:
+        '200':
+          description: The projected catalog
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+            X-Shown-Count:
+              $ref: '#/components/headers/X-Shown-Count'
+            Link:
+              $ref: '#/components/headers/Link'
+            Content-Disposition:
+              $ref: '#/components/headers/Content-Disposition'
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ProfileDocument'
+            text/turtle:
+              schema:
+                type: string
+            application/n-triples:
+              schema:
+                type: string
+            application/rdf+xml:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/catalog-agent/catalogs/import:
+    post:
+      tags:
+      - Catalog Exchange
+      operationId: importCatalog
+      summary: Validate a DCAT document with SHACL and load it
+      description: The body (JSON-LD, Turtle, RDF/XML or N-Triples, by `Content-Type`) is validated with the profile's SHACL shapes (DCAT-AP 3.0.1 with SEMIC's official ones), planned against the stored catalog and written in one transaction, or not at all. Catalogs, datasets, series, distributions, data services, agents and records become resources; any other node stays inside the resource using it. IRIs that are not URNs get the same URN on every import. `dryRun=true` validates and plans without writing.
+      parameters:
+      - $ref: '#/components/parameters/ImportProfileQuery'
+      - $ref: '#/components/parameters/ImportModeQuery'
+      - $ref: '#/components/parameters/DryRunQuery'
+      - $ref: '#/components/parameters/ImportTargetQuery'
+      - $ref: '#/components/parameters/ShaclChecksQuery'
+      - $ref: '#/components/parameters/VisibilityHeader'
+      requestBody:
+        required: true
+        content:
+          application/ld+json:
+            schema:
+              $ref: '#/components/schemas/ProfileDocument'
+          text/turtle:
+            schema:
+              type: string
+          application/rdf+xml:
+            schema:
+              type: string
+          application/n-triples:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Imported, or validated and planned on a dry run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          description: Not written; the report says what keeps it out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportReport'
   /api/v1/catalog-agent/datasets:
     get:
       tags:
@@ -3027,6 +3122,89 @@ components:
       schema:
         type: boolean
         default: false
+    ProfilePath:
+      name: profile
+      in: path
+      required: true
+      description: '`dsp`, `dcat3` or `dcat-ap`.'
+      schema:
+        type: string
+        enum:
+        - dsp
+        - dcat3
+        - dcat-ap
+    DatasetLimitQuery:
+      name: limit
+      in: query
+      required: false
+      description: Datasets and series kept in a preview; all when absent.
+      schema:
+        type: integer
+        minimum: 0
+    RdfFormatQuery:
+      name: format
+      in: query
+      required: false
+      description: Syntax of the answer; without it the `Accept` header decides, JSON-LD by default.
+      schema:
+        type: string
+        enum:
+        - jsonld
+        - turtle
+        - ntriples
+        - rdfxml
+    DownloadQuery:
+      name: download
+      in: query
+      required: false
+      description: The whole document as an attachment; `limit` is ignored.
+      schema:
+        type: boolean
+        default: false
+    ImportProfileQuery:
+      name: profile
+      in: query
+      required: false
+      description: The profile whose shapes validate the document.
+      schema:
+        type: string
+        enum:
+        - dcat-ap
+        - dcat3
+        default: dcat-ap
+    ImportModeQuery:
+      name: mode
+      in: query
+      required: false
+      description: '`upsert` replaces stored resources one version on; `create` refuses the document if any is stored.'
+      schema:
+        type: string
+        enum:
+        - upsert
+        - create
+        default: upsert
+    DryRunQuery:
+      name: dryRun
+      in: query
+      required: false
+      description: Validate and plan without writing.
+      schema:
+        type: boolean
+        default: false
+    ImportTargetQuery:
+      name: target
+      in: query
+      required: false
+      description: A catalog (URN) the document's resources go into; its own catalogs are then not stored.
+      schema:
+        type: string
+    ShaclChecksQuery:
+      name: checks
+      in: query
+      required: false
+      description: 'Shape groups, comma separated. DCAT-AP: `base`, `recommended`, `deprecated` (the default), `range` and `codelists` (need background knowledge). DCAT 3: `base`.'
+      schema:
+        type: string
   responses:
     BadRequest:
       description: Malformed request or failed validation
@@ -3091,6 +3269,14 @@ components:
         type: string
     Link:
       description: '`rel="next"` with the next cursor, or `rel="profile"` on public routes.'
+      schema:
+        type: string
+    X-Shown-Count:
+      description: Datasets and series a preview shows.
+      schema:
+        type: integer
+    Content-Disposition:
+      description: '`attachment; filename="…"` on a download.'
       schema:
         type: string
   schemas:
@@ -4024,6 +4210,65 @@ components:
           description: IRI of the property concerned.
         message:
           type: string
+    ImportReport:
+      type: object
+      required:
+      - profile
+      - dryRun
+      - conforms
+      - imported
+      - validation
+      - issues
+      - created
+      - updated
+      - resources
+      properties:
+        profile:
+          type: string
+        dryRun:
+          type: boolean
+        conforms:
+          type: boolean
+          description: Valid against the shapes and with nothing in the plan keeping it out.
+        imported:
+          type: boolean
+        validation:
+          $ref: '#/components/schemas/ShaclReport'
+        issues:
+          type: array
+          description: Problems of the plan against the stored catalog (links, parents, ownership).
+          items:
+            $ref: '#/components/schemas/Finding'
+        created:
+          type: integer
+        updated:
+          type: integer
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportedResource'
+    ImportedResource:
+      type: object
+      required:
+      - source
+      - id
+      - type
+      - action
+      properties:
+        source:
+          type: string
+          description: Its IRI in the document.
+        id:
+          type: string
+        type:
+          type: string
+        parent:
+          type: string
+        action:
+          type: string
+          enum:
+          - create
+          - update
     LanguageText:
       description: 'A plain string, or a language map (`{"en": "Readings"}`); a language may hold several
         texts.'
@@ -4596,6 +4841,57 @@ components:
           type: array
           items:
             type: object
+    ShaclReport:
+      type: object
+      required:
+      - conforms
+      - checks
+      - violations
+      - warnings
+      - results
+      properties:
+        conforms:
+          type: boolean
+        checks:
+          type: array
+          items:
+            type: string
+        violations:
+          type: integer
+        warnings:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShaclResult'
+    ShaclResult:
+      type: object
+      required:
+      - check
+      - severity
+      - focusNode
+      - constraint
+      - message
+      properties:
+        check:
+          type: string
+          description: The shape group that raised it.
+        severity:
+          $ref: '#/components/schemas/Severity'
+        focusNode:
+          type: string
+        path:
+          type: string
+        value:
+          type: string
+        constraint:
+          type: string
+          examples:
+          - MinCount
+        sourceShape:
+          type: string
+        message:
+          type: string
     Severity:
       type: string
       enum:

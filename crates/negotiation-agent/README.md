@@ -82,7 +82,8 @@ of the user, stores the result locally and answers an eunomia `RpcNegotiationRes
 (`request`, `response`, `negotiationAgentModel`): 201 when it opened a negotiation, 200 otherwise.
 Bodies are eunomia JSON-LD: `@context` `https://w3id.org/eunomia/v1/context.jsonld` and `@type`
 the RPC; continuations name the negotiation by `@id`, its process id on this agent, never by a
-DSP pid.
+DSP pid. A provider's offer given only by `@id` goes out as the catalog publishes it, with its
+rules and `target`.
 
 | Path | `@type` | Message sent |
 |---|---|---|

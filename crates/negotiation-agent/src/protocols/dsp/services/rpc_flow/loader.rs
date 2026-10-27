@@ -103,9 +103,10 @@ impl NegotiationRpcLoader {
         };
         let peer_address = peer_address.unwrap_or_default();
         let peer_id = body.associated_agent_peer.clone().unwrap_or_default();
+        let offer = self.resolved_offer(role, body.offer.clone()).await?;
         let outgoing = Self::build(
             typed.message,
-            json!({ pid_member: own_pid, "offer": body.offer, "callbackAddress": callback }),
+            json!({ pid_member: own_pid, "offer": offer, "callbackAddress": callback }),
         )
         .await?;
         Ok(NegotiationRpcDomain {
@@ -148,7 +149,10 @@ impl NegotiationRpcLoader {
         });
         match typed.message {
             NegotiationRpcMessage::Request | NegotiationRpcMessage::Offer => {
-                members["offer"] = body.offer.clone().unwrap_or(Value::Null);
+                members["offer"] = self
+                    .resolved_offer(process.role, body.offer.clone())
+                    .await?
+                    .unwrap_or(Value::Null);
             }
             NegotiationRpcMessage::Agreement => {
                 members["agreement"] = self.agreement(&process).await?;
@@ -214,6 +218,32 @@ impl NegotiationRpcLoader {
             }
         }
         Ok(agreement)
+    }
+
+    /// A provider's offer given only by `@id` becomes the one its catalog publishes, with the
+    /// rules and the `target` DSP 8.3.3 requires; any other offer goes as sent.
+    async fn resolved_offer(
+        &self,
+        role: NegotiationRole,
+        offer: Option<Value>,
+    ) -> Outcome<Option<Value>> {
+        let reference = match &offer {
+            Some(o) if role == NegotiationRole::Provider && o.get("target").is_none() => {
+                o.get("@id").and_then(Value::as_str)
+            }
+            _ => None,
+        };
+        let Some(id) = reference else {
+            return Ok(offer);
+        };
+        let (content, target) = self.published(id).await?;
+        let mut resolved = json!({ "@id": id, "@type": "Offer", "target": target });
+        for member in Self::POLICY_MEMBERS {
+            if let Some(rules) = content.get(member) {
+                resolved[member] = rules.clone();
+            }
+        }
+        Ok(Some(resolved))
     }
 
     /// The rules and target of the offer the catalog publishes under `offer_id`.

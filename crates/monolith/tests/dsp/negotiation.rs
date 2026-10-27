@@ -22,12 +22,14 @@ use common::dsp_common::odrl::ODRL_CONTEXT_URL;
 use common::eunomia::EUNOMIA_CATALOG_CONTEXT_URL;
 use serde_json::{json, Value};
 
-use crate::support::dataspace::{Dataspace, PROVIDER_DID};
+use crate::support::dataspace::{Dataspace, CONSUMER_DID, PROVIDER_DID};
 use crate::support::participant::Participant;
 
-/// What the provider published: the dataset and its `http+pull` distribution.
+/// What the provider published: the dataset, its `http+pull` distribution and usage policy.
 pub(crate) struct PublishedOffer {
+    pub dataset_id: Value,
     pub distribution_id: Value,
+    pub policy_id: Value,
 }
 
 /// A negotiation both sides finished: the offer, its target and the provider's agreement.
@@ -68,7 +70,7 @@ pub(crate) async fn publish_offer(provider: &Participant) -> PublishedOffer {
             }),
         )
         .await;
-    provider
+    let policy = provider
         .post(
             "/api/v1/catalog-agent/odrl-policies",
             json!({
@@ -84,7 +86,9 @@ pub(crate) async fn publish_offer(provider: &Participant) -> PublishedOffer {
         )
         .await;
     PublishedOffer {
+        dataset_id: dataset["@id"].clone(),
         distribution_id: distribution["@id"].clone(),
+        policy_id: policy["id"].clone(),
     }
 }
 
@@ -233,4 +237,47 @@ async fn negotiation_reaches_finalized_with_an_agreement() {
     assert_eq!(agreement["target"], *target, "{agreement}");
     let consumer_agreement = agreement_of(&ds.consumer, &consumer_process["id"]).await;
     assert_eq!(consumer_agreement["id"], agreement["id"], "{consumer_agreement}");
+}
+
+/// A provider offering its published policy by `@id` sends it with the catalog's rules and
+/// target (DSP 8.3.3), so both sides store the full offer.
+#[tokio::test]
+#[ignore = "needs DATABASE_URL"]
+async fn an_offer_by_id_goes_out_with_its_rules_and_target() {
+    let ds = Dataspace::start().await;
+    let (provider, consumer) = (&ds.provider, &ds.consumer);
+    let published = publish_offer(provider).await;
+    let version = consumer
+        .get_unauthenticated("/.well-known/dspace-version/2025-1")
+        .await;
+    let init = provider
+        .post(
+            "/dsp/current/negotiations/rpc/setup-offer-init",
+            rpc(
+                "OfferInit",
+                json!({
+                    "associatedAgentPeer": CONSUMER_DID,
+                    "consumerAddress": consumer.url(version["path"].as_str().unwrap()),
+                    "offer": {"@id": published.policy_id},
+                }),
+            ),
+        )
+        .await;
+    let provider_process = process_of(&init).clone();
+    assert_eq!(provider_process["state"], "OFFERED", "{init}");
+    let consumer_pid = &provider_process["correlation"]["identifiers"]["consumerPid"];
+    let consumer_process = process_id_by_consumer_pid(consumer, consumer_pid).await;
+
+    for (side, process_id) in [(provider, &provider_process["id"]), (consumer, &consumer_process)] {
+        let offers = side
+            .get(&format!(
+                "/api/v1/negotiation-agent/offers/process/{}",
+                process_id.as_str().unwrap()
+            ))
+            .await;
+        let content = &offers["items"][0]["offerContent"];
+        assert_eq!(content["@id"], published.policy_id, "{offers}");
+        assert_eq!(content["target"], published.dataset_id, "{offers}");
+        assert_eq!(content["permission"][0]["action"], "use", "{offers}");
+    }
 }

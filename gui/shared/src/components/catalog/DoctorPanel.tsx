@@ -4,7 +4,7 @@ import type { DoctorReport, Finding, ProfileDiagnosis } from "shared/src/data/or
 import { Badge } from "shared/src/components/ui/badge";
 import { Identifier } from "shared/src/components/identity/Identifier";
 
-const PROFILE_NAMES: Record<string, string> = {
+export const PROFILE_NAMES: Record<string, string> = {
   dsp: "DSP 2025-1",
   dcat3: "DCAT 3",
   "dcat-ap": "DCAT-AP 3.0.1",
@@ -32,7 +32,8 @@ const SEVERITY_ICONS = {
   info: <Info className="h-4 w-4 shrink-0 text-brand-sky" />,
 };
 
-function FindingRow({ finding, root }: { finding: Finding; root: string }) {
+/** One finding: severity, message and the property and resource it is about. */
+export function FindingRow({ finding, root }: { finding: Finding; root: string }) {
   return (
     <li className="flex items-start gap-2.5 py-2">
       {SEVERITY_ICONS[finding.severity]}

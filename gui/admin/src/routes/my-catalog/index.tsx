@@ -46,6 +46,7 @@ import {
   Globe,
   Calendar,
   Layers,
+  Upload,
 } from "lucide-react";
 
 import { useGetCatalogById, useGetMainCatalogs } from "shared/src/data/orval/catalogs/catalogs";
@@ -53,6 +54,7 @@ import { useGetDatasetsByCatalogId } from "shared/src/data/orval/datasets/datase
 import { CatalogViews, type CatalogDoc } from "shared/src/data/catalog";
 import { useGetDataServicesByCatalogId } from "shared/src/data/orval/data-services/data-services";
 import { useMyself } from "shared/src/data/useMyself";
+import { CatalogSpecificationPanel } from "shared/src/components/catalog/CatalogSpecificationPanel";
 
 export const Route = createFileRoute("/my-catalog/")({
   component: RouteComponent,
@@ -356,7 +358,7 @@ function RouteComponent() {
                 active={activeTab === "metadata"}
                 onClick={() => setActiveTab("metadata")}
                 icon={FileCode}
-                label="DCAT-AP Specification"
+                label="Catalog Specification"
               />
             </InnerSidebarNav>
           </InnerSidebarSection>
@@ -397,6 +399,12 @@ function RouteComponent() {
                 <Button size="sm" variant="default" className="w-full justify-start gap-2 text-xs">
                   <Layers className="h-3.5 w-3.5" />
                   Manage Offerings
+                </Button>
+              </Link>
+              <Link to="/my-catalog/import">
+                <Button size="sm" variant="outline" className="w-full justify-start gap-2 text-xs">
+                  <Upload className="h-3.5 w-3.5" />
+                  Import DCAT-AP / DCAT 3
                 </Button>
               </Link>
               <Button
@@ -681,37 +689,21 @@ function RouteComponent() {
             </div>
           )}
 
-          {/* TAB 4: METADATA */}
+          {/* TAB 4: CATALOG SPECIFICATION */}
           {activeTab === "metadata" && (
             <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between pb-3 border-b border-ink/10">
+              <div className="flex items-center justify-between gap-3">
                 <Heading level="h4" className="!mb-0 text-lg font-semibold">
-                  DCAT-AP Catalog Specification
+                  Catalog Specification
                 </Heading>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    navigator.clipboard.writeText(JSON.stringify(catalog, null, 2));
-                    setCopiedId(true);
-                    setTimeout(() => setCopiedId(false), 2000);
-                  }}
-                  className="h-7 text-xs gap-1.5"
-                >
-                  {copiedId ? (
-                    <Check className="h-3 w-3 text-emerald-700 dark:text-emerald-400" />
-                  ) : (
-                    <Copy className="h-3 w-3" />
-                  )}
-                  <span>{copiedId ? "Copied" : "Copy JSON"}</span>
-                </Button>
+                <Link to="/my-catalog/import">
+                  <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs">
+                    <Upload className="h-3.5 w-3.5" />
+                    Import DCAT
+                  </Button>
+                </Link>
               </div>
-
-              <Card className="p-4 bg-background-800/80 border-ink/10">
-                <pre className="text-xs font-mono text-muted-foreground overflow-x-auto max-h-[600px] leading-relaxed">
-                  {JSON.stringify(catalog, null, 2)}
-                </pre>
-              </Card>
+              <CatalogSpecificationPanel catalogId={catalog.id!} />
             </div>
           )}
         </InnerBody>

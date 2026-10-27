@@ -41,6 +41,7 @@ import { Route as WalletInfoImport } from './routes/wallet/info'
 import { Route as WalletDidImport } from './routes/wallet/did'
 import { Route as WalletCredentialsImport } from './routes/wallet/credentials'
 import { Route as MyCatalogNewImport } from './routes/my-catalog/new'
+import { Route as MyCatalogImportImport } from './routes/my-catalog/import'
 import { Route as KeystoreSecretsImport } from './routes/keystore/secrets'
 import { Route as KeystoreParametersImport } from './routes/keystore/parameters'
 import { Route as KeystoreConfigImport } from './routes/keystore/config'
@@ -252,6 +253,12 @@ const WalletCredentialsRoute = WalletCredentialsImport.update({
 const MyCatalogNewRoute = MyCatalogNewImport.update({
   id: '/new',
   path: '/new',
+  getParentRoute: () => MyCatalogRouteRoute,
+} as any)
+
+const MyCatalogImportRoute = MyCatalogImportImport.update({
+  id: '/import',
+  path: '/import',
   getParentRoute: () => MyCatalogRouteRoute,
 } as any)
 
@@ -656,6 +663,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/keystore/secrets'
       preLoaderRoute: typeof KeystoreSecretsImport
       parentRoute: typeof KeystoreRouteImport
+    }
+    '/my-catalog/import': {
+      id: '/my-catalog/import'
+      path: '/import'
+      fullPath: '/my-catalog/import'
+      preLoaderRoute: typeof MyCatalogImportImport
+      parentRoute: typeof MyCatalogRouteImport
     }
     '/my-catalog/new': {
       id: '/my-catalog/new'
@@ -1094,11 +1108,13 @@ const KeystoreRouteRouteWithChildren = KeystoreRouteRoute._addFileChildren(
 )
 
 interface MyCatalogRouteRouteChildren {
+  MyCatalogImportRoute: typeof MyCatalogImportRoute
   MyCatalogNewRoute: typeof MyCatalogNewRoute
   MyCatalogIndexRoute: typeof MyCatalogIndexRoute
 }
 
 const MyCatalogRouteRouteChildren: MyCatalogRouteRouteChildren = {
+  MyCatalogImportRoute: MyCatalogImportRoute,
   MyCatalogNewRoute: MyCatalogNewRoute,
   MyCatalogIndexRoute: MyCatalogIndexRoute,
 }
@@ -1220,6 +1236,7 @@ export interface FileRoutesByFullPath {
   '/keystore/config': typeof KeystoreConfigRoute
   '/keystore/parameters': typeof KeystoreParametersRoute
   '/keystore/secrets': typeof KeystoreSecretsRoute
+  '/my-catalog/import': typeof MyCatalogImportRoute
   '/my-catalog/new': typeof MyCatalogNewRoute
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
@@ -1267,6 +1284,7 @@ export interface FileRoutesByTo {
   '/keystore/config': typeof KeystoreConfigRoute
   '/keystore/parameters': typeof KeystoreParametersRoute
   '/keystore/secrets': typeof KeystoreSecretsRoute
+  '/my-catalog/import': typeof MyCatalogImportRoute
   '/my-catalog/new': typeof MyCatalogNewRoute
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
@@ -1332,6 +1350,7 @@ export interface FileRoutesById {
   '/keystore/config': typeof KeystoreConfigRoute
   '/keystore/parameters': typeof KeystoreParametersRoute
   '/keystore/secrets': typeof KeystoreSecretsRoute
+  '/my-catalog/import': typeof MyCatalogImportRoute
   '/my-catalog/new': typeof MyCatalogNewRoute
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
@@ -1398,6 +1417,7 @@ export interface FileRouteTypes {
     | '/keystore/config'
     | '/keystore/parameters'
     | '/keystore/secrets'
+    | '/my-catalog/import'
     | '/my-catalog/new'
     | '/wallet/credentials'
     | '/wallet/did'
@@ -1444,6 +1464,7 @@ export interface FileRouteTypes {
     | '/keystore/config'
     | '/keystore/parameters'
     | '/keystore/secrets'
+    | '/my-catalog/import'
     | '/my-catalog/new'
     | '/wallet/credentials'
     | '/wallet/did'
@@ -1507,6 +1528,7 @@ export interface FileRouteTypes {
     | '/keystore/config'
     | '/keystore/parameters'
     | '/keystore/secrets'
+    | '/my-catalog/import'
     | '/my-catalog/new'
     | '/wallet/credentials'
     | '/wallet/did'
@@ -1659,6 +1681,7 @@ export const routeTree = rootRoute
     "/my-catalog": {
       "filePath": "my-catalog/route.tsx",
       "children": [
+        "/my-catalog/import",
         "/my-catalog/new",
         "/my-catalog/"
       ]
@@ -1781,6 +1804,10 @@ export const routeTree = rootRoute
     "/keystore/secrets": {
       "filePath": "keystore/secrets.tsx",
       "parent": "/keystore"
+    },
+    "/my-catalog/import": {
+      "filePath": "my-catalog/import.tsx",
+      "parent": "/my-catalog"
     },
     "/my-catalog/new": {
       "filePath": "my-catalog/new.tsx",

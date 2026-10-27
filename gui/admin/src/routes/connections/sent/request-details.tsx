@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { GrantAccess, GrantAccessCard } from "shared/src/components/GrantAccessCard";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { PageSection } from "shared/src/components/layout/PageSection";
@@ -29,7 +30,6 @@ import {
   FileJson,
   Info,
   Key,
-  Layers,
   Loader2,
 } from "lucide-react";
 
@@ -75,18 +75,6 @@ interface SentInteraction {
   hash?: string | null;
 }
 
-interface ResourceReq {
-  id: string;
-  type: any;
-  actions: any[];
-  locations?: string[] | null;
-  datatypes?: string[] | null;
-  identifier?: string | null;
-  privileges?: string[] | null;
-  label?: string | null;
-  flags?: any[] | null;
-}
-
 interface SentVerification {
   id: string;
   uri: string;
@@ -107,9 +95,9 @@ interface DetailsResponse {
   status: number;
   data: {
     grant: SentGrant;
-    resource_req: ResourceReq | null;
+    resource_req: GrantAccess | null;
     interaction: SentInteraction | null;
-    verification: SentVerification | null;
+    verifications: SentVerification[];
   };
 }
 
@@ -143,7 +131,8 @@ function SentRequestDetails() {
   const grant = details?.grant ?? null;
   const resourceReq = details?.resource_req ?? null;
   const interaction = details?.interaction ?? null;
-  const verification = details?.verification ?? null;
+  const verifications = details?.verifications ?? [];
+  const verification = verifications[verifications.length - 1] ?? null;
   const timelineData = grant ? getTimelineData(grant) : null;
 
   const handlePresent = async (uri: string) => {
@@ -352,7 +341,7 @@ function SentRequestDetails() {
         </div>
 
         {/* ===== Resource Request =================================================== */}
-        <ResourceReqCard resourceReq={resourceReq} />
+        <GrantAccessCard resourceReq={resourceReq} />
 
         {/* ===== Interaction ========================================================= */}
         {interaction ? (
@@ -383,9 +372,7 @@ function SentRequestDetails() {
                   </div>
                 </DetailItem>
                 <DetailItem label="Callback URI">
-                  <span className="font-mono text-xs break-all">
-                    {interaction.callback_uri}
-                  </span>
+                  <span className="font-mono text-xs break-all">{interaction.callback_uri}</span>
                 </DetailItem>
                 <DetailItem label="Continuation Endpoint">
                   <span className="font-mono text-xs break-all">
@@ -460,9 +447,7 @@ function SentRequestDetails() {
                   <span className="font-mono text-xs">{verification.response_mode}</span>
                 </DetailItem>
                 <DetailItem label="Response URI">
-                  <span className="font-mono text-xs break-all">
-                    {verification.response_uri}
-                  </span>
+                  <span className="font-mono text-xs break-all">{verification.response_uri}</span>
                 </DetailItem>
                 <DetailItem label="PD URI">
                   <span className="font-mono text-xs break-all">{verification.pd_uri}</span>
@@ -478,42 +463,40 @@ function SentRequestDetails() {
                 </DetailItem>
               </div>
 
-              {verification.uri &&
-                verification.status?.toLowerCase() !== "verified" &&
-                verification.status?.toLowerCase() !== "failed" && (
-                  <div className="pt-4 border-t">
-                    <DetailItem
-                      label="Verification URI (Authentication)"
-                      labelClassName="text-amber-500"
-                    >
-                      <div className="mt-2 flex flex-col sm:flex-row gap-6 items-start">
-                        <div className="p-3 bg-white rounded-lg shadow-sm border border-stroke flex-shrink-0">
-                          <QRCode value={verification.uri} size={120} />
-                        </div>
-                        <div className="flex-1 w-full space-y-3">
-                          <p className="text-xs text-muted-foreground italic">
-                            Scan this QR or click below to present credentials through the agent
-                            wallet.
-                          </p>
-                          <UriDisplay uri={verification.uri} />
-                          <Button
-                            className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white"
-                            size="sm"
-                            onClick={() => handlePresent(verification.uri)}
-                            disabled={isProcessing}
-                          >
-                            {isProcessing ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <Key className="mr-2 h-4 w-4" />
-                            )}
-                            Present in Agent
-                          </Button>
-                        </div>
+              {verification.uri && verification.status?.toLowerCase() === "pending" && (
+                <div className="pt-4 border-t">
+                  <DetailItem
+                    label="Verification URI (Authentication)"
+                    labelClassName="text-amber-500"
+                  >
+                    <div className="mt-2 flex flex-col sm:flex-row gap-6 items-start">
+                      <div className="p-3 bg-white rounded-lg shadow-sm border border-stroke flex-shrink-0">
+                        <QRCode value={verification.uri} size={120} />
                       </div>
-                    </DetailItem>
-                  </div>
-                )}
+                      <div className="flex-1 w-full space-y-3">
+                        <p className="text-xs text-muted-foreground italic">
+                          Scan this QR or click below to present credentials through the agent
+                          wallet.
+                        </p>
+                        <UriDisplay uri={verification.uri} />
+                        <Button
+                          className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white"
+                          size="sm"
+                          onClick={() => handlePresent(verification.uri)}
+                          disabled={isProcessing}
+                        >
+                          {isProcessing ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Key className="mr-2 h-4 w-4" />
+                          )}
+                          Present in Agent
+                        </Button>
+                      </div>
+                    </div>
+                  </DetailItem>
+                </div>
+              )}
             </CardContent>
           </Card>
         ) : interaction ? (
@@ -598,133 +581,6 @@ function UriDisplay({ uri }: { uri: string }) {
         {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
       </Button>
     </div>
-  );
-}
-
-function enumLabel(v: any): string {
-  if (v === null || v === undefined) return "?";
-  if (typeof v === "string") return v;
-  if (typeof v === "object") {
-    const key = Object.keys(v)[0];
-    if (!key) return "?";
-    const inner = v[key];
-    return typeof inner === "string" ? `${key}(${inner})` : key;
-  }
-  return String(v);
-}
-
-function ResourceReqCard({ resourceReq }: { resourceReq: ResourceReq | null }) {
-  if (!resourceReq) {
-    return (
-      <Card className="mt-6 opacity-50 border-dashed">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-muted-foreground">
-            <Layers className="h-5 w-5" />
-            Resource Request
-          </CardTitle>
-          <CardDescription>No resource access bound to this grant.</CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-  return (
-    <Card className="mt-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Layers className="h-5 w-5 text-primary" />
-          Resource Request
-        </CardTitle>
-        <CardDescription>The resource access this grant is asking for.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
-          <DetailItem label="Type">
-            <Badge variant="info" className="font-mono">
-              {enumLabel(resourceReq.type)}
-            </Badge>
-          </DetailItem>
-          <DetailItem label="Identifier">
-            {resourceReq.identifier ? (
-              <span className="font-mono text-xs break-all">{resourceReq.identifier}</span>
-            ) : (
-              <span className="text-xs text-muted-foreground">—</span>
-            )}
-          </DetailItem>
-          <DetailItem label="Label">
-            {resourceReq.label ? (
-              <span className="text-sm">{resourceReq.label}</span>
-            ) : (
-              <span className="text-xs text-muted-foreground">—</span>
-            )}
-          </DetailItem>
-          <DetailItem label="Actions">
-            {(resourceReq.actions ?? []).length === 0 ? (
-              <span className="text-xs text-muted-foreground">—</span>
-            ) : (
-              <div className="flex flex-wrap gap-1">
-                {resourceReq.actions.map((a, idx) => (
-                  <Badge key={idx} variant="role">
-                    {enumLabel(a)}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </DetailItem>
-          <DetailItem label="Locations">
-            {(resourceReq.locations ?? []).length === 0 ? (
-              <span className="text-xs text-muted-foreground">—</span>
-            ) : (
-              <div className="flex flex-col gap-1">
-                {resourceReq.locations!.map((loc, idx) => (
-                  <span key={idx} className="font-mono text-xs break-all">
-                    {loc}
-                  </span>
-                ))}
-              </div>
-            )}
-          </DetailItem>
-          <DetailItem label="Datatypes">
-            {(resourceReq.datatypes ?? []).length === 0 ? (
-              <span className="text-xs text-muted-foreground">—</span>
-            ) : (
-              <div className="flex flex-wrap gap-1">
-                {resourceReq.datatypes!.map((d, idx) => (
-                  <Badge key={idx} variant="info">
-                    {d}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </DetailItem>
-          <DetailItem label="Privileges">
-            {(resourceReq.privileges ?? []).length === 0 ? (
-              <span className="text-xs text-muted-foreground">—</span>
-            ) : (
-              <div className="flex flex-wrap gap-1">
-                {resourceReq.privileges!.map((p, idx) => (
-                  <Badge key={idx} variant="info">
-                    {p}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </DetailItem>
-          <DetailItem label="Flags">
-            {(resourceReq.flags ?? []).length === 0 ? (
-              <span className="text-xs text-muted-foreground">—</span>
-            ) : (
-              <div className="flex flex-wrap gap-1">
-                {resourceReq.flags!.map((f, idx) => (
-                  <Badge key={idx} variant="info" className="font-mono">
-                    {enumLabel(f)}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </DetailItem>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

@@ -12,6 +12,7 @@ are calls the GUI still makes to routes the backend no longer serves.
 
  * OpenAPI spec version: 1.0.0
  */
+import type { AccessItem } from './accessItem';
 import type { Visibility } from './visibility';
 
 export interface ReachProvider {
@@ -20,7 +21,8 @@ export interface ReachProvider {
   nick: string;
   /** Base URL of the peer. */
   url: string;
-  actions: string[];
+  /** GNAP4DS access to ask for; the peer's catalog when empty. */
+  access?: AccessItem[];
   /**
    * Run the manual steps automatically.
    * @nullable

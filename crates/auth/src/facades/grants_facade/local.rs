@@ -21,7 +21,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use common::facades::grants_facade::{GrantsFacadeTrait, PeerToken, VerifiedPeer};
+use common::facades::grants_facade::{AccessNeed, GrantsFacadeTrait, PeerToken, VerifiedPeer};
 use ymir::errors::Outcome;
 use ymir::types::oauth::UserInfo;
 
@@ -52,6 +52,11 @@ impl GrantsFacadeTrait for GrantsLocalFacade {
         self.gatekeeper.verify_token(&token).await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth"))]
+    async fn authorize(&self, token: String, need: AccessNeed) -> Outcome<VerifiedPeer> {
+        self.gatekeeper.authorize(&token, &need).await
+    }
+
     #[tracing::instrument(
         level = "info",
         skip_all,
@@ -62,10 +67,11 @@ impl GrantsFacadeTrait for GrantsLocalFacade {
         &self,
         user: &UserInfo,
         participant_id: String,
+        need: AccessNeed,
         requested: bool,
     ) -> Outcome<PeerToken> {
         self.peer_connector
-            .peer_token(user, &participant_id, requested)
+            .peer_token(user, &participant_id, &need, requested)
             .await
     }
 
@@ -79,10 +85,11 @@ impl GrantsFacadeTrait for GrantsLocalFacade {
         &self,
         user: &UserInfo,
         participant_id: String,
+        need: AccessNeed,
         requested: bool,
     ) -> Outcome<PeerToken> {
         self.peer_connector
-            .refresh_peer_token(user, &participant_id, requested)
+            .refresh_peer_token(user, &participant_id, &need, requested)
             .await
     }
 }

@@ -24,9 +24,13 @@ pub enum VcWhatResponse {
     Wait,
 }
 
-/// Peer's answer: done, present over OID4VP, or wait.
+use serde::Serialize;
+use ymir::types::gnap::grant_request::access::ResourceAccess;
+use ymir::types::verification::PresentationRequest;
+
+/// Peer's answer: done with what it granted, present over OID4VP, or wait.
 pub enum TokenWhatResponse {
-    Completed,
+    Completed(Vec<ResourceAccess>),
     Presentation(String),
     Wait,
 }
@@ -34,4 +38,32 @@ pub enum TokenWhatResponse {
 pub enum RotationOutcome {
     Rotated,
     Refused,
+}
+
+/// Who asks for a presentation, as far as it could be checked against the peer of the grant.
+#[derive(Serialize, Debug, Clone, PartialEq)]
+#[serde(tag = "state", rename_all = "snake_case")]
+pub enum VerifierCheck {
+    /// Signed by the DID of the peer.
+    Verified { did: String },
+    /// Signed by another DID: never presented to.
+    Mismatch { did: String },
+    /// Unsigned, but answered to the host the grant was sent to.
+    SameOrigin,
+    Unsigned,
+    /// Its signature is not valid: never presented to.
+    Untrusted { reason: String },
+}
+
+impl VerifierCheck {
+    pub fn blocks(&self) -> bool {
+        matches!(self, Self::Mismatch { .. } | Self::Untrusted { .. })
+    }
+}
+
+/// A pending presentation request, resolved without answering it.
+#[derive(Serialize, Debug)]
+pub struct ResolvedPresentation {
+    pub request: Option<PresentationRequest>,
+    pub verifier: VerifierCheck,
 }

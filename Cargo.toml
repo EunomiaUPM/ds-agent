@@ -96,6 +96,6 @@ rudof_rdf = { version = "0.3.35", default-features = false }
 oxrdf = "0.3.5"
 oxttl = "0.2.5"
 oxrdfxml = "0.2.5"
-ymir = { git = "https://github.com/EunomiaUPM/ymir.git", rev = "1b3b80234769f8f7b0332ae46a1212c3128ea863" }
+#ymir = { git = "https://github.com/EunomiaUPM/ymir.git", rev = "1b3b80234769f8f7b0332ae46a1212c3128ea863" }
 #ymir = {git = "https://github.com/EunomiaUPM/ymir.git", tag = "v0.8.6"}
-#ymir = { path = "./../ymir" }
+ymir = { path = "./../ymir" }

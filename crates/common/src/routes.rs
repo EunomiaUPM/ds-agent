@@ -66,7 +66,11 @@ pub mod auth {
         pub const REQUEST_ALL: &str = "/request/all";
         pub const REQUEST: &str = "/request/{id}";
         pub const REQUEST_DETAILS: &str = "/request/{id}/details";
+        pub const REQUEST_ACCESS: &str = "/request/{id}/access";
         pub const OID4VP: &str = "/oid4vp/{id}";
+        pub const OID4VP_RESOLVE: &str = "/oid4vp/{id}/resolve";
+        pub const OID4VP_PRESENT: &str = "/oid4vp/{id}/present";
+        pub const OID4VP_REFUSE: &str = "/oid4vp/{id}/refuse";
         /// The caller's token towards a peer, by the peer's participant id (grants facade).
         pub const TOKEN: &str = "/token/{id}";
         pub const TOKEN_REFRESH: &str = "/token/{id}/refresh";
@@ -86,6 +90,7 @@ pub mod auth {
         pub const REQUEST_DETAILS: &str = "/request/{id}/details";
         /// Check of a token a peer presents (grants facade).
         pub const TOKEN_VERIFY: &str = "/token/verify";
+        pub const TOKEN_AUTHORIZE: &str = "/token/authorize";
     }
 
     /// Gaia-X self-attestation.

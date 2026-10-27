@@ -46,7 +46,6 @@ const schema = z.object({
   // Who else sees the request and, once it completes, the relation with the peer.
   visibility: z.enum(["Private", "Anonymous", "Public"]).default("Private"),
   auto: z.boolean().default(true),
-  actions: z.array(z.string()).min(1, "Select at least one action"),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -95,7 +94,6 @@ function NewSentConnection() {
       nick: search.nick ?? "",
       visibility: "Private",
       auto: true,
-      actions: ["talk"],
     },
   });
 
@@ -137,7 +135,6 @@ function NewSentConnection() {
           id: discoveredInfo.id,
           nick: values.nick,
           url: discoveredInfo.accessUrl,
-          actions: values.actions,
           visibility: values.visibility,
           auto: values.auto,
         },
@@ -199,8 +196,8 @@ function NewSentConnection() {
                   Enter the participant base URL to discover its DID and initiate onboarding.
                 </CardDescription>
                 <CardDescription>
-                  Participants of the dataspace are usually connected from the catalog browser;
-                  this page is for one you know by its URL.
+                  Participants of the dataspace are usually connected from the catalog browser; this
+                  page is for one you know by its URL.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -297,8 +294,7 @@ function NewSentConnection() {
                           </Select>
                           <FormDescription>
                             Who else sees this connection: only you and the roles above you
-                            (Private), everyone without your name (Anonymous), or everyone
-                            (Public).
+                            (Private), everyone without your name (Anonymous), or everyone (Public).
                           </FormDescription>
                           <FormMessage />
                         </FormItem>

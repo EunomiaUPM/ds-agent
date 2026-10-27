@@ -23,9 +23,11 @@ use crate::types::entities::ReachProvider;
 use crate::types::response::{RotationOutcome, TokenWhatResponse};
 use async_trait::async_trait;
 use axum::http::header::AUTHORIZATION;
-use axum::http::HeaderMap;
+use axum::http::{HeaderMap, Method};
 use chrono::{DateTime, Duration, Utc};
 use common::config::types::traits::EntityClientTrait;
+use common::dsp_common::paths;
+use common::dsp_common::well_known_types::VersionResponse;
 use common::routes::auth::{gate, peer_connection};
 use serde_json::Value;
 use tracing::info;
@@ -40,11 +42,11 @@ use ymir::services::client::{ClientExt, ClientTrait};
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 use ymir::types::gnap::access_token::AccessToken;
-use ymir::types::gnap::grant_request::access::AccessType;
-use ymir::types::gnap::grant_request::interact::{FinishMethod, InteractAction, InteractStart};
+use ymir::types::gnap::grant_request::access::{AccessTokenRequest, ResourceAccess};
+use ymir::types::gnap::grant_request::interact::{FinishMethod, InteractRequest, InteractStart};
 use ymir::types::gnap::grant_request::{GrantKind, GrantRequest};
 use ymir::types::gnap::grant_response::{ErrorCode, GrantResponse, GrantResponseKind};
-use ymir::types::gnap::GrantStatus;
+use ymir::types::gnap::{GrantStatus, ModifyRequest};
 use ymir::types::http::HttpBody;
 use ymir::types::keys::{Certificate, KeySource, PrivateKey};
 use ymir::types::oauth::UserInfo;
@@ -54,6 +56,8 @@ use ymir::utils::{
     expect_from_env, http_client, json_headers, require_field, trim_4_base,
     ParseHeaderExt, ResponseExt,
 };
+
+const DSPACE_VERSION: &str = "/.well-known/dspace-version";
 
 /// GNAP client towards peers; reads the agent's certificate from the vault.
 pub struct GnapPeerConnectorService {
@@ -155,7 +159,7 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
         );
 
         interaction::Plan {
-            id: id.to_string(),
+            grant_id: id.to_string(),
             start: vec![InteractStart::Oid4VP],
             method: FinishMethod::Push,
             callback_uri,
@@ -163,33 +167,16 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
             hints: None,
         }
     }
-    fn build_resource_req_plan(
-        &self,
-        id: &str,
-        actions: Vec<InteractAction>,
-    ) -> resource_req::Model {
-        let mut actions: Vec<InteractAction> = actions
-            .into_iter()
-            .filter(|a| !matches!(a, InteractAction::Other(_) | InteractAction::RequestVc))
-            .collect();
-
-        if actions.is_empty() {
-            actions.push(InteractAction::Talk);
-        }
-
+    fn build_resource_req_plan(&self, id: &str, access: Vec<ResourceAccess>) -> resource_req::Model {
         resource_req::Model {
             id: id.to_string(),
-            r#type: AccessType::ApiAccess,
-            actions,
-            locations: None,
-            datatypes: None,
-            identifier: None,
-            privileges: None,
+            access,
+            granted: None,
             label: None,
             flags: None,
         }
     }
-    
+
     fn build_verification_plan(&self, uri: &str, id: &str) -> Outcome<verification::Plan> {
         info!("Saving verification data");
         verification::Plan::from_uri(id, uri)
@@ -230,7 +217,7 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
         let client = self.config.get_client(&cert)?;
 
         let grant_request =
-            GrantRequest::new_token(client, resource_req.actions.clone(), interaction);
+            GrantRequest::new_token(client, resource_req.access.clone(), interaction);
 
         let (body, body_bytes) = HttpBody::from_json_bytes(&grant_request)?;
 
@@ -255,25 +242,92 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
         res.parse_json().await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn send_modify_req(
+        &self,
+        previous: &interaction::Model,
+        round: &interaction::Model,
+        resource_req: &resource_req::Model,
+    ) -> Outcome<GrantResponse> {
+        info!("Asking a peer to modify a grant");
+        let uri = require_field(previous.continuation_endpoint.as_ref(), "continuation uri")?;
+        let token = require_field(previous.continuation_token.as_ref(), "continuation token")?;
+        let (_, key_source, priv_key) = self.signing_material().await?;
+
+        let modify = ModifyRequest {
+            access_token: AccessTokenRequest {
+                access: resource_req.access.clone(),
+                label: resource_req.label.clone(),
+                flags: resource_req.flags.clone(),
+            },
+            interact: Some(InteractRequest::new(round.clone())),
+        };
+        let (body, body_bytes) = HttpBody::from_json_bytes(&modify)?;
+
+        let authorization = format!("GNAP {token}");
+        let mut headers = json_headers();
+        headers.insert(AUTHORIZATION, authorization.parse_header()?);
+        let httpsig = HttpSig::build(
+            &key_source,
+            &priv_key,
+            None,
+            "PATCH",
+            uri,
+            &body_bytes,
+            "application/json",
+            Some(&authorization),
+        )?;
+        headers.extend(httpsig);
+
+        let res = http_client()
+            .request(Method::PATCH, uri, Some(headers), body)
+            .await?;
+        res.parse_json().await
+    }
+
+    async fn discover_dsp_base(&self, grant_endpoint: &str) -> String {
+        let origin = trim_4_base(grant_endpoint);
+        let origin = origin.trim_end_matches('/');
+        let path = http_client()
+            .get_json::<VersionResponse>(&format!("{origin}{DSPACE_VERSION}"), None)
+            .await
+            .ok()
+            .and_then(|versions| versions.protocol_versions.into_iter().next())
+            .map(|version| version.path);
+        match path {
+            Some(path) if path.starts_with("http") => path.trim_end_matches('/').to_string(),
+            Some(path) => format!("{origin}{}", path.trim_end_matches('/')),
+            None => format!("{origin}{}", paths::DSP_CURRENT),
+        }
+    }
+
     fn manage_grant_resp(
         &self,
         response: GrantResponse,
         grant: &mut grant::Model,
         interaction: &mut interaction::Model,
     ) -> Outcome<TokenWhatResponse> {
+        let modifying = grant.status == GrantStatus::Approved;
         match response {
             GrantResponse::Approved(payload) => match payload.kind {
                 GrantResponseKind::AccessToken { access_token } => {
                     grant.status = GrantStatus::Approved;
+                    if let Some(r#continue) = payload.r#continue {
+                        interaction.continuation_token = Some(r#continue.access_token.value);
+                        interaction.continuation_endpoint = Some(r#continue.uri);
+                    }
+                    let granted = access_token.access.clone();
                     Self::apply_access_token(grant, access_token);
-                    Ok(TokenWhatResponse::Completed)
+                    Ok(TokenWhatResponse::Completed(granted))
                 }
                 GrantResponseKind::CredentialResponse { .. } => Err(Errors::provider_grant(
                     "Provider returned an OID4VCI URI when asking for a token",
                 )),
             },
             GrantResponse::Pending(payload) => {
-                grant.status = GrantStatus::Pending;
+                if !modifying {
+                    grant.status = GrantStatus::Pending;
+                }
                 grant.as_assigned_id = payload.instance_id;
 
                 interaction.as_nonce = payload.interact.finish;
@@ -293,8 +347,10 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
                 Ok(TokenWhatResponse::Wait)
             }
             GrantResponse::Error(error) => {
-                grant.status = GrantStatus::Rejected;
-                grant.ended_at = Some(chrono::Utc::now());
+                if !modifying {
+                    grant.status = GrantStatus::Rejected;
+                    grant.ended_at = Some(chrono::Utc::now());
+                }
                 Err(Errors::provider_grant(format!(
                     "Provider said {}",
                     error.error

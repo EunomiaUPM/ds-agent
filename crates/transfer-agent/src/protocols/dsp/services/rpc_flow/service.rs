@@ -20,7 +20,7 @@
 
 use std::sync::Arc;
 use common::dsp_common::DspCaller;
-use common::facades::grants_facade::send_with_peer_token;
+use common::facades::grants_facade::{send_with_peer_token, AccessNeed};
 
 use common::flow::{FlowCx, FlowTrait};
 use common::rdf::RdfMessage;
@@ -111,10 +111,12 @@ impl FlowTrait for TransferRpcFlow {
     ) -> Outcome<Option<Value>> {
         let (url, body) = (domain.target_url.clone(), domain.outgoing.json.clone());
         let requested = domain.role == TransferRole::Consumer;
+        let need = AccessNeed::of_call(&url, None, !requested);
         let raw = send_with_peer_token(
             self.ctx.ports.auth.grants.as_ref(),
             cx.caller.user()?,
             &domain.peer_id,
+            &need,
             requested,
             |headers| Self::post(url.clone(), headers, body.clone()),
         )

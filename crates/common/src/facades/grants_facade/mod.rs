@@ -36,7 +36,10 @@ use ymir::utils::bearer_headers;
 use crate::oauth::Owner;
 use crate::tck::TckPeer;
 
+pub mod access;
 pub mod remote;
+
+pub use access::{dsp_base, location_matches, AccessNeed};
 
 /// Who a verified peer token belongs to, as the DSP endpoints need it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -81,14 +84,19 @@ pub trait GrantsFacadeTrait: Send + Sync {
     /// otherwise (the DSP endpoint then rejects the call).
     async fn verify_token(&self, token: String) -> Outcome<VerifiedPeer>;
 
+    /// Like `verify_token`, if the token also covers `need`; fails otherwise.
+    async fn authorize(&self, token: String, need: AccessNeed) -> Outcome<VerifiedPeer>;
+
     /// The token `user` presents to `participant_id`: the one of its own approved grant with that
-    /// peer, even if a colleague has another. Without one, a grant is requested on the user's
-    /// behalf and the answer is `Pending` until it completes. `requested` says whether the grant
-    /// is for something this connector asks for (`true`) or answers (`false`).
+    /// peer, even if a colleague has another, widened when it does not cover `need`. Without one,
+    /// a grant is requested on the user's behalf and the answer is `Pending` until it completes.
+    /// `requested` says whether the grant is for something this connector asks for (`true`) or
+    /// answers (`false`).
     async fn peer_token(
         &self,
         user: &UserInfo,
         participant_id: String,
+        need: AccessNeed,
         requested: bool,
     ) -> Outcome<PeerToken>;
 
@@ -96,6 +104,7 @@ pub trait GrantsFacadeTrait: Send + Sync {
         &self,
         user: &UserInfo,
         participant_id: String,
+        need: AccessNeed,
         requested: bool,
     ) -> Outcome<PeerToken>;
 }
@@ -113,21 +122,23 @@ pub async fn obtain_peer_token(
     grants: &dyn GrantsFacadeTrait,
     user: &UserInfo,
     participant_id: &str,
+    need: &AccessNeed,
     requested: bool,
 ) -> Outcome<Option<String>> {
     if let Some(token) = TckPeer::token_for(TckPeer::enabled(), participant_id) {
         return Ok(Some(token));
     }
     let first = grants
-        .peer_token(user, participant_id.to_string(), requested)
+        .peer_token(user, participant_id.to_string(), need.clone(), requested)
         .await?;
-    wait_peer_token(grants, user, participant_id, requested, first).await
+    wait_peer_token(grants, user, participant_id, need, requested, first).await
 }
 
 async fn wait_peer_token(
     grants: &dyn GrantsFacadeTrait,
     user: &UserInfo,
     participant_id: &str,
+    need: &AccessNeed,
     requested: bool,
     first: PeerToken,
 ) -> Outcome<Option<String>> {
@@ -139,7 +150,7 @@ async fn wait_peer_token(
             PeerToken::Pending if Instant::now() + PEER_TOKEN_POLL <= deadline => {
                 tokio::time::sleep(PEER_TOKEN_POLL).await;
                 state = grants
-                    .peer_token(user, participant_id.to_string(), requested)
+                    .peer_token(user, participant_id.to_string(), need.clone(), requested)
                     .await?;
             }
             PeerToken::Pending => return Ok(None),
@@ -151,6 +162,7 @@ pub async fn send_with_peer_token<T, F, Fut>(
     grants: &dyn GrantsFacadeTrait,
     user: &UserInfo,
     participant_id: &str,
+    need: &AccessNeed,
     requested: bool,
     mut send: F,
 ) -> Outcome<T>
@@ -158,7 +170,7 @@ where
     F: FnMut(Option<HeaderMap>) -> Fut,
     Fut: Future<Output = Outcome<T>>,
 {
-    let token = match obtain_peer_token(grants, user, participant_id, requested).await {
+    let token = match obtain_peer_token(grants, user, participant_id, need, requested).await {
         Ok(token) => token,
         Err(e) => {
             tracing::warn!("No token towards {participant_id}, sending without one: {e}");
@@ -172,10 +184,10 @@ where
     }
 
     let refreshed = match grants
-        .refresh_peer_token(user, participant_id.to_string(), requested)
+        .refresh_peer_token(user, participant_id.to_string(), need.clone(), requested)
         .await
     {
-        Ok(first) => wait_peer_token(grants, user, participant_id, requested, first).await,
+        Ok(first) => wait_peer_token(grants, user, participant_id, need, requested, first).await,
         Err(e) => Err(e),
     };
     match refreshed {

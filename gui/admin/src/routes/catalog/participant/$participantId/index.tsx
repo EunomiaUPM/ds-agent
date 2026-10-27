@@ -44,7 +44,11 @@ import {
   Search,
 } from "lucide-react";
 import { useMyself } from "shared/src/data/useMyself";
-import { usePeerConnections } from "shared/src/data/peerConnection";
+import {
+  coversDataset,
+  useGrantedAccess,
+  usePeerConnections,
+} from "shared/src/data/peerConnection";
 import { ConnectPeerForm } from "shared/src/components/ConnectPeerForm";
 
 function RouteComponent() {
@@ -58,6 +62,9 @@ function RouteComponent() {
   const navigate = useNavigate();
   const connections = usePeerConnections();
   const connection = connections.statusOf(participantId);
+  const grant = connections.approvedGrantOf(participantId);
+  const granted = useGrantedAccess(grant?.id);
+  const [widening, setWidening] = useState<{ id: string; title: string } | null>(null);
 
   const participant =
     federated.state === "ok"
@@ -343,19 +350,42 @@ function RouteComponent() {
                 />
               </div>
 
+              {widening && participant && grant && (
+                <Card className="p-4">
+                  <ConnectPeerForm
+                    participant={participant}
+                    widen={{ grantId: grant.id, datasetId: widening.id, title: widening.title }}
+                    onSent={() => setWidening(null)}
+                    onCancel={() => setWidening(null)}
+                  />
+                </Card>
+              )}
+
               {filteredDatasets.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {filteredDatasets.map((dataset) => (
-                    <DatasetItem
-                      key={dataset.id}
-                      title={dataset.title}
-                      description={dataset.description}
-                      date={dataset.issued}
-                      prevRoute={participantId}
-                      datasetId={dataset.id}
-                      ownDataset={false}
-                      dataset={dataset.node}
-                    />
+                    <div key={dataset.id} className="flex flex-col gap-2">
+                      <DatasetItem
+                        title={dataset.title}
+                        description={dataset.description}
+                        date={dataset.issued}
+                        prevRoute={participantId}
+                        datasetId={dataset.id}
+                        ownDataset={false}
+                        dataset={dataset.node}
+                      />
+                      {granted && !coversDataset(granted, dataset.id) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="self-start text-xs"
+                          onClick={() => setWidening({ id: dataset.id, title: dataset.title })}
+                        >
+                          <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                          Request access
+                        </Button>
+                      )}
+                    </div>
                   ))}
                 </div>
               ) : (

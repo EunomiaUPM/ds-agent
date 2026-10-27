@@ -129,5 +129,24 @@ pub struct VerifyTokenRequest {
     pub token: String,
 }
 
+/// Body of the auth agent's call checking that a token covers what a DSP call needs.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AuthorizeTokenRequest {
+    pub token: String,
+    pub need: grants_facade::AccessNeed,
+}
+
+/// Body of the auth agent's calls for a token towards a peer.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PeerTokenRequest {
+    pub need: grants_facade::AccessNeed,
+    #[serde(default = "requested_by_default")]
+    pub requested: bool,
+}
+
+fn requested_by_default() -> bool {
+    true
+}
+
 #[cfg(test)]
 mod tests;

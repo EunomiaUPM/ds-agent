@@ -21,7 +21,7 @@
 use std::sync::Arc;
 
 use common::dsp_common::rdf::DspProfile;
-use common::facades::grants_facade::send_with_peer_token;
+use common::facades::grants_facade::{send_with_peer_token, AccessNeed};
 use common::rdf::{ExpandedDoc, RdfMessage};
 use common::well_known::rpc::WellKnownRPCRequest;
 use serde_json::{json, Map, Value};
@@ -104,10 +104,12 @@ impl RpcCatalogServiceTrait for RpcCatalogService {
         let message =
             RdfMessage::<DspCatalog>::build(&CatalogDspMessageType::CatalogRequestMessage, members).await?;
         let url = format!("{provider}/catalog/request");
+        let need = AccessNeed::of_call(&url, None, false);
         let answer: Value = send_with_peer_token(
             self.ctx.ports.auth.grants.as_ref(),
             user,
             &peer,
+            &need,
             true,
             |headers| http_client().post_json::<Value, Value>(&url, headers, &message.json),
         )
@@ -130,10 +132,12 @@ impl RpcCatalogServiceTrait for RpcCatalogService {
         let dataset = request.fields.dataset.clone().unwrap_or_default();
         let provider = self.provider(&peer).await?;
         let url = format!("{provider}/catalog/datasets/{dataset}");
+        let need = AccessNeed::of_call(&url, Some(&dataset), false);
         let answer: Value = send_with_peer_token(
             self.ctx.ports.auth.grants.as_ref(),
             user,
             &peer,
+            &need,
             true,
             |headers| http_client().get_json::<Value>(&url, headers),
         )

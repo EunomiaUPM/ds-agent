@@ -23,19 +23,23 @@ use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
 use chrono::{DateTime, Duration, Utc};
-use common::facades::grants_facade::VerifiedPeer;
+use common::facades::grants_facade::{AccessNeed, VerifiedPeer};
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use serde_json::{json, Value};
-use ymir::data::entities::received::grant;
+use ymir::data::entities::received::{grant, interaction};
+use ymir::data::entities::shared::resource_req;
 use ymir::errors::Errors;
 use ymir::errors::Outcome;
 use ymir::services::HasVerifier;
+use ymir::types::gnap::access_token::BoundToken;
 use ymir::types::gnap::grant_request::GrantKind;
-use ymir::types::gnap::grant_response::{ErrorCode, ErrorResponse, GrantResponse};
+use ymir::types::gnap::grant_response::{Continuation, ErrorCode, ErrorResponse, GrantResponse};
 use ymir::types::gnap::GrantStatus;
 use ymir::types::listing::{GrantSort, RecvGrantListFilter};
 use ymir::types::oauth::{RoleTrait, UserInfo};
-use ymir::utils::{errors_to_error_code, hash_token, require_field};
+use ymir::types::verification::VerificationStatus;
+use ymir::utils::{create_opaque_token, errors_to_error_code, hash_token, require_field};
+use crate::types::token::IssuedToken;
 
 /// Answering GNAP grant requests from peers: each one is verified with an OID4VP presentation.
 ///
@@ -101,13 +105,13 @@ pub trait GateKeeperModule:
     async fn get_by_id_with_details(&self, user: &UserInfo, id: &str) -> Outcome<Value> {
         let grant = self.get_by_id(user, id).await?;
         let resource_req = self.repo().resource_req().get_by_id(id).await?;
-        let interaction = self.repo().recv_interaction().get_by_id(id).await.ok();
-        let verification = self.repo().recv_verification().get_by_id(id).await.ok();
+        let interaction = self.repo().recv_interaction().get_latest_by_grant(id).await.ok();
+        let verifications = self.repo().recv_verification().get_all_by_grant(id).await?;
         Ok(json!({
             "grant": grant,
             "resource_req": resource_req,
             "interaction": interaction,
-            "verification": verification,
+            "verifications": verifications,
         }))
     }
 
@@ -131,6 +135,21 @@ pub trait GateKeeperModule:
             role: grant.role,
             visibility: grant.visibility,
         })
+    }
+
+    /// The peer behind `token` if it also covers `need`; missing-resource error otherwise.
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn authorize(&self, token: &str, need: &AccessNeed) -> Outcome<VerifiedPeer> {
+        let grant = self
+            .repo()
+            .recv_grant()
+            .get_valid_by_final_hash(&hash_token(token), Utc::now())
+            .await?;
+        let granted = self.repo().resource_req().get_by_id(&grant.id).await?.granted;
+        if !need.covered_by(granted.as_deref().unwrap_or_default()) {
+            return Err(Errors::missing_resource(&grant.id, "access not granted", None));
+        }
+        self.verify_token(token).await
     }
 
     // ==========================================================================================
@@ -167,6 +186,23 @@ pub trait GateKeeperModule:
             })
     }
 
+    /// Modifies an approved grant (`PATCH`); failures become a GNAP error body.
+    #[tracing::instrument(level = "info", skip_all)]
+    async fn manage_modify_req(
+        &self,
+        id: &str,
+        payload: Bytes,
+        headers: HeaderMap,
+    ) -> GrantResponse {
+        self.inner_manage_modify_req(id, payload, headers)
+            .await
+            .unwrap_or_else(|e| {
+                e.log();
+                let code = errors_to_error_code(&e);
+                GrantResponse::Error(ErrorResponse { error: code })
+            })
+    }
+
     #[tracing::instrument(level = "info", skip_all)]
     async fn manage_rotation(
         &self,
@@ -194,7 +230,7 @@ pub trait GateKeeperModule:
         headers: HeaderMap,
     ) -> Outcome<()> {
         let mut grant = self.get_managed_grant(managing_id).await?;
-        let interaction = self.repo().recv_interaction().get_by_id(&grant.id).await?;
+        let interaction = self.repo().recv_interaction().get_latest_by_grant(&grant.id).await?;
         self.gatekeeper().validate_managing_req(
             &grant,
             &interaction,
@@ -221,6 +257,10 @@ pub trait GateKeeperModule:
             .repo()
             .recv_grant()
             .finalize_stale_pending(now - Duration::seconds(PENDING_GRANT_TTL_SECS), now)
+            .await?;
+        self.repo()
+            .recv_verification()
+            .expire_stale_pending(now - Duration::seconds(PENDING_GRANT_TTL_SECS), now)
             .await?;
         Ok(expired + stale)
     }
@@ -282,7 +322,7 @@ pub trait GateKeeperModule:
         headers: HeaderMap,
     ) -> Outcome<GrantResponse> {
         let mut grant = self.get_managed_grant(managing_id).await?;
-        let interaction = self.repo().recv_interaction().get_by_id(&grant.id).await?;
+        let interaction = self.repo().recv_interaction().get_latest_by_grant(&grant.id).await?;
         self.gatekeeper().validate_managing_req(
             &grant,
             &interaction,
@@ -334,6 +374,7 @@ pub trait GateKeeperModule:
             &resource_req,
             issued.final_expires_in,
             issued.manage,
+            None,
         ))
     }
 
@@ -372,9 +413,9 @@ pub trait GateKeeperModule:
     }
 
     /// Checks the continuation against its interaction (the peer proves its key) and, with the
-    /// presentation verified, approves the grant with a new token. Stores the peer (if new; an
-    /// existing one is left as it is), the private relation of the verification with it, and
-    /// which peer the grant belongs to.
+    /// presentation verified, approves the grant (or its modification) with a new token. On the
+    /// first approval stores the peer (if new; an existing one is left as it is), the private
+    /// relation of the verification with it, and which peer the grant belongs to.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn inner_manage_continue_req(
         &self,
@@ -390,39 +431,155 @@ pub trait GateKeeperModule:
         self.gatekeeper()
             .validate_cont_req(&interaction, &payload, &headers)?;
 
-        let mut grant = self.repo().recv_grant().get_by_id(&interaction.id).await?;
+        let mut grant = self.repo().recv_grant().get_by_id(&interaction.grant_id).await?;
         let verification = self
             .repo()
             .recv_verification()
-            .get_by_id(&interaction.id)
+            .get_latest_by_grant(&grant.id)
             .await?;
-        let holder = require_field(verification.holder.as_ref(), "holder")?;
+        if verification.status != VerificationStatus::Verified {
+            return Err(Errors::security("The presentation is not verified", None));
+        }
+        let holder = require_field(verification.holder.as_ref(), "holder")?.to_string();
 
-        let mate = self.gatekeeper().build_mate_plan(
-            holder,
-            &grant.participant_nick,
-            &interaction.callback_uri,
-        );
-        self.repo().participant().create_if_absent(mate).await?;
-        let relation = self.gatekeeper().build_mate_rel_plan(&grant.role, holder);
-        self.repo().participant_relation().force_update(relation).await?;
+        let now = Utc::now();
+        let (issued, action) = match grant.status {
+            GrantStatus::Pending => {
+                let mate = self.gatekeeper().build_mate_plan(
+                    &holder,
+                    &grant.participant_nick,
+                    &interaction.callback_uri,
+                );
+                self.repo().participant().create_if_absent(mate).await?;
+                let relation = self.gatekeeper().build_mate_rel_plan(&grant.role, &holder);
+                self.repo().participant_relation().force_update(relation).await?;
 
-        let issued = self.gatekeeper().issue_token(&mut grant, Utc::now());
-        grant.participant_id = Some(holder.to_string());
-        grant.status = GrantStatus::Approved;
+                let issued = self.gatekeeper().issue_token(&mut grant, now);
+                grant.participant_id = Some(holder);
+                grant.status = GrantStatus::Approved;
+                (issued, "approved")
+            }
+            GrantStatus::Approved if grant.participant_id.as_deref() == Some(holder.as_str()) => {
+                (self.reissue_token(&mut grant, now)?, "modified")
+            }
+            _ => return Err(Errors::security("The grant cannot be continued", None)),
+        };
         let grant = self.repo().recv_grant().update(grant).await?;
-        self.gate_event(&grant, "approved").await;
+        self.gate_event(&grant, action).await;
 
-        let resource_req = self
-            .repo()
-            .resource_req()
-            .get_by_id(&interaction.id)
-            .await?;
+        let resource_req = self.grant_requested(&grant.id).await?;
+        let r#continue = self.rotate_continuation(interaction).await?;
         Ok(GrantResponse::token_issued(
             issued.final_token,
             &resource_req,
             issued.final_expires_in,
             issued.manage,
+            Some(r#continue),
         ))
+    }
+
+    /// New access for an approved grant: a token at once, or a presentation if more is needed.
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn inner_manage_modify_req(
+        &self,
+        id: &str,
+        payload: Bytes,
+        headers: HeaderMap,
+    ) -> Outcome<GrantResponse> {
+        let interaction = self
+            .repo()
+            .recv_interaction()
+            .get_by_continuation_id(id)
+            .await?;
+        let modify = self
+            .gatekeeper()
+            .validate_modify_req(&interaction, &payload, &headers)?;
+
+        let mut grant = self.repo().recv_grant().get_by_id(&interaction.grant_id).await?;
+        if grant.status != GrantStatus::Approved {
+            return Err(Errors::security("Only an approved grant can be modified", None));
+        }
+
+        let mut resource_req = self.repo().resource_req().get_by_id(&grant.id).await?;
+        resource_req.access = modify.access_token.access;
+        resource_req.flags = modify.access_token.flags;
+        if modify.access_token.label.is_some() {
+            resource_req.label = modify.access_token.label;
+        }
+        let resource_req = self.repo().resource_req().update(resource_req).await?;
+
+        let covered = self.missing_credentials(&grant.id).await?.is_empty();
+        if !covered && modify.interact.is_some() {
+            let round = self.gatekeeper().build_round_plan(&interaction, modify.interact)?;
+            let round = self.repo().recv_interaction().create(round).await?;
+            let verification = self.verifier().build_vp_plan(&grant.id)?;
+            let verification = self.repo().recv_verification().create(verification).await?;
+            let uri = self.verifier().generate_verification_uri(&verification).await?;
+            self.gate_event(&grant, "modifying").await;
+            return Ok(GrantResponse::pending(uri, &round));
+        }
+
+        let issued = self.reissue_token(&mut grant, Utc::now())?;
+        let grant = self.repo().recv_grant().update(grant).await?;
+        self.gate_event(&grant, "modified").await;
+        let resource_req = match covered {
+            true => self.grant_requested(&grant.id).await?,
+            false => resource_req,
+        };
+        let r#continue = self.rotate_continuation(interaction).await?;
+        Ok(GrantResponse::token_issued(
+            issued.final_token,
+            &resource_req,
+            issued.final_expires_in,
+            issued.manage,
+            Some(r#continue),
+        ))
+    }
+
+    /// New tokens for an approved grant, within its lifetime; the previous ones stop working.
+    fn reissue_token(&self, grant: &mut grant::Model, now: DateTime<Utc>) -> Outcome<IssuedToken> {
+        let (rotation, issued) = self.gatekeeper().rotate_token(grant, now)?;
+        grant.final_token_hash = Some(rotation.final_token_hash);
+        grant.final_expires_at = Some(rotation.final_expires_at);
+        grant.managing_token_hash = Some(rotation.managing_token_hash);
+        Ok(issued)
+    }
+
+    /// Grants all the access requested: which resources the peer may reach is not checked yet.
+    async fn grant_requested(&self, grant_id: &str) -> Outcome<resource_req::Model> {
+        let mut resource_req = self.repo().resource_req().get_by_id(grant_id).await?;
+        resource_req.granted = Some(resource_req.access.clone());
+        self.repo().resource_req().update(resource_req).await
+    }
+
+    /// Credentials the verifier asks for that no verified presentation of the grant has shown.
+    async fn missing_credentials(&self, grant_id: &str) -> Outcome<Vec<String>> {
+        let required = self.verifier().build_vp_plan(grant_id)?.vc_type;
+        let shown: Vec<_> = self
+            .repo()
+            .recv_verification()
+            .get_all_by_grant(grant_id)
+            .await?
+            .into_iter()
+            .filter(|v| v.status == VerificationStatus::Verified)
+            .flat_map(|v| v.vc_type)
+            .collect();
+        Ok(required
+            .into_iter()
+            .filter(|vc_type| !shown.contains(vc_type))
+            .map(|vc_type| vc_type.to_string())
+            .collect())
+    }
+
+    /// New continuation token; the old interaction reference stops working.
+    async fn rotate_continuation(&self, mut interaction: interaction::Model) -> Outcome<Continuation> {
+        interaction.continuation_token = create_opaque_token();
+        interaction.interact_ref = create_opaque_token();
+        let interaction = self.repo().recv_interaction().update(interaction).await?;
+        Ok(Continuation {
+            uri: interaction.continuation_endpoint,
+            wait: None,
+            access_token: BoundToken::new(interaction.continuation_token),
+        })
     }
 }

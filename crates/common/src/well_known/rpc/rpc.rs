@@ -19,9 +19,11 @@
 
 use std::sync::Arc;
 
+use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientExt;
 use ymir::types::oauth::UserInfo;
+use ymir::types::participants::ParticipantType;
 use ymir::utils::http_client;
 
 use crate::dsp_common::well_known_types::{VersionPath, VersionResponse};
@@ -69,6 +71,14 @@ impl WellKnownRPCTrait for WellKnownRPCService {
         &self,
         input: &WellKnownRPCRequest,
     ) -> Outcome<VersionPath> {
+        let known = self
+            .mates_facade
+            .get_all_mates(&UserInfo::system())
+            .await
+            .unwrap_or_default();
+        if let Some(path) = federated_dsp_base(&known, &input.participant_id).await {
+            return Ok(VersionPath { path });
+        }
         let (wk, base_url) = self.fetch_dataspace_well_known(input).await?;
 
         let current = wk
@@ -82,4 +92,22 @@ impl WellKnownRPCTrait for WellKnownRPCService {
         let path = format!("{}{}", base_url, current.path);
         Ok(VersionPath { path })
     }
+}
+
+/// DSP base of `participant_id` as the authorities among `known` publish it in their federated catalog.
+pub async fn federated_dsp_base(known: &[Mates], participant_id: &str) -> Option<String> {
+    for authority in known.iter().filter(|m| m.participant_type == ParticipantType::Authority) {
+        let url = format!("{}/.well-known/federated-catalog", authority.base_url.trim_end_matches('/'));
+        let Ok(catalog) = http_client().get_json::<Vec<Mates>>(&url, None).await else {
+            continue;
+        };
+        let base = catalog
+            .into_iter()
+            .find(|participant| participant.participant_id == participant_id)
+            .and_then(|participant| participant.extra_fields["dsp"]["base"].as_str().map(str::to_string));
+        if base.is_some() {
+            return base;
+        }
+    }
+    None
 }

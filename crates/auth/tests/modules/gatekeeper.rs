@@ -31,6 +31,7 @@ use ymir::types::gnap::access_token::{BoundToken, TokenManagement};
 use ymir::types::gnap::grant_response::{GrantResponse, GrantResponseKind};
 use ymir::types::gnap::GrantStatus;
 use ymir::types::participants::Visibility;
+use ymir::types::verification::VerificationStatus;
 use ymir::utils::hash_token;
 
 use crate::support::builders::{
@@ -56,8 +57,14 @@ fn continuation(d: &mut Doubles, holder: Option<&'static str>) {
         .returning(|id| Ok(recv_grant("/admin", id)));
     d.repos
         .recv_verification
-        .expect_get_by_id()
-        .returning(move |id| Ok(recv_verification(id, holder)));
+        .expect_get_latest_by_grant()
+        .returning(move |id| {
+            let mut verification = recv_verification(id, holder);
+            if holder.is_some() {
+                verification.status = VerificationStatus::Verified;
+            }
+            Ok(verification)
+        });
 }
 
 // ==========================================================================================
@@ -94,7 +101,7 @@ async fn grant_request_is_stored_and_answered_with_the_verification_uri() {
         .recv_interaction
         .expect_create()
         .times(1)
-        .returning(|plan| Ok(recv_interaction(&plan.id)));
+        .returning(|plan| Ok(recv_interaction(&plan.grant_id)));
     d.repos.resource_req.expect_create().times(1).returning(Ok);
     d.verifier
         .expect_build_vp_plan()
@@ -104,7 +111,7 @@ async fn grant_request_is_stored_and_answered_with_the_verification_uri() {
         .recv_verification
         .expect_create()
         .times(1)
-        .returning(|plan| Ok(recv_verification(&plan.id, None)));
+        .returning(|plan| Ok(recv_verification(&plan.grant_id, None)));
     d.verifier
         .expect_generate_verification_uri()
         .returning(|_| Ok("openid4vp://me?state=state-1".to_string()));
@@ -196,6 +203,8 @@ async fn continuation_approves_the_grant_with_a_token_for_the_peer() {
         .resource_req
         .expect_get_by_id()
         .returning(|id| Ok(resource_req(id)));
+    d.repos.resource_req.expect_update().returning(Ok);
+    d.repos.recv_interaction.expect_update().returning(Ok);
 
     let response = d
         .core()

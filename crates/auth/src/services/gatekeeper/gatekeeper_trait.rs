@@ -27,7 +27,7 @@ use ymir::errors::Outcome;
 use ymir::types::gnap::grant_request::client::Client;
 use ymir::types::gnap::grant_request::interact::InteractRequest;
 use ymir::types::gnap::grant_request::{GrantRequest, GrantRequestKind};
-use ymir::types::gnap::InteractionFinishResponse;
+use ymir::types::gnap::{InteractionFinishResponse, ModifyRequest};
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::Visibility;
 
@@ -55,6 +55,12 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
         client: Client,
         interact: Option<InteractRequest>,
     ) -> Outcome<interaction::Plan>;
+    /// New interaction of a grant being modified, with its key and continuation URI.
+    fn build_round_plan(
+        &self,
+        previous: &interaction::Model,
+        interact: Option<InteractRequest>,
+    ) -> Outcome<interaction::Plan>;
     /// Participant record of the peer once verified.
     fn build_mate_plan(&self, holder: &str, nick: &str, base_url: &str) -> participant::Plan;
     /// Private relation of the verification with the verified peer, under `role`.
@@ -69,6 +75,13 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
         payload: &Bytes,
         headers: &HeaderMap,
     ) -> Outcome<()>;
+    /// Checks a grant modification (`PATCH` on the continuation URI) and parses it.
+    fn validate_modify_req(
+        &self,
+        model: &interaction::Model,
+        payload: &Bytes,
+        headers: &HeaderMap,
+    ) -> Outcome<ModifyRequest>;
     /// Answer that closes the interaction, sent to the peer's callback.
     async fn finish_interaction(
         &self,

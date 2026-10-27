@@ -32,7 +32,7 @@ use ymir::utils::extract_payload;
 use crate::entities::filters::RecvGrantFilter;
 use crate::modules::GateKeeperModule;
 use common::facades::grants_facade::VerifiedPeer;
-use common::facades::VerifyTokenRequest;
+use common::facades::{AuthorizeTokenRequest, VerifyTokenRequest};
 use common::paginated_spec::Paginated;
 use common::query::{QueryFilter, QuerySpec};
 use common::routes::auth::gate;
@@ -57,7 +57,7 @@ impl GateKeeperRouter {
     pub fn external(&self) -> Router {
         Router::new()
             .route(gate::ACCESS, post(Self::manage_req))
-            .route(gate::CONTINUE, post(Self::continue_req))
+            .route(gate::CONTINUE, post(Self::continue_req).patch(Self::modify_req))
             .route(
                 gate::TOKEN,
                 post(Self::rotate_token).delete(Self::revoke_token),
@@ -72,6 +72,7 @@ impl GateKeeperRouter {
             .route(gate::REQUEST, get(Self::get_one).delete(Self::disconnect))
             .route(gate::REQUEST_DETAILS, get(Self::get_one_with_details))
             .route(gate::TOKEN_VERIFY, post(Self::verify_token))
+            .route(gate::TOKEN_AUTHORIZE, post(Self::authorize))
             .with_state(self.gatekeeper.clone())
     }
 
@@ -95,6 +96,17 @@ impl GateKeeperRouter {
     ) -> AppResult<Json<GrantResponse>> {
         Ok(Json(
             gatekeeper.manage_continue_req(&id, payload, headers).await,
+        ))
+    }
+
+    async fn modify_req(
+        State(gatekeeper): State<Arc<dyn GateKeeperModule>>,
+        headers: HeaderMap,
+        Path(id): Path<String>,
+        payload: Bytes,
+    ) -> AppResult<Json<GrantResponse>> {
+        Ok(Json(
+            gatekeeper.manage_modify_req(&id, payload, headers).await,
         ))
     }
 
@@ -171,5 +183,13 @@ impl GateKeeperRouter {
     ) -> AppResult<Json<VerifiedPeer>> {
         let payload = extract_payload(payload)?;
         Ok(Json(gatekeeper.verify_token(&payload.token).await?))
+    }
+
+    async fn authorize(
+        State(gatekeeper): State<Arc<dyn GateKeeperModule>>,
+        payload: Result<Json<AuthorizeTokenRequest>, JsonRejection>,
+    ) -> AppResult<Json<VerifiedPeer>> {
+        let payload = extract_payload(payload)?;
+        Ok(Json(gatekeeper.authorize(&payload.token, &payload.need).await?))
     }
 }

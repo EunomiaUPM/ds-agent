@@ -94,7 +94,7 @@ impl VcRequesterTrait for VCReqService {
         };
 
         interaction::Plan {
-            id: id.to_string(),
+            grant_id: id.to_string(),
             start: vec![start],
             method: FinishMethod::Push,
             callback_uri,

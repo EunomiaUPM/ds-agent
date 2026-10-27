@@ -350,7 +350,6 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
           id: tempPeer.did,
           nick: "peer",
           url: `${tempPeer.url}/api/v1/gate/access`,
-          actions: ["talk"],
           auto: false,
           visibility: "Private",
         },
@@ -369,7 +368,8 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
       const details = await getPeerConnectionRequestDetails(latest.id);
       const uri =
         details.status === 200
-          ? ((details.data as { verification?: { uri?: string } }).verification?.uri ?? null)
+          ? ((details.data as { verifications?: { uri?: string }[] }).verifications?.slice(-1)[0]
+              ?.uri ?? null)
           : null;
       if (uri) {
         setOidc4vpRequestUriState(uri);

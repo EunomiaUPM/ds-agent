@@ -5,6 +5,9 @@
 // catalog browser, and once it completes the peer is stored as a mate with the chosen visibility.
 
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { customInstance } from "./orval-mutator";
+import type { AccessItem } from "./orval/model/accessItem";
 import { getDidFromUrl } from "./orval/did/did";
 import { useGetSessionUser } from "./orval/gateway/gateway";
 import { useGetAllPeerConnectionRequests } from "./orval/onboard/onboard";
@@ -78,5 +81,30 @@ export const usePeerConnections = () => {
     isLoading: sessionLoading || isLoading,
     statusOf: (participantId: string | undefined): PeerConnection =>
       (participantId && byPeer.get(participantId)) || "none",
+    /** This user's latest approved grant with the peer. */
+    approvedGrantOf: (participantId: string | undefined): SentGrant | undefined =>
+      ownGrants(data).find((g) => g.participant_id === participantId && g.status === "Approved"),
   };
 };
+
+/** What this user was granted by the peer of approved grant `grantId`. */
+export const useGrantedAccess = (grantId: string | undefined) => {
+  const { data } = useQuery({
+    queryKey: ["/peer-connection/request/details", grantId],
+    queryFn: () =>
+      customInstance<{
+        status: number;
+        data: { resource_req?: { granted?: AccessItem[] | null } };
+      }>(`/peer-connection/request/${encodeURIComponent(grantId!)}/details`, { method: "GET" }),
+    enabled: !!grantId,
+  });
+  return data?.status === 200 ? (data.data.resource_req?.granted ?? []) : undefined;
+};
+
+/** Whether `granted` covers dataset `id`: by its id or by the datasets of a catalog. */
+export const coversDataset = (granted: AccessItem[], id: string) =>
+  granted.some(
+    (access) =>
+      access.type.endsWith("/dataset") &&
+      (access.identifier === id || (access.locations ?? []).length > 0),
+  );

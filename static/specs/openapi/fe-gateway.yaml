@@ -6069,10 +6069,98 @@ paths:
       responses:
         '200':
           description: Request sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectedPeer'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /peer-connection/request/{id}/access:
+    post:
+      tags:
+      - Onboard
+      operationId: requestPeerDatasetAccess
+      summary: Widen an approved grant to a dataset it does not cover yet
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - dataset
+              properties:
+                dataset:
+                  type: string
+      responses:
+        '200':
+          description: Whether a presentation is now pending
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - pending
+                properties:
+                  pending:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /peer-connection/oid4vp/{id}/resolve:
+    post:
+      tags:
+      - Onboard
+      operationId: resolvePeerConnectionOid4vp
+      summary: Resolve the pending presentation request of an onboarding, without answering it
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      responses:
+        '200':
+          description: The request and who asks for it
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolvedPresentation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /peer-connection/oid4vp/{id}/present:
+    post:
+      tags:
+      - Onboard
+      operationId: presentPeerConnectionOid4vp
+      summary: Present to the pending request, unless who asks for it is not the peer
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      responses:
+        '200':
+          description: Presentation sent
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /peer-connection/oid4vp/{id}/refuse:
+    post:
+      tags:
+      - Onboard
+      operationId: refusePeerConnectionOid4vp
+      summary: Refuse the pending presentation request of an onboarding
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      responses:
+        '200':
+          description: Refusal sent
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /peer-connection/oid4vp/{id}:
     post:
       tags:
@@ -12658,7 +12746,6 @@ components:
       - id
       - nick
       - url
-      - actions
       - visibility
       properties:
         id:
@@ -12669,13 +12756,11 @@ components:
         url:
           type: string
           description: Base URL of the peer.
-        actions:
+        access:
           type: array
+          description: GNAP4DS access to ask for; the peer's catalog when empty.
           items:
-            type: string
-            examples:
-            - talk
-            - request-vc
+            $ref: '#/components/schemas/AccessItem'
         auto:
           type:
           - boolean
@@ -12688,6 +12773,63 @@ components:
           type:
           - boolean
           - 'null'
+    AccessItem:
+      type: object
+      description: One element of a GNAP `access` (GNAP4DS catalog, dataset, callback or offer).
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          examples:
+          - https://w3id.org/gnap4ds/dataset
+        locations:
+          type:
+          - array
+          - 'null'
+          items:
+            type: string
+        identifier:
+          type:
+          - string
+          - 'null'
+    ConnectedPeer:
+      type: object
+      required:
+      - id
+      properties:
+        id:
+          type: string
+          description: Id of the grant sent.
+    ResolvedPresentation:
+      type: object
+      description: A pending presentation request, resolved without answering it.
+      required:
+      - verifier
+      properties:
+        request:
+          description: The request as the wallet resolved it; none when it is not authentic.
+          type:
+          - object
+          - 'null'
+        verifier:
+          type: object
+          description: Who asks, checked against the peer.
+          required:
+          - state
+          properties:
+            state:
+              type: string
+              enum:
+              - verified
+              - mismatch
+              - same_origin
+              - unsigned
+              - untrusted
+            did:
+              type: string
+            reason:
+              type: string
     ReceivedGrant:
       type: object
       description: Grant a peer requested from this connector.

@@ -16,7 +16,8 @@
  */
 
 use serde::{Deserialize, Serialize};
-use ymir::types::gnap::grant_request::interact::{InteractAction, InteractStart};
+use ymir::types::gnap::grant_request::access::ResourceAccess;
+use ymir::types::gnap::grant_request::interact::InteractStart;
 use ymir::types::participants::Visibility;
 use ymir::types::vcs::VcTypeConfig;
 
@@ -32,13 +33,14 @@ pub struct ReachAuthority {
     pub auto: Option<bool>,
 }
 
-/// Onboarding request to a peer for `actions`; `auto` skips the manual steps.
+/// Onboarding request to a peer for `access` (its catalog if empty); `auto` skips manual steps.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReachProvider {
     pub id: String,
     pub nick: String,
     pub url: String,
-    pub actions: Vec<InteractAction>,
+    #[serde(default)]
+    pub access: Vec<ResourceAccess>,
     /// Who sees the request and, once it completes, the relation with the peer.
     pub visibility: Visibility,
     // #[serde(default)] TODO

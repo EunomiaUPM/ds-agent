@@ -53,7 +53,7 @@ fn request(d: &mut Doubles, auto: bool, what: VcWhatResponse) -> Arc<Mutex<Vec<G
     d.repos
         .sent_interaction
         .expect_create()
-        .returning(|plan| Ok(sent_interaction(&plan.id)));
+        .returning(|plan| Ok(sent_interaction(&plan.grant_id)));
     d.vc_requester
         .expect_send_grant_req()
         .returning(|grant, _| Ok(issued_token_response("t", &resource_req(&grant.id))));

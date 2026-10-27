@@ -24,7 +24,6 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use serde::Deserialize;
 use serde_json::Value;
 use ymir::data::entities::sent::grant;
 use ymir::errors::AppResult;
@@ -37,7 +36,9 @@ use crate::entities::filters::SentGrantFilter;
 use crate::http::path_id::decode_path_id;
 use crate::modules::PeerConnectorModule;
 use crate::types::entities::ReachProvider;
+use crate::types::response::ResolvedPresentation;
 use common::facades::grants_facade::PeerToken;
+use common::facades::PeerTokenRequest;
 use common::paginated_spec::Paginated;
 use common::query::{QueryFilter, QuerySpec};
 use common::routes::auth::peer_connection;
@@ -78,8 +79,12 @@ impl OnboarderRouter {
                 get(Self::get_one).delete(Self::disconnect),
             )
             .route(peer_connection::REQUEST_DETAILS, get(Self::get_one_with_details))
+            .route(peer_connection::REQUEST_ACCESS, post(Self::request_dataset))
             .route(peer_connection::OID4VP, post(Self::manage_oid4vp))
-            .route(peer_connection::TOKEN, get(Self::peer_token))
+            .route(peer_connection::OID4VP_RESOLVE, post(Self::resolve_oid4vp))
+            .route(peer_connection::OID4VP_PRESENT, post(Self::present_oid4vp))
+            .route(peer_connection::OID4VP_REFUSE, post(Self::refuse_oid4vp))
+            .route(peer_connection::TOKEN, post(Self::peer_token))
             .route(
                 peer_connection::TOKEN_REFRESH,
                 post(Self::refresh_peer_token),
@@ -158,11 +163,12 @@ impl OnboarderRouter {
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
         user: UserInfo,
         Path(id): Path<String>,
-        Query(query): Query<TokenQuery>,
+        payload: Result<Json<PeerTokenRequest>, JsonRejection>,
     ) -> AppResult<Response> {
         let id = decode_path_id(&id)?;
+        let payload = extract_payload(payload)?;
         let token = peer_connector
-            .peer_token(&user, &id, query.requested)
+            .peer_token(&user, &id, &payload.need, payload.requested)
             .await?;
         Ok(token_response(token))
     }
@@ -171,11 +177,12 @@ impl OnboarderRouter {
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
         user: UserInfo,
         Path(id): Path<String>,
-        Query(query): Query<TokenQuery>,
+        payload: Result<Json<PeerTokenRequest>, JsonRejection>,
     ) -> AppResult<Response> {
         let id = decode_path_id(&id)?;
+        let payload = extract_payload(payload)?;
         let token = peer_connector
-            .refresh_peer_token(&user, &id, query.requested)
+            .refresh_peer_token(&user, &id, &payload.need, payload.requested)
             .await?;
         Ok(token_response(token))
     }
@@ -188,9 +195,10 @@ impl OnboarderRouter {
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
         user: UserInfo,
         payload: Result<Json<ReachProvider>, JsonRejection>,
-    ) -> AppResult<()> {
+    ) -> AppResult<Json<Value>> {
         let payload = extract_payload(payload)?;
-        peer_connector.req_peer_connection(&user, payload).await
+        let id = peer_connector.req_peer_connection(&user, payload).await?;
+        Ok(Json(serde_json::json!({ "id": id })))
     }
 
     async fn manage_oid4vp(
@@ -202,16 +210,42 @@ impl OnboarderRouter {
         let payload = extract_payload(payload)?;
         peer_connector.process_oid4vp(&user, &id, payload).await
     }
-}
 
-#[derive(Deserialize)]
-struct TokenQuery {
-    #[serde(default = "requested_by_default")]
-    requested: bool,
-}
+    async fn request_dataset(
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        user: UserInfo,
+        Path(id): Path<String>,
+        payload: Result<Json<Value>, JsonRejection>,
+    ) -> AppResult<Json<Value>> {
+        let payload = extract_payload(payload)?;
+        let dataset = payload["dataset"].as_str().unwrap_or_default();
+        let pending = peer_connector.request_dataset(&user, &id, dataset).await?;
+        Ok(Json(serde_json::json!({ "pending": pending })))
+    }
 
-fn requested_by_default() -> bool {
-    true
+    async fn resolve_oid4vp(
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        user: UserInfo,
+        Path(id): Path<String>,
+    ) -> AppResult<Json<ResolvedPresentation>> {
+        Ok(Json(peer_connector.resolve_oid4vp(&user, &id).await?))
+    }
+
+    async fn present_oid4vp(
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        user: UserInfo,
+        Path(id): Path<String>,
+    ) -> AppResult<()> {
+        peer_connector.present_oid4vp(&user, &id).await
+    }
+
+    async fn refuse_oid4vp(
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        user: UserInfo,
+        Path(id): Path<String>,
+    ) -> AppResult<()> {
+        peer_connector.refuse_oid4vp(&user, &id).await
+    }
 }
 
 fn token_response(token: PeerToken) -> Response {

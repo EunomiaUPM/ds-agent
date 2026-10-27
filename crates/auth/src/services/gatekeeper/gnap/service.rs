@@ -38,12 +38,12 @@ use ymir::services::client::ClientTrait;
 use ymir::types::gnap::access_token::{BoundToken, TokenManagement};
 use ymir::types::gnap::grant_request::client::{Client, KeyMaterial, KeyProof};
 use ymir::types::gnap::grant_request::interact::{
-    FinishMethod, HashMethod, InteractAction, InteractRequest, InteractStart,
+    FinishMethod, HashMethod, InteractRequest, InteractStart,
 };
 use ymir::types::gnap::grant_request::{GrantKind, GrantRequest, GrantRequestKind};
 use ymir::types::gnap::{
     ApprovedCallbackBody, CallbackBody, ContinueRequest, InteractionFinishResponse,
-    RejectedCallbackBody,
+    ModifyRequest, RejectedCallbackBody,
 };
 use ymir::types::http::HttpBody;
 use ymir::types::keys::{Certificate, DbKeySource, KeySource, PublicKey};
@@ -78,6 +78,89 @@ impl GnapGateKeeperService {
             gate::PREFIX,
             fill(gate::TOKEN, managing_id),
         )
+    }
+
+    fn interaction_plan(
+        &self,
+        grant_id: &str,
+        key_source: DbKeySource,
+        interact: Option<InteractRequest>,
+        continuation_id: Option<String>,
+    ) -> Outcome<interaction::Plan> {
+        let interact = interact.ok_or_else(|| {
+            Errors::format(
+                BadFormat::Received,
+                "Petition malformed, interact field expected",
+                None,
+            )
+        })?;
+
+        if !interact.start.contains(&InteractStart::Oid4VP) {
+            return Err(Errors::format(
+                BadFormat::Received,
+                "Expected interact method oid4vp",
+                None,
+            ));
+        }
+
+        let finish = interact.finish.ok_or_else(|| {
+            Errors::format(
+                BadFormat::Received,
+                "Petition malformed. Expected inclusion of finish indicator in request",
+                None,
+            )
+        })?;
+
+        let method = match finish.method {
+            FinishMethod::Other(other) => {
+                return Err(Errors::not_impl(
+                    format!("Interact method {other} not supported"),
+                    None,
+                ))
+            }
+            supported => supported,
+        };
+
+        let callback_uri = finish.uri.ok_or_else(|| {
+            Errors::format(
+                BadFormat::Received,
+                "Petition malformed. Expected inclusion of a callback uri in request",
+                None,
+            )
+        })?;
+
+        if let Some(HashMethod::Other(other)) = &finish.hash_method {
+            return Err(Errors::not_impl(
+                format!("Unsupported hash method {other}"),
+                None,
+            ));
+        }
+
+        let host = format!(
+            "{}{}{}",
+            self.config.hosts().get_host(HostType::Http),
+            self.config.get_api_path(),
+            gate::PREFIX,
+        );
+        let grant_endpoint = format!("{host}{}", gate::ACCESS);
+        let continuation_endpoint = format!("{host}{}", base(gate::CONTINUE));
+        let continuation_token = create_opaque_token();
+
+        Ok(interaction::Plan {
+            grant_id: grant_id.to_string(),
+            start: interact.start,
+            method,
+            callback_uri,
+            key_source,
+            client_nonce: finish.nonce,
+            hash_method: finish.hash_method,
+            hints: interact.hints,
+            grant_endpoint,
+            continuation_endpoint,
+            continuation_id,
+            continuation_token,
+            continuation_wait: None,
+        })
     }
 
     fn seconds_until(at: DateTime<Utc>, now: DateTime<Utc>) -> u64 {
@@ -153,32 +236,17 @@ impl GateKeeperTrait for GnapGateKeeperService {
                 ))
             }
         };
-
-        let mut actions: Vec<InteractAction> = access_req
-            .access
-            .actions
-            .clone()
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|a| !matches!(a, InteractAction::Other(_) | InteractAction::RequestVc))
-            .collect();
-        if actions.is_empty() {
-            actions.push(InteractAction::Talk);
+        if access_req.access.is_empty() {
+            return Err(Errors::format(BadFormat::Received, "Empty access", None));
         }
 
-        let resource_req = resource_req::Model {
+        Ok(resource_req::Model {
             id: id.to_string(),
-            r#type: access_req.access.r#type,
-            actions,
-            locations: access_req.access.locations,
-            datatypes: access_req.access.datatypes,
-            identifier: access_req.access.identifier,
-            privileges: access_req.access.privileges,
+            access: access_req.access,
+            granted: None,
             label: access_req.label,
             flags: access_req.flags,
-        };
-
-        Ok(resource_req)
+        })
     }
 
     fn build_interaction_plan(
@@ -188,87 +256,24 @@ impl GateKeeperTrait for GnapGateKeeperService {
         interact: Option<InteractRequest>,
     ) -> Outcome<interaction::Plan> {
         info!("Managing Grant Request");
-
-        let interact = interact.ok_or_else(|| {
-            Errors::format(
-                BadFormat::Received,
-                "Petition malformed, interact field expected",
-                None,
-            )
-        })?;
-
-        if !interact.start.contains(&InteractStart::Oid4VP) {
-            return Err(Errors::format(
-                BadFormat::Received,
-                "Expected interact method oid4vp",
-                None,
-            ));
-        }
-
-        let finish = interact.finish.ok_or_else(|| {
-            Errors::format(
-                BadFormat::Received,
-                "Petition malformed. Expected inclusion of finish indicator in request",
-                None,
-            )
-        })?;
-
-        let method = match finish.method {
-            FinishMethod::Other(other) => {
-                return Err(Errors::not_impl(
-                    format!("Interact method {other} not supported"),
-                    None,
-                ))
-            }
-            supported => supported,
-        };
-
-        let callback_uri = finish.uri.ok_or_else(|| {
-            Errors::format(
-                BadFormat::Received,
-                "Petition malformed. Expected inclusion of a callback uri in request",
-                None,
-            )
-        })?;
-
-        if let Some(HashMethod::Other(other)) = &finish.hash_method {
-            return Err(Errors::not_impl(
-                format!("Unsupported hash method {other}"),
-                None,
-            ));
-        }
-
         let key_source = match &client.key.material {
             KeyMaterial::Jwk { jwk } => DbKeySource::PublicKey(jwk.clone()),
             KeyMaterial::Cert { cert } => DbKeySource::Cert(cert.clone()),
         };
+        self.interaction_plan(id, key_source, interact, None)
+    }
 
-        let host = format!(
-            "{}{}{}",
-            self.config.hosts().get_host(HostType::Http),
-            self.config.get_api_path(),
-            gate::PREFIX,
-        );
-        let grant_endpoint = format!("{host}{}", gate::ACCESS);
-        let continuation_endpoint = format!("{host}{}", base(gate::CONTINUE));
-        let continuation_token = create_opaque_token();
-
-        let interaction = interaction::Plan {
-            id: id.to_string(),
-            start: interact.start,
-            method,
-            callback_uri,
-            key_source,
-            client_nonce: finish.nonce,
-            hash_method: finish.hash_method,
-            hints: interact.hints,
-            grant_endpoint,
-            continuation_endpoint,
-            continuation_token,
-            continuation_wait: None,
-        };
-
-        Ok(interaction)
+    fn build_round_plan(
+        &self,
+        previous: &interaction::Model,
+        interact: Option<InteractRequest>,
+    ) -> Outcome<interaction::Plan> {
+        self.interaction_plan(
+            &previous.grant_id,
+            previous.key_source.clone(),
+            interact,
+            Some(previous.continuation_id.clone()),
+        )
     }
 
     fn build_mate_plan(&self, holder: &str, nick: &str, base_url: &str) -> participant::Plan {
@@ -371,6 +376,33 @@ impl GateKeeperTrait for GnapGateKeeperService {
             ));
         }
         Ok(())
+    }
+
+    fn validate_modify_req(
+        &self,
+        interaction: &interaction::Model,
+        payload: &Bytes,
+        headers: &HeaderMap,
+    ) -> Outcome<ModifyRequest> {
+        info!("Validating grant modification");
+        let key_source = Self::key_source(interaction)?;
+        HttpSig::verify(
+            headers,
+            &key_source,
+            "PATCH",
+            &interaction.continuation_endpoint,
+            payload,
+        )?;
+
+        if extract_gnap_token(headers)? != interaction.continuation_token {
+            return Err(Errors::security("Continuation token does not match", None));
+        }
+
+        let modify: ModifyRequest = serde_json::from_slice(payload)?;
+        if modify.access_token.access.is_empty() {
+            return Err(Errors::format(BadFormat::Received, "Empty access", None));
+        }
+        Ok(modify)
     }
 
     #[tracing::instrument(level = "info", skip_all, err)]

@@ -21,8 +21,9 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use common::facades::grants_facade::{AccessNeed, GrantsFacadeTrait, PeerToken, VerifiedPeer};
+use common::facades::grants_facade::{GrantsFacadeTrait, PeerToken, VerifiedPeer};
 use ymir::errors::Outcome;
+use ymir::types::gnap::grant_request::access::AccessNeed;
 use ymir::types::oauth::UserInfo;
 
 use crate::modules::{GateKeeperModule, PeerConnectorModule};

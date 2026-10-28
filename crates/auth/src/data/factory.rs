@@ -26,7 +26,8 @@ use ymir::services::repo::traits::sent::{
     SentGrantRepoTrait, SentInteractionRepoTrait, SentVerificationRepoTrait,
 };
 use ymir::services::repo::traits::shared::{
-    ParticipantRelationRepoTrait, ParticipantRepoTrait, ResourceReqRepoTrait,
+    ParticipantRelationRepoTrait, ParticipantRepoTrait, RegisteredDatasetRepoTrait,
+    ResourceReqRepoTrait,
 };
 
 /// Hands out the auth repositories; `sent_*` are flows we start, `recv_*` flows peers start.
@@ -42,4 +43,6 @@ pub trait AuthRepoTrait: Send + Sync + 'static {
     fn recv_grant(&self) -> Arc<dyn RecvGrantRepoTrait>;
     fn recv_interaction(&self) -> Arc<dyn RecvInteractionRepoTrait>;
     fn recv_verification(&self) -> Arc<dyn RecvVerificationRepoTrait>;
+    /// The datasets the catalog registered: what grants can give.
+    fn registered_dataset(&self) -> Arc<dyn RegisteredDatasetRepoTrait>;
 }

@@ -348,7 +348,7 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
             }
             GrantResponse::Error(error) => {
                 if !modifying {
-                    grant.status = GrantStatus::Rejected;
+                    grant.status = GrantStatus::Finalized;
                     grant.ended_at = Some(chrono::Utc::now());
                 }
                 Err(Errors::provider_grant(format!(

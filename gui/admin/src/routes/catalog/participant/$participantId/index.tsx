@@ -63,6 +63,7 @@ function RouteComponent() {
   const connections = usePeerConnections();
   const connection = connections.statusOf(participantId);
   const grant = connections.approvedGrantOf(participantId);
+  const pendingGrant = connections.pendingGrantOf(participantId);
   const granted = useGrantedAccess(grant?.id);
   const [widening, setWidening] = useState<{ id: string; title: string } | null>(null);
 
@@ -173,23 +174,23 @@ function RouteComponent() {
         </PageHeader>
         <Card className="p-6 max-w-lg">
           <CardTitle className="mb-4">Connect with {nick}</CardTitle>
-          {connection === "pending" ? (
+          {connection === "pending" && participant && pendingGrant ? (
+            <ConnectPeerForm
+              key={pendingGrant.id}
+              participant={participant}
+              pending={pendingGrant.id}
+              onCancel={() => navigate({ to: "/catalog" })}
+            />
+          ) : connection === "pending" ? (
             <CardDescription className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
               Waiting for {nick} to accept your request; the catalog opens once it does.
             </CardDescription>
           ) : participant ? (
-            <>
-              {connection === "rejected" && (
-                <p className="mb-4 text-sm text-destructive">
-                  {nick} rejected your last request. You can ask again.
-                </p>
-              )}
-              <ConnectPeerForm
-                participant={participant}
-                onCancel={() => navigate({ to: "/catalog" })}
-              />
-            </>
+            <ConnectPeerForm
+              participant={participant}
+              onCancel={() => navigate({ to: "/catalog" })}
+            />
           ) : (
             <CardDescription>
               This participant is not in the federated catalog of your authority.

@@ -27,7 +27,7 @@ services:
 
   fafnir-setup:
     container_name: "consumer-fafnir-setup"
-    image: "rmenendez8/fafnir:v0.3.0"
+    image: "rmenendez8/fafnir:v0.4.test"
     platform: linux/amd64
     depends_on:
       consumer-db:
@@ -46,7 +46,7 @@ services:
 
   fafnir-wallet:
     container_name: "consumer-fafnir-wallet"
-    image: "rmenendez8/fafnir:v0.3.0"
+    image: "rmenendez8/fafnir:v0.4.test"
     platform: linux/amd64
     restart: always
     depends_on:

@@ -16,7 +16,7 @@ import * as z from "zod";
 import QRCode from "react-qr-code";
 import { useState } from "react";
 import { FormatDate } from "shared/src/components/ui/format-date";
-import { grantBadgeState } from "shared/src/lib/utils";
+import { grantBadgeState, verificationBadgeState } from "shared/src/lib/utils";
 import {
   AlertCircle,
   ArrowLeft,
@@ -430,7 +430,7 @@ function SentRequestDetails() {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
                 <DetailItem label="Status">
-                  <Badge variant={"status"} state={verification.status}>
+                  <Badge variant={"status"} state={verificationBadgeState(verification.status)}>
                     {verification.status}
                   </Badge>
                 </DetailItem>
@@ -521,6 +521,8 @@ function SentRequestDetails() {
 
 function getTimelineData(req: SentGrant) {
   const status = req.status?.toLowerCase() || "";
+  // A finalized grant that never got a token ended without being approved.
+  const wasApproved = !!req.final_expires_at;
   const pastEvents: { id: string; title: string; date?: string | null }[] = [
     { id: "created", title: "Request Created", date: req.created_at },
   ];
@@ -533,10 +535,7 @@ function getTimelineData(req: SentGrant) {
   } else if (status === "finalized") {
     pastEvents.push({ id: "processing", title: "Processing" });
     pastEvents.push({ id: "pending", title: "Pending" });
-    pastEvents.push({ id: "approved", title: "Approved" });
-  } else if (status === "rejected") {
-    pastEvents.push({ id: "processing", title: "Processing" });
-    pastEvents.push({ id: "pending", title: "Pending" });
+    if (wasApproved) pastEvents.push({ id: "approved", title: "Approved" });
   }
 
   let instruction = "";
@@ -552,10 +551,9 @@ function getTimelineData(req: SentGrant) {
       instruction = "You have successfully authenticated. An access token is available for use.";
       break;
     case "finalized":
-      instruction = "The connection lifecycle has ended (token expired or session closed).";
-      break;
-    case "rejected":
-      instruction = "The request was rejected. No further action can be taken.";
+      instruction = wasApproved
+        ? "The connection lifecycle has ended (token expired or session closed)."
+        : "The request ended without being approved. No further action can be taken.";
       break;
     default:
       instruction = "Unknown state.";

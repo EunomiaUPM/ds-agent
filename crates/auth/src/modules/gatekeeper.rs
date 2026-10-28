@@ -23,20 +23,25 @@ use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
 use chrono::{DateTime, Duration, Utc};
-use common::facades::grants_facade::{AccessNeed, VerifiedPeer};
+use common::facades::grants_facade::VerifiedPeer;
+use common::oauth::OwnershipTrait;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use serde_json::{json, Value};
 use ymir::data::entities::received::{grant, interaction};
-use ymir::data::entities::shared::resource_req;
+use ymir::data::entities::shared::{registered_dataset, resource_req};
 use ymir::errors::Errors;
 use ymir::errors::Outcome;
 use ymir::services::HasVerifier;
 use ymir::types::gnap::access_token::BoundToken;
 use ymir::types::gnap::grant_request::GrantKind;
+use ymir::types::gnap::grant_request::access::{
+    dsp_base, location_matches, AccessNeed, AccessType, ResourceAccess,
+};
 use ymir::types::gnap::grant_response::{Continuation, ErrorCode, ErrorResponse, GrantResponse};
 use ymir::types::gnap::GrantStatus;
 use ymir::types::listing::{GrantSort, RecvGrantListFilter};
-use ymir::types::oauth::{RoleTrait, UserInfo};
+use ymir::types::oauth::{RolePath, RoleTrait, UserInfo};
+use ymir::types::vcs::VcType;
 use ymir::types::verification::VerificationStatus;
 use ymir::utils::{create_opaque_token, errors_to_error_code, hash_token, require_field};
 use crate::types::token::IssuedToken;
@@ -64,6 +69,7 @@ pub trait GateKeeperModule:
     ) -> Outcome<Paginated<grant::Model>> {
         let list_page = page.list_page(sort, GrantSort::Created, GrantSort::Updated)?;
         let list_filter = RecvGrantListFilter {
+            user_id: user.id().to_string(),
             role: user.role().clone(),
             kind: filter.kind.clone().unwrap_or(GrantKind::AccessToken),
             nick_contains: filter.participant_nick.clone(),
@@ -91,20 +97,43 @@ pub trait GateKeeperModule:
         ))
     }
 
-    /// The received grant `id` if `user` sees it; missing-resource error otherwise.
+    /// The received grant `id` if `user` sees it, by its role or because it grants a dataset
+    /// `user` sees; missing-resource error otherwise.
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_by_id(&self, user: &UserInfo, id: &str) -> Outcome<grant::Model> {
         let grant = self.repo().recv_grant().get_by_id(id).await?;
-        user.ensure_sees_team(&grant.role, &grant.visibility, id)?;
+        let seen = user.ensure_sees_team(&grant.role, &grant.visibility, id);
+        if seen.is_err() {
+            let granted = self.repo().resource_req().get_by_id(id).await?.granted;
+            let datasets = self.granted_datasets(granted.as_deref().unwrap_or_default()).await?;
+            if !datasets.iter().any(|d| sees_dataset(user, d)) {
+                seen?;
+            }
+        }
         Ok(grant)
     }
 
     /// The received grant with its resource request, interaction and verification, if `user`
-    /// sees the grant.
+    /// sees the grant; of what it grants, only the registered datasets `user` sees.
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn get_by_id_with_details(&self, user: &UserInfo, id: &str) -> Outcome<Value> {
         let grant = self.get_by_id(user, id).await?;
-        let resource_req = self.repo().resource_req().get_by_id(id).await?;
+        let mut resource_req = self.repo().resource_req().get_by_id(id).await?;
+        if let Some(granted) = resource_req.granted.take() {
+            let hidden: Vec<String> = self
+                .granted_datasets(&granted)
+                .await?
+                .into_iter()
+                .filter(|d| !sees_dataset(user, d))
+                .map(|d| d.id)
+                .collect();
+            resource_req.granted = Some(
+                granted
+                    .into_iter()
+                    .filter(|e| e.identifier.as_ref().is_none_or(|id| !hidden.contains(id)))
+                    .collect(),
+            );
+        }
         let interaction = self.repo().recv_interaction().get_latest_by_grant(id).await.ok();
         let verifications = self.repo().recv_verification().get_all_by_grant(id).await?;
         Ok(json!({
@@ -401,11 +430,12 @@ pub trait GateKeeperModule:
             .gatekeeper()
             .build_resource_req_plan(&grant.id, grant_request.kind)?;
 
+        let vcs = self.required_vcs(&resource_req.access).await?;
         let grant = self.repo().recv_grant().create(grant).await?;
         let interaction = self.repo().recv_interaction().create(interaction).await?;
         self.repo().resource_req().create(resource_req).await?;
 
-        let verification = self.verifier().build_vp_plan(&grant.id)?;
+        let verification = self.verifier().build_vp_plan(&grant.id, &vcs)?;
         let verification = self.repo().recv_verification().create(verification).await?;
         let uri = self.verifier().generate_verification_uri(&verification).await?;
         self.gate_event(&grant, "requested").await;
@@ -441,33 +471,36 @@ pub trait GateKeeperModule:
             return Err(Errors::security("The presentation is not verified", None));
         }
         let holder = require_field(verification.holder.as_ref(), "holder")?.to_string();
-
-        let now = Utc::now();
-        let (issued, action) = match grant.status {
-            GrantStatus::Pending => {
-                let mate = self.gatekeeper().build_mate_plan(
-                    &holder,
-                    &grant.participant_nick,
-                    &interaction.callback_uri,
-                );
-                self.repo().participant().create_if_absent(mate).await?;
-                let relation = self.gatekeeper().build_mate_rel_plan(&grant.role, &holder);
-                self.repo().participant_relation().force_update(relation).await?;
-
-                let issued = self.gatekeeper().issue_token(&mut grant, now);
-                grant.participant_id = Some(holder);
-                grant.status = GrantStatus::Approved;
-                (issued, "approved")
-            }
+        let first = match grant.status {
+            GrantStatus::Pending => true,
             GrantStatus::Approved if grant.participant_id.as_deref() == Some(holder.as_str()) => {
-                (self.reissue_token(&mut grant, now)?, "modified")
+                false
             }
             _ => return Err(Errors::security("The grant cannot be continued", None)),
+        };
+        let resource_req = self.grant_requested(&mut grant).await?;
+
+        let now = Utc::now();
+        let (issued, action) = if first {
+            let mate = self.gatekeeper().build_mate_plan(
+                &holder,
+                &grant.participant_nick,
+                &interaction.callback_uri,
+            );
+            self.repo().participant().create_if_absent(mate).await?;
+            let relation = self.gatekeeper().build_mate_rel_plan(&grant.role, &holder);
+            self.repo().participant_relation().force_update(relation).await?;
+
+            let issued = self.gatekeeper().issue_token(&mut grant, now);
+            grant.participant_id = Some(holder);
+            grant.status = GrantStatus::Approved;
+            (issued, "approved")
+        } else {
+            (self.reissue_token(&mut grant, now)?, "modified")
         };
         let grant = self.repo().recv_grant().update(grant).await?;
         self.gate_event(&grant, action).await;
 
-        let resource_req = self.grant_requested(&grant.id).await?;
         let r#continue = self.rotate_continuation(interaction).await?;
         Ok(GrantResponse::token_issued(
             issued.final_token,
@@ -508,24 +541,26 @@ pub trait GateKeeperModule:
         }
         let resource_req = self.repo().resource_req().update(resource_req).await?;
 
-        let covered = self.missing_credentials(&grant.id).await?.is_empty();
+        let required = self.required_vcs(&resource_req.access).await?;
+        let missing = self.missing_credentials(&grant.id, required).await?;
+        let covered = missing.is_empty();
         if !covered && modify.interact.is_some() {
             let round = self.gatekeeper().build_round_plan(&interaction, modify.interact)?;
             let round = self.repo().recv_interaction().create(round).await?;
-            let verification = self.verifier().build_vp_plan(&grant.id)?;
+            let verification = self.verifier().build_vp_plan(&grant.id, &missing)?;
             let verification = self.repo().recv_verification().create(verification).await?;
             let uri = self.verifier().generate_verification_uri(&verification).await?;
             self.gate_event(&grant, "modifying").await;
             return Ok(GrantResponse::pending(uri, &round));
         }
 
+        let resource_req = match covered {
+            true => self.grant_requested(&mut grant).await?,
+            false => resource_req,
+        };
         let issued = self.reissue_token(&mut grant, Utc::now())?;
         let grant = self.repo().recv_grant().update(grant).await?;
         self.gate_event(&grant, "modified").await;
-        let resource_req = match covered {
-            true => self.grant_requested(&grant.id).await?,
-            false => resource_req,
-        };
         let r#continue = self.rotate_continuation(interaction).await?;
         Ok(GrantResponse::token_issued(
             issued.final_token,
@@ -545,17 +580,114 @@ pub trait GateKeeperModule:
         Ok(issued)
     }
 
-    /// Grants all the access requested: which resources the peer may reach is not checked yet.
-    async fn grant_requested(&self, grant_id: &str) -> Outcome<resource_req::Model> {
-        let mut resource_req = self.repo().resource_req().get_by_id(grant_id).await?;
-        resource_req.granted = Some(resource_req.access.clone());
+    /// The registered datasets among those `granted` names by id.
+    async fn granted_datasets(
+        &self,
+        granted: &[ResourceAccess],
+    ) -> Outcome<Vec<registered_dataset::Model>> {
+        let ids: Vec<String> = granted
+            .iter()
+            .filter(|e| e.r#type == AccessType::Dataset)
+            .filter_map(|e| e.identifier.clone())
+            .collect();
+        match ids.is_empty() {
+            true => Ok(Vec::new()),
+            false => self.repo().registered_dataset().get_by_ids(&ids).await,
+        }
+    }
+
+    /// Leaves exactly `datasets` registered, as the catalog publishes them.
+    #[tracing::instrument(level = "info", skip_all, err, fields(datasets = datasets.len()))]
+    async fn register_datasets(&self, datasets: Vec<registered_dataset::Model>) -> Outcome<()> {
+        self.repo().registered_dataset().replace_all(datasets).await
+    }
+
+    /// The credentials `access` asks for: the base, plus what each registered dataset asked by id
+    /// adds. By `locations` only the base: each dataset is then granted if covered.
+    async fn required_vcs(&self, access: &[ResourceAccess]) -> Outcome<Vec<VcType>> {
+        let ids: Vec<String> = access
+            .iter()
+            .filter(|e| e.r#type == AccessType::Dataset)
+            .filter_map(|e| e.identifier.clone())
+            .collect();
+        let extras: Vec<VcType> = match ids.is_empty() {
+            true => Vec::new(),
+            false => self
+                .repo()
+                .registered_dataset()
+                .get_by_ids(&ids)
+                .await?
+                .into_iter()
+                .flat_map(|d| d.requirements)
+                .collect(),
+        };
+        Ok(self.gatekeeper().required_vcs(&extras))
+    }
+
+    /// Grants what the verified credentials cover now (GNAP4DS 3.3), so a dataset published later
+    /// needs a `PATCH`. A `dataset` by `locations` becomes the `catalog` of each location and one
+    /// `dataset` per covered one registered there, and the grant passes to the longest role they
+    /// all hang from; a `dataset` by id, if registered and covered; the rest as asked.
+    async fn grant_requested(&self, grant: &mut grant::Model) -> Outcome<resource_req::Model> {
+        let mut resource_req = self.repo().resource_req().get_by_id(&grant.id).await?;
+        let shown = self.shown_credentials(&grant.id).await?;
+        let covers = |d: &registered_dataset::Model| d.requirements.iter().all(|vc| shown.contains(vc));
+        let is_dataset = |e: &ResourceAccess| e.r#type == AccessType::Dataset;
+        let locations: Vec<String> = resource_req
+            .access
+            .iter()
+            .filter(|e| is_dataset(*e) && e.identifier.is_none())
+            .flat_map(|e| e.locations.clone().unwrap_or_default())
+            .collect();
+        let ids: Vec<String> = resource_req
+            .access
+            .iter()
+            .filter(|e| is_dataset(*e))
+            .filter_map(|e| e.identifier.clone())
+            .collect();
+
+        let registry = self.repo().registered_dataset();
+        let under = |d: &registered_dataset::Model| {
+            locations.iter().any(|l| location_matches(&d.location, l))
+        };
+        let by_location: Vec<_> = match locations.is_empty() {
+            true => Vec::new(),
+            false => registry
+                .get_all()
+                .await?
+                .into_iter()
+                .filter(|d| under(d) && covers(d))
+                .collect(),
+        };
+        let by_id: Vec<_> = match ids.is_empty() {
+            true => Vec::new(),
+            false => registry.get_by_ids(&ids).await?.into_iter().filter(covers).collect(),
+        };
+        if !by_location.is_empty() {
+            let roles: Vec<RolePath> = by_location.iter().map(|d| d.owner_role.clone()).collect();
+            grant.role = common_root(&roles);
+        }
+
+        let mut granted: Vec<ResourceAccess> = Vec::new();
+        let elements = resource_req
+            .access
+            .iter()
+            .filter(|e| !is_dataset(*e))
+            .cloned()
+            .chain(locations.iter().map(|l| ResourceAccess::catalog(dsp_base(l))))
+            .chain(by_location.iter().chain(&by_id).map(|d| ResourceAccess::dataset(d.id.clone())));
+        for element in elements {
+            if !granted.contains(&element) {
+                granted.push(element);
+            }
+        }
+        resource_req.granted = Some(granted);
         self.repo().resource_req().update(resource_req).await
     }
 
-    /// Credentials the verifier asks for that no verified presentation of the grant has shown.
-    async fn missing_credentials(&self, grant_id: &str) -> Outcome<Vec<String>> {
-        let required = self.verifier().build_vp_plan(grant_id)?.vc_type;
-        let shown: Vec<_> = self
+    /// The credentials the grant's verified presentations have shown.
+    async fn shown_credentials(&self, grant_id: &str) -> Outcome<Vec<VcType>> {
+        Ok(self
             .repo()
             .recv_verification()
             .get_all_by_grant(grant_id)
@@ -563,11 +695,19 @@ pub trait GateKeeperModule:
             .into_iter()
             .filter(|v| v.status == VerificationStatus::Verified)
             .flat_map(|v| v.vc_type)
-            .collect();
+            .collect())
+    }
+
+    /// Of `required`, the credentials no verified presentation of the grant has shown.
+    async fn missing_credentials(
+        &self,
+        grant_id: &str,
+        required: Vec<VcType>,
+    ) -> Outcome<Vec<VcType>> {
+        let shown = self.shown_credentials(grant_id).await?;
         Ok(required
             .into_iter()
             .filter(|vc_type| !shown.contains(vc_type))
-            .map(|vc_type| vc_type.to_string())
             .collect())
     }
 
@@ -582,4 +722,23 @@ pub trait GateKeeperModule:
             access_token: BoundToken::new(interaction.continuation_token),
         })
     }
+}
+
+/// Whether `user` sees `dataset` inside the connector, by its owner.
+fn sees_dataset(user: &UserInfo, dataset: &registered_dataset::Model) -> bool {
+    user.sees_record(&dataset.owner_user_id, &dataset.owner_role, &dataset.owner_visibility)
+}
+
+/// The longest role path every one of `roles` is or hangs from; the root when they share none.
+fn common_root(roles: &[RolePath]) -> RolePath {
+    let segments = |role: &RolePath| role.as_str().split('/').skip(1).map(str::to_string).collect::<Vec<_>>();
+    let Some((first, rest)) = roles.split_first() else {
+        return RolePath::root();
+    };
+    let mut common = segments(first);
+    for role in rest {
+        let shared = common.iter().zip(segments(role)).take_while(|(a, b)| **a == *b).count();
+        common.truncate(shared);
+    }
+    format!("/{}", common.join("/")).parse().unwrap_or_else(|_| RolePath::root())
 }

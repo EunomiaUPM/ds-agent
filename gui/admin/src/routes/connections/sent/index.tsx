@@ -110,7 +110,6 @@ function SentConnectionsPage() {
                 { label: "Processing", value: "Processing" },
                 { label: "Pending", value: "Pending" },
                 { label: "Approved", value: "Approved" },
-                { label: "Rejected", value: "Rejected" },
                 { label: "Finalized", value: "Finalized" },
               ],
             },

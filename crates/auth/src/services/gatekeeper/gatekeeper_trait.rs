@@ -30,11 +30,14 @@ use ymir::types::gnap::grant_request::{GrantRequest, GrantRequestKind};
 use ymir::types::gnap::{InteractionFinishResponse, ModifyRequest};
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::Visibility;
+use ymir::types::vcs::VcType;
 
 /// Gatekeeper side of GNAP: building and checking what peers send.
 #[mockall::automock]
 #[async_trait]
 pub trait GateKeeperTrait: Send + Sync + 'static {
+    /// The credentials asked of every peer (the base), followed by `extras` not already in it.
+    fn required_vcs(&self, extras: &[VcType]) -> Vec<VcType>;
     /// New received grant; `class_id` is the class the peer claims (its nick). Without a `role`
     /// the root handles it, and without a `visibility` it is public: once stored, a grant always
     /// has both.

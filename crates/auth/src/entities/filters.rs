@@ -64,7 +64,6 @@ where
         Some(s) => match s.to_lowercase().as_str() {
             "approved" => Ok(Some(GrantStatus::Approved)),
             "pending" => Ok(Some(GrantStatus::Pending)),
-            "rejected" => Ok(Some(GrantStatus::Rejected)),
             "processing" => Ok(Some(GrantStatus::Processing)),
             "finalized" => Ok(Some(GrantStatus::Finalized)),
             _ => Ok(None),

@@ -21,10 +21,11 @@ use axum::body::Bytes;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
-use axum::routing::{get, post};
+use axum::routing::{get, post, put};
 use axum::{Json, Router};
 use serde_json::Value;
 use ymir::data::entities::received::grant;
+use ymir::data::entities::shared::registered_dataset::Model as RegisteredDataset;
 use ymir::errors::AppResult;
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::oauth::UserInfo;
@@ -73,6 +74,7 @@ impl GateKeeperRouter {
             .route(gate::REQUEST_DETAILS, get(Self::get_one_with_details))
             .route(gate::TOKEN_VERIFY, post(Self::verify_token))
             .route(gate::TOKEN_AUTHORIZE, post(Self::authorize))
+            .route(gate::REGISTRY_DATASETS, put(Self::register_datasets))
             .with_state(self.gatekeeper.clone())
     }
 
@@ -191,5 +193,13 @@ impl GateKeeperRouter {
     ) -> AppResult<Json<VerifiedPeer>> {
         let payload = extract_payload(payload)?;
         Ok(Json(gatekeeper.authorize(&payload.token, &payload.need).await?))
+    }
+
+    async fn register_datasets(
+        State(gatekeeper): State<Arc<dyn GateKeeperModule>>,
+        payload: Result<Json<Vec<RegisteredDataset>>, JsonRejection>,
+    ) -> AppResult<Json<Value>> {
+        gatekeeper.register_datasets(extract_payload(payload)?).await?;
+        Ok(Json(Value::Null))
     }
 }

@@ -20,9 +20,10 @@
 
 use auth::modules::PeerConnectorModule;
 use auth::types::response::TokenWhatResponse;
-use common::facades::grants_facade::{AccessNeed, PeerToken};
+use common::facades::grants_facade::PeerToken;
 use common::test_utils::scopes::TestUsers;
 use ymir::errors::Errors;
+use ymir::types::gnap::grant_request::access::AccessNeed;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody, GrantStatus, RejectedCallbackBody};
 use ymir::types::verification::VerificationStatus;
 use ymir::types::wallet::OidcUri;
@@ -233,9 +234,9 @@ async fn presentation_of_a_colleagues_grant_is_refused() {
 // Callbacks (the peer)
 // ==========================================================================================
 
-/// A rejection callback closes the grant as rejected.
+/// A rejection callback finalizes the grant.
 #[tokio::test]
-async fn rejection_callback_rejects_the_grant() {
+async fn rejection_callback_finalizes_the_grant() {
     let mut d = Doubles::default();
     d.repos
         .sent_grant
@@ -244,7 +245,7 @@ async fn rejection_callback_rejects_the_grant() {
     d.repos
         .sent_grant
         .expect_update()
-        .withf(|g| g.status == GrantStatus::Rejected && g.ended_at.is_some())
+        .withf(|g| g.status == GrantStatus::Finalized && g.ended_at.is_some())
         .times(1)
         .returning(Ok);
 

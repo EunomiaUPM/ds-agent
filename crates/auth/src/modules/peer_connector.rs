@@ -25,14 +25,14 @@ use crate::types::response::{
 use crate::types::token_lifetimes::{EXPIRY_MARGIN_SECS, PENDING_GRANT_TTL_SECS};
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
-use common::facades::grants_facade::{AccessNeed, PeerToken};
+use common::facades::grants_facade::PeerToken;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use common::well_known::rpc::rpc::federated_dsp_base;
 use serde_json::{json, Value};
 use ymir::data::entities::sent::{grant, interaction, verification};
 use ymir::errors::{Errors, Outcome};
 use ymir::services::HasWallet;
-use ymir::types::gnap::grant_request::access::ResourceAccess;
+use ymir::types::gnap::grant_request::access::{AccessNeed, ResourceAccess};
 use ymir::types::gnap::grant_request::GrantKind;
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody, GrantStatus};
@@ -580,7 +580,7 @@ pub trait PeerConnectorModule:
                 .manage_grant_resp(grant_resp, &mut grant, &mut interaction);
         let grant = self.repo().sent_grant().update(grant).await?;
         let _interaction = self.repo().sent_interaction().update(interaction).await?;
-        if grant.status == GrantStatus::Rejected {
+        if grant.status == GrantStatus::Finalized {
             self.peer_event(&grant, "rejected").await;
         }
 
@@ -642,7 +642,7 @@ pub trait PeerConnectorModule:
         Ok(())
     }
 
-    /// Marks grant `id` rejected, as the peer answered.
+    /// Finalizes grant `id`, as the peer rejected it.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_rejection(&self, id: &str) -> Outcome<()> {
         let mut grant = self.repo().sent_grant().get_by_id(id).await?;
@@ -650,7 +650,7 @@ pub trait PeerConnectorModule:
             self.peer_event(&grant, "modification-rejected").await;
             return Ok(());
         }
-        grant.status = GrantStatus::Rejected;
+        grant.status = GrantStatus::Finalized;
         grant.ended_at = Some(Utc::now());
         let grant = self.repo().sent_grant().update(grant).await?;
         self.peer_event(&grant, "rejected").await;
@@ -736,6 +736,7 @@ pub trait PeerConnectorModule:
             Ok(request) => request,
             Err(e @ Errors::SecurityError { .. }) => {
                 return Ok(ResolvedPresentation {
+                    uri: uri.to_string(),
                     request: None,
                     verifier: VerifierCheck::Untrusted { reason: e.reason().to_string() },
                 })
@@ -753,6 +754,7 @@ pub trait PeerConnectorModule:
             VerifierProof::Unsigned => VerifierCheck::Unsigned,
         };
         Ok(ResolvedPresentation {
+            uri: uri.to_string(),
             request: Some(request),
             verifier,
         })

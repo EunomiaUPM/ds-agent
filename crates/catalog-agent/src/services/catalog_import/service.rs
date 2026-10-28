@@ -347,6 +347,7 @@ impl CatalogImportServiceTrait for CatalogImportService {
             .import(&OwnerScope::acting(user), &writes)
             .await?;
         self.ctx.cache.invalidate().await;
+        self.ctx.registry().resync().await;
         for write in &writes {
             let action = if write.expected.is_some() {
                 "edit"

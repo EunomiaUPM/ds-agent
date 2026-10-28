@@ -46,7 +46,7 @@ use crate::protocols::dsp::setup::DspModule;
 use crate::setup::admin_module::CatalogAdminModule;
 use crate::setup::context::AppContext;
 use crate::setup::ports::CatalogPorts;
-use crate::setup::seeders::{MainCatalogProvisioner, PolicyTemplateLoader};
+use crate::setup::seeders::{MainCatalogProvisioner, PolicyTemplateLoader, RegistrySync};
 use crate::SERVICE_NAME;
 
 /// Catalog agent as a module: management API, DSP catalog, profiles and the connector.
@@ -147,6 +147,7 @@ impl ServiceModuleTrait for CatalogAgentModule {
                 self.ctx.clone(),
                 self.ctx.config.get_policy_templates_folder().to_string(),
             )),
+            Box::new(RegistrySync::new(self.ctx.clone())),
         ];
         seeders.extend(self.modules.seeders());
         seeders

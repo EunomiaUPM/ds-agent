@@ -30,6 +30,34 @@ use ymir::types::oauth::UserInfo;
 use crate::entities::policy_templates::NewPolicyTemplateDto;
 use crate::setup::context::AppContext;
 
+/// Registers with auth the datasets already in the catalog, which writes keep up to date after.
+pub struct RegistrySync {
+    ctx: Arc<AppContext>,
+}
+
+impl RegistrySync {
+    pub fn new(ctx: Arc<AppContext>) -> Self {
+        Self { ctx }
+    }
+}
+
+#[async_trait::async_trait]
+impl BootSeeder for RegistrySync {
+    fn name(&self) -> &'static str {
+        "dataset-registry-sync"
+    }
+
+    /// In-process, so peers are granted the published datasets from the first request.
+    fn phase(&self) -> BootPhase {
+        BootPhase::BeforeServe
+    }
+
+    async fn seed(&self) -> Outcome<()> {
+        self.ctx.registry().resync().await;
+        Ok(())
+    }
+}
+
 /// Provisions the connector's main catalog and data service (idempotent).
 pub struct MainCatalogProvisioner {
     ctx: Arc<AppContext>,

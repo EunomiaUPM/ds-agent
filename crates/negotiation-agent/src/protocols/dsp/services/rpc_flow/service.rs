@@ -21,12 +21,13 @@
 use std::sync::Arc;
 
 use common::dsp_common::DspCaller;
-use common::facades::grants_facade::{send_with_peer_token, AccessNeed};
+use common::facades::grants_facade::send_with_peer_token;
 use common::flow::{FlowCx, FlowTrait};
 use common::rdf::RdfMessage;
 use serde_json::{json, Value};
 use ymir::errors::{Errors, Outcome, PetitionFailure};
 use ymir::services::client::ClientTrait;
+use ymir::types::gnap::grant_request::access::AccessNeed;
 use ymir::types::http::HttpBody;
 use ymir::utils::http_client;
 
@@ -112,10 +113,7 @@ impl FlowTrait for NegotiationRpcFlow {
     ) -> Outcome<Option<Value>> {
         let (url, body) = (domain.target_url.clone(), domain.outgoing.json.clone());
         let requested = domain.role == NegotiationRole::Consumer;
-        let dataset = match domain.typed.message {
-            NegotiationRpcMessage::RequestInit => domain.opening_target.as_deref(),
-            _ => None,
-        };
+        let dataset = domain.opening_target.as_deref().filter(|_| requested);
         let need = AccessNeed::of_call(&url, dataset, !requested);
         let raw = send_with_peer_token(
             self.ctx.ports.auth.grants.as_ref(),

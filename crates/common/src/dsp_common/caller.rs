@@ -28,10 +28,11 @@ use serde_json::Value;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::{BadFormat, Errors, Outcome};
 use ymir::http::OauthHttpMiddleware;
+use ymir::types::gnap::grant_request::access::AccessNeed;
 use ymir::types::oauth::UserInfo;
 
 use crate::dsp_common::DspActor;
-use crate::facades::grants_facade::{AccessNeed, GrantsFacadeTrait, VerifiedPeer};
+use crate::facades::grants_facade::{GrantsFacadeTrait, VerifiedPeer};
 use crate::facades::mates_facade::MatesFacadeTrait;
 use crate::tck::TckPeer;
 

@@ -216,7 +216,7 @@ impl VcRequesterTrait for VCReqService {
                 Ok(VcWhatResponse::Wait)
             }
             GrantResponse::Error(error) => {
-                grant.status = GrantStatus::Rejected;
+                grant.status = GrantStatus::Finalized;
                 grant.ended_at = Some(chrono::Utc::now());
                 Err(Errors::authority_grant(format!(
                     "Authority said {}",

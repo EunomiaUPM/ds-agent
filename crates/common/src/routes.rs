@@ -91,6 +91,8 @@ pub mod auth {
         /// Check of a token a peer presents (grants facade).
         pub const TOKEN_VERIFY: &str = "/token/verify";
         pub const TOKEN_AUTHORIZE: &str = "/token/authorize";
+        /// The datasets the catalog publishes, all at once (registry facade).
+        pub const REGISTRY_DATASETS: &str = "/registry/datasets";
     }
 
     /// Gaia-X self-attestation.

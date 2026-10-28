@@ -8137,7 +8137,6 @@ components:
         - Processing
         - Pending
         - Approved
-        - Rejected
         - Finalized
     KeyPath:
       name: key
@@ -12805,8 +12804,12 @@ components:
       type: object
       description: A pending presentation request, resolved without answering it.
       required:
+      - uri
       - verifier
       properties:
+        uri:
+          description: The `openid4vp://` request as the peer sent it.
+          type: string
         request:
           description: The request as the wallet resolved it; none when it is not authentic.
           type:
@@ -12896,7 +12899,6 @@ components:
           - Processing
           - Pending
           - Approved
-          - Rejected
           - Finalized
         created_at:
           type: string
@@ -13349,7 +13351,6 @@ components:
           - Processing
           - Pending
           - Approved
-          - Rejected
           - Finalized
         final_token:
           type:

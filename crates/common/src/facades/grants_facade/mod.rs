@@ -29,6 +29,7 @@ use axum::http::{HeaderMap, StatusCode};
 use serde::{Deserialize, Serialize};
 use tokio::time::Instant;
 use ymir::errors::{Errors, Outcome, PetitionFailure};
+use ymir::types::gnap::grant_request::access::AccessNeed;
 use ymir::types::oauth::{RolePath, UserInfo};
 use ymir::types::participants::Visibility;
 use ymir::utils::bearer_headers;
@@ -36,10 +37,7 @@ use ymir::utils::bearer_headers;
 use crate::oauth::Owner;
 use crate::tck::TckPeer;
 
-pub mod access;
 pub mod remote;
-
-pub use access::{dsp_base, location_matches, AccessNeed};
 
 /// Who a verified peer token belongs to, as the DSP endpoints need it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -62,17 +60,6 @@ impl VerifiedPeer {
     /// grant says.
     pub fn owner(&self) -> Owner {
         Owner::team(self.role.clone(), self.visibility.clone())
-    }
-
-    /// The peer as an actor of the agents: its DID as user id, under the role of its grant. It
-    /// then reads and acts with the same rules as a local user of that role.
-    pub fn to_user(&self) -> UserInfo {
-        UserInfo::new(
-            self.participant_id.clone(),
-            None,
-            self.role.clone(),
-            serde_json::Map::new(),
-        )
     }
 }
 

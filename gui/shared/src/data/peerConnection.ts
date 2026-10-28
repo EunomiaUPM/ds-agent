@@ -14,9 +14,9 @@ import { useGetAllPeerConnectionRequests } from "./orval/onboard/onboard";
 import type { DidService } from "./orval/model/didService";
 import type { SentGrant } from "./orval/model/sentGrant";
 
-/** Where this user stands with a peer: an approved grant, one on its way, the last one
- * rejected, or none. */
-export type PeerConnection = "approved" | "pending" | "rejected" | "none";
+/** Where this user stands with a peer: an approved grant, one on its way, or none (a denied
+ * grant is finalized, RFC 9635 §1.5). */
+export type PeerConnection = "approved" | "pending" | "none";
 
 /** A peer as its DID document describes it. */
 export interface DiscoveredPeer {
@@ -51,7 +51,7 @@ export const usePeerConnections = () => {
     const page = data as { status: number; data: { items: SentGrant[] } } | undefined;
     return page?.status === 200 ? page.data.items.filter((g) => g.user_id === userId) : [];
   };
-  const { data, isLoading } = useGetAllPeerConnectionRequests(
+  const { data, isLoading, isFetchedAfterMount } = useGetAllPeerConnectionRequests(
     { limit: 100, sort: "created_at_desc" },
     {
       query: {
@@ -71,19 +71,25 @@ export const usePeerConnections = () => {
       if (grant.status === "Approved") map.set(grant.participant_id, "approved");
       else if (known) continue;
       else if (OPEN_STATUSES.includes(grant.status)) map.set(grant.participant_id, "pending");
-      else if (grant.status === "Rejected") map.set(grant.participant_id, "rejected");
       else map.set(grant.participant_id, "none");
     }
     return map;
   }, [data, userId]);
 
   return {
-    isLoading: sessionLoading || isLoading,
+    // Cached grants may be stale (a disconnect elsewhere): asking a peer with them would get a
+    // grant on its own, so callers wait for the list fetched on mount.
+    isLoading: sessionLoading || isLoading || !isFetchedAfterMount,
     statusOf: (participantId: string | undefined): PeerConnection =>
       (participantId && byPeer.get(participantId)) || "none",
     /** This user's latest approved grant with the peer. */
     approvedGrantOf: (participantId: string | undefined): SentGrant | undefined =>
       ownGrants(data).find((g) => g.participant_id === participantId && g.status === "Approved"),
+    /** This user's latest grant with the peer still on its way. */
+    pendingGrantOf: (participantId: string | undefined): SentGrant | undefined =>
+      ownGrants(data).find(
+        (g) => g.participant_id === participantId && OPEN_STATUSES.includes(g.status),
+      ),
   };
 };
 

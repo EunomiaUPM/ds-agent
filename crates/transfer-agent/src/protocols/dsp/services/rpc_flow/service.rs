@@ -20,13 +20,14 @@
 
 use std::sync::Arc;
 use common::dsp_common::DspCaller;
-use common::facades::grants_facade::{send_with_peer_token, AccessNeed};
+use common::facades::grants_facade::send_with_peer_token;
 
 use common::flow::{FlowCx, FlowTrait};
 use common::rdf::RdfMessage;
 use serde_json::{json, Value};
 use ymir::errors::{Errors, Outcome, PetitionFailure};
 use ymir::services::client::ClientTrait;
+use ymir::types::gnap::grant_request::access::AccessNeed;
 use ymir::types::http::HttpBody;
 use ymir::utils::http_client;
 

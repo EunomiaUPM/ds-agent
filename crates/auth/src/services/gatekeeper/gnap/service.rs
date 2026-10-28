@@ -49,6 +49,7 @@ use ymir::types::http::HttpBody;
 use ymir::types::keys::{Certificate, DbKeySource, KeySource, PublicKey};
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::{ParticipantType, Visibility};
+use ymir::types::vcs::VcType;
 use ymir::utils::{
     create_opaque_token, extract_gnap_token, hash_token, http_client, json_headers, trim_4_base,
 };
@@ -196,6 +197,16 @@ impl GnapGateKeeperService {
 
 #[async_trait]
 impl GateKeeperTrait for GnapGateKeeperService {
+    fn required_vcs(&self, extras: &[VcType]) -> Vec<VcType> {
+        let mut vcs = self.config.base_vcs().to_vec();
+        for extra in extras {
+            if !vcs.contains(extra) {
+                vcs.push(extra.clone());
+            }
+        }
+        vcs
+    }
+
     fn build_grant_plan(
         &self,
         role: Option<RolePath>,

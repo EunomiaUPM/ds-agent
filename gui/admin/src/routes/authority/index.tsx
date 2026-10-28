@@ -9,7 +9,7 @@ import { Button } from "shared/src/components/ui/button";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { customInstance } from "shared/src/data/orval-mutator";
-import { formatIdentifier, getFriendlyVCType } from "shared/src/lib/utils";
+import { formatIdentifier, getFriendlyVCType, grantBadgeState } from "shared/src/lib/utils";
 import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -128,7 +128,6 @@ function AuthorityRequestsPage() {
                 { label: "Processing", value: "Processing" },
                 { label: "Pending", value: "Pending" },
                 { label: "Approved", value: "Approved" },
-                { label: "Rejected", value: "Rejected" },
                 { label: "Finalized", value: "Finalized" },
               ],
             },
@@ -178,7 +177,7 @@ function AuthorityRequestsPage() {
               header: "Status",
               accessorKey: "status",
               cell: (a) => (
-                <Badge variant="status" state={a.status}>
+                <Badge variant="status" state={grantBadgeState(a.status, !!a.vc_uri)}>
                   {a.status || "-"}
                 </Badge>
               ),

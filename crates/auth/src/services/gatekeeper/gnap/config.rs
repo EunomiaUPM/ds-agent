@@ -17,13 +17,15 @@
 
 use common::config::services::SsiAuthConfig;
 use common::config::types::traits::CommonConfigTrait;
-use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
+use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait, VerifyReqConfigTrait};
 use ymir::config::types::CommonHostsConfig;
+use ymir::types::vcs::VcType;
 
-/// Hosts and API prefix the gatekeeper advertises.
+/// Hosts and API prefix the gatekeeper advertises, and the credentials it asks of every peer.
 pub struct GnapGateKeeperConfig {
     hosts: CommonHostsConfig,
     api_path: String,
+    base_vcs: Vec<VcType>,
 }
 
 impl From<&SsiAuthConfig> for GnapGateKeeperConfig {
@@ -31,6 +33,7 @@ impl From<&SsiAuthConfig> for GnapGateKeeperConfig {
         Self {
             hosts: value.common().hosts().clone(),
             api_path: value.common().get_api_version(),
+            base_vcs: value.get_requested_vcs().to_vec(),
         }
     }
 }
@@ -44,5 +47,8 @@ impl HostsConfigTrait for GnapGateKeeperConfig {
 impl GnapGateKeeperConfig {
     pub fn get_api_path(&self) -> &str {
         &self.api_path
+    }
+    pub fn base_vcs(&self) -> &[VcType] {
+        &self.base_vcs
     }
 }

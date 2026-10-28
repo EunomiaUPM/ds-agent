@@ -29,7 +29,12 @@ import {
 } from "shared/src/components/ui/card";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { customInstance } from "shared/src/data/orval-mutator";
-import { formatUrn, getFriendlyVCType } from "shared/src/lib/utils";
+import {
+  formatUrn,
+  getFriendlyVCType,
+  grantBadgeState,
+  verificationBadgeState,
+} from "shared/src/lib/utils";
 import { z } from "zod";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -198,7 +203,7 @@ function RequestDetailsPage() {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
                 <DetailItem label="Status">
-                  <Badge variant={"status"} state={grant.status}>
+                  <Badge variant={"status"} state={grantBadgeState(grant.status, !!grant.vc_uri)}>
                     {grant.status || "-"}
                   </Badge>
                 </DetailItem>
@@ -312,7 +317,7 @@ function RequestDetailsPage() {
                     <span className="text-muted-foreground font-semibold uppercase tracking-wider text-xs">
                       Current State:
                     </span>
-                    <Badge variant={"status"} state={grant.status}>
+                    <Badge variant={"status"} state={grantBadgeState(grant.status, !!grant.vc_uri)}>
                       {grant.status}
                     </Badge>
                   </div>
@@ -413,7 +418,7 @@ function RequestDetailsPage() {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
                 <DetailItem label="Status">
-                  <Badge variant={"status"} state={verification.status}>
+                  <Badge variant={"status"} state={verificationBadgeState(verification.status)}>
                     {verification.status}
                   </Badge>
                 </DetailItem>
@@ -509,22 +514,21 @@ function RequestDetailsPage() {
 
 function getTimelineData(req: SentGrant) {
   const status = req.status?.toLowerCase() || "";
+  // A finalized request with no credential offer ended without being approved.
+  const claimed = status === "finalized" && !!req.vc_uri;
   const pastEvents: { id: string; title: string; date?: string | null }[] = [
     { id: "created", title: "Request Created", date: req.created_at },
   ];
 
   if (status === "pending") {
     pastEvents.push({ id: "processing", title: "Processing" });
-  } else if (status === "rejected") {
-    pastEvents.push({ id: "processing", title: "Processing" });
-    pastEvents.push({ id: "pending", title: "Pending" });
   } else if (status === "approved") {
     pastEvents.push({ id: "processing", title: "Processing" });
     pastEvents.push({ id: "pending", title: "Pending" });
   } else if (status === "finalized") {
     pastEvents.push({ id: "processing", title: "Processing" });
     pastEvents.push({ id: "pending", title: "Pending" });
-    pastEvents.push({ id: "approved", title: "Approved" });
+    if (claimed) pastEvents.push({ id: "approved", title: "Approved" });
   }
 
   let instruction = "";
@@ -536,15 +540,13 @@ function getTimelineData(req: SentGrant) {
       instruction =
         "Waiting for your authentication. Scan the QR in the Verification section to authenticate with the authority.";
       break;
-    case "rejected":
-      instruction = "Your request has been rejected. No further action can be taken.";
-      break;
     case "approved":
       instruction = "The request has been approved. You can now claim your Verifiable Credential.";
       break;
     case "finalized":
-      instruction =
-        "You have successfully claimed the Verifiable Credential. The process is complete.";
+      instruction = claimed
+        ? "You have successfully claimed the Verifiable Credential. The process is complete."
+        : "The request ended without the credential being issued. No further action can be taken.";
       break;
     default:
       instruction = "Unknown state.";

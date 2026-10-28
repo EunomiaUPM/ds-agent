@@ -25,13 +25,14 @@ use ymir::config::types::HostType;
 use ymir::errors::Outcome;
 use ymir::http::routes::fill;
 use ymir::services::client::{ClientExt, ClientTrait};
+use ymir::types::gnap::grant_request::access::AccessNeed;
 use ymir::types::http::HttpBody;
 use ymir::types::oauth::UserInfo;
 use ymir::utils::{encode_url_safe_no_pad, http_client, ResponseExt};
 
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
-use crate::facades::grants_facade::{AccessNeed, GrantsFacadeTrait, PeerToken, VerifiedPeer};
+use crate::facades::grants_facade::{GrantsFacadeTrait, PeerToken, VerifiedPeer};
 use crate::facades::{AuthorizeTokenRequest, PeerTokenRequest, VerifyTokenRequest};
 use crate::routes::auth::{gate, peer_connection};
 

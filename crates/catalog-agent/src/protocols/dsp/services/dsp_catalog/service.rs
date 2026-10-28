@@ -23,7 +23,6 @@ use common::oauth::OwnerScope;
 use serde_json::Value;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
-use ymir::types::oauth::UserInfo;
 
 use crate::cache::ProjectionKey;
 use crate::entities::resource_kind::ResourceKind;
@@ -50,10 +49,8 @@ impl DspCatalogService {
             .ok_or_else(|| Errors::crazy("the DSP profile is not registered", None))
     }
 
-    /// Who reads, for the cache: the peer's identity under the role of its grant.
-    fn reader(peer: &UserInfo) -> String {
-        format!("{}|{}", peer.id(), peer.role())
-    }
+    /// Every peer reads the same: what the connector publishes.
+    const READER: &'static str = "published";
 
     fn not_found(id: &Urn) -> Errors {
         Errors::missing_resource(id.to_string(), "dataset not found", None)
@@ -62,32 +59,36 @@ impl DspCatalogService {
 
 #[async_trait::async_trait]
 impl DspCatalogServiceTrait for DspCatalogService {
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %peer.id()))]
-    async fn catalog(&self, peer: &UserInfo, _request: &CatalogProtocolFields) -> Outcome<Value> {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer = %peer))]
+    async fn catalog(&self, peer: &str, _request: &CatalogProtocolFields) -> Outcome<Value> {
         let adapter = self.adapter()?;
         let generation = self.ctx.cache.generation().await;
-        let key = ProjectionKey::of(adapter.key(), "main", &Self::reader(peer), generation);
+        let key = ProjectionKey::of(adapter.key(), "main", Self::READER, generation);
         if let Some(cached) = self.ctx.cache.get_projection(&key).await {
             return Ok(cached);
         }
-        let (main, set) = self.ctx.closures().main_catalog(&OwnerScope::seeing(peer)).await?;
+        let (main, set) = self.ctx.closures().main_catalog(&OwnerScope::All).await?;
         let catalog = adapter.project(&set, &main)?;
         self.ctx.cache.put_projection(&key, &catalog).await;
         Ok(catalog)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(user = %peer.id()))]
-    async fn dataset(&self, peer: &UserInfo, id: &Urn) -> Outcome<Value> {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer = %peer))]
+    async fn dataset(&self, peer: &str, id: &Urn) -> Outcome<Value> {
         let adapter = self.adapter()?;
         let generation = self.ctx.cache.generation().await;
-        let key = ProjectionKey::of(adapter.key(), id.as_ref(), &Self::reader(peer), generation);
+        let key = ProjectionKey::of(adapter.key(), id.as_ref(), Self::READER, generation);
         if let Some(cached) = self.ctx.cache.get_projection(&key).await {
             return Ok(cached);
+        }
+        let (_, published) = self.ctx.closures().main_catalog(&OwnerScope::All).await?;
+        if !published.contains(id.as_ref()) {
+            return Err(Self::not_found(id));
         }
         let (root, set) = self
             .ctx
             .closures()
-            .resource(&OwnerScope::seeing(peer), id)
+            .resource(&OwnerScope::All, id)
             .await?
             .filter(|(root, _)| root.kind() == ResourceKind::Dataset)
             .ok_or_else(|| Self::not_found(id))?;

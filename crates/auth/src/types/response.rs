@@ -64,6 +64,8 @@ impl VerifierCheck {
 /// A pending presentation request, resolved without answering it.
 #[derive(Serialize, Debug)]
 pub struct ResolvedPresentation {
+    /// The `openid4vp://` request as the peer sent it.
+    pub uri: String,
     pub request: Option<PresentationRequest>,
     pub verifier: VerifierCheck,
 }

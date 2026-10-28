@@ -6,26 +6,22 @@ import { Button } from "shared/src/components/ui/button.tsx";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
 import { usePeerConnections } from "shared/src/data/peerConnection";
-import WizardDialog from "shared/src/components/WizardDialog";
-import { useRef, useState } from "react";
 import { Card, CardContent } from "shared/components/ui/card";
 import logoImg from "./../../../../shared/src/img/eunomia_logo_lg_light.svg";
 import logoImgDark from "./../../../../shared/src/img/eunomia_logo_lg_dark.svg";
 import { useTheme } from "shared/src/hooks/useTheme";
-import { useMyself } from "shared/src/data/useMyself";
+import { useGetMyself } from "shared/src/data/orval/participants/participants";
 
 const RouteComponent = () => {
   const { resolvedTheme } = useTheme();
   const federated = useFederatedCatalog();
   const connections = usePeerConnections();
 
-  const myAgent = useMyself();
+  // Until this connector is known, its own card would pass for a peer.
+  const myself = useGetMyself();
+  const myAgent = myself.data?.status === 200 ? myself.data.data : undefined;
 
-  const labelCatalogRef = useRef<HTMLElement | null>(null);
-  // first wizard URL state
-  const [wizardCatalogOpen, setWizardCatalogOpen] = useState(true);
-
-  if (federated.state === "loading" || connections.isLoading) {
+  if (federated.state === "loading" || connections.isLoading || myself.isLoading) {
     return (
       <PageLayout>
         <div>Loading...</div>
@@ -72,62 +68,43 @@ const RouteComponent = () => {
   const { agents } = federated;
 
   const isOwn = (participantId: string) => participantId === myAgent?.participant_id;
-  // Whether this user is connected to any peer yet; if not, the tutorial guides the first one.
+  // Whether this user is connected to any peer yet; if not, the first one to connect with is
+  // highlighted.
   const onboardedWithKnownProvider = agents.some(
     (prov) => connections.statusOf(prov.participant_id) === "approved",
   );
-  const firstPeer = agents.find((p) => !isOwn(p.participant_id));
+  const firstPeer = onboardedWithKnownProvider
+    ? undefined
+    : agents.find(
+        (p) => !isOwn(p.participant_id) && connections.statusOf(p.participant_id) === "none",
+      );
 
   return (
     <PageLayout>
       <div className="bg-violet-700/40 flex justify-center items-center h-48">
         <Heading level="h2">Browse public catalogs and your connections' catalogs </Heading>
       </div>
-      {!onboardedWithKnownProvider && (
-        <WizardDialog
-          open={wizardCatalogOpen}
-          onClose={() => setWizardCatalogOpen(false)}
-          anchorRef={labelCatalogRef}
-          align="left"
-          step="1 of 2"
-          sectionTitle="Connection with Participant Tutorial"
-          title="Catalog browser"
-          content={
-            <>
-              At this section you can browse the catalogs of the dataspace participants.
-              <br />
-            </>
-          }
-        />
-      )}
-      <div ref={(el) => (labelCatalogRef.current = el as any)} className="h-4" />
+      <p className="h-4 my-2 text-sm text-muted-foreground">
+        {firstPeer && "Pick a participant to connect with and browse its catalog."}
+      </p>
       <div className="grid grid-cols-3 gap-5">
         {agents.map((p) => {
-          const connection = connections.statusOf(p.participant_id);
-          // With no connection yet, the first peer is highlighted (tutorial).
-          const firstAgentWithUnauth =
-            !onboardedWithKnownProvider && p === firstPeer && connection === "none";
+          const highlighted = p === firstPeer;
 
           return (
             <div
               key={p.participant_id}
               // Same width and corners as the card, so the highlight fits it.
               className={`max-w-lg rounded-xl ${
-                firstAgentWithUnauth ? "ring-2 ring-secondary-400 shadow-md animate-pulse" : ""
+                highlighted ? "ring-2 ring-secondary-400 shadow-md animate-pulse" : ""
               }`}
-              onClick={() => setWizardCatalogOpen(false)}
             >
               <CatalogItem
                 organizationName={p.participant_nick ?? "Unknown"}
                 id={p.participant_id ?? null}
-                connection={connection}
+                connection={connections.statusOf(p.participant_id)}
                 participant={p}
-                showTutorial={!onboardedWithKnownProvider}
-                onConnectClose={() => {
-                  if (firstAgentWithUnauth) {
-                    setTimeout(() => setWizardCatalogOpen(true), 50);
-                  }
-                }}
+                pendingGrantId={connections.pendingGrantOf(p.participant_id)?.id}
                 ownCatalog={isOwn(p.participant_id)}
               />
             </div>

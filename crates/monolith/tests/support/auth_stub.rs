@@ -21,10 +21,13 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use common::facades::grants_facade::{AccessNeed, GrantsFacadeTrait, PeerToken, VerifiedPeer};
+use common::facades::grants_facade::{GrantsFacadeTrait, PeerToken, VerifiedPeer};
 use common::facades::mates_facade::MatesFacadeTrait;
+use common::facades::registry_facade::RegistryFacadeTrait;
 use common::facades::AuthPorts;
+use ymir::data::entities::shared::registered_dataset::Model as RegisteredDataset;
 use ymir::services::token_validator::OauthTokenValidatorTrait;
+use ymir::types::gnap::grant_request::access::AccessNeed;
 use ymir::types::oauth::{RolePath, UserInfo};
 use ymir::types::participants::Visibility;
 use ymir::data::entities::shared::participant::Model as Mates;
@@ -59,7 +62,8 @@ impl StubAuth {
         });
         AuthPorts {
             mates: stub.clone(),
-            grants: stub,
+            grants: stub.clone(),
+            registry: stub,
         }
     }
 
@@ -98,6 +102,14 @@ impl MatesFacadeTrait for StubAuth {
 
     async fn get_all_mates(&self, _user: &UserInfo) -> Outcome<Vec<Mates>> {
         Ok(vec![self.peer.clone()])
+    }
+}
+
+#[async_trait::async_trait]
+impl RegistryFacadeTrait for StubAuth {
+    /// Nothing to register: the stub grants every dataset.
+    async fn sync_datasets(&self, _datasets: Vec<RegisteredDataset>) -> Outcome<()> {
+        Ok(())
     }
 }
 

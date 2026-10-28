@@ -7,8 +7,6 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { Lock, Database, Server, Calendar, ArrowUpRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "shared/src/components/ui/popover";
-import WizardDialog from "shared/src/components/WizardDialog";
-import { useRef } from "react";
 import { Badge } from "shared/src/components/ui/badge";
 import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
 import { ConnectPeerForm } from "shared/src/components/ConnectPeerForm";
@@ -27,9 +25,8 @@ interface CatalogItemProps {
   connection?: PeerConnection;
   /** The peer as the federated catalog lists it; needed to connect. */
   participant?: FederatedParticipant;
-  /** Shows the tutorial step on the connection form. */
-  showTutorial?: boolean;
-  onConnectClose?: () => void;
+  /** This user's grant with the peer still on its way, resumed from the card. */
+  pendingGrantId?: string;
   ownCatalog?: boolean;
 }
 
@@ -41,8 +38,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   title,
   connection = "none",
   participant,
-  showTutorial = false,
-  onConnectClose,
+  pendingGrantId,
   ownCatalog = false,
 }) => {
   const navigate = useNavigate();
@@ -50,14 +46,11 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   const canConnect =
     id !== null &&
     !ownCatalog &&
-    (connection === "none" || connection === "rejected") &&
+    (connection === "none" || (connection === "pending" && !!pendingGrantId)) &&
     !!participant;
 
   const unavailableCatalogClasses =
     id === null ? "opacity-65 grayscale cursor-not-allowed" : "cursor-pointer";
-
-  const labelConnectRef = useRef<HTMLElement | null>(null);
-  const [wizardConnectOpen, setWizardConnectOpen] = useState(false);
 
   const { mutate, data } = useRpcSetupCatalogRequest();
 
@@ -95,26 +88,16 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
 
   let headingLink: React.ReactNode;
   const [openForm, setOpenForm] = useState(false);
-
-  // open the wizard only after the form has been opened and the title anchor is mounted
-  React.useEffect(() => {
-    let t: any;
-    if (openForm && showTutorial) {
-      t = setTimeout(() => setWizardConnectOpen(true), 50);
-    } else {
-      setWizardConnectOpen(false);
-    }
-    return () => clearTimeout(t);
-  }, [openForm, showTutorial]);
+  // Fixed when the form opens: a grant sent from it turns the connection pending meanwhile.
+  const [resumed, setResumed] = useState<string | undefined>();
 
   const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen) setResumed(connection === "pending" ? pendingGrantId : undefined);
     setOpenForm(isOpen);
-    if (!isOpen && onConnectClose) {
-      onConnectClose();
-    }
   };
 
-  if (canConnect) {
+  // Kept open once the grant is sent: the form still has to show what the peer asks for.
+  if (canConnect || (openForm && !!participant)) {
     headingLink = (
       <Popover open={openForm} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
@@ -126,34 +109,15 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
           align="start"
           className="w-96 rounded-xl border border-ink/15 bg-background-800/95 shadow-2xl backdrop-blur-xl"
         >
-          <div
-            ref={(el) => (labelConnectRef.current = el as any)}
-            className="flex gap-2 items-center mb-3"
-          >
+          <div className="flex gap-2 items-center mb-3">
             <Lock className="h-4 w-4" />
             <Heading level="h5" className="!mb-0">
               Connect with {organizationName}
             </Heading>
           </div>
-          {showTutorial && (
-            <WizardDialog
-              open={wizardConnectOpen}
-              onClose={() => setWizardConnectOpen(false)}
-              anchorRef={labelConnectRef}
-              sectionTitle="Connection with Participant Tutorial"
-              step="2 of 2"
-              align="left"
-              title="Connection with Dataspace Participant required"
-              content={
-                <>
-                  You can only access the catalog of a participant once you are connected to them.
-                  Choose who else can see the connection and click <strong>"Connect"</strong>.
-                </>
-              }
-            />
-          )}
           <ConnectPeerForm
             participant={participant!}
+            pending={resumed}
             onCancel={() => handleOpenChange(false)}
             onSent={() => {
               handleOpenChange(false);
@@ -199,16 +163,12 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
               My Catalog
             </Badge>
           ) : id === null ? null : connection === "approved" ? (
-            <Badge variant="status" state="active" className="text-xs">
+            <Badge variant="status" state="success" className="text-xs">
               Authenticated
             </Badge>
           ) : connection === "pending" ? (
-            <Badge variant="status" state="process" className="text-xs">
+            <Badge variant="status" state="pending" className="text-xs">
               Awaiting response
-            </Badge>
-          ) : connection === "rejected" ? (
-            <Badge variant="status" state="danger" className="text-xs">
-              Rejected
             </Badge>
           ) : (
             <Badge variant="status" state="error" className="text-xs">

@@ -28,4 +28,5 @@ pub mod peer_catalogs;
 pub mod policy_instantiation;
 pub mod policy_templates;
 pub mod projection;
+pub mod registry;
 pub mod resources;

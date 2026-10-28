@@ -22,7 +22,7 @@ use std::sync::Arc;
 use crate::core::AuthCore;
 use crate::data::migrations::get_auth_migrations;
 use crate::data::sea_orm::factory::AuthRepoForSql;
-use crate::facades::{GrantsLocalFacade, MatesLocalFacade};
+use crate::facades::{GrantsLocalFacade, MatesLocalFacade, RegistryLocalFacade};
 use crate::http::AuthRouter;
 use crate::services::callback::BasicCallbackService;
 use crate::services::gaia_self_attester::{GaiaSelfAttester, GaiaSelfAttesterTrait};
@@ -190,6 +190,7 @@ impl AuthModule {
                 self.core.clone(),
                 self.core.clone(),
             )),
+            registry: Arc::new(RegistryLocalFacade::new(self.core.clone())),
         }
     }
 

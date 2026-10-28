@@ -218,7 +218,7 @@ pub trait VcRequesterModule:
                 .manage_grant_resp(grant_resp, &mut grant, &mut interaction);
         let grant = self.repo().sent_grant().update(grant).await?;
         let _interaction = self.repo().sent_interaction().update(interaction).await?;
-        if grant.status == GrantStatus::Rejected {
+        if grant.status == GrantStatus::Finalized {
             self.vc_event(&grant, "rejected").await;
         }
 
@@ -291,11 +291,11 @@ pub trait VcRequesterModule:
         Ok(())
     }
 
-    /// Marks request `id` rejected, as the authority answered.
+    /// Finalizes request `id`, as the authority rejected it.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_rejection(&self, id: &str) -> Outcome<()> {
         let mut grant = self.repo().sent_grant().get_by_id(id).await?;
-        grant.status = GrantStatus::Rejected;
+        grant.status = GrantStatus::Finalized;
         grant.ended_at = Some(Utc::now());
         let grant = self.repo().sent_grant().update(grant).await?;
         self.vc_event(&grant, "rejected").await;

@@ -184,9 +184,10 @@ impl ResourceService {
         }
     }
 
-    /// Cached projections are stale after any write; a cache failure never fails it.
+    /// Cached projections and auth's registry are stale after any write; neither failure fails it.
     async fn touched(&self) {
         self.ctx.cache.invalidate().await;
+        self.ctx.registry().resync().await;
     }
 
     async fn emit(&self, resource: &CatalogResource, action: &str) {

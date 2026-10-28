@@ -26,7 +26,7 @@ import {
   Inbox,
   Key,
 } from "lucide-react";
-import { getFriendlyVCType, grantBadgeState } from "shared/src/lib/utils";
+import { getFriendlyVCType, grantBadgeState, verificationBadgeState } from "shared/src/lib/utils";
 
 interface RecvGrant {
   id: string;
@@ -385,7 +385,7 @@ function ReceivedRequestDetails() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
                 <DetailItem label="Status">
-                  <Badge variant={"status"} state={verification.status}>
+                  <Badge variant={"status"} state={verificationBadgeState(verification.status)}>
                     {verification.status}
                   </Badge>
                 </DetailItem>
@@ -452,6 +452,8 @@ function ReceivedRequestDetails() {
 
 function getTimelineData(req: RecvGrant) {
   const status = req.status?.toLowerCase() || "";
+  // A finalized grant that never got a token ended without being approved.
+  const wasApproved = !!req.final_expires_at;
   const pastEvents: { id: string; title: string; date?: string | null }[] = [
     { id: "received", title: "Request Received", date: req.created_at },
   ];
@@ -464,10 +466,7 @@ function getTimelineData(req: RecvGrant) {
   } else if (status === "finalized") {
     pastEvents.push({ id: "processing", title: "Processing" });
     pastEvents.push({ id: "pending", title: "Pending" });
-    pastEvents.push({ id: "approved", title: "Approved" });
-  } else if (status === "rejected") {
-    pastEvents.push({ id: "processing", title: "Processing" });
-    pastEvents.push({ id: "pending", title: "Pending" });
+    if (wasApproved) pastEvents.push({ id: "approved", title: "Approved" });
   }
 
   let instruction = "";
@@ -482,10 +481,9 @@ function getTimelineData(req: RecvGrant) {
       instruction = "We approved the request. The peer has the access token.";
       break;
     case "finalized":
-      instruction = "The connection lifecycle has ended (token expired or session closed).";
-      break;
-    case "rejected":
-      instruction = "We rejected the request. No further action will be taken.";
+      instruction = wasApproved
+        ? "The connection lifecycle has ended (token expired or session closed)."
+        : "The request ended without being approved. No further action will be taken.";
       break;
     default:
       instruction = "Unknown state.";

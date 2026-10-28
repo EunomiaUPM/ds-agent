@@ -31,6 +31,7 @@ use ymir::types::gnap::access_token::{BoundToken, TokenManagement};
 use ymir::types::gnap::grant_response::{GrantResponse, GrantResponseKind};
 use ymir::types::gnap::GrantStatus;
 use ymir::types::participants::Visibility;
+use ymir::types::vcs::VcType;
 use ymir::types::verification::VerificationStatus;
 use ymir::utils::hash_token;
 
@@ -103,10 +104,13 @@ async fn grant_request_is_stored_and_answered_with_the_verification_uri() {
         .times(1)
         .returning(|plan| Ok(recv_interaction(&plan.grant_id)));
     d.repos.resource_req.expect_create().times(1).returning(Ok);
+    d.gatekeeper
+        .expect_required_vcs()
+        .returning(|_| vec![VcType::LegalPerson]);
     d.verifier
         .expect_build_vp_plan()
-        .withf(|id| id == "g-1")
-        .returning(|id| Ok(recv_verification_plan(id)));
+        .withf(|id, vcs| id == "g-1" && vcs == [VcType::LegalPerson])
+        .returning(|id, _| Ok(recv_verification_plan(id)));
     d.repos
         .recv_verification
         .expect_create()
@@ -203,6 +207,18 @@ async fn continuation_approves_the_grant_with_a_token_for_the_peer() {
         .resource_req
         .expect_get_by_id()
         .returning(|id| Ok(resource_req(id)));
+    d.repos
+        .recv_verification
+        .expect_get_all_by_grant()
+        .returning(|id| {
+            let mut verification = recv_verification(id, Some("did:web:peer"));
+            verification.status = VerificationStatus::Verified;
+            Ok(vec![verification])
+        });
+    d.repos
+        .registered_dataset
+        .expect_get_all()
+        .returning(|| Ok(Vec::new()));
     d.repos.resource_req.expect_update().returning(Ok);
     d.repos.recv_interaction.expect_update().returning(Ok);
 
@@ -260,7 +276,7 @@ async fn unknown_continuation_is_rejected() {
 // Received grants: who sees them (users)
 // ==========================================================================================
 
-/// A private grant handled by another branch is not found for the caller.
+/// A private grant handled by another branch, granting nothing the caller sees, is not found.
 #[tokio::test]
 async fn private_grant_of_another_branch_is_not_visible() {
     let mut d = Doubles::default();
@@ -269,6 +285,10 @@ async fn private_grant_of_another_branch_is_not_visible() {
         grant.visibility = Visibility::Private;
         Ok(grant)
     });
+    d.repos
+        .resource_req
+        .expect_get_by_id()
+        .returning(|id| Ok(resource_req(id)));
 
     let result =
         GateKeeperModule::get_by_id(&d.core(), &TestUsers::user("ana", "/admin/upm"), "g-1")

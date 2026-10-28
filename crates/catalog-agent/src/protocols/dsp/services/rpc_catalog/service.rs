@@ -21,12 +21,13 @@
 use std::sync::Arc;
 
 use common::dsp_common::rdf::DspProfile;
-use common::facades::grants_facade::{send_with_peer_token, AccessNeed};
+use common::facades::grants_facade::send_with_peer_token;
 use common::rdf::{ExpandedDoc, RdfMessage};
 use common::well_known::rpc::WellKnownRPCRequest;
 use serde_json::{json, Map, Value};
 use ymir::errors::{BadFormat, Errors, Outcome};
 use ymir::services::client::ClientExt;
+use ymir::types::gnap::grant_request::access::AccessNeed;
 use ymir::types::oauth::UserInfo;
 use ymir::utils::http_client;
 

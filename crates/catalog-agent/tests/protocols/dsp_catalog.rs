@@ -15,7 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! DspCatalogService over mocked closures and cache: projections served and cached per peer.
+//! DspCatalogService over mocked closures and cache: projections served and cached once for
+//! every peer.
 
 use catalog_agent::cache::MockCatalogCacheTrait;
 use catalog_agent::entities::resource_kind::ResourceKind;
@@ -23,7 +24,6 @@ use catalog_agent::protocols::dsp::entities::protocol_fields::CatalogProtocolFie
 use catalog_agent::protocols::dsp::services::dsp_catalog::service::DspCatalogService;
 use catalog_agent::protocols::dsp::services::dsp_catalog::DspCatalogServiceTrait;
 use catalog_agent::services::closure::MockClosureServiceTrait;
-use common::test_utils::scopes::TestUsers;
 use serde_json::json;
 
 use crate::support::builders::{id, provider_set, urn};
@@ -46,13 +46,13 @@ async fn catalog_is_projected_and_cached() {
     cache.expect_generation().returning(|| 4);
     cache.expect_get_projection().returning(|_| None);
     cache.expect_put_projection()
-        .withf(|key, _| key.starts_with("dsp:main:peer|") && key.ends_with(":4"))
+        .withf(|key, _| key == "dsp:main:published:4")
         .times(1)
         .return_const(());
     let ctx = TestContext::new().closures(closures()).cache(cache).build();
 
     let catalog = DspCatalogService::new(ctx)
-        .catalog(&TestUsers::alone("peer"), &CatalogProtocolFields::default())
+        .catalog("peer", &CatalogProtocolFields::default())
         .await
         .unwrap();
 
@@ -69,7 +69,7 @@ async fn cached_catalog_is_served_without_loading() {
     let ctx = TestContext::new().cache(cache).build();
 
     let catalog = DspCatalogService::new(ctx)
-        .catalog(&TestUsers::alone("peer"), &CatalogProtocolFields::default())
+        .catalog("peer", &CatalogProtocolFields::default())
         .await
         .unwrap();
 
@@ -81,10 +81,10 @@ async fn cached_catalog_is_served_without_loading() {
 async fn dataset_request_answers_datasets_only() {
     let ctx = TestContext::new().closures(closures()).build();
     let service = DspCatalogService::new(ctx);
-    let peer = TestUsers::alone("peer");
+    let peer = "peer";
 
-    let dataset = service.dataset(&peer, &urn(ResourceKind::Dataset, 3)).await.unwrap();
-    let not_one = service.dataset(&peer, &urn(ResourceKind::DataService, 2)).await.unwrap_err();
+    let dataset = service.dataset(peer, &urn(ResourceKind::Dataset, 3)).await.unwrap();
+    let not_one = service.dataset(peer, &urn(ResourceKind::DataService, 2)).await.unwrap_err();
 
     assert_eq!(dataset["@type"], "Dataset");
     assert_eq!(dataset["hasPolicy"][0]["@type"], "Offer");

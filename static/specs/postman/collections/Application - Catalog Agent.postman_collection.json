@@ -3341,6 +3341,374 @@
 			]
 		},
 		{
+			"name": "Schemas",
+			"description": "JSON Schemas the catalog hosts for `conformsTo`. Each version is immutable and served at a public URL; a dataset or distribution points to one with its `schema` term, and the profiles publish it as `dct:conformsTo` (a distribution without one inherits its dataset's).",
+			"item": [
+				{
+					"name": "Infer from samples",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/schemas/infer",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"schemas",
+								"infer"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"samples\": [\n        {\n            \"station\": \"MAD-01\",\n            \"at\": \"2026-10-29T10:00:00Z\",\n            \"temperature\": 14.5,\n            \"humidity\": 61,\n            \"location\": {\n                \"lat\": 40.41,\n                \"lon\": -3.7\n            },\n            \"note\": \"clear\"\n        },\n        {\n            \"station\": \"BCN-02\",\n            \"at\": \"2026-10-29T10:00:00Z\",\n            \"temperature\": 18,\n            \"humidity\": 70,\n            \"location\": {\n                \"lat\": 41.39,\n                \"lon\": 2.17\n            }\n        }\n    ]\n}"
+						},
+						"description": "Fields in every sample come out required; nothing is stored."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"inferred an object schema\", () => pm.expect(pm.response.json().type).to.eql(\"object\"));",
+									"pm.collectionVariables.set(\"inferredSchema\", JSON.stringify(pm.response.json()));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Validate schema and samples",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/schemas/validate",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"schemas",
+								"validate"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"schema\": {{inferredSchema}},\n    \"samples\": [\n        { \"station\": \"X\", \"at\": \"2026-10-29T10:00:00Z\", \"temperature\": \"warm\", \"humidity\": 1, \"location\": { \"lat\": 0, \"lon\": 0 } }\n    ]\n}"
+						},
+						"description": "A sample with a string temperature fails at `/temperature`."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"the sample fails\", () => pm.expect(pm.response.json().samples[0].valid).to.be.false);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create schema",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/schemas",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"schemas"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Weather readings\",\n    \"description\": \"One reading of a weather station\",\n    \"visibility\": \"Public\",\n    \"schema\": {{inferredSchema}}\n}"
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const body = pm.response.json();",
+									"pm.test(\"stored\", () => pm.response.to.have.status(201));",
+									"pm.collectionVariables.set(\"schemaId\", body.id);",
+									"pm.collectionVariables.set(\"schemaVersion\", body.version);",
+									"pm.collectionVariables.set(\"schemaUrl\", body.url);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "List schema versions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/schemas?limit=20",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"schemas"
+							]
+						},
+						"description": "Every version the caller sees, newest first."
+					},
+					"response": []
+				},
+				{
+					"name": "Versions of a schema",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/schemas/{{schemaId}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"schemas",
+								"{{schemaId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "One version with its usage",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/schemas/{{schemaId}}/versions/{{schemaVersion}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"schemas",
+								"{{schemaId}}",
+								"versions",
+								"{{schemaVersion}}"
+							]
+						},
+						"description": "The content as published (`$id` is its URL) and the resources pointing to it."
+					},
+					"response": []
+				},
+				{
+					"name": "New version",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/schemas/{{schemaId}}/versions",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"schemas",
+								"{{schemaId}}",
+								"versions"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"schema\": {{inferredSchema}},\n    \"description\": \"Temperature in degrees Celsius\"\n}"
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const body = pm.response.json();",
+									"pm.test(\"stored\", () => pm.response.to.have.status(201));",
+									"pm.collectionVariables.set(\"schemaId\", body.id);",
+									"pm.collectionVariables.set(\"schemaVersion\", body.version);",
+									"pm.collectionVariables.set(\"schemaUrl\", body.url);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Public schema (no token)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/public/schemas/{{schemaId}}/{{schemaVersion}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"public",
+								"schemas",
+								"{{schemaId}}",
+								"{{schemaVersion}}"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "What `conformsTo` dereferences to: `application/schema+json`, immutable, CORS-open."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"schema+json\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/schema+json\"));",
+									"pm.test(\"$id is its URL\", () => pm.expect(pm.response.json()[\"$id\"]).to.eql(pm.collectionVariables.get(\"schemaUrl\")));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Check an external URL",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/schemas/check-url",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"schemas",
+								"check-url"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"url\": \"https://geojson.org/schema/FeatureCollection.json\"\n}"
+						},
+						"description": "Fetches the URL and says whether it holds a JSON Schema; only a warning, never stored."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete a version",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/schemas/{{schemaId}}/versions/{{schemaVersion}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"schemas",
+								"{{schemaId}}",
+								"versions",
+								"{{schemaVersion}}"
+							]
+						},
+						"description": "409 while a resource uses it."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete a schema",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/schemas/{{schemaId}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"schemas",
+								"{{schemaId}}"
+							]
+						},
+						"description": "Every version; 409 while any is used."
+					},
+					"response": []
+				}
+			]
+		},
+		{
 			"name": "DSP",
 			"item": [
 				{
@@ -4232,6 +4600,660 @@
 			]
 		},
 		{
+			"name": "Run - Schema to dataset",
+			"description": "Infer a schema, host it, point a new dataset to it, see it as conformsTo (inherited by the distribution), publish v2, move the dataset to v2, then delete v1 and clean up.",
+			"item": [
+				{
+					"name": "Main catalog",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/main",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"main"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set(\"catalogId\", pm.response.json()[\"@id\"]);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Main data service",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/data-services/main",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"data-services",
+								"main"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set(\"dataServiceId\", pm.response.json()[\"@id\"]);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create dataset",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"datasets"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"Dataset\",\n    \"title\": { \"en\": \"Weather readings (schema tutorial)\" },\n    \"inCatalog\": \"{{catalogId}}\"\n}"
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set(\"datasetId\", pm.response.json()[\"@id\"]);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create distribution",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"distributions"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"Distribution\",\n    \"title\": { \"en\": \"Readings over HTTP pull\" },\n    \"format\": \"http+pull\",\n    \"accessService\": [\"{{dataServiceId}}\"],\n    \"ofDataset\": \"{{datasetId}}\"\n}"
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set(\"distributionId\", pm.response.json()[\"@id\"]);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Infer from samples",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/schemas/infer",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"schemas",
+								"infer"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"samples\": [\n        {\n            \"station\": \"MAD-01\",\n            \"at\": \"2026-10-29T10:00:00Z\",\n            \"temperature\": 14.5,\n            \"humidity\": 61,\n            \"location\": {\n                \"lat\": 40.41,\n                \"lon\": -3.7\n            },\n            \"note\": \"clear\"\n        },\n        {\n            \"station\": \"BCN-02\",\n            \"at\": \"2026-10-29T10:00:00Z\",\n            \"temperature\": 18,\n            \"humidity\": 70,\n            \"location\": {\n                \"lat\": 41.39,\n                \"lon\": 2.17\n            }\n        }\n    ]\n}"
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"inferred an object schema\", () => pm.expect(pm.response.json().type).to.eql(\"object\"));",
+									"pm.collectionVariables.set(\"inferredSchema\", JSON.stringify(pm.response.json()));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create schema",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/schemas",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"schemas"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Weather readings\",\n    \"description\": \"One reading of a weather station\",\n    \"visibility\": \"Public\",\n    \"schema\": {{inferredSchema}}\n}"
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const body = pm.response.json();",
+									"pm.test(\"stored\", () => pm.response.to.have.status(201));",
+									"pm.collectionVariables.set(\"schemaId\", body.id);",
+									"pm.collectionVariables.set(\"schemaVersion\", body.version);",
+									"pm.collectionVariables.set(\"schemaUrl\", body.url);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Read the dataset",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/{{datasetId}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"datasets",
+								"{{datasetId}}"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const doc = pm.response.json();",
+									"delete doc.issued; delete doc.modified;",
+									"doc.schema = pm.collectionVariables.get(\"schemaUrl\");",
+									"pm.collectionVariables.set(\"datasetBody\", JSON.stringify(doc, null, 4));",
+									"pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Point the dataset to the schema",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "If-Match",
+								"value": "{{etag}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/{{datasetId}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"datasets",
+								"{{datasetId}}"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{{datasetBody}}"
+						},
+						"description": "Replaces the dataset with its `schema` set; `If-Match` names the version just read."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"saved\", () => pm.response.to.have.status(200));",
+									"pm.test(\"schema set\", () => pm.expect(pm.response.json().schema).to.eql(pm.collectionVariables.get(\"schemaUrl\")));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Distribution in DCAT-AP inherits it",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/public/dcat-ap/resources/{{distributionId}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"public",
+								"dcat-ap",
+								"resources",
+								"{{distributionId}}"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "The distribution sets no schema, so it publishes its dataset's as a linked schema."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"conformsTo is the schema URL\", () => pm.expect(pm.response.text()).to.include(pm.collectionVariables.get(\"schemaUrl\")));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Version 1 is in use",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/schemas/{{schemaId}}/versions/1",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"schemas",
+								"{{schemaId}}",
+								"versions",
+								"1"
+							]
+						},
+						"description": "Refused while the dataset points to it."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"409\", () => pm.response.to.have.status(409));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "New version",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/schemas/{{schemaId}}/versions",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"schemas",
+								"{{schemaId}}",
+								"versions"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"schema\": {{inferredSchema}},\n    \"description\": \"Temperature in degrees Celsius\"\n}"
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const body = pm.response.json();",
+									"pm.test(\"stored\", () => pm.response.to.have.status(201));",
+									"pm.collectionVariables.set(\"schemaId\", body.id);",
+									"pm.collectionVariables.set(\"schemaVersion\", body.version);",
+									"pm.collectionVariables.set(\"schemaUrl\", body.url);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Read the dataset again",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/{{datasetId}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"datasets",
+								"{{datasetId}}"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const doc = pm.response.json();",
+									"delete doc.issued; delete doc.modified;",
+									"doc.schema = pm.collectionVariables.get(\"schemaUrl\");",
+									"pm.collectionVariables.set(\"datasetBody\", JSON.stringify(doc, null, 4));",
+									"pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Move the dataset to version 2",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "If-Match",
+								"value": "{{etag}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/{{datasetId}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"datasets",
+								"{{datasetId}}"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{{datasetBody}}"
+						},
+						"description": "Replaces the dataset with its `schema` set; `If-Match` names the version just read."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"saved\", () => pm.response.to.have.status(200));",
+									"pm.test(\"schema set\", () => pm.expect(pm.response.json().schema).to.eql(pm.collectionVariables.get(\"schemaUrl\")));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Version 1 can go now",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/schemas/{{schemaId}}/versions/1",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"schemas",
+								"{{schemaId}}",
+								"versions",
+								"1"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"204\", () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Public version 2 (no token)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/public/schemas/{{schemaId}}/{{schemaVersion}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"public",
+								"schemas",
+								"{{schemaId}}",
+								"{{schemaVersion}}"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"200\", () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Clean up: dataset",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/{{datasetId}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"datasets",
+								"{{datasetId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Clean up: schema",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/schemas/{{schemaId}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"schemas",
+								"{{schemaId}}"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"204\", () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
 			"name": "OpenAPI",
 			"request": {
 				"method": "GET",
@@ -4323,6 +5345,26 @@
 		},
 		{
 			"key": "connectorInstanceId",
+			"value": ""
+		},
+		{
+			"key": "schemaId",
+			"value": ""
+		},
+		{
+			"key": "schemaVersion",
+			"value": ""
+		},
+		{
+			"key": "schemaUrl",
+			"value": ""
+		},
+		{
+			"key": "inferredSchema",
+			"value": ""
+		},
+		{
+			"key": "datasetBody",
 			"value": ""
 		}
 	]

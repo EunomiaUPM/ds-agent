@@ -52,6 +52,7 @@ source "$SCRIPT_DIR/../lib/auth.sh"
 echo "Populating as the scripts' user (static mode: the root)" >&2
 
 bash "$SCRIPT_DIR/populate_mock_data.sh"
+bash "$SCRIPT_DIR/populate_mock_schemas.sh"
 bash "$SCRIPT_DIR/populate_mock_contracts.sh"
 bash "$SCRIPT_DIR/populate_mock_transfers.sh"
 bash "$SCRIPT_DIR/populate_mock_mates.sh"

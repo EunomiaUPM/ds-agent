@@ -58,6 +58,11 @@ jupyter lab
 - `catalog_import_export.ipynb` (Provider only, no onboarding needed):
   - Reads the Provider's catalog in each profile (`GET /api/v1/catalog-agent/catalogs/{id}/profiles/{dsp|dcat3|dcat-ap}`): a preview cut with `limit` (`X-Total-Count`, `X-Shown-Count`), and downloads with `download=true` in JSON-LD, Turtle, N-Triples or RDF/XML (`format=` or `Accept`).
   - Validates DCAT-AP documents with SEMIC's official DCAT-AP 3.0.1 SHACL shapes and imports them (`POST /api/v1/catalog-agent/catalogs/import`, `dryRun`, `mode=upsert|create`, `target`, `checks`): the SHACL report, a broken document answered `422`, re-imports updating, DCAT 3 in Turtle with `http` IRIs given stable URNs, and the shape groups that need background knowledge.
+- `catalog_schemas.ipynb` (Provider only, no onboarding needed):
+  - Infers a JSON Schema from sample documents (`POST /api/v1/catalog-agent/schemas/infer`), checks it and the samples against it (`/schemas/validate`) and hosts it as version 1 (`POST /schemas`).
+  - Dereferences it at its public URL with no token (`GET /api/v1/catalog-agent/public/schemas/{id}/{version}`, `application/schema+json`, immutable).
+  - Points a dataset to it with the `schema` term; one distribution inherits it and another overrides it with an external URL, all published as `dct:conformsTo` by the DCAT-AP and DCAT 3 public routes.
+  - Publishes version 2, shows that a version in use cannot be deleted (`409`), moves the dataset with `If-Match` and deletes v1; checks an external schema URL (`/schemas/check-url`) and a wrong hosted reference (`400`).
   - Imports the EDACCIT DCAT-AP catalogs of `data/dcat-ap/` and checks them with the doctor.
 
 ### 2. Contract Negotiation (DSP Control Plane RPC & Management API)

@@ -83,6 +83,7 @@ tasks:
   # Usage:
   #   task populate               (all: data + contracts + transfers)
   #   task populate:data
+  #   task populate:schemas
   #   task populate:contracts
   #   task populate:transfers
   #   task populate:transfers AGREEMENT_ID=urn:agreement:abc-123
@@ -91,6 +92,7 @@ tasks:
     desc: "Seed all mock data (catalog data + contracts + transfers)"
     cmds:
       - task: populate:data
+      - task: populate:schemas
       - task: populate:contracts
       - task: populate:transfers
 
@@ -98,6 +100,11 @@ tasks:
     desc: "Seed mock catalog data (catalogs, datasets, distributions, connectors)"
     cmds:
       - bash {{.SCRIPTS_DIR}}/data/populate_mock_data.sh
+
+  populate:schemas:
+    desc: "Seed data schemas (inferred, hosted, versioned) and set them on the mock datasets"
+    cmds:
+      - bash {{.SCRIPTS_DIR}}/data/populate_mock_schemas.sh
 
   populate:contracts:
     desc: "Seed mock negotiation contracts (processes, messages, offers, agreements)"

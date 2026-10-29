@@ -469,6 +469,7 @@ function NewDatasetOfferingPage() {
                     onChange={setDistributionForm}
                     problems={distributionProblems}
                     dataServices={dataServices}
+                    inheritedSchema={datasetForm.schema}
                   />
                 </CardContent>
 

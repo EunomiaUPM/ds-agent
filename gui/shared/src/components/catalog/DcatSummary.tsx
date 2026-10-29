@@ -1,6 +1,7 @@
 import React from "react";
 import { ExternalLink } from "lucide-react";
 import { FieldGrid } from "shared/src/components/layout/FieldGrid";
+import { SchemaUrl } from "shared/src/components/schemas/SchemaPicker";
 import {
   DcatForms,
   DcatVocabularies,
@@ -75,7 +76,12 @@ export function DatasetDcatSummary({ doc }: { doc: DcatDocument }) {
         { label: "Contact", value: contact || null },
         { label: "Identifier", value: d.identifier || null },
         { label: "Landing page", value: link(d.landingPage), span: 2 },
-        { label: "Conforms to", value: link(d.conformsTo), span: 3 },
+        {
+          label: "Data schema",
+          value: d.schema ? <SchemaUrl url={d.schema} /> : null,
+          span: 3,
+        },
+        { label: "Other standard", value: link(d.conformsTo), span: 3 },
       ]}
     />
   );

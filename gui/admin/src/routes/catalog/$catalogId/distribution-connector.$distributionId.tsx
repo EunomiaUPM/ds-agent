@@ -37,6 +37,9 @@ import { FormatDate } from "shared/src/components/ui/format-date";
 import { Identifier } from "shared/src/components/identity/Identifier";
 import { DatasetLabel } from "shared/src/components/identity/DatasetLabel";
 import { JsonTable } from "shared/src/components/json/JsonTable";
+import { SchemaUrl } from "shared/src/components/schemas/SchemaPicker";
+import { useGetDatasetById } from "shared/src/data/orval/datasets/datasets";
+import { text } from "shared/src/data/catalog";
 import {
   CatalogResourceEditor,
   type EditorTarget,
@@ -88,6 +91,13 @@ function DistributionConnectorPage() {
       ? CatalogViews.distribution(distributionData.data as CatalogDoc)
       : undefined;
   const instance = instanceData?.status === 200 ? instanceData.data : undefined;
+  const { data: datasetData } = useGetDatasetById(distribution?.datasetId ?? "", {
+    query: { enabled: !!distribution?.datasetId },
+  });
+  const ownSchema =
+    distributionData?.status === 200 ? text((distributionData.data as CatalogDoc)?.schema) : "";
+  const datasetSchema =
+    datasetData?.status === 200 ? text((datasetData.data as CatalogDoc)?.schema) : "";
   if (!distribution) return null;
 
   const interaction = instance?.interaction as
@@ -179,6 +189,12 @@ function DistributionConnectorPage() {
                 {distribution.mediaType.replace("http://www.iana.org/assignments/media-types/", "")}
               </span>
             ),
+          },
+          {
+            label: ownSchema ? "Data schema" : "Data schema (inherited)",
+            span: 3,
+            value:
+              ownSchema || datasetSchema ? <SchemaUrl url={ownSchema || datasetSchema} /> : null,
           },
           { label: "Distribution", value: <Identifier value={distribution.id} /> },
           { label: "Connector instance", value: <Identifier value={instance?.id} /> },

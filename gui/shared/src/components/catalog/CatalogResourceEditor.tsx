@@ -25,6 +25,7 @@ import { DcatForms, type DcatDocument, type FormProblems } from "shared/src/data
 import { CatalogResources, type CatalogResourceKind } from "shared/src/data/catalogResources";
 import { CatalogViews, text } from "shared/src/data/catalog";
 import { useGetDataServicesByCatalogId } from "shared/src/data/orval/data-services/data-services";
+import { useGetDatasetById } from "shared/src/data/orval/datasets/datasets";
 
 /** What the editor works on: a stored resource, or a new one under `parentId`. */
 export interface EditorTarget {
@@ -91,6 +92,13 @@ export function CatalogResourceEditor({
   const { data: servicesData } = useGetDataServicesByCatalogId(catalogId ?? "", {
     query: { enabled: kind === "distribution" && !!catalogId },
   });
+  // A distribution shows the schema it inherits from its dataset.
+  const datasetId = kind === "distribution" ? text(base.ofDataset) || target?.parentId || "" : "";
+  const { data: datasetData } = useGetDatasetById(datasetId, {
+    query: { enabled: !!datasetId },
+  });
+  const inheritedSchema =
+    datasetData?.status === 200 ? text((datasetData.data as DcatDocument).schema) : "";
   const dataServices =
     servicesData?.status === 200
       ? CatalogViews.list(servicesData.data, CatalogViews.dataService)
@@ -161,7 +169,14 @@ export function CatalogResourceEditor({
       case "dataset":
         return <DatasetFields value={form as never} {...props} />;
       case "distribution":
-        return <DistributionFields value={form as never} dataServices={dataServices} {...props} />;
+        return (
+          <DistributionFields
+            value={form as never}
+            dataServices={dataServices}
+            inheritedSchema={inheritedSchema}
+            {...props}
+          />
+        );
       case "dataService":
         return <DataServiceFields value={form as never} {...props} />;
       default:

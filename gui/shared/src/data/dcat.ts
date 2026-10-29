@@ -129,6 +129,8 @@ export interface DatasetForm {
   contactEmail: string;
   landingPage: string;
   conformsTo: string;
+  /** Data schema URL, hosted here or external; its distributions inherit it. */
+  schema: string;
   license: string;
   accessRights: string;
   languages: string[];
@@ -147,6 +149,8 @@ export interface DistributionForm {
   downloadURL: string;
   license: string;
   byteSize: string;
+  /** Own data schema URL; empty inherits the dataset's. */
+  schema: string;
 }
 
 export interface DataServiceForm {
@@ -198,6 +202,7 @@ export const DcatForms = {
       contactEmail: "",
       landingPage: "",
       conformsTo: "",
+      schema: "",
       license: "",
       accessRights: "",
       languages: [],
@@ -218,6 +223,7 @@ export const DcatForms = {
       downloadURL: "",
       license: "",
       byteSize: "",
+      schema: "",
     };
   },
 
@@ -249,6 +255,7 @@ export const DcatForms = {
       contactEmail: text(contact?.hasEmail).replace(/^mailto:/, ""),
       landingPage: texts(doc.landingPage)[0] ?? "",
       conformsTo: texts(doc.conformsTo)[0] ?? "",
+      schema: text(doc.schema),
       license: text(doc.license),
       accessRights: text(doc.accessRights),
       languages: texts(doc.language),
@@ -269,6 +276,7 @@ export const DcatForms = {
       downloadURL: texts(doc.downloadURL)[0] ?? "",
       license: text(doc.license),
       byteSize: text(doc.byteSize),
+      schema: text(doc.schema),
     };
   },
 
@@ -301,6 +309,7 @@ export const DcatForms = {
       contactPoint: DcatForms.replaceFirst(base.contactPoint, contact),
       landingPage: DcatForms.replaceFirstValue(base.landingPage, form.landingPage),
       conformsTo: DcatForms.replaceFirstValue(base.conformsTo, form.conformsTo),
+      schema: one(form.schema),
       license: one(form.license),
       accessRights: one(form.accessRights),
       language: many(form.languages),
@@ -321,6 +330,7 @@ export const DcatForms = {
       downloadURL: DcatForms.replaceFirstValue(base.downloadURL, form.downloadURL),
       license: one(form.license),
       byteSize: one(form.byteSize),
+      schema: one(form.schema),
     };
   },
 
@@ -340,7 +350,14 @@ export const DcatForms = {
   datasetProblems(form: DatasetForm): FormProblems {
     const problems: FormProblems = {};
     if (!form.title.trim()) problems.title = "A dataset needs a title.";
-    for (const key of ["publisher", "creator", "landingPage", "conformsTo", "license"] as const) {
+    for (const key of [
+      "publisher",
+      "creator",
+      "landingPage",
+      "conformsTo",
+      "license",
+      "schema",
+    ] as const) {
       if (form[key].trim() && !IRI.test(form[key].trim())) {
         problems[key] = "Must be an IRI, such as https://… or did:web:…";
       }
@@ -360,6 +377,9 @@ export const DcatForms = {
     if (!form.format.trim()) problems.format = "Consumers ask for a distribution by its format.";
     if (form.downloadURL.trim() && !IRI.test(form.downloadURL.trim())) {
       problems.downloadURL = "Must be a URL.";
+    }
+    if (form.schema.trim() && !IRI.test(form.schema.trim())) {
+      problems.schema = "Must be a URL.";
     }
     if (form.byteSize.trim() && !/^\d+$/.test(form.byteSize.trim())) {
       problems.byteSize = "A whole number of bytes.";

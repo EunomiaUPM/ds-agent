@@ -23,6 +23,7 @@ import {
   type VocabularyTerm,
 } from "shared/src/data/dcat";
 import type { DataServiceView } from "shared/src/data/catalog";
+import { SchemaPicker } from "shared/src/components/schemas/SchemaPicker";
 
 interface FieldProps {
   label: string;
@@ -205,6 +206,16 @@ export function DatasetFields({ value: f, onChange, problems = {} }: FormProps<D
       </div>
 
       <FormSection
+        title="Data schema"
+        description="What the data looks like; published as conformsTo and inherited by distributions."
+        filled={count(f.schema)}
+      >
+        <FormField label="Schema" error={problems.schema}>
+          <SchemaPicker value={f.schema} onChange={(v) => set("schema", v)} />
+        </FormField>
+      </FormSection>
+
+      <FormSection
         title="Licensing & access"
         description="Terms a consumer reads before negotiating."
         filled={count(f.license, f.accessRights)}
@@ -354,9 +365,9 @@ export function DatasetFields({ value: f, onChange, problems = {} }: FormProps<D
             />
           </FormField>
           <FormField
-            label="Conforms to"
+            label="Other standard (conforms to)"
             error={problems.conformsTo}
-            hint="A standard or schema the data follows."
+            hint="A model, ontology or rule the data follows; its schema goes above."
             className="md:col-span-2"
           >
             <Input
@@ -374,6 +385,8 @@ export function DatasetFields({ value: f, onChange, problems = {} }: FormProps<D
 
 interface DistributionFieldsProps extends FormProps<DistributionForm> {
   dataServices: DataServiceView[];
+  /** The dataset's schema, used when the distribution sets none. */
+  inheritedSchema?: string;
 }
 
 /** Distribution fields: how the data is transferred and what it looks like. */
@@ -382,6 +395,7 @@ export function DistributionFields({
   onChange,
   problems = {},
   dataServices,
+  inheritedSchema,
 }: DistributionFieldsProps) {
   const set = <K extends keyof DistributionForm>(key: K, v: DistributionForm[K]) =>
     onChange({ ...f, [key]: v });
@@ -447,6 +461,19 @@ export function DistributionFields({
           </Select>
         </FormField>
       </div>
+      <FormSection
+        title="Schema"
+        description="Leave it on Inherit to use the dataset's; set one when this serialization differs."
+        filled={count(f.schema)}
+      >
+        <FormField label="Schema" error={problems.schema}>
+          <SchemaPicker
+            value={f.schema}
+            onChange={(v) => set("schema", v)}
+            inherited={inheritedSchema || undefined}
+          />
+        </FormField>
+      </FormSection>
       <FormSection title="More details" filled={count(f.license, f.downloadURL, f.byteSize)}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <FormField label="License" hint="When it differs from the dataset's.">

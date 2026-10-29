@@ -33,6 +33,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  BadRequestResponse,
+  JsonSchemaDocument,
   NotFoundResponse,
   ProfileDocument,
   PublicDcat3Context200,
@@ -44,6 +46,214 @@ import type { ErrorType } from '../../orval-mutator';
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
+
+/**
+ * What `conformsTo` points to. Immutable, cacheable, CORS-open; private schemas are not served.
+ * @summary A hosted schema version, as anyone dereferences it
+ */
+export type getPublishedSchemaResponse200 = {
+  data: JsonSchemaDocument
+  status: 200
+}
+
+export type getPublishedSchemaResponse400 = {
+  data: BadRequestResponse
+  status: 400
+}
+
+export type getPublishedSchemaResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type getPublishedSchemaResponseSuccess = (getPublishedSchemaResponse200) & {
+  headers: Headers;
+};
+export type getPublishedSchemaResponseError = (getPublishedSchemaResponse400 | getPublishedSchemaResponse404) & {
+  headers: Headers;
+};
+
+export type getPublishedSchemaResponse = (getPublishedSchemaResponseSuccess | getPublishedSchemaResponseError)
+
+export const getGetPublishedSchemaUrl = (id: string,
+    version: string,) => {
+
+
+  
+
+  return `/v1/catalog-agent/public/schemas/${id}/${version}`
+}
+
+export const getPublishedSchema = async (id: string,
+    version: string, options?: RequestInit): Promise<getPublishedSchemaResponse> => {
+  
+  return customInstance<getPublishedSchemaResponse>(getGetPublishedSchemaUrl(id,version),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetPublishedSchemaInfiniteQueryKey = (id: string,
+    version: string,) => {
+    return [
+    'infinite', `/v1/catalog-agent/public/schemas/${id}/${version}`
+    ] as const;
+    }
+
+export const getGetPublishedSchemaQueryKey = (id: string,
+    version: string,) => {
+    return [
+    `/v1/catalog-agent/public/schemas/${id}/${version}`
+    ] as const;
+    }
+
+    
+export const getGetPublishedSchemaInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getPublishedSchema>>>, TError = ErrorType<BadRequestResponse | NotFoundResponse>>(id: string,
+    version: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPublishedSchema>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublishedSchemaInfiniteQueryKey(id,version);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublishedSchema>>> = ({ signal }) => getPublishedSchema(id,version, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id && version),  ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPublishedSchema>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetPublishedSchemaInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getPublishedSchema>>>
+export type GetPublishedSchemaInfiniteQueryError = ErrorType<BadRequestResponse | NotFoundResponse>
+
+
+export function useGetPublishedSchemaInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPublishedSchema>>>, TError = ErrorType<BadRequestResponse | NotFoundResponse>>(
+ id: string,
+    version: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPublishedSchema>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPublishedSchema>>,
+          TError,
+          Awaited<ReturnType<typeof getPublishedSchema>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetPublishedSchemaInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPublishedSchema>>>, TError = ErrorType<BadRequestResponse | NotFoundResponse>>(
+ id: string,
+    version: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPublishedSchema>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPublishedSchema>>,
+          TError,
+          Awaited<ReturnType<typeof getPublishedSchema>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetPublishedSchemaInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPublishedSchema>>>, TError = ErrorType<BadRequestResponse | NotFoundResponse>>(
+ id: string,
+    version: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPublishedSchema>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary A hosted schema version, as anyone dereferences it
+ */
+
+export function useGetPublishedSchemaInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPublishedSchema>>>, TError = ErrorType<BadRequestResponse | NotFoundResponse>>(
+ id: string,
+    version: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPublishedSchema>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getGetPublishedSchemaInfiniteQueryOptions(id,version,options)
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+export const getGetPublishedSchemaQueryOptions = <TData = Awaited<ReturnType<typeof getPublishedSchema>>, TError = ErrorType<BadRequestResponse | NotFoundResponse>>(id: string,
+    version: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublishedSchema>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublishedSchemaQueryKey(id,version);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublishedSchema>>> = ({ signal }) => getPublishedSchema(id,version, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id && version),  ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublishedSchema>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetPublishedSchemaQueryResult = NonNullable<Awaited<ReturnType<typeof getPublishedSchema>>>
+export type GetPublishedSchemaQueryError = ErrorType<BadRequestResponse | NotFoundResponse>
+
+
+export function useGetPublishedSchema<TData = Awaited<ReturnType<typeof getPublishedSchema>>, TError = ErrorType<BadRequestResponse | NotFoundResponse>>(
+ id: string,
+    version: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublishedSchema>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPublishedSchema>>,
+          TError,
+          Awaited<ReturnType<typeof getPublishedSchema>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetPublishedSchema<TData = Awaited<ReturnType<typeof getPublishedSchema>>, TError = ErrorType<BadRequestResponse | NotFoundResponse>>(
+ id: string,
+    version: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublishedSchema>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPublishedSchema>>,
+          TError,
+          Awaited<ReturnType<typeof getPublishedSchema>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetPublishedSchema<TData = Awaited<ReturnType<typeof getPublishedSchema>>, TError = ErrorType<BadRequestResponse | NotFoundResponse>>(
+ id: string,
+    version: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublishedSchema>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary A hosted schema version, as anyone dereferences it
+ */
+
+export function useGetPublishedSchema<TData = Awaited<ReturnType<typeof getPublishedSchema>>, TError = ErrorType<BadRequestResponse | NotFoundResponse>>(
+ id: string,
+    version: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublishedSchema>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getGetPublishedSchemaQueryOptions(id,version,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
 
 
 

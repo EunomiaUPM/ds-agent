@@ -33,6 +33,8 @@ export interface DatasetDocument {
   readonly issued?: string;
   /** Set by the agent. */
   readonly modified?: string;
+  /** Data schema URL, hosted here or external; profiles publish it as `dct:conformsTo`, and a distribution without one inherits its dataset's. */
+  schema?: string;
   identifier?: string;
   conformsTo?: string[];
   creator?: string;

@@ -49,6 +49,7 @@ import {
   Upload,
   Pencil,
   Trash2,
+  FileJson,
 } from "lucide-react";
 
 import { useGetCatalogById, useGetMainCatalogs } from "shared/src/data/orval/catalogs/catalogs";
@@ -448,6 +449,12 @@ function RouteComponent() {
                 <Button size="sm" variant="outline" className="w-full justify-start gap-2 text-xs">
                   <Upload className="h-3.5 w-3.5" />
                   Import DCAT-AP / DCAT 3
+                </Button>
+              </Link>
+              <Link to="/my-catalog/schemas">
+                <Button size="sm" variant="outline" className="w-full justify-start gap-2 text-xs">
+                  <FileJson className="h-3.5 w-3.5" />
+                  Data Schemas
                 </Button>
               </Link>
               <Button

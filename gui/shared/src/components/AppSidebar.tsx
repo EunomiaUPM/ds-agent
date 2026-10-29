@@ -19,6 +19,7 @@
 
 import {
   Archive,
+  FileJson,
   ArrowLeftRight,
   Feather,
   Handshake,
@@ -167,6 +168,11 @@ export function AppSidebar() {
           url: "/admin/my-catalog",
           icon: Archive,
         },
+        {
+          title: "Data Schemas",
+          url: "/admin/my-catalog/schemas",
+          icon: FileJson,
+        },
         // The former built-in OAuth module (clients, PATs) is disabled; identities live in
         // the identity provider.
         // {
@@ -238,9 +244,7 @@ export function AppSidebar() {
                           <Link
                             to={item.url}
                             className={
-                              routerState.location.pathname === item.url
-                                ? "bg-ink/10 text-ink"
-                                : ""
+                              routerState.location.pathname === item.url ? "bg-ink/10 text-ink" : ""
                             }
                           >
                             <item.icon />
@@ -255,9 +259,7 @@ export function AppSidebar() {
                           <Link
                             to={item.url}
                             className={
-                              routerState.location.pathname === item.url
-                                ? "bg-ink/10 text-ink"
-                                : ""
+                              routerState.location.pathname === item.url ? "bg-ink/10 text-ink" : ""
                             }
                           >
                             <item.icon />

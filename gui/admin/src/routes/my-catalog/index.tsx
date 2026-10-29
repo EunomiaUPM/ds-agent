@@ -47,14 +47,27 @@ import {
   Calendar,
   Layers,
   Upload,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 
 import { useGetCatalogById, useGetMainCatalogs } from "shared/src/data/orval/catalogs/catalogs";
 import { useGetDatasetsByCatalogId } from "shared/src/data/orval/datasets/datasets";
 import { CatalogViews, type CatalogDoc } from "shared/src/data/catalog";
-import { useGetDataServicesByCatalogId } from "shared/src/data/orval/data-services/data-services";
+import {
+  useGetDataServicesByCatalogId,
+  useGetMainDataService,
+} from "shared/src/data/orval/data-services/data-services";
 import { useMyself } from "shared/src/data/useMyself";
 import { CatalogSpecificationPanel } from "shared/src/components/catalog/CatalogSpecificationPanel";
+import {
+  CatalogResourceEditor,
+  type EditorTarget,
+} from "shared/src/components/catalog/CatalogResourceEditor";
+import {
+  DeleteResourceDialog,
+  type DeleteTarget,
+} from "shared/src/components/catalog/DeleteResourceDialog";
 
 export const Route = createFileRoute("/my-catalog/")({
   component: RouteComponent,
@@ -67,6 +80,8 @@ function RouteComponent() {
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedId, setCopiedId] = useState(false);
+  const [editing, setEditing] = useState<EditorTarget | null>(null);
+  const [deleting, setDeleting] = useState<DeleteTarget | null>(null);
 
   const {
     data: mainCatalogData,
@@ -74,7 +89,9 @@ function RouteComponent() {
     refetch: refetchMainCatalog,
   } = useGetMainCatalogs();
   const mainCatalog =
-    mainCatalogData?.status === 200 ? CatalogViews.catalog(mainCatalogData.data as CatalogDoc) : undefined;
+    mainCatalogData?.status === 200
+      ? CatalogViews.catalog(mainCatalogData.data as CatalogDoc)
+      : undefined;
   const catalogId = mainCatalog?.id;
 
   const { data: catalogData, refetch: refetchCatalog } = useGetCatalogById(catalogId ?? "");
@@ -104,8 +121,13 @@ function RouteComponent() {
   const myAgent = useMyself();
 
   const myAgentSlug = myAgent?.participant_nick || "Local Agent";
+  const { data: mainServiceData } = useGetMainDataService();
+  const mainServiceId =
+    mainServiceData?.status === 200
+      ? CatalogViews.dataService(mainServiceData.data as CatalogDoc).id
+      : "";
   // The main data service is the connector's first, created with the main catalog.
-  const mainDs = dataservices[0];
+  const mainDs = dataservices.find((ds) => ds.id === mainServiceId) ?? dataservices[0];
   const hasDataservice = !!mainDs;
 
   // Filter datasets for live search
@@ -116,6 +138,7 @@ function RouteComponent() {
       (d) =>
         (d.title && d.title.toLowerCase().includes(q)) ||
         (d.description && d.description.toLowerCase().includes(q)) ||
+        d.keywords.some((k) => k.toLowerCase().includes(q)) ||
         (d.id && d.id.toLowerCase().includes(q)),
     );
   }, [datasets, searchQuery]);
@@ -191,18 +214,38 @@ function RouteComponent() {
     {
       header: "Action",
       cell: (row) => (
-        <Link
-          to="/catalog/$catalogId/dataset/$datasetId"
-          params={{
-            catalogId: catalog?.id ?? "",
-            datasetId: row.id ?? "",
-          }}
-        >
-          <Button variant="ghost" size="sm" className="h-7 text-xs px-2 gap-1 text-primary">
-            <span>Inspect</span>
-            <ArrowRight className="h-3 w-3" />
+        <div className="flex items-center gap-1">
+          <Link
+            to="/catalog/$catalogId/dataset/$datasetId"
+            params={{
+              catalogId: catalog?.id ?? "",
+              datasetId: row.id ?? "",
+            }}
+          >
+            <Button variant="ghost" size="sm" className="h-7 text-xs px-2 gap-1 text-primary">
+              <span>Inspect</span>
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon_sm"
+            className="h-7 w-7"
+            title="Edit dataset"
+            onClick={() => setEditing({ kind: "dataset", id: row.id })}
+          >
+            <Pencil />
           </Button>
-        </Link>
+          <Button
+            variant="ghost"
+            size="icon_sm"
+            className="h-7 w-7 text-danger-700 dark:text-danger-300"
+            title="Delete dataset"
+            onClick={() => setDeleting({ kind: "dataset", id: row.id, title: row.title })}
+          >
+            <Trash2 />
+          </Button>
+        </div>
       ),
     },
   ];
@@ -502,6 +545,10 @@ function RouteComponent() {
                         datasetId={dataset.id ?? ""}
                         ownDataset={true}
                         dataset={dataset}
+                        onEdit={() => setEditing({ kind: "dataset", id: dataset.id })}
+                        onDelete={() =>
+                          setDeleting({ kind: "dataset", id: dataset.id, title: dataset.title })
+                        }
                       />
                     ))}
                   </div>
@@ -571,8 +618,7 @@ function RouteComponent() {
                           )}
                         </div>
                         <CardDescription>
-                          {ds.description ||
-                            "Data service endpoint configured for this catalog."}
+                          {ds.description || "Data service endpoint configured for this catalog."}
                         </CardDescription>
                       </CardHeader>
 
@@ -597,7 +643,29 @@ function RouteComponent() {
                         </div>
                       </CardContent>
 
-                      <CardFooter className="pt-3 border-t border-ink/5 flex justify-end">
+                      <CardFooter className="pt-3 border-t border-ink/5 flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1.5 text-xs"
+                          onClick={() => setEditing({ kind: "dataService", id: ds.id })}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Edit
+                        </Button>
+                        {ds.id !== mainDs?.id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1.5 text-xs text-danger-700 dark:text-danger-300"
+                            onClick={() =>
+                              setDeleting({ kind: "dataService", id: ds.id, title: ds.title })
+                            }
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete
+                          </Button>
+                        )}
                         <Link
                           to="/catalog/$catalogId/data-service/$dataServiceId"
                           params={{
@@ -682,7 +750,9 @@ function RouteComponent() {
                     <span className="text-xs uppercase font-mono text-muted-foreground">
                       Enforcement
                     </span>
-                    <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">Autonomous</p>
+                    <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
+                      Autonomous
+                    </p>
                   </div>
                 </div>
               </Card>
@@ -708,6 +778,13 @@ function RouteComponent() {
           )}
         </InnerBody>
       </InnerSidebarLayout>
+
+      <CatalogResourceEditor
+        target={editing}
+        onClose={() => setEditing(null)}
+        catalogId={catalog.id}
+      />
+      <DeleteResourceDialog target={deleting} onClose={() => setDeleting(null)} />
     </PageLayout>
   );
 }

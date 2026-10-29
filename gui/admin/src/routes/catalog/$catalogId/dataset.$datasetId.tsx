@@ -19,7 +19,7 @@ import React, { useState } from "react";
 import { CatalogViews, type CatalogDoc, type DistributionView } from "shared/src/data/catalog";
 import { JsonLd } from "shared/src/data/jsonld";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowUpRight, Plus } from "lucide-react";
+import { ArrowUpRight, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   useGetDatasetById,
   getGetDatasetByIdQueryOptions,
@@ -51,6 +51,15 @@ import { PolicyCard } from "shared/src/components/policy/PolicyCard";
 import { PolicyComposer } from "shared/src/components/policy/PolicyComposer";
 import { DoctorPanel } from "shared/src/components/catalog/DoctorPanel";
 import { ContractNegotiationNewOfferDialog } from "shared/src/components/dialogs/ContractNegotiationNewOfferDialog";
+import {
+  CatalogResourceEditor,
+  type EditorTarget,
+} from "shared/src/components/catalog/CatalogResourceEditor";
+import {
+  DeleteResourceDialog,
+  type DeleteTarget,
+} from "shared/src/components/catalog/DeleteResourceDialog";
+import { DatasetDcatSummary } from "shared/src/components/catalog/DcatSummary";
 import { useParticipantDirectory } from "shared/src/data/useParticipantDirectory";
 
 export const Route = createFileRoute("/catalog/$catalogId/dataset/$datasetId")({
@@ -66,6 +75,8 @@ function DatasetPage() {
   const navigate = useNavigate();
   const { self } = useParticipantDirectory();
   const [composerOpen, setComposerOpen] = useState(false);
+  const [editing, setEditing] = useState<EditorTarget | null>(null);
+  const [deleting, setDeleting] = useState<DeleteTarget | null>(null);
 
   const { data: catalogData } = useGetCatalogById(catalogId);
   const { data: datasetData } = useGetDatasetById(datasetId);
@@ -94,9 +105,23 @@ function DatasetPage() {
         title={dataset.title || <Identifier value={dataset.id} />}
         description={dataset.description || "No description."}
         actions={
-          <Button onClick={() => setComposerOpen(true)}>
-            <Plus /> Add policy
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              onClick={() => setEditing({ kind: "dataset", id: datasetId })}
+            >
+              <Pencil /> Edit
+            </Button>
+            <Button
+              variant="outline_destructive"
+              onClick={() => setDeleting({ kind: "dataset", id: datasetId, title: dataset.title })}
+            >
+              <Trash2 /> Delete
+            </Button>
+            <Button onClick={() => setComposerOpen(true)}>
+              <Plus /> Add policy
+            </Button>
+          </>
         }
       />
 
@@ -126,8 +151,9 @@ function DatasetPage() {
         ]}
       />
 
-      <Tabs defaultValue="policies">
+      <Tabs defaultValue="details">
         <TabsList>
+          <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="policies">
             Access policies <CountBadge n={policies.length} showZero />
           </TabsTrigger>
@@ -137,6 +163,19 @@ function DatasetPage() {
           <TabsTrigger value="conformance">Conformance</TabsTrigger>
           <TabsTrigger value="metadata">Metadata</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="details" className="pt-5">
+          <DatasetDcatSummary doc={datasetData?.data as Record<string, unknown>} />
+          <div className="mt-3 flex justify-end">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setEditing({ kind: "dataset", id: datasetId })}
+            >
+              <Pencil /> Edit metadata
+            </Button>
+          </div>
+        </TabsContent>
 
         <TabsContent value="policies" className="pt-5">
           {policies.length === 0 ? (
@@ -155,18 +194,33 @@ function DatasetPage() {
                   key={policy.id}
                   policy={policy}
                   actions={
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button size="sm" variant="outline">
-                          Offer to a participant
-                        </Button>
-                      </DialogTrigger>
-                      <ContractNegotiationNewOfferDialog
-                        policy={policy}
-                        catalogId={catalogId}
-                        datasetId={dataset.id}
-                      />
-                    </Dialog>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          setDeleting({
+                            kind: "policy",
+                            id: policy.id,
+                            title: policy.description ?? undefined,
+                          })
+                        }
+                      >
+                        <Trash2 /> Delete
+                      </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            Offer to a participant
+                          </Button>
+                        </DialogTrigger>
+                        <ContractNegotiationNewOfferDialog
+                          policy={policy}
+                          catalogId={catalogId}
+                          datasetId={dataset.id}
+                        />
+                      </Dialog>
+                    </>
                   }
                 />
               ))}
@@ -175,6 +229,15 @@ function DatasetPage() {
         </TabsContent>
 
         <TabsContent value="distributions" className="pt-5">
+          <div className="mb-3 flex justify-end">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setEditing({ kind: "distribution", parentId: datasetId })}
+            >
+              <Plus /> Add distribution
+            </Button>
+          </div>
           <DataTable<DistributionView>
             data={distributions}
             keyExtractor={(d) => d.id}
@@ -192,9 +255,7 @@ function DatasetPage() {
                 cell: (d) => (
                   <span className="flex flex-col">
                     <span className="font-medium">{d.title || "Untitled distribution"}</span>
-                    {d.description && (
-                      <span className="text-xs text-ink/55">{d.description}</span>
-                    )}
+                    {d.description && <span className="text-xs text-ink/55">{d.description}</span>}
                   </span>
                 ),
               },
@@ -224,7 +285,32 @@ function DatasetPage() {
               {
                 header: "",
                 className: "text-right",
-                cell: () => <span className="text-sm text-brand-sky">Connector →</span>,
+                cell: (d) => (
+                  <span
+                    className="inline-flex items-center gap-1"
+                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                  >
+                    <Button
+                      size="icon_sm"
+                      variant="ghost"
+                      title="Edit distribution"
+                      onClick={() => setEditing({ kind: "distribution", id: d.id })}
+                    >
+                      <Pencil />
+                    </Button>
+                    <Button
+                      size="icon_sm"
+                      variant="ghost"
+                      title="Delete distribution"
+                      className="text-danger-700 dark:text-danger-300"
+                      onClick={() =>
+                        setDeleting({ kind: "distribution", id: d.id, title: d.title })
+                      }
+                    >
+                      <Trash2 />
+                    </Button>
+                  </span>
+                ),
               },
             ]}
           />
@@ -254,6 +340,17 @@ function DatasetPage() {
           });
           await refetchPolicies();
         }}
+      />
+
+      <CatalogResourceEditor
+        target={editing}
+        onClose={() => setEditing(null)}
+        catalogId={catalogId}
+      />
+      <DeleteResourceDialog
+        target={deleting}
+        onClose={() => setDeleting(null)}
+        onDeleted={(t) => t.kind === "dataset" && navigate({ to: "/my-catalog" })}
       />
     </PageLayout>
   );

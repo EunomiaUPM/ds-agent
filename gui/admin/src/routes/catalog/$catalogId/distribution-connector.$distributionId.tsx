@@ -17,8 +17,8 @@
 
 import React, { useState } from "react";
 import { CatalogViews, type CatalogDoc } from "shared/src/data/catalog";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, Eye, EyeOff } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { ArrowUpRight, Eye, EyeOff, Pencil, Trash2 } from "lucide-react";
 import {
   getGetConnectorInstanceByDistributionQueryOptions,
   useGetConnectorInstanceByDistribution,
@@ -37,6 +37,14 @@ import { FormatDate } from "shared/src/components/ui/format-date";
 import { Identifier } from "shared/src/components/identity/Identifier";
 import { DatasetLabel } from "shared/src/components/identity/DatasetLabel";
 import { JsonTable } from "shared/src/components/json/JsonTable";
+import {
+  CatalogResourceEditor,
+  type EditorTarget,
+} from "shared/src/components/catalog/CatalogResourceEditor";
+import {
+  DeleteResourceDialog,
+  type DeleteTarget,
+} from "shared/src/components/catalog/DeleteResourceDialog";
 
 export const Route = createFileRoute("/catalog/$catalogId/distribution-connector/$distributionId")({
   component: DistributionConnectorPage,
@@ -69,7 +77,10 @@ const SECRET = /pass|secret|token|key/i;
 
 function DistributionConnectorPage() {
   const { catalogId, distributionId } = Route.useParams();
+  const navigate = useNavigate();
   const [reveal, setReveal] = useState(false);
+  const [editing, setEditing] = useState<EditorTarget | null>(null);
+  const [deleting, setDeleting] = useState<DeleteTarget | null>(null);
   const { data: distributionData } = useGetDistributionById(distributionId);
   const { data: instanceData } = useGetConnectorInstanceByDistribution(distributionId);
   const distribution =
@@ -110,14 +121,32 @@ function DistributionConnectorPage() {
         }
         description={distribution.description || undefined}
         actions={
-          <Button asChild variant="outline" size="sm">
-            <Link
-              to="/catalog/$catalogId/dataset/$datasetId"
-              params={{ catalogId, datasetId: distribution.datasetId }}
+          <>
+            <Button asChild variant="outline" size="sm">
+              <Link
+                to="/catalog/$catalogId/dataset/$datasetId"
+                params={{ catalogId, datasetId: distribution.datasetId }}
+              >
+                Open dataset
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditing({ kind: "distribution", id: distributionId })}
             >
-              Open dataset
-            </Link>
-          </Button>
+              <Pencil /> Edit
+            </Button>
+            <Button
+              variant="outline_destructive"
+              size="sm"
+              onClick={() =>
+                setDeleting({ kind: "distribution", id: distributionId, title: distribution.title })
+              }
+            >
+              <Trash2 /> Delete
+            </Button>
+          </>
         }
       />
 
@@ -142,6 +171,14 @@ function DistributionConnectorPage() {
           {
             label: "Issued",
             value: <FormatDate date={distribution.issued} format="YYYY-MM-DD HH:mm" />,
+          },
+          {
+            label: "Media type",
+            value: distribution.mediaType && (
+              <span className="font-mono text-xs">
+                {distribution.mediaType.replace("http://www.iana.org/assignments/media-types/", "")}
+              </span>
+            ),
           },
           { label: "Distribution", value: <Identifier value={distribution.id} /> },
           { label: "Connector instance", value: <Identifier value={instance?.id} /> },
@@ -239,6 +276,22 @@ function DistributionConnectorPage() {
           </PageSection>
         </>
       )}
+
+      <CatalogResourceEditor
+        target={editing}
+        onClose={() => setEditing(null)}
+        catalogId={catalogId}
+      />
+      <DeleteResourceDialog
+        target={deleting}
+        onClose={() => setDeleting(null)}
+        onDeleted={() =>
+          navigate({
+            to: "/catalog/$catalogId/dataset/$datasetId",
+            params: { catalogId, datasetId: distribution.datasetId },
+          })
+        }
+      />
     </PageLayout>
   );
 }

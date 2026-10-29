@@ -28,7 +28,6 @@ import {
 } from "shared/src/components/ui/card";
 import { Button } from "shared/src/components/ui/button";
 import { Input } from "shared/src/components/ui/input";
-import { Textarea } from "shared/src/components/ui/textarea";
 import { Badge } from "shared/src/components/ui/badge";
 import {
   Select,
@@ -43,8 +42,18 @@ import {
   useGetMainCatalogs,
 } from "shared/src/data/orval/catalogs/catalogs";
 import { useGetDataServicesByCatalogId } from "shared/src/data/orval/data-services/data-services";
-import { CATALOG_CONTEXT, CatalogViews, type CatalogDoc } from "shared/src/data/catalog";
+import { CatalogViews, type CatalogDoc } from "shared/src/data/catalog";
+import {
+  DcatForms,
+  DcatVocabularies,
+  type DatasetForm,
+  type DistributionForm,
+  type FormProblems,
+} from "shared/src/data/dcat";
+import { DatasetFields, DistributionFields } from "shared/src/components/catalog/DcatFields";
 import type {
+  DatasetDocument,
+  DistributionDocument,
   NewDatasetOfferingDto,
   OdrlAtomicConstraintOperator,
 } from "shared/src/data/orval/model";
@@ -71,7 +80,9 @@ function NewDatasetOfferingPage() {
   // 2. Fetch main catalog for context and data services
   const { data: mainCatalogData } = useGetMainCatalogs();
   const catalogId =
-    mainCatalogData?.status === 200 ? CatalogViews.catalog(mainCatalogData.data as CatalogDoc).id : "";
+    mainCatalogData?.status === 200
+      ? CatalogViews.catalog(mainCatalogData.data as CatalogDoc).id
+      : "";
 
   // 3. Fetch data services under main catalog
   const { data: dataServicesData } = useGetDataServicesByCatalogId(catalogId, {
@@ -82,17 +93,14 @@ function NewDatasetOfferingPage() {
       ? CatalogViews.list(dataServicesData.data, CatalogViews.dataService)
       : [];
 
-  // 4. Form State - Step 1: Dataset Metadata
-  const [datasetTitle, setDatasetTitle] = useState("");
-  const [datasetDescription, setDatasetDescription] = useState("");
-  const [datasetConformsTo, setDatasetConformsTo] = useState("https://w3id.org/dspace/v0.8/dcat");
-  const [datasetCreator, setDatasetCreator] = useState("");
-
-  // 5. Form State - Step 2: Distribution Profile
-  const [distributionTitle, setDistributionTitle] = useState("");
-  const [distributionDescription, setDistributionDescription] = useState("");
-  const [distributionFormat, setDistributionFormat] = useState("application/json");
-  const [selectedDataServiceId, setSelectedDataServiceId] = useState<string>("");
+  // 4. Form State - Steps 1 and 2: dataset and distribution metadata
+  const [datasetForm, setDatasetForm] = useState<DatasetForm>(DcatForms.emptyDataset);
+  const [distributionForm, setDistributionForm] = useState<DistributionForm>(
+    DcatForms.emptyDistribution,
+  );
+  const [datasetProblems, setDatasetProblems] = useState<FormProblems>({});
+  const [distributionProblems, setDistributionProblems] = useState<FormProblems>({});
+  const datasetTitle = datasetForm.title;
 
   // 6. Form State - Step 3: ODRL Policy
   const [enablePolicy, setEnablePolicy] = useState(true);
@@ -107,12 +115,32 @@ function NewDatasetOfferingPage() {
   // 7. Result state upon success
   const [createdResult, setCreatedResult] = useState<any | null>(null);
 
-  // Auto-fill the distribution name based on dataset title
-  const handleDatasetTitleChange = (val: string) => {
-    setDatasetTitle(val);
-    if (!distributionTitle || distributionTitle === `${datasetTitle} Distribution`) {
-      setDistributionTitle(`${val} Distribution`);
+  // Keeps the distribution title following the dataset's until the user changes it
+  const handleDatasetChange = (next: DatasetForm) => {
+    const following =
+      !distributionForm.title || distributionForm.title === `${datasetForm.title} Distribution`;
+    setDatasetForm(next);
+    if (following && next.title !== datasetForm.title) {
+      setDistributionForm({
+        ...distributionForm,
+        title: next.title ? `${next.title} Distribution` : "",
+      });
     }
+  };
+
+  // Moves on only when the step's fields are valid
+  const goToStep = (step: WizardStep) => {
+    if (step > 1) {
+      const problems = DcatForms.datasetProblems(datasetForm);
+      setDatasetProblems(problems);
+      if (Object.keys(problems).length > 0) return setCurrentStep(1);
+    }
+    if (step > 2) {
+      const problems = DcatForms.distributionProblems(distributionForm);
+      setDistributionProblems(problems);
+      if (Object.keys(problems).length > 0) return setCurrentStep(2);
+    }
+    setCurrentStep(step);
   };
 
   // Handle Policy Preset changes
@@ -163,26 +191,11 @@ function NewDatasetOfferingPage() {
   // Build the complete offering payload for review and submit
   // Both resources are catalog documents; the main catalog and data service fill in the rest.
   const payload: NewDatasetOfferingDto = useMemo(() => {
-    const description = datasetDescription.trim();
-    const distributionText = distributionDescription.trim();
     const offering: NewDatasetOfferingDto = {
-      dataset: {
-        "@context": CATALOG_CONTEXT,
-        "@type": "Dataset",
-        title: { en: datasetTitle.trim() },
-        description: description ? { en: description } : undefined,
-        conformsTo: datasetConformsTo.trim() ? [datasetConformsTo.trim()] : undefined,
-        creator: datasetCreator.trim() || undefined,
+      dataset: DcatForms.datasetDocument(datasetForm, {
         inCatalog: catalogId || undefined,
-      },
-      distribution: {
-        "@context": CATALOG_CONTEXT,
-        "@type": "Distribution",
-        title: { en: (distributionTitle.trim() || `${datasetTitle} Distribution`).trim() },
-        description: distributionText ? { en: distributionText } : undefined,
-        format: distributionFormat.trim() || undefined,
-        accessService: selectedDataServiceId ? [selectedDataServiceId] : undefined,
-      },
+      }) as DatasetDocument,
+      distribution: DcatForms.distributionDocument(distributionForm) as DistributionDocument,
     };
 
     if (enablePolicy) {
@@ -203,15 +216,9 @@ function NewDatasetOfferingPage() {
 
     return offering;
   }, [
-    datasetTitle,
-    datasetDescription,
-    datasetConformsTo,
-    datasetCreator,
+    datasetForm,
     catalogId,
-    distributionTitle,
-    distributionDescription,
-    distributionFormat,
-    selectedDataServiceId,
+    distributionForm,
     enablePolicy,
     policyDescription,
     policyAction,
@@ -237,8 +244,10 @@ function NewDatasetOfferingPage() {
   });
 
   const handleSubmit = async () => {
-    if (!datasetTitle.trim()) {
-      toast.error("Dataset title is required");
+    const problems = DcatForms.datasetProblems(datasetForm);
+    if (Object.keys(problems).length > 0) {
+      setDatasetProblems(problems);
+      toast.error("The dataset metadata needs a look before publishing");
       setCurrentStep(1);
       return;
     }
@@ -282,7 +291,7 @@ function NewDatasetOfferingPage() {
                 <React.Fragment key={s.num}>
                   <button
                     type="button"
-                    onClick={() => !createdResult && setCurrentStep(s.num as WizardStep)}
+                    onClick={() => !createdResult && goToStep(s.num as WizardStep)}
                     disabled={!!createdResult}
                     className="flex flex-col sm:flex-row items-center gap-2 group text-left transition-all disabled:opacity-50"
                   >
@@ -377,9 +386,8 @@ function NewDatasetOfferingPage() {
                   variant="outline"
                   onClick={() => {
                     setCreatedResult(null);
-                    setDatasetTitle("");
-                    setDatasetDescription("");
-                    setDistributionTitle("");
+                    setDatasetForm(DcatForms.emptyDataset());
+                    setDistributionForm(DcatForms.emptyDistribution());
                     setCurrentStep(1);
                   }}
                 >
@@ -413,60 +421,12 @@ function NewDatasetOfferingPage() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                      Dataset Title <span className="text-rose-500">*</span>
-                    </label>
-                    <Input
-                      placeholder="e.g. European Renewable Energy Production Q1-2026"
-                      value={datasetTitle}
-                      onChange={(e) => handleDatasetTitleChange(e.target.value)}
-                      className="text-sm"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Human-readable name used across dataspace participant catalogs.
-                    </p>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-foreground">
-                      Description / Abstract
-                    </label>
-                    <Textarea
-                      placeholder="Detailed overview of dataset contents, temporal scope, sampling rate, and domain context..."
-                      rows={3}
-                      value={datasetDescription}
-                      onChange={(e) => setDatasetDescription(e.target.value)}
-                      className="text-sm"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">
-                        Conforms To (DCAT Profile Standard)
-                      </label>
-                      <Input
-                        value={datasetConformsTo}
-                        onChange={(e) => setDatasetConformsTo(e.target.value)}
-                        placeholder="https://w3id.org/dspace/v0.8/dcat"
-                        className="text-xs font-mono"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">
-                        Creator / Publisher DID
-                      </label>
-                      <Input
-                        value={datasetCreator}
-                        onChange={(e) => setDatasetCreator(e.target.value)}
-                        placeholder="e.g. did:web:participant.example.org"
-                        className="text-xs font-mono"
-                      />
-                    </div>
-                  </div>
+                <CardContent>
+                  <DatasetFields
+                    value={datasetForm}
+                    onChange={handleDatasetChange}
+                    problems={datasetProblems}
+                  />
                 </CardContent>
 
                 <CardFooter className="flex justify-between border-t border-ink/5 pt-4">
@@ -479,7 +439,7 @@ function NewDatasetOfferingPage() {
                     size="sm"
                     variant="default"
                     disabled={!datasetTitle.trim()}
-                    onClick={() => setCurrentStep(2)}
+                    onClick={() => goToStep(2)}
                     className="gap-2 text-xs"
                   >
                     Next: Distribution Profile
@@ -503,77 +463,13 @@ function NewDatasetOfferingPage() {
                   </CardDescription>
                 </CardHeader>
 
-                <CardContent className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                      Distribution Title <span className="text-rose-500">*</span>
-                    </label>
-                    <Input
-                      placeholder="e.g. JSON Streaming Distribution"
-                      value={distributionTitle}
-                      onChange={(e) => setDistributionTitle(e.target.value)}
-                      className="text-sm"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-foreground">Description</label>
-                    <Input
-                      placeholder="e.g. High-throughput JSON payload over HTTPS pull endpoint"
-                      value={distributionDescription}
-                      onChange={(e) => setDistributionDescription(e.target.value)}
-                      className="text-sm"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">
-                        Serialization Format / MIME
-                      </label>
-                      <Select value={distributionFormat} onValueChange={setDistributionFormat}>
-                        <SelectTrigger className="text-xs">
-                          <SelectValue placeholder="Select format" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="application/json">application/json (JSON)</SelectItem>
-                          <SelectItem value="text/csv">text/csv (CSV)</SelectItem>
-                          <SelectItem value="application/parquet">
-                            application/parquet (Apache Parquet)
-                          </SelectItem>
-                          <SelectItem value="application/octet-stream">
-                            application/octet-stream (Binary)
-                          </SelectItem>
-                          <SelectItem value="application/xml">application/xml (XML)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                        <span>Access Data Service</span>
-                        <span className="text-xs text-muted-foreground">
-                          Auto-discovered if empty
-                        </span>
-                      </label>
-                      <Select
-                        value={selectedDataServiceId}
-                        onValueChange={setSelectedDataServiceId}
-                      >
-                        <SelectTrigger className="text-xs">
-                          <SelectValue placeholder="Auto-bind to Main Data Service" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Auto-discover Main Data Service</SelectItem>
-                          {dataServices.map((ds) => (
-                            <SelectItem key={ds.id} value={ds.id}>
-                              {ds.title || ds.id}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                <CardContent>
+                  <DistributionFields
+                    value={distributionForm}
+                    onChange={setDistributionForm}
+                    problems={distributionProblems}
+                    dataServices={dataServices}
+                  />
                 </CardContent>
 
                 <CardFooter className="flex justify-between border-t border-ink/5 pt-4">
@@ -589,8 +485,8 @@ function NewDatasetOfferingPage() {
                   <Button
                     size="sm"
                     variant="default"
-                    disabled={!distributionTitle.trim()}
-                    onClick={() => setCurrentStep(3)}
+                    disabled={!distributionForm.title.trim()}
+                    onClick={() => goToStep(3)}
                     className="gap-2 text-xs"
                   >
                     Next: Governance Policy
@@ -808,7 +704,7 @@ function NewDatasetOfferingPage() {
                   <Button
                     size="sm"
                     variant="default"
-                    onClick={() => setCurrentStep(4)}
+                    onClick={() => goToStep(4)}
                     className="gap-2 text-xs"
                   >
                     Review &amp; Publish
@@ -845,14 +741,37 @@ function NewDatasetOfferingPage() {
                         <span className="text-muted-foreground">Title:</span>{" "}
                         <span className="font-semibold text-foreground">{datasetTitle}</span>
                       </div>
-                      {datasetDescription && (
+                      {datasetForm.description && (
                         <div className="text-muted-foreground text-xs line-clamp-2">
-                          {datasetDescription}
+                          {datasetForm.description}
                         </div>
                       )}
-                      <div className="text-xs font-mono text-muted-foreground break-all">
-                        Standard: {datasetConformsTo}
-                      </div>
+                      {(datasetForm.themes.length > 0 || datasetForm.keywords.length > 0) && (
+                        <div className="flex flex-wrap gap-1">
+                          {datasetForm.themes.map((t) => (
+                            <Badge key={t} variant="outline" className="text-xs">
+                              {DcatVocabularies.label(DcatVocabularies.themes, t)}
+                            </Badge>
+                          ))}
+                          {datasetForm.keywords.map((k) => (
+                            <Badge key={k} variant="code" className="text-xs">
+                              {k}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      {datasetForm.license && (
+                        <div>
+                          <span className="text-muted-foreground">License:</span>{" "}
+                          {DcatVocabularies.label(DcatVocabularies.licenses, datasetForm.license)}
+                        </div>
+                      )}
+                      {(datasetForm.temporalStart || datasetForm.temporalEnd) && (
+                        <div>
+                          <span className="text-muted-foreground">Period:</span>{" "}
+                          {datasetForm.temporalStart || "…"} → {datasetForm.temporalEnd || "…"}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
 
@@ -877,13 +796,23 @@ function NewDatasetOfferingPage() {
                     <CardContent className="space-y-2 text-xs">
                       <div>
                         <span className="text-muted-foreground">Title:</span>{" "}
-                        <span className="font-semibold text-foreground">{distributionTitle}</span>
+                        <span className="font-semibold text-foreground">
+                          {distributionForm.title}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">MIME:</span>
+                        <span className="text-muted-foreground">Format:</span>
                         <Badge variant="code" className="text-xs">
-                          {distributionFormat}
+                          {distributionForm.format}
                         </Badge>
+                        {distributionForm.mediaType && (
+                          <Badge variant="outline" className="text-xs">
+                            {DcatVocabularies.label(
+                              DcatVocabularies.mediaTypes,
+                              distributionForm.mediaType,
+                            )}
+                          </Badge>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

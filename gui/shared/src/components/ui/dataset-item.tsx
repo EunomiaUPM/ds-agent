@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { dspTitle } from "../../data/catalog";
+import { DcatVocabularies } from "../../data/dcat";
 import Heading from "shared/src/components/ui/heading";
 import { Badge } from "./badge";
 import { FormatDate } from "./format-date";
@@ -7,7 +8,17 @@ import { Link } from "@tanstack/react-router";
 import { useGetDistributionsByDatasetId } from "shared/src/data/orval/distributions/distributions";
 import { useGetPoliciesByEntityId } from "../../data/orval/odrl-policies/odrl-policies";
 import { Card, CardHeader, CardContent, CardFooter } from "shared/src/components/ui/card";
-import { ArrowUpRight, ShieldCheck, Layers, Calendar, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  ArrowUpRight,
+  ShieldCheck,
+  Layers,
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+import { Button } from "./button";
 
 interface DatasetItemProps {
   date: string;
@@ -17,6 +28,9 @@ interface DatasetItemProps {
   datasetId: string;
   ownDataset: boolean;
   dataset: any;
+  /** Shown as card actions when given: own datasets only. */
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 const DatasetItem: React.FC<DatasetItemProps> = ({
@@ -27,6 +41,8 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
   datasetId,
   ownDataset,
   dataset,
+  onEdit,
+  onDelete,
 }) => {
   const { data: distributionsData } = useGetDistributionsByDatasetId(datasetId);
   const { data: policiesData } = useGetPoliciesByEntityId(datasetId);
@@ -72,6 +88,24 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
       </CardHeader>
 
       <CardContent className="space-y-3">
+        {(dataset?.keywords?.length > 0 || dataset?.themes?.length > 0) && (
+          <div className="flex flex-wrap gap-1">
+            {(dataset.themes ?? []).map((t: string) => (
+              <span
+                key={t}
+                title={t}
+                className="rounded bg-brand-sky/10 px-1.5 py-0.5 text-xs text-brand-sky"
+              >
+                {DcatVocabularies.label(DcatVocabularies.themes, t)}
+              </span>
+            ))}
+            {(dataset.keywords ?? []).slice(0, 5).map((k: string) => (
+              <span key={k} className="rounded bg-ink/[0.07] px-1.5 py-0.5 text-xs text-ink/75">
+                {k}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           <Badge
             variant="outline"
@@ -105,9 +139,7 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
           <div className="pt-2 border-t border-ink/5 flex flex-col gap-2">
             {policies.length > 0 && (
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-mono uppercase text-muted-foreground">
-                  Policies
-                </span>
+                <span className="text-xs font-mono uppercase text-muted-foreground">Policies</span>
                 <div className="flex flex-wrap gap-1">
                   {policies.map((p: any, idx: number) => {
                     const policyTitle =
@@ -151,6 +183,28 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
         <div className="flex items-center gap-1 text-muted-foreground">
           <Calendar className="h-3 w-3 opacity-60" />
           <FormatDate date={date} />
+          {onEdit && (
+            <Button
+              size="icon_sm"
+              variant="ghost"
+              title="Edit dataset"
+              className="ml-1 h-7 w-7"
+              onClick={onEdit}
+            >
+              <Pencil />
+            </Button>
+          )}
+          {onDelete && (
+            <Button
+              size="icon_sm"
+              variant="ghost"
+              title="Delete dataset"
+              className="h-7 w-7 text-danger-700 dark:text-danger-300"
+              onClick={onDelete}
+            >
+              <Trash2 />
+            </Button>
+          )}
         </div>
       </CardFooter>
     </Card>

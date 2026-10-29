@@ -33,4 +33,5 @@ pub mod policy_templates;
 pub mod resource;
 pub mod resource_kind;
 pub mod resource_set;
+pub mod schemas;
 pub mod vocab;

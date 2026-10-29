@@ -42,7 +42,12 @@ impl ClosureService {
     }
 
     /// Members of the catalogs, then the distributions of the datasets among them.
-    async fn members(&self, scope: &OwnerScope, set: &mut ResourceSet, catalogs: &[Urn]) -> Outcome<()> {
+    async fn members(
+        &self,
+        scope: &OwnerScope,
+        set: &mut ResourceSet,
+        catalogs: &[Urn],
+    ) -> Outcome<()> {
         let repo = self.ctx.repos.resource_repo();
         let members = repo.get_children(scope, None, catalogs).await?;
         let datasets: Vec<Urn> = members
@@ -54,7 +59,12 @@ impl ClosureService {
         self.distributions(scope, set, &datasets).await
     }
 
-    async fn distributions(&self, scope: &OwnerScope, set: &mut ResourceSet, datasets: &[Urn]) -> Outcome<()> {
+    async fn distributions(
+        &self,
+        scope: &OwnerScope,
+        set: &mut ResourceSet,
+        datasets: &[Urn],
+    ) -> Outcome<()> {
         let distributions = self
             .ctx
             .repos
@@ -77,11 +87,21 @@ impl ClosureService {
             .filter_map(|id| Urn::from_str(&id).ok())
             .collect();
         if !missing.is_empty() {
-            let linked = self.ctx.repos.resource_repo().get_batch(scope, &missing).await?;
+            let linked = self
+                .ctx
+                .repos
+                .resource_repo()
+                .get_batch(scope, &missing)
+                .await?;
             set.extend(linked);
         }
         let ids: Vec<Urn> = set.iter().map(|r| r.id().clone()).collect();
-        let offers = self.ctx.repos.odrl_offer_repo().get_by_entities(scope, &ids).await?;
+        let offers = self
+            .ctx
+            .repos
+            .odrl_offer_repo()
+            .get_by_entities(scope, &ids)
+            .await?;
         set.insert_offers(offers);
         Ok(())
     }
@@ -92,10 +112,9 @@ impl ClosureServiceTrait for ClosureService {
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn main_catalog(&self, scope: &OwnerScope) -> Outcome<(CatalogResource, ResourceSet)> {
         let repo = self.ctx.repos.resource_repo();
-        let main = repo
-            .get_main(ResourceKind::Catalog)
-            .await?
-            .ok_or_else(|| Errors::missing_resource("main", "the connector has no main catalog", None))?;
+        let main = repo.get_main(ResourceKind::Catalog).await?.ok_or_else(|| {
+            Errors::missing_resource("main", "the connector has no main catalog", None)
+        })?;
         let mut set = ResourceSet::new();
         set.insert(main.clone());
         let mut subs = ResourceFilter::of(ResourceKind::Catalog);
@@ -122,8 +141,23 @@ impl ClosureServiceTrait for ClosureService {
         let mut set = ResourceSet::new();
         set.insert(root.clone());
         match root.kind() {
-            ResourceKind::Catalog => self.members(scope, &mut set, std::slice::from_ref(id)).await?,
-            ResourceKind::Dataset => self.distributions(scope, &mut set, std::slice::from_ref(id)).await?,
+            ResourceKind::Catalog => {
+                self.members(scope, &mut set, std::slice::from_ref(id))
+                    .await?
+            }
+            ResourceKind::Dataset => {
+                self.distributions(scope, &mut set, std::slice::from_ref(id))
+                    .await?
+            }
+            ResourceKind::Distribution => {
+                // Its dataset, for the schema it inherits; not part of the projection.
+                if let Some(dataset) = root.parent_id() {
+                    let repo = self.ctx.repos.resource_repo();
+                    if let Some(parent) = repo.get_by_id(scope, dataset).await? {
+                        set.insert_parent(parent);
+                    }
+                }
+            }
             _ => {}
         }
         self.complete(scope, &mut set).await?;

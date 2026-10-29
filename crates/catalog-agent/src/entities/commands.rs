@@ -120,3 +120,15 @@ pub struct NewPolicyTemplateCommand {
     pub content: Value,
     pub parameters: Value,
 }
+
+/// A schema version to store, owner resolved and content checked.
+#[derive(Debug, Clone)]
+pub struct NewSchemaVersionCommand {
+    pub id: String,
+    pub version: i32,
+    pub owner: Owner,
+    pub title: String,
+    pub description: Option<String>,
+    pub content: Value,
+    pub sha256: String,
+}

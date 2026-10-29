@@ -75,7 +75,10 @@ impl AdminDocument {
 
     /// Several resources as one `@graph`.
     pub fn render_graph(resources: &[CatalogResource]) -> Value {
-        let graph: Vec<Value> = resources.iter().map(|r| Value::Object(Self::node(r))).collect();
+        let graph: Vec<Value> = resources
+            .iter()
+            .map(|r| Value::Object(Self::node(r)))
+            .collect();
         json!({ "@context": EUNOMIA_CATALOG_CONTEXT_URL, "@graph": graph })
     }
 
@@ -134,7 +137,12 @@ impl AdminDocument {
             .as_ref()
             .and_then(|r| r.get(membership))
             .and_then(Value::as_array)
-            .map(|links| links.iter().filter_map(|l| l.get("@id")?.as_str()).collect())
+            .map(|links| {
+                links
+                    .iter()
+                    .filter_map(|l| l.get("@id")?.as_str())
+                    .collect()
+            })
             .unwrap_or_default();
         match parents.as_slice() {
             [] => Ok(None),
@@ -149,7 +157,9 @@ impl AdminDocument {
     /// (`"en"`) is kept as the literal it is, anything else must have been an absolute IRI.
     fn resolve_relative(node: &mut Map<String, Value>) -> Outcome<()> {
         for (predicate, values) in node.iter_mut().filter(|(k, _)| !k.starts_with('@')) {
-            let Some(values) = values.as_array_mut() else { continue };
+            let Some(values) = values.as_array_mut() else {
+                continue;
+            };
             for value in values {
                 let Some(relative) = value
                     .get("@id")
@@ -196,13 +206,21 @@ impl AdminDocument {
         ("Kind", "http://www.w3.org/2006/vcard/ns#Kind"),
         ("PeriodOfTime", "http://purl.org/dc/terms/PeriodOfTime"),
         ("Location", "http://purl.org/dc/terms/Location"),
-        ("LicenseDocument", "http://purl.org/dc/terms/LicenseDocument"),
+        (
+            "LicenseDocument",
+            "http://purl.org/dc/terms/LicenseDocument",
+        ),
         ("Concept", "http://www.w3.org/2004/02/skos/core#Concept"),
     ];
 
-    const TERMS: [TermDef; 49] = [
+    const TERMS: [TermDef; 50] = [
         TermDef::new("title", Vocab::DCT_TITLE, Coercion::Language, false),
-        TermDef::new("description", Vocab::DCT_DESCRIPTION, Coercion::Language, false),
+        TermDef::new(
+            "description",
+            Vocab::DCT_DESCRIPTION,
+            Coercion::Language,
+            false,
+        ),
         TermDef::new("keyword", Vocab::DCAT_KEYWORD, Coercion::Language, false),
         TermDef::new("name", Vocab::FOAF_NAME, Coercion::Language, false),
         TermDef::new(
@@ -212,8 +230,18 @@ impl AdminDocument {
             false,
         ),
         TermDef::new("theme", Vocab::DCAT_THEME, Coercion::Id, true),
-        TermDef::new("themeTaxonomy", Vocab::DCAT_THEME_TAXONOMY, Coercion::Id, true),
-        TermDef::new("issued", Vocab::DCT_ISSUED, Coercion::Typed(Vocab::XSD_DATE_TIME), false),
+        TermDef::new(
+            "themeTaxonomy",
+            Vocab::DCAT_THEME_TAXONOMY,
+            Coercion::Id,
+            true,
+        ),
+        TermDef::new(
+            "issued",
+            Vocab::DCT_ISSUED,
+            Coercion::Typed(Vocab::XSD_DATE_TIME),
+            false,
+        ),
         TermDef::new(
             "modified",
             Vocab::DCT_MODIFIED,
@@ -225,19 +253,44 @@ impl AdminDocument {
         TermDef::new("conformsTo", Vocab::DCT_CONFORMS_TO, Coercion::Id, true),
         TermDef::new("creator", Vocab::DCT_CREATOR, Coercion::Id, false),
         TermDef::new("publisher", Vocab::DCT_PUBLISHER, Coercion::Id, false),
-        TermDef::new("rightsHolder", Vocab::DCT_RIGHTS_HOLDER, Coercion::Id, false),
-        TermDef::new("contactPoint", Vocab::DCAT_CONTACT_POINT, Coercion::None, true),
+        TermDef::new(
+            "rightsHolder",
+            Vocab::DCT_RIGHTS_HOLDER,
+            Coercion::Id,
+            false,
+        ),
+        TermDef::new(
+            "contactPoint",
+            Vocab::DCAT_CONTACT_POINT,
+            Coercion::None,
+            true,
+        ),
         TermDef::new("homepage", Vocab::FOAF_HOMEPAGE, Coercion::Id, false),
         TermDef::new("landingPage", Vocab::DCAT_LANDING_PAGE, Coercion::Id, true),
         TermDef::new("page", "http://xmlns.com/foaf/0.1/page", Coercion::Id, true),
         TermDef::new("language", Vocab::DCT_LANGUAGE, Coercion::Id, true),
         TermDef::new("license", Vocab::DCT_LICENSE, Coercion::Id, false),
-        TermDef::new("accessRights", Vocab::DCT_ACCESS_RIGHTS, Coercion::Id, false),
+        TermDef::new(
+            "accessRights",
+            Vocab::DCT_ACCESS_RIGHTS,
+            Coercion::Id,
+            false,
+        ),
         TermDef::new("rights", Vocab::DCT_RIGHTS, Coercion::Id, false),
         TermDef::new("spatial", Vocab::DCT_SPATIAL, Coercion::Id, true),
         TermDef::new("temporal", Vocab::DCT_TEMPORAL, Coercion::None, true),
-        TermDef::new("startDate", "http://www.w3.org/ns/dcat#startDate", Coercion::None, false),
-        TermDef::new("endDate", "http://www.w3.org/ns/dcat#endDate", Coercion::None, false),
+        TermDef::new(
+            "startDate",
+            "http://www.w3.org/ns/dcat#startDate",
+            Coercion::None,
+            false,
+        ),
+        TermDef::new(
+            "endDate",
+            "http://www.w3.org/ns/dcat#endDate",
+            Coercion::None,
+            false,
+        ),
         TermDef::new(
             "accrualPeriodicity",
             Vocab::DCT_ACCRUAL_PERIODICITY,
@@ -252,12 +305,22 @@ impl AdminDocument {
             Coercion::Id,
             false,
         ),
-        TermDef::new("servesDataset", Vocab::DCAT_SERVES_DATASET, Coercion::Id, true),
+        TermDef::new(
+            "servesDataset",
+            Vocab::DCAT_SERVES_DATASET,
+            Coercion::Id,
+            true,
+        ),
         TermDef::new("format", Vocab::DCT_FORMAT, Coercion::None, false),
         TermDef::new("mediaType", Vocab::DCAT_MEDIA_TYPE, Coercion::Id, false),
         TermDef::new("accessURL", Vocab::DCAT_ACCESS_URL, Coercion::Id, true),
         TermDef::new("downloadURL", Vocab::DCAT_DOWNLOAD_URL, Coercion::Id, true),
-        TermDef::new("accessService", Vocab::DCAT_ACCESS_SERVICE, Coercion::Id, true),
+        TermDef::new(
+            "accessService",
+            Vocab::DCAT_ACCESS_SERVICE,
+            Coercion::Id,
+            true,
+        ),
         TermDef::new(
             "byteSize",
             Vocab::DCAT_BYTE_SIZE,
@@ -271,16 +334,36 @@ impl AdminDocument {
             false,
         ),
         TermDef::new("inSeries", Vocab::DCAT_IN_SERIES, Coercion::Id, true),
-        TermDef::new("primaryTopic", Vocab::FOAF_PRIMARY_TOPIC, Coercion::Id, false),
-        TermDef::new("participantId", Vocab::DSPACE_PARTICIPANT_ID, Coercion::Id, false),
-        TermDef::new("fn", "http://www.w3.org/2006/vcard/ns#fn", Coercion::None, false),
+        TermDef::new(
+            "primaryTopic",
+            Vocab::FOAF_PRIMARY_TOPIC,
+            Coercion::Id,
+            false,
+        ),
+        TermDef::new(
+            "participantId",
+            Vocab::DSPACE_PARTICIPANT_ID,
+            Coercion::Id,
+            false,
+        ),
+        TermDef::new(
+            "fn",
+            "http://www.w3.org/2006/vcard/ns#fn",
+            Coercion::None,
+            false,
+        ),
         TermDef::new(
             "hasEmail",
             "http://www.w3.org/2006/vcard/ns#hasEmail",
             Coercion::Id,
             false,
         ),
-        TermDef::new("label", "http://www.w3.org/2000/01/rdf-schema#label", Coercion::None, false),
+        TermDef::new(
+            "label",
+            "http://www.w3.org/2000/01/rdf-schema#label",
+            Coercion::None,
+            false,
+        ),
         TermDef::new(
             "seeAlso",
             "http://www.w3.org/2000/01/rdf-schema#seeAlso",
@@ -288,7 +371,19 @@ impl AdminDocument {
             true,
         ),
         TermDef::new("dctType", Vocab::DCT_TYPE, Coercion::Id, false),
-        TermDef::new("checksum", "http://spdx.org/rdf/terms#checksum", Coercion::None, false),
-        TermDef::new("hasVersion", "http://purl.org/dc/terms/hasVersion", Coercion::Id, true),
+        TermDef::new(
+            "checksum",
+            "http://spdx.org/rdf/terms#checksum",
+            Coercion::None,
+            false,
+        ),
+        TermDef::new(
+            "hasVersion",
+            "http://purl.org/dc/terms/hasVersion",
+            Coercion::Id,
+            true,
+        ),
+        // The data schema; profiles publish it (or the dataset's) as `dct:conformsTo`.
+        TermDef::new("schema", Vocab::EUNOMIA_SCHEMA, Coercion::Id, false),
     ];
 }

@@ -39,6 +39,7 @@ use crate::entities::filters::ResourceFilter;
 use crate::entities::graph::ResourceGraph;
 use crate::entities::resource::CatalogResource;
 use crate::entities::resource_kind::{Parent, ResourceKind};
+use crate::entities::vocab::Vocab;
 use crate::services::resources::ResourceServiceTrait;
 use crate::setup::context::AppContext;
 
@@ -134,6 +135,9 @@ impl ResourceService {
 
     /// Every `urn:` link must reach a resource `user` sees, of the kind the link expects.
     async fn check_links(&self, user: &UserInfo, description: &ResourceGraph) -> Outcome<()> {
+        if let Some(schema) = description.first_iri(Vocab::EUNOMIA_SCHEMA) {
+            self.ctx.schemas().check_reference(user, schema).await?;
+        }
         let links = description.local_links();
         if links.is_empty() {
             return Ok(());

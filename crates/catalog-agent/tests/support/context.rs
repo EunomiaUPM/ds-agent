@@ -26,6 +26,7 @@ use catalog_agent::data::repo::policy_template::{
     MockPolicyTemplateRepoTrait, PolicyTemplateRepoTrait,
 };
 use catalog_agent::data::repo::resource::{MockResourceRepoTrait, ResourceRepoTrait};
+use catalog_agent::data::repo::schema::{MockSchemaRepoTrait, SchemaRepoTrait};
 use catalog_agent::profiles::dcat3::Dcat3;
 use catalog_agent::profiles::dcat_ap::DcatAp;
 use catalog_agent::profiles::dsp::DspProfileAdapter;
@@ -36,6 +37,7 @@ use catalog_agent::services::doctor::DoctorServiceTrait;
 use catalog_agent::services::odrl_policies::OdrlPolicyServiceTrait;
 use catalog_agent::services::projection::ProjectionServiceTrait;
 use catalog_agent::services::resources::ResourceServiceTrait;
+use catalog_agent::services::schemas::SchemaServiceTrait;
 use catalog_agent::setup::context::{AppContext, CatalogServices};
 use catalog_agent::setup::CatalogPorts;
 use common::facades::grants_facade::{GrantsFacadeTrait, MockGrantsFacadeTrait};
@@ -50,6 +52,7 @@ struct StubRepos {
     resources: Arc<dyn ResourceRepoTrait>,
     offers: Arc<dyn OdrlOfferRepoTrait>,
     templates: Arc<dyn PolicyTemplateRepoTrait>,
+    schemas: Arc<dyn SchemaRepoTrait>,
 }
 
 impl DataFactory for StubRepos {
@@ -63,6 +66,10 @@ impl DataFactory for StubRepos {
 
     fn policy_template_repo(&self) -> Arc<dyn PolicyTemplateRepoTrait> {
         self.templates.clone()
+    }
+
+    fn schema_repo(&self) -> Arc<dyn SchemaRepoTrait> {
+        self.schemas.clone()
     }
 }
 
@@ -79,6 +86,7 @@ pub struct TestContext {
     doctor: Option<Arc<dyn DoctorServiceTrait>>,
     projections: Option<Arc<dyn ProjectionServiceTrait>>,
     imports: Option<Arc<dyn CatalogImportServiceTrait>>,
+    schemas: Option<Arc<dyn SchemaServiceTrait>>,
 }
 
 impl TestContext {
@@ -88,6 +96,7 @@ impl TestContext {
                 resources: Arc::new(MockResourceRepoTrait::new()),
                 offers: Arc::new(MockOdrlOfferRepoTrait::new()),
                 templates: Arc::new(MockPolicyTemplateRepoTrait::new()),
+                schemas: Arc::new(MockSchemaRepoTrait::new()),
             },
             cache: Arc::new(NoopCatalogCache),
             grants: Arc::new(MockGrantsFacadeTrait::new()),
@@ -98,6 +107,7 @@ impl TestContext {
             doctor: None,
             projections: None,
             imports: None,
+            schemas: None,
         }
     }
 
@@ -113,6 +123,16 @@ impl TestContext {
 
     pub fn template_repo(mut self, repo: impl PolicyTemplateRepoTrait + 'static) -> Self {
         self.repos.templates = Arc::new(repo);
+        self
+    }
+
+    pub fn schema_repo(mut self, repo: impl SchemaRepoTrait + 'static) -> Self {
+        self.repos.schemas = Arc::new(repo);
+        self
+    }
+
+    pub fn schemas(mut self, service: impl SchemaServiceTrait + 'static) -> Self {
+        self.schemas = Some(Arc::new(service));
         self
     }
 
@@ -192,6 +212,9 @@ impl TestContext {
         }
         if let Some(imports) = self.imports {
             services.imports = imports;
+        }
+        if let Some(schemas) = self.schemas {
+            services.schemas = schemas;
         }
         ctx.attach(services);
         ctx.profiles.register(Arc::new(DspProfileAdapter::new()));

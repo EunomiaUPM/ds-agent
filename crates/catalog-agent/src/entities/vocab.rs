@@ -89,6 +89,10 @@ impl Vocab {
     pub const DCT_ACCRUAL_PERIODICITY: &'static str = "http://purl.org/dc/terms/accrualPeriodicity";
     pub const DCT_TYPE: &'static str = "http://purl.org/dc/terms/type";
     pub const DCT_RIGHTS: &'static str = "http://purl.org/dc/terms/rights";
+    pub const DCT_STANDARD: &'static str = "http://purl.org/dc/terms/Standard";
+    pub const OWL_VERSION_INFO: &'static str = "http://www.w3.org/2002/07/owl#versionInfo";
+    /// The data schema of a dataset or distribution; profiles publish it as `dct:conformsTo`.
+    pub const EUNOMIA_SCHEMA: &'static str = "https://w3id.org/eunomia/v1/schema";
 
     pub const FOAF_NAME: &'static str = "http://xmlns.com/foaf/0.1/name";
     pub const FOAF_HOMEPAGE: &'static str = "http://xmlns.com/foaf/0.1/homepage";

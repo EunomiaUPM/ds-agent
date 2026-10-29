@@ -29,3 +29,4 @@ pub mod policy_instantiation;
 pub mod policy_templates;
 pub mod projection;
 pub mod resources;
+pub mod schemas;

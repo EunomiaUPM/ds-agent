@@ -25,3 +25,4 @@ pub mod odrl_policies;
 pub mod peer_catalogs;
 pub mod policy_templates;
 pub mod resources;
+pub mod schemas;

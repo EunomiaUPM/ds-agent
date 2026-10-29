@@ -85,6 +85,8 @@ tags:
   description: Personal Access Token (PAT) management (→ oauth)
 - name: PolicyTemplates
   description: Policy template operations (→ catalog-agent)
+- name: Schemas
+  description: Hosted JSON Schemas for conformsTo (→ catalog-agent)
 - name: PublicProfiles
   description: Public catalog in each profile (→ catalog-agent)
 - name: Transfer Events
@@ -6999,6 +7001,270 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /v1/catalog-agent/schemas:
+    get:
+      tags:
+      - Schemas
+      operationId: getSchemas
+      summary: List hosted schema versions
+      description: Every version the caller sees, newest first; group them by `id`.
+      parameters:
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Sort'
+      - name: id
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: title
+        in: query
+        required: false
+        description: Case-insensitive part of the title.
+        schema:
+          type: string
+      - $ref: '#/components/parameters/CreatedAfter'
+      - $ref: '#/components/parameters/CreatedBefore'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSchemaView'
+          description: Schema versions
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+      - Schemas
+      operationId: createSchema
+      summary: Host a new JSON Schema as its version 1
+      description: The schema is checked against the 2020-12 meta-schema; its `$id` is replaced by the public
+        URL of the version.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewSchemaDto'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaView'
+          description: Created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/catalog-agent/schemas/infer:
+    post:
+      tags:
+      - Schemas
+      operationId: inferSchema
+      summary: Infer a JSON Schema from sample documents
+      description: Fields present in every sample are required; integer and decimal values make a number;
+        clear string formats (date-time, date, email, uri, uuid) are kept. Nothing is stored.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InferSchemaDto'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonSchemaDocument'
+          description: The inferred schema
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/catalog-agent/schemas/validate:
+    post:
+      tags:
+      - Schemas
+      operationId: validateSchema
+      summary: Check a schema, and samples against it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateSchemaDto'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaValidationView'
+          description: Report
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/catalog-agent/schemas/check-url:
+    post:
+      tags:
+      - Schemas
+      operationId: checkSchemaUrl
+      summary: Fetch an external URL and say whether it holds a JSON Schema
+      description: Only absolute http(s) URLs; a failed fetch is reported, not an error.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckSchemaUrlDto'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaUrlCheckView'
+          description: Report
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/catalog-agent/schemas/{id}:
+    parameters:
+    - $ref: '#/components/parameters/StringPathId'
+    get:
+      tags:
+      - Schemas
+      operationId: getSchemaVersions
+      summary: Every version of a schema, newest first
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SchemaView'
+          description: Versions
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    delete:
+      tags:
+      - Schemas
+      operationId: deleteSchema
+      summary: Delete a schema and all its versions
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/catalog-agent/schemas/{id}/versions:
+    parameters:
+    - $ref: '#/components/parameters/StringPathId'
+    post:
+      tags:
+      - Schemas
+      operationId: createSchemaVersion
+      summary: Store the next version of a schema
+      description: Earlier versions keep their content and URL.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewSchemaVersionDto'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaView'
+          description: Created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/catalog-agent/schemas/{id}/versions/{version}:
+    parameters:
+    - $ref: '#/components/parameters/StringPathId'
+    - name: version
+      in: path
+      required: true
+      description: Version number, `3` or `v3`.
+      schema:
+        type: string
+    get:
+      tags:
+      - Schemas
+      operationId: getSchemaVersion
+      summary: One version, its content and the resources using it
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaVersionView'
+          description: Version
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    delete:
+      tags:
+      - Schemas
+      operationId: deleteSchemaVersion
+      summary: Delete one version
+      description: A version a resource uses as its `schema` is a 409.
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/catalog-agent/public/schemas/{id}/{version}:
+    parameters:
+    - $ref: '#/components/parameters/StringPathId'
+    - name: version
+      in: path
+      required: true
+      description: Version number, `3` or `v3`.
+      schema:
+        type: string
+    get:
+      tags:
+      - PublicProfiles
+      operationId: getPublishedSchema
+      summary: A hosted schema version, as anyone dereferences it
+      description: What `conformsTo` points to. Immutable, cacheable, CORS-open; private schemas are not
+        served.
+      security: []
+      responses:
+        '200':
+          description: The JSON Schema, `$id` set to this URL
+          content:
+            application/schema+json:
+              schema:
+                $ref: '#/components/schemas/JsonSchemaDocument'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /v1/catalog-agent/public/dcat-ap/catalog:
     get:
       tags:
@@ -9441,6 +9707,11 @@ components:
           format: date-time
           readOnly: true
           description: Set by the agent.
+        schema:
+          type: string
+          format: iri
+          description: Data schema URL, hosted here or external; profiles publish it as
+            `dct:conformsTo`, and a distribution without one inherits its dataset's.
         identifier:
           type: string
         conformsTo:
@@ -9761,6 +10032,11 @@ components:
           format: date-time
           readOnly: true
           description: Set by the agent.
+        schema:
+          type: string
+          format: iri
+          description: Data schema URL, hosted here or external; profiles publish it as
+            `dct:conformsTo`, and a distribution without one inherits its dataset's.
         identifier:
           type: string
         conformsTo:
@@ -12402,6 +12678,206 @@ components:
           - type: 'null'
         extraFields:
           description: Replaces the user's extra fields.
+    JsonSchemaDocument:
+      type: object
+      description: A JSON Schema (draft 2020-12 unless it names another dialect).
+      additionalProperties: true
+    SchemaView:
+      type: object
+      description: A hosted schema version without its content.
+      required:
+      - id
+      - version
+      - title
+      - visibility
+      - createdAt
+      - sha256
+      - url
+      properties:
+        id:
+          type: string
+          description: '`urn:schema:…`, shared by its versions.'
+        version:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        visibility:
+          $ref: '#/components/schemas/Visibility'
+        createdAt:
+          type: string
+          format: date-time
+        sha256:
+          type: string
+        url:
+          type: string
+          format: uri
+          description: Public URL; what a resource's `schema` points to.
+    SchemaUsageView:
+      type: object
+      required:
+      - id
+      - kind
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+        title:
+          type: string
+          nullable: true
+    SchemaVersionView:
+      allOf:
+      - $ref: '#/components/schemas/SchemaView'
+      - type: object
+        required:
+        - schema
+        - usedBy
+        properties:
+          schema:
+            $ref: '#/components/schemas/JsonSchemaDocument'
+          usedBy:
+            type: array
+            items:
+              $ref: '#/components/schemas/SchemaUsageView'
+    PaginatedSchemaView:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SchemaView'
+        nextCursor:
+          type: string
+          description: Absent on the last page.
+        total:
+          type: integer
+    NewSchemaDto:
+      type: object
+      required:
+      - title
+      - schema
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        schema:
+          $ref: '#/components/schemas/JsonSchemaDocument'
+        visibility:
+          $ref: '#/components/schemas/Visibility'
+    NewSchemaVersionDto:
+      type: object
+      required:
+      - schema
+      additionalProperties: false
+      properties:
+        schema:
+          $ref: '#/components/schemas/JsonSchemaDocument'
+        title:
+          type: string
+          description: Defaults to the previous version's.
+        description:
+          type: string
+    InferSchemaDto:
+      type: object
+      required:
+      - samples
+      additionalProperties: false
+      properties:
+        samples:
+          type: array
+          maxItems: 200
+          items: {}
+          description: Whole documents, one per item.
+    ValidateSchemaDto:
+      type: object
+      required:
+      - schema
+      additionalProperties: false
+      properties:
+        schema:
+          $ref: '#/components/schemas/JsonSchemaDocument'
+        samples:
+          type: array
+          maxItems: 200
+          items: {}
+    SchemaIssue:
+      type: object
+      required:
+      - path
+      - message
+      properties:
+        path:
+          type: string
+          description: JSON pointer into the document.
+        message:
+          type: string
+    SampleReport:
+      type: object
+      required:
+      - index
+      - valid
+      - issues
+      properties:
+        index:
+          type: integer
+        valid:
+          type: boolean
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/SchemaIssue'
+    SchemaValidationView:
+      type: object
+      required:
+      - valid
+      - issues
+      - samples
+      properties:
+        valid:
+          type: boolean
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/SchemaIssue'
+        samples:
+          type: array
+          items:
+            $ref: '#/components/schemas/SampleReport'
+    CheckSchemaUrlDto:
+      type: object
+      required:
+      - url
+      additionalProperties: false
+      properties:
+        url:
+          type: string
+          format: uri
+    SchemaUrlCheckView:
+      type: object
+      required:
+      - url
+      - reachable
+      - isJsonSchema
+      - issues
+      properties:
+        url:
+          type: string
+        reachable:
+          type: boolean
+        isJsonSchema:
+          type: boolean
+        title:
+          type: string
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/SchemaIssue'
     PeerCatalogEntry:
       type: array
       description: A peer and its cached catalog.

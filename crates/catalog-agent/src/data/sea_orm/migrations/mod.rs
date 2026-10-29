@@ -15,7 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! The catalog schema, written from scratch: resources, their links, templates and offers.
+//! The catalog schema, written from scratch: resources, their links, templates, offers and
+//! hosted data schemas.
 
 use sea_orm_migration::prelude::*;
 
@@ -23,6 +24,7 @@ pub mod m20261026_000001_catalog_resources;
 pub mod m20261026_000002_catalog_resource_links;
 pub mod m20261026_000003_catalog_policy_templates;
 pub mod m20261026_000004_catalog_offers;
+pub mod m20261026_000005_catalog_schemas;
 
 /// The catalog migrations, in creation order.
 pub struct CatalogMigrations;
@@ -34,6 +36,7 @@ impl CatalogMigrations {
             Box::new(m20261026_000002_catalog_resource_links::Migration),
             Box::new(m20261026_000003_catalog_policy_templates::Migration),
             Box::new(m20261026_000004_catalog_offers::Migration),
+            Box::new(m20261026_000005_catalog_schemas::Migration),
         ]
     }
 }

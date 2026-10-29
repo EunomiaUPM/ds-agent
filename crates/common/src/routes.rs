@@ -172,12 +172,26 @@ pub mod catalog {
         pub const ROOT: &str = "/";
     }
 
+    /// JSON Schemas the catalog hosts for `conformsTo`, one immutable row per version.
+    pub mod schemas {
+        pub const PREFIX: &str = "/schemas";
+        pub const ROOT: &str = "/";
+        pub const INFER: &str = "/infer";
+        pub const VALIDATE: &str = "/validate";
+        pub const CHECK_URL: &str = "/check-url";
+        pub const BY_ID: &str = "/{id}";
+        pub const VERSIONS: &str = "/{id}/versions";
+        pub const BY_ID_AND_VERSION: &str = "/{id}/versions/{version}";
+    }
+
     /// Read-only routes of each profile (public), relative to `{api}/catalog-agent`.
     pub mod public {
         pub const PREFIX: &str = "/public";
         pub const CATALOG: &str = "/catalog";
         pub const RESOURCE: &str = "/resources/{id}";
         pub const CONTEXT: &str = "/context.jsonld";
+        /// A hosted schema version, dereferenceable by anyone.
+        pub const SCHEMA: &str = "/schemas/{id}/{version}";
     }
 
     /// DSP catalog protocol (external: peers), under `dsp_common::paths::CATALOG`.

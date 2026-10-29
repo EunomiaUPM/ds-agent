@@ -51,6 +51,8 @@ use crate::services::projection::service::ProjectionService;
 use crate::services::projection::ProjectionServiceTrait;
 use crate::services::resources::service::ResourceService;
 use crate::services::resources::ResourceServiceTrait;
+use crate::services::schemas::service::SchemaService;
+use crate::services::schemas::SchemaServiceTrait;
 use crate::setup::ports::CatalogPorts;
 
 /// The catalog agent's context; every service, router and adapter keeps it whole.
@@ -80,6 +82,7 @@ pub struct CatalogServices {
     pub doctor: Arc<dyn DoctorServiceTrait>,
     pub projections: Arc<dyn ProjectionServiceTrait>,
     pub imports: Arc<dyn CatalogImportServiceTrait>,
+    pub schemas: Arc<dyn SchemaServiceTrait>,
 }
 
 impl CatalogServices {
@@ -97,6 +100,7 @@ impl CatalogServices {
             doctor: Arc::new(DoctorService::new(ctx.clone())),
             projections: Arc::new(ProjectionService::new(ctx.clone())),
             imports: Arc::new(CatalogImportService::new(ctx.clone())),
+            schemas: Arc::new(SchemaService::new(ctx.clone())),
         }
     }
 }
@@ -190,6 +194,10 @@ impl AppContext {
 
     pub fn imports(&self) -> &Arc<dyn CatalogImportServiceTrait> {
         &self.services().imports
+    }
+
+    pub fn schemas(&self) -> &Arc<dyn SchemaServiceTrait> {
+        &self.services().schemas
     }
 
     fn services(&self) -> &CatalogServices {

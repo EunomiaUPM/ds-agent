@@ -40,6 +40,7 @@ use crate::http::odrl_policies::OdrlOfferEntityRouter;
 use crate::http::peer_catalogs::PeerCatalogRouter;
 use crate::http::policy_templates::PolicyTemplateEntityRouter;
 use crate::http::resources::ResourceRouter;
+use crate::http::schemas::{PublicSchemaRouter, SchemaRouter};
 use crate::setup::context::AppContext;
 use crate::SERVICE_NAME;
 
@@ -108,10 +109,19 @@ impl ServiceModuleTrait for CatalogAdminModule {
                 routes::dataset_offerings::PREFIX,
                 DatasetOfferingRouter::new(ctx.clone()).router(),
             )
+            .nest(
+                routes::schemas::PREFIX,
+                SchemaRouter::new(ctx.clone()).router(),
+            )
             .route_layer(axum::middleware::from_fn_with_state(
                 ctx.oauth_validator.clone(),
                 ymir::http::OauthHttpMiddleware::run,
-            ));
+            ))
+            // Merged after the auth layer: schema URLs are dereferenced by anyone.
+            .nest(
+                routes::public::PREFIX,
+                PublicSchemaRouter::new(ctx.clone()).router(),
+            );
         Some((self.base_path(), router))
     }
 

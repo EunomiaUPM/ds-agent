@@ -117,6 +117,7 @@
     "seeAlso": { "@id": "rdfs:seeAlso", "@type": "@id", "@container": "@set" },
     "dctType": { "@id": "dct:type", "@type": "@id" },
     "checksum": "spdx:checksum",
-    "hasVersion": { "@id": "dct:hasVersion", "@type": "@id", "@container": "@set" }
+    "hasVersion": { "@id": "dct:hasVersion", "@type": "@id", "@container": "@set" },
+    "schema": { "@id": "eunomia:schema", "@type": "@id" }
   }
 }

@@ -27,3 +27,4 @@ mod http_dsp;
 mod http_odrl_policies;
 mod http_public;
 mod http_resources;
+mod http_schemas;

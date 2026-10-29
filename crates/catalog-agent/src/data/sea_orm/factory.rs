@@ -25,15 +25,18 @@ use crate::data::factory::DataFactory;
 use crate::data::repo::odrl_offer::OdrlOfferRepoTrait;
 use crate::data::repo::policy_template::PolicyTemplateRepoTrait;
 use crate::data::repo::resource::ResourceRepoTrait;
+use crate::data::repo::schema::SchemaRepoTrait;
 use crate::data::sea_orm::repos::odrl_offer::SeaOrmOdrlOfferRepo;
 use crate::data::sea_orm::repos::policy_template::SeaOrmPolicyTemplateRepo;
 use crate::data::sea_orm::repos::resource::SeaOrmResourceRepo;
+use crate::data::sea_orm::repos::schema::SeaOrmSchemaRepo;
 
 /// Every repository over one connection pool.
 pub struct SeaOrmDataFactory {
     resources: Arc<dyn ResourceRepoTrait>,
     offers: Arc<dyn OdrlOfferRepoTrait>,
     templates: Arc<dyn PolicyTemplateRepoTrait>,
+    schemas: Arc<dyn SchemaRepoTrait>,
 }
 
 impl SeaOrmDataFactory {
@@ -42,7 +45,8 @@ impl SeaOrmDataFactory {
         Self {
             resources: Arc::new(SeaOrmResourceRepo::new(db.clone())),
             offers: Arc::new(SeaOrmOdrlOfferRepo::new(db.clone())),
-            templates: Arc::new(SeaOrmPolicyTemplateRepo::new(db)),
+            templates: Arc::new(SeaOrmPolicyTemplateRepo::new(db.clone())),
+            schemas: Arc::new(SeaOrmSchemaRepo::new(db)),
         }
     }
 }
@@ -58,5 +62,9 @@ impl DataFactory for SeaOrmDataFactory {
 
     fn policy_template_repo(&self) -> Arc<dyn PolicyTemplateRepoTrait> {
         self.templates.clone()
+    }
+
+    fn schema_repo(&self) -> Arc<dyn SchemaRepoTrait> {
+        self.schemas.clone()
     }
 }

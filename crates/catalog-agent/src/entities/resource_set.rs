@@ -45,6 +45,8 @@ pub struct ResourceSet {
     /// Ids in the order they were added, so projections are stable.
     order: Vec<String>,
     offers: HashMap<String, Vec<OdrlOffer>>,
+    /// Parents held only for what their children inherit (a dataset's schema); never projected.
+    parents: HashMap<String, CatalogResource>,
 }
 
 impl ResourceSet {
@@ -78,6 +80,19 @@ impl ResourceSet {
 
     pub fn get(&self, id: &str) -> Option<&CatalogResource> {
         self.resources.get(id)
+    }
+
+    /// Holds a parent outside the set, so a child loaded alone still sees what it inherits.
+    pub fn insert_parent(&mut self, resource: CatalogResource) {
+        self.parents.insert(resource.id().to_string(), resource);
+    }
+
+    /// The parent of `resource`, in the set or held as a parent.
+    pub fn parent_of(&self, resource: &CatalogResource) -> Option<&CatalogResource> {
+        let parent = resource.parent_id()?.to_string();
+        self.resources
+            .get(&parent)
+            .or_else(|| self.parents.get(&parent))
     }
 
     pub fn contains(&self, id: &str) -> bool {
@@ -184,6 +199,7 @@ impl ResourceSet {
             kept.insert_offers(self.offers_of(&id).iter().cloned());
             kept.insert(resource.clone());
         }
+        kept.parents = self.parents.clone();
         (kept, Truncation { total, shown })
     }
 }

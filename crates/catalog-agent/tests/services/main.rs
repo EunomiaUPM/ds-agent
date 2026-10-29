@@ -29,3 +29,4 @@ mod main_catalog;
 mod odrl_policies;
 mod projection;
 mod resources;
+mod schemas;

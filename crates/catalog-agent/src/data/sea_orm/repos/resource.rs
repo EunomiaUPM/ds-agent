@@ -85,6 +85,7 @@ impl SeaOrmResourceRepo {
             (Vocab::DCT_CREATOR, &filter.creator),
             (Vocab::DCT_PUBLISHER, &filter.publisher),
             (Vocab::DCT_CONFORMS_TO, &filter.conforms_to),
+            (Vocab::EUNOMIA_SCHEMA, &filter.schema),
             (Vocab::DSPACE_PARTICIPANT_ID, &filter.participant_id),
             (Vocab::DCAT_ACCESS_SERVICE, &filter.access_service),
             (Vocab::DCAT_ENDPOINT_URL, &filter.endpoint_url),

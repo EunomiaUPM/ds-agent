@@ -22,9 +22,11 @@ use std::sync::Arc;
 use crate::data::repo::odrl_offer::OdrlOfferRepoTrait;
 use crate::data::repo::policy_template::PolicyTemplateRepoTrait;
 use crate::data::repo::resource::ResourceRepoTrait;
+use crate::data::repo::schema::SchemaRepoTrait;
 
 pub trait DataFactory: Send + Sync {
     fn resource_repo(&self) -> Arc<dyn ResourceRepoTrait>;
     fn odrl_offer_repo(&self) -> Arc<dyn OdrlOfferRepoTrait>;
     fn policy_template_repo(&self) -> Arc<dyn PolicyTemplateRepoTrait>;
+    fn schema_repo(&self) -> Arc<dyn SchemaRepoTrait>;
 }

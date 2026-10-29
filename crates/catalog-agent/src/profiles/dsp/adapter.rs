@@ -99,7 +99,7 @@ impl DspProfileAdapter {
 
     fn catalog(&self, set: &ResourceSet, catalog: &CatalogResource) -> Map<String, Value> {
         let id = catalog.id().to_string();
-        let mut node = self.properties(catalog, ResourceKind::Catalog);
+        let mut node = self.properties(set, catalog, ResourceKind::Catalog);
         if let Some(participant) = catalog
             .description()
             .first_value(Vocab::DSPACE_PARTICIPANT_ID)
@@ -131,7 +131,7 @@ impl DspProfileAdapter {
 
     fn dataset(&self, set: &ResourceSet, dataset: &CatalogResource) -> Map<String, Value> {
         let id = dataset.id().to_string();
-        let mut node = self.properties(dataset, ResourceKind::Dataset);
+        let mut node = self.properties(set, dataset, ResourceKind::Dataset);
         let offers: Vec<Value> = set.offers_of(&id).iter().filter_map(Self::offer).collect();
         node.insert("hasPolicy".into(), Value::Array(offers));
         let distributions: Vec<Value> = set
@@ -148,7 +148,7 @@ impl DspProfileAdapter {
         set: &ResourceSet,
         distribution: &CatalogResource,
     ) -> Map<String, Value> {
-        let mut node = self.properties(distribution, ResourceKind::Distribution);
+        let mut node = self.properties(set, distribution, ResourceKind::Distribution);
         let description = distribution.description();
         if let Some(format) = description.first_value(Vocab::DCT_FORMAT) {
             node.insert("format".into(), json!(format));
@@ -179,8 +179,13 @@ impl DspProfileAdapter {
     }
 
     /// Every property the DSP terms do not carry, as compact IRIs over the DSP prefixes.
-    fn properties(&self, resource: &CatalogResource, kind: ResourceKind) -> Map<String, Value> {
-        let mut description = resource.description().clone();
+    fn properties(
+        &self,
+        set: &ResourceSet,
+        resource: &CatalogResource,
+        kind: ResourceKind,
+    ) -> Map<String, Value> {
+        let mut description = EffectiveGraph::described(resource, set);
         for own in Self::OWN {
             description.remove(own);
         }
@@ -272,7 +277,7 @@ impl ProfileAdapterTrait for DspProfileAdapter {
                 Value::Object(node)
             }
             ResourceKind::DataService => {
-                let mut node = self.properties(root, ResourceKind::DataService);
+                let mut node = self.properties(set, root, ResourceKind::DataService);
                 node.extend(Self::service(root));
                 node.insert("@context".into(), Self::context_field());
                 Value::Object(node)

@@ -20,3 +20,4 @@
 pub mod odrl_offer;
 pub mod policy_template;
 pub mod resource;
+pub mod schema;

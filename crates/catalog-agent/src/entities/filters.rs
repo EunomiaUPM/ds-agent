@@ -45,6 +45,8 @@ pub struct ResourceFilter {
     pub creator: Option<String>,
     pub publisher: Option<String>,
     pub conforms_to: Option<String>,
+    /// The data schema URL (`schema`), own, not inherited.
+    pub schema: Option<String>,
     pub participant_id: Option<String>,
     pub access_service: Option<String>,
     pub endpoint_url: Option<String>,
@@ -76,6 +78,7 @@ impl QueryFilter for ResourceFilter {
             && self.creator.is_none()
             && self.publisher.is_none()
             && self.conforms_to.is_none()
+            && self.schema.is_none()
             && self.participant_id.is_none()
             && self.access_service.is_none()
             && self.endpoint_url.is_none()
@@ -128,6 +131,29 @@ pub struct PolicyTemplateFilter {
     pub author: Option<String>,
     pub created_after: Option<DateTime<Utc>>,
     pub created_before: Option<DateTime<Utc>>,
+}
+
+/// Filter criteria for querying schema versions.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct SchemaFilter {
+    pub id: Option<String>,
+    /// Case-insensitive part of the title.
+    pub title: Option<String>,
+    pub created_after: Option<DateTime<Utc>>,
+    pub created_before: Option<DateTime<Utc>>,
+}
+
+impl QueryFilter for SchemaFilter {
+    fn is_empty(&self) -> bool {
+        self.id.is_none()
+            && self.title.is_none()
+            && self.created_after.is_none()
+            && self.created_before.is_none()
+    }
+
+    fn validate(&self) -> Outcome<()> {
+        DateRange::validate_bounds(self.created_after, self.created_before)
+    }
 }
 
 impl QueryFilter for PolicyTemplateFilter {

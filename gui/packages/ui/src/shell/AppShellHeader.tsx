@@ -390,7 +390,7 @@ export function AppShellHeader({
               <div className="p-2 bg-sunken/20">
                 <button
                   type="button"
-                  onClick={onSignOut}
+                  onClick={() => onSignOut()}
                   className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-danger-700 dark:text-danger-300 hover:text-danger-800 dark:hover:text-danger-200 bg-danger-50 dark:bg-danger-950/30 hover:bg-danger-100 dark:hover:bg-danger-950/60 border border-danger-700/40 transition-all active:scale-[0.98]"
                 >
                   <LogOut className="h-3.5 w-3.5" />

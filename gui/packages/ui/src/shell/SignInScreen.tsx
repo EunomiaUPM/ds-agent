@@ -1,6 +1,7 @@
 import React from "react";
 import { signIn } from "../lib/session";
-import { BubbleBackground } from "../ui/bubble-background";
+import { cn } from "../lib/utils";
+import { BubbleBackground, type BubbleColors } from "../ui/bubble-background";
 import { Button } from "../ui/button";
 import eunomiaLogo from "../assets/eunomia_logo_lg_light.svg";
 
@@ -10,6 +11,8 @@ export interface SignInScreenProps {
   tagline?: string;
   pillars?: string;
   logoSrc?: string;
+  bubbleColors?: BubbleColors;
+  bubbleClassName?: string;
   onSignIn?: () => void;
 }
 
@@ -19,6 +22,8 @@ export function SignInScreen({
   tagline = "Trusted data spaces for a sovereign digital economy.",
   pillars = "Dataspace Protocol • Identity & Authority • Access Control",
   logoSrc = eunomiaLogo,
+  bubbleColors,
+  bubbleClassName,
   onSignIn = signIn,
 }: SignInScreenProps) {
   return (
@@ -26,7 +31,11 @@ export function SignInScreen({
       {/* Left panel — Eunomia branding with interactive Bubble Background */}
       <div className="dark hidden lg:flex w-1/2 relative border-r border-ink/10 overflow-hidden bg-background">
         <BubbleBackground
-          className="flex flex-col items-center justify-center px-12 gap-8 text-center"
+          className={cn(
+            "flex flex-col items-center justify-center px-12 gap-8 text-center",
+            bubbleClassName,
+          )}
+          colors={bubbleColors}
           interactive={true}
         >
           <div className="relative z-10 flex flex-col items-center gap-6 p-8 rounded-2xl bg-sunken/40 backdrop-blur-xl border border-ink/15 shadow-2xl max-w-md">
@@ -46,7 +55,7 @@ export function SignInScreen({
             <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
             <p className="text-sm text-muted-foreground">{description}</p>
           </div>
-          <Button className="w-full" onClick={onSignIn}>
+          <Button className="w-full" onClick={() => onSignIn()}>
             Sign in
           </Button>
         </div>

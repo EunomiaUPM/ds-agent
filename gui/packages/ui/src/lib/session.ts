@@ -37,16 +37,26 @@ export const loadSession = async (): Promise<SessionUser | null> => {
 };
 
 /** Sends the browser to the proxy's sign-in, coming back to where it was. */
-export const signIn = (): void => {
+export const signIn = (redirectUrl?: string): void => {
   if (typeof window === "undefined") return;
-  const back = encodeURIComponent(window.location.href);
+  const target =
+    typeof redirectUrl === "string" && redirectUrl.length > 0
+      ? redirectUrl
+      : window.location.pathname.replace(/\/$/, "").endsWith("/login")
+        ? `${window.location.origin}/admin/`
+        : window.location.href;
+  const back = encodeURIComponent(target);
   window.location.assign(`/oauth2/start?rd=${back}`);
 };
 
 /** Ends the proxy's session and comes back to the console. */
-export const signOut = (redirectPath = "/admin/"): void => {
+export const signOut = (redirectPath?: string): void => {
   currentUser = null;
   if (typeof window === "undefined") return;
-  const back = encodeURIComponent(`${window.location.origin}${redirectPath}`);
+  const path =
+    typeof redirectPath === "string" && redirectPath.length > 0
+      ? redirectPath
+      : "/admin/";
+  const back = encodeURIComponent(`${window.location.origin}${path}`);
   window.location.assign(`/oauth2/sign_out?rd=${back}`);
 };

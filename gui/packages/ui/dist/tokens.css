@@ -16,6 +16,21 @@
   --c-brand-snow: 16 16 31;
   --c-brand-sky: 22 104 143;
   --c-brand-black: 239 247 251;
+  --c-ring: 157 213 242;
+
+  /* Primary accent ramp (default: Eunomia DS-Agent blue) */
+  --c-primary: 45 59 152;
+  --c-primary-950: 30 36 77;
+  --c-primary-900: 43 56 125;
+  --c-primary-800: 45 59 152;
+  --c-primary-700: 51 73 194;
+  --c-primary-600: 60 92 212;
+  --c-primary-500: 81 120 224;
+  --c-primary-400: 114 155 232;
+  --c-primary-300: 159 190 241;
+  --c-primary-200: 198 215 247;
+  --c-primary-100: 223 232 250;
+  --c-primary-50: 241 245 253;
   --c-base-main: 245 247 252;
   --c-base-sidebar: 255 255 255;
   --c-base-header: 233 238 247;
@@ -162,4 +177,68 @@
   --sidebar-accent-foreground: 240 4.8% 95.9%;
   --sidebar-border: 240 3.7% 15.9%;
   --sidebar-ring: 217.2 91.2% 59.8%;
+}
+
+/* ============================================================================
+ * Brand accent theme: Heimdall (Orange)
+ * Activated via <html data-brand="heimdall">
+ * Replaces every DS-Agent blue accent token with Heimdall's orange ramp.
+ * ============================================================================ */
+
+[data-brand="heimdall"] {
+  --c-brand-sky: 194 65 12;
+  --c-brand-black: 255 247 237;
+  --c-ring: 234 88 12;
+  --c-roles-provider: 194 65 12;
+  --c-roles-bussiness: 194 65 12;
+
+  --c-primary: 194 65 12;
+  --c-primary-950: 67 20 7;
+  --c-primary-900: 124 45 18;
+  --c-primary-800: 154 52 18;
+  --c-primary-700: 194 65 12;
+  --c-primary-600: 234 88 12;
+  --c-primary-500: 249 115 22;
+  --c-primary-400: 251 146 60;
+  --c-primary-300: 253 186 116;
+  --c-primary-200: 254 215 170;
+  --c-primary-100: 255 237 213;
+  --c-primary-50: 255 247 237;
+
+  --primary: 20.5 90.2% 48.2%;
+  --ring: 20.5 90.2% 48.2%;
+  --chart-1: 24.6 95% 53.1%;
+  --sidebar-primary: 20.5 90.2% 48.2%;
+  --sidebar-ring: 24.6 95% 53.1%;
+}
+
+[data-brand="heimdall"].dark,
+[data-brand="heimdall"] .dark {
+  --c-brand-sky: 253 166 88;
+  --c-brand-black: 13 13 28;
+  --c-ring: 253 166 88;
+  --c-roles-provider: 253 166 88;
+  --c-roles-bussiness: 253 166 88;
+
+  --c-primary: 249 115 22;
+  --c-primary-950: 67 20 7;
+  --c-primary-900: 124 45 18;
+  --c-primary-800: 154 52 18;
+  --c-primary-700: 194 65 12;
+  --c-primary-600: 234 88 12;
+  --c-primary-500: 249 115 22;
+  --c-primary-400: 251 146 60;
+  --c-primary-300: 253 186 116;
+  --c-primary-200: 254 215 170;
+  --c-primary-100: 255 237 213;
+  --c-primary-50: 255 247 237;
+
+  --sb-thumb-color: #6b4226;
+  --sb-thumb-hover-color: #8f5630;
+
+  --primary: 24.6 95% 53.1%;
+  --ring: 28 97% 67%;
+  --chart-1: 24.6 95% 53.1%;
+  --sidebar-primary: 24.6 95% 53.1%;
+  --sidebar-ring: 27 96% 61%;
 }

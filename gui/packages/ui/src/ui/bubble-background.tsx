@@ -40,7 +40,7 @@ export type BubbleBackgroundProps = React.ComponentProps<"div"> & {
 };
 
 // Soft and balanced Eunomia color palette for ethereal ambient bubbling.
-const DEFAULT_EUNOMIA_COLORS: BubbleColors = {
+export const DEFAULT_EUNOMIA_COLORS: BubbleColors = {
   first: "70, 95, 195",   // Soft Eunomia primary indigo
   second: "115, 65, 185", // Gentle Eunomia secondary violet
   third: "65, 170, 220",  // Soft cyan / dataspace sky
@@ -49,12 +49,23 @@ const DEFAULT_EUNOMIA_COLORS: BubbleColors = {
   sixth: "85, 180, 235",  // Interactive glow cyan
 };
 
+// Warm orange & sovereign amber palette for Eunomia Heimdall Authority.
+export const HEIMDALL_BUBBLE_COLORS: BubbleColors = {
+  first: "234, 88, 12",   // Rich Heimdall orange
+  second: "194, 65, 12",  // Deep burnt amber
+  third: "251, 146, 60",  // Luminous warm orange
+  fourth: "140, 45, 15",  // Deep copper ember
+  fifth: "245, 158, 11",  // Sovereign gold-amber
+  sixth: "253, 186, 116", // Interactive warm glow
+};
+
 export const BubbleBackground = React.forwardRef<
   HTMLDivElement,
   BubbleBackgroundProps
 >(function BubbleBackground(
   {
     className,
+    style,
     children,
     interactive = true,
     transition = { stiffness: 100, damping: 20 },
@@ -135,20 +146,19 @@ export const BubbleBackground = React.forwardRef<
         "relative size-full overflow-hidden bg-gradient-to-br from-[#0b0b1c] via-[#100f28] to-[#080816]",
         className
       )}
+      style={
+        {
+          "--bubble-first": colors.first,
+          "--bubble-second": colors.second,
+          "--bubble-third": colors.third,
+          "--bubble-fourth": colors.fourth,
+          "--bubble-fifth": colors.fifth,
+          "--bubble-sixth": colors.sixth,
+          ...style,
+        } as React.CSSProperties
+      }
       {...props}
     >
-      <style>
-        {`
-          :root {
-            --bubble-first: ${colors.first};
-            --bubble-second: ${colors.second};
-            --bubble-third: ${colors.third};
-            --bubble-fourth: ${colors.fourth};
-            --bubble-fifth: ${colors.fifth};
-            --bubble-sixth: ${colors.sixth};
-          }
-        `}
-      </style>
 
       <svg
         xmlns="http://www.w3.org/2000/svg"

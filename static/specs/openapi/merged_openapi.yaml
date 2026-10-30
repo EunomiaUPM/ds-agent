@@ -5726,6 +5726,62 @@ paths:
           $ref: '#/components/responses/Unauthorized'
       security:
       - bearerAuth: []
+  /api/v1/catalog-agent/odrl-policies/compose:
+    post:
+      tags:
+      - ODRL Policies
+      operationId: composeOdrlPolicy
+      summary: Compose an offer from parts and attach it to an entity
+      description: |
+        Parts add up in order: a template version with its values (`@ref`, `with`), another offer
+        (`@offer`) or hand-written ODRL. A constraint template joins every rule of the list named
+        by `into`. The offer stores the plain ODRL, the parts and the templates used.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewPolicyCompositionDto'
+      responses:
+        '201':
+          description: Created offer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OdrlPolicyDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - bearerAuth: []
+  /api/v1/catalog-agent/odrl-policies/compose/preview:
+    post:
+      tags:
+      - ODRL Policies
+      operationId: previewOdrlPolicyComposition
+      summary: The plain ODRL of a composition, without storing it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyCompositionPreviewDto'
+      responses:
+        '200':
+          description: Plain ODRL and control points
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyPreviewDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+      - bearerAuth: []
   /api/v1/catalog-agent/odrl-policies/entity/{entityId}:
     parameters:
     - name: entityId
@@ -5838,6 +5894,17 @@ paths:
         required: false
         schema:
           type: string
+      - name: kind
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/PolicyTemplateKind'
+      - name: control_point
+        in: query
+        required: false
+        description: Templates meant for this control point.
+        schema:
+          $ref: '#/components/schemas/ControlPoint'
       - $ref: '#/components/parameters/CreatedAfter'
       - $ref: '#/components/parameters/CreatedBefore'
       responses:
@@ -5931,7 +5998,9 @@ paths:
       - Policy Templates
       operationId: instantiateOdrlOffer
       summary: Instantiate a template as an offer on an entity
-      description: Validates the parameters, fills the placeholders and stores the resulting offer.
+      description: |
+        Validates the parameters, fills the placeholders, expands the template's references and
+        stores the plain ODRL as an offer. Same as composing an offer from this one template.
       requestBody:
         required: true
         content:
@@ -5951,6 +6020,60 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      security:
+      - bearerAuth: []
+  /api/v1/catalog-agent/policy-templates/preview:
+    post:
+      tags:
+      - Policy Templates
+      operationId: previewPolicyTemplate
+      summary: Flatten a template with values, without storing anything
+      description: |
+        Give `id` and `version` of a stored template, or a `template` not stored yet. The answer is
+        the plain ODRL every `@ref` and `@include` expands to, and the control points of its pieces.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplatePreviewDto'
+      responses:
+        '200':
+          description: Plain ODRL and control points
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyPreviewDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+      - bearerAuth: []
+  /api/v1/catalog-agent/policy-templates/{id}/{version}/usages:
+    parameters:
+    - $ref: '#/components/parameters/StringPathId'
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: string
+    get:
+      tags:
+      - Policy Templates
+      operationId: getPolicyTemplateUsages
+      summary: Template versions and offers built from a version
+      responses:
+        '200':
+          description: Who uses the version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateUsagesDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
       security:
@@ -6007,6 +6130,7 @@ paths:
       - Policy Templates
       operationId: deletePolicyTemplateByIdAndVersion
       summary: Delete one template version
+      description: Refused with 409 while another template version references it.
       responses:
         '202':
           description: Deleted
@@ -6016,6 +6140,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
       security:
       - bearerAuth: []
   /api/v1/catalog-agent/schemas:
@@ -10903,6 +11029,19 @@ components:
       oneOf:
       - $ref: '#/components/schemas/OdrlMessageOffer'
       - $ref: '#/components/schemas/OdrlOfferReference'
+    ControlPoint:
+      type: string
+      description: |
+        Where a policy piece is meant to be enforced: `catalog` (catalog requests), `negotiation`
+        (opening and agreeing a contract), `transfer` (requesting and starting a transfer),
+        `dataplane` (each data request), `validity` (the agreement's lifetime), `duties` (after use).
+      enum:
+      - catalog
+      - negotiation
+      - transfer
+      - dataplane
+      - validity
+      - duties
     CreateClientCommand:
       type: object
       required:
@@ -13262,6 +13401,29 @@ components:
         offerId:
           type: string
         offerContent: {}
+    NewPolicyCompositionDto:
+      type: object
+      additionalProperties: false
+      required:
+      - entityId
+      - entityType
+      - parts
+      properties:
+        entityId:
+          type: string
+          description: URN of the entity that receives the offer.
+        entityType:
+          $ref: '#/components/schemas/CatalogEntityType'
+        description:
+          type: string
+        visibility:
+          description: Who else sees it; private by default.
+          $ref: '#/components/schemas/Visibility'
+        parts:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/PolicyPart'
     NewPolicyInstantiationDto:
       type: object
       additionalProperties: false
@@ -13282,7 +13444,7 @@ components:
           type: object
           description: Values by parameter name.
           additionalProperties:
-            $ref: '#/components/schemas/PolicyTemplateAllowedDefaultValues'
+            $ref: '#/components/schemas/ParameterValue'
         entityId:
           type: string
           description: URN of the entity that receives the offer.
@@ -13305,6 +13467,13 @@ components:
           $ref: '#/components/schemas/Visibility'
         version:
           type: string
+        kind:
+          $ref: '#/components/schemas/PolicyTemplateKind'
+        controlPoints:
+          type: array
+          description: Where the template is meant to apply. Informative; nothing evaluates it.
+          items:
+            $ref: '#/components/schemas/ControlPoint'
         date:
           type: string
           format: date-time
@@ -13315,7 +13484,7 @@ components:
         author:
           type: string
         content:
-          $ref: '#/components/schemas/OdrlPolicyInfo'
+          $ref: '#/components/schemas/PolicyTemplateContent'
         parameters:
           type: object
           additionalProperties:
@@ -13898,6 +14067,16 @@ components:
           type:
           - string
           - 'null'
+        composition:
+          description: The parts a composed offer was made from, as they were asked for.
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicyPart'
+        controlPoints:
+          description: Where the pieces of a composed offer are meant to apply. Informative.
+          type: array
+          items:
+            $ref: '#/components/schemas/ControlPoint'
     OdrlPolicyInfo:
       type: object
       description: Rules of a policy without its identity or target.
@@ -14327,6 +14506,15 @@ components:
           description: Absent on the last page.
         total:
           type: integer
+    ParameterValue:
+      description: Value of a template parameter.
+      oneOf:
+      - type: boolean
+      - type: number
+      - type: string
+      - type: array
+        items:
+          type: string
     ParticipantDto:
       type: object
       description: Participant registry entry ("mate").
@@ -14442,10 +14630,65 @@ components:
       - $ref: '#/components/schemas/DspCatalog'
       minItems: 2
       maxItems: 2
-    PolicyTemplateAllowedDefaultValues:
-      oneOf:
-      - type: string
-      - type: number
+    PolicyCompositionPreviewDto:
+      type: object
+      additionalProperties: false
+      required:
+      - parts
+      properties:
+        parts:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/PolicyPart'
+    PolicyPart:
+      type: object
+      description: |
+        A template version with values (`@ref`, `with`, and `into` for a constraint), an existing
+        offer (`@offer`), or hand-written ODRL rule lists, which may hold `@ref`s themselves.
+      properties:
+        '@ref':
+          type: string
+          description: '`id@version` of a template.'
+          examples:
+          - expires-after@1.0
+        with:
+          type: object
+          description: Values by parameter name.
+          additionalProperties:
+            $ref: '#/components/schemas/ParameterValue'
+        into:
+          type: string
+          enum:
+          - permission
+          - prohibition
+          - obligation
+        '@offer':
+          type: string
+          description: URN of an offer whose ODRL is copied.
+      additionalProperties: true
+    PolicyPreviewDto:
+      type: object
+      required:
+      - odrl
+      - controlPoints
+      properties:
+        odrl:
+          description: The plain ODRL; for a constraint or rule template, that piece alone.
+          type: object
+        controlPoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/ControlPoint'
+    PolicyTemplateContent:
+      type: object
+      description: |
+        By `kind`: a `constraint` is one ODRL constraint; a `rule` is an object with one of
+        `permission`, `prohibition` or `obligation` holding one rule; a `policy` has rule lists.
+        Wherever a constraint or a rule goes, `{"@ref": "id@version", "with": {...}}` stands for
+        another template; a policy may add others' rules with `"@include": [{"@ref": ...}]`.
+        `"$name"` strings are parameters; `"$$..."` is a literal `$`.
+      additionalProperties: true
     PolicyTemplateDto:
       type: object
       required:
@@ -14473,6 +14716,13 @@ components:
           $ref: '#/components/schemas/Visibility'
         version:
           type: string
+        kind:
+          $ref: '#/components/schemas/PolicyTemplateKind'
+        controlPoints:
+          type: array
+          description: Where the template is meant to apply. Informative; nothing evaluates it.
+          items:
+            $ref: '#/components/schemas/ControlPoint'
         date:
           type: string
           format: date-time
@@ -14483,12 +14733,20 @@ components:
         author:
           type: string
         content:
-          $ref: '#/components/schemas/OdrlPolicyInfo'
+          $ref: '#/components/schemas/PolicyTemplateContent'
         parameters:
           type: object
           description: Definitions by placeholder name (`$name` in `content`).
           additionalProperties:
             $ref: '#/components/schemas/PolicyTemplateParameterDefinition'
+    PolicyTemplateKind:
+      type: string
+      description: What a template's content is. `policy` when not given.
+      enum:
+      - constraint
+      - rule
+      - policy
+      default: policy
     PolicyTemplateParameterDefinition:
       type: object
       required:
@@ -14496,6 +14754,8 @@ components:
       properties:
         dataType:
           type: string
+          description: '`date` is YYYY-MM-DD, `time` HH:MM[:SS], `dateTime` RFC 3339 (`datetime` is accepted
+            too), `duration` an xsd:duration such as P30D, `list` an array of strings.'
           enum:
           - string
           - integer
@@ -14503,8 +14763,11 @@ components:
           - boolean
           - date
           - time
-          - datetime
+          - dateTime
           - selection
+          - duration
+          - iri
+          - list
         restrictions:
           type: object
           properties:
@@ -14522,8 +14785,14 @@ components:
               type: string
             maxDate:
               type: string
+            minItems:
+              type: integer
+              description: Fewest items of a list.
+            maxItems:
+              type: integer
+              description: Most items of a list.
             values:
-              description: Allowed values of a selection, plain or labelled.
+              description: Allowed values of a selection, or of every item of a list.
               oneOf:
               - type: array
                 items:
@@ -14551,7 +14820,7 @@ components:
               type: boolean
               default: false
         defaultValue:
-          $ref: '#/components/schemas/PolicyTemplateAllowedDefaultValues'
+          $ref: '#/components/schemas/ParameterValue'
     PresentationDefinition:
       type: object
       required:
@@ -15522,6 +15791,37 @@ components:
         additionalProperties:
           type: string
       - type: string
+    TemplatePreviewDto:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Stored template, with `version`.
+        version:
+          type: string
+        template:
+          $ref: '#/components/schemas/NewPolicyTemplateDto'
+        parameters:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ParameterValue'
+    TemplateUsagesDto:
+      type: object
+      required:
+      - templates
+      - offers
+      properties:
+        templates:
+          type: array
+          description: '`id@version` of the template versions that reference it.'
+          items:
+            type: string
+        offers:
+          type: array
+          description: URNs of the offers composed with it that the caller sees.
+          items:
+            type: string
     TemplateVecString:
       description: A list of strings, or one placeholder resolving to a list.
       oneOf:

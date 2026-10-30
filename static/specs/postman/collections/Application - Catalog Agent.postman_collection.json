@@ -2349,6 +2349,91 @@
 							]
 						},
 						{
+							"name": "Compose",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies/compose",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"odrl-policies",
+										"compose"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"entityId\": \"{{datasetId}}\",\n    \"entityType\": \"Dataset\",\n    \"description\": \"Members only, for a week\",\n    \"parts\": [\n        {\n            \"@ref\": \"members-only@1.0\",\n            \"with\": {\n                \"$credential\": \"gx:LegalParticipant\"\n            }\n        },\n        {\n            \"@ref\": \"expires-after@1.0\",\n            \"with\": {\n                \"$duration\": \"P7D\"\n            },\n            \"into\": \"permission\"\n        },\n        {\n            \"@ref\": \"no-redistribution@1.0\"\n        }\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"pm.collectionVariables.set(\"policyId\", body.id);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Compose preview",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/odrl-policies/compose/preview",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"odrl-policies",
+										"compose",
+										"preview"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"parts\": [\n        {\n            \"@ref\": \"use@1.0\"\n        },\n        {\n            \"@ref\": \"max-transfers@1.0\",\n            \"with\": {\n                \"$count\": 3\n            },\n            \"into\": \"permission\"\n        }\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "Get by id",
 							"request": {
 								"method": "GET",
@@ -2565,6 +2650,149 @@
 										"policy-templates",
 										"{{templateId}}",
 										"{{templateVersion}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create composed (references)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"policy-templates"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": \"research-in-country\",\n    \"version\": \"1.0\",\n    \"kind\": \"policy\",\n    \"controlPoints\": [\n        \"negotiation\",\n        \"dataplane\"\n    ],\n    \"title\": \"Research within a country\",\n    \"description\": \"The seeded research policy, only from the given regions.\",\n    \"content\": {\n        \"@include\": [\n            {\n                \"@ref\": \"research-30-days@1.0\",\n                \"with\": {\n                    \"$duration\": \"$duration\"\n                }\n            }\n        ],\n        \"permission\": [\n            {\n                \"action\": \"read\",\n                \"constraint\": [\n                    {\n                        \"@ref\": \"spatial@1.0\",\n                        \"with\": {\n                            \"$regions\": \"$regions\"\n                        }\n                    }\n                ]\n            }\n        ]\n    },\n    \"parameters\": {\n        \"$duration\": {\n            \"dataType\": \"duration\",\n            \"defaultValue\": \"P30D\"\n        },\n        \"$regions\": {\n            \"dataType\": \"list\",\n            \"defaultValue\": [\n                \"ES\"\n            ]\n        }\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"const body = pm.response.json();",
+											"pm.collectionVariables.set(\"templateId\", body.id);",
+											"pm.collectionVariables.set(\"templateVersion\", body.version);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Preview stored",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates/preview",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"policy-templates",
+										"preview"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": \"research-30-days\",\n    \"version\": \"1.0\",\n    \"parameters\": {\n        \"$duration\": \"P7D\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Preview draft",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates/preview",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"policy-templates",
+										"preview"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"template\": {\n        \"kind\": \"policy\",\n        \"content\": {\n            \"permission\": [\n                {\n                    \"action\": \"use\",\n                    \"constraint\": [\n                        {\n                            \"@ref\": \"expires-after@1.0\",\n                            \"with\": {\n                                \"$duration\": \"$d\"\n                            }\n                        }\n                    ]\n                }\n            ]\n        },\n        \"parameters\": {\n            \"$d\": {\n                \"dataType\": \"duration\"\n            }\n        }\n    },\n    \"parameters\": {\n        \"$d\": \"P1Y\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Usages",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/policy-templates/expires-after/1.0/usages",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"policy-templates",
+										"expires-after",
+										"1.0",
+										"usages"
 									]
 								}
 							},

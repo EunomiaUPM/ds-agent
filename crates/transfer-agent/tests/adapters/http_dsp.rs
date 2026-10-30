@@ -18,21 +18,19 @@
 //! The DSP transfer routes end to end through the flow runner: real adapter, rules, loader and
 //! handlers over an in-memory process store, with the agreement, connector and dataplane mocked.
 
+use crate::support::context::TestContext;
 use axum::extract::Request;
 use axum::response::Response;
 use axum::Router;
 use chrono::Utc;
 use common::dsp_common::odrl::OdrlAgreement;
-use common::facades::grants_facade::{MockGrantsFacadeTrait, VerifiedPeer};
 use common::facades::catalog::{CatalogDataset, CatalogDistribution, MockCatalogFacadeTrait};
+use common::facades::grants_facade::{MockGrantsFacadeTrait, VerifiedPeer};
 use common::facades::mates_facade::MockMatesFacadeTrait;
 use common::facades::negotiation::MockNegotiationFacadeTrait;
-use ymir::types::oauth::RolePath;
-use ymir::types::participants::Visibility;
 use connector::{
-    MockConnectorInstanceFacadeTrait,
     AuthenticationConfig, ConnectorInstanceDto, ConnectorMetadata, HttpSpec, InteractionConfig,
-    ProtocolSpec, PullLifecycle, TemplateVecString,
+    MockConnectorInstanceFacadeTrait, ProtocolSpec, PullLifecycle, TemplateVecString,
 };
 use http::StatusCode;
 use std::collections::HashMap;
@@ -57,7 +55,8 @@ use transfer_agent::services::transfer_process::MockTransferProcessServiceTrait;
 use transfer_agent::setup::context::AppContext;
 use urn::Urn;
 use ymir::errors::Errors;
-use crate::support::context::TestContext;
+use ymir::types::oauth::RolePath;
+use ymir::types::participants::Visibility;
 
 const CONSUMER_PID: &str = "urn:uuid:32541fe6-c580-409e-85a8-8a9a32fbe833";
 
@@ -219,6 +218,7 @@ fn context(store: &Store, as_peer: Option<&str>) -> Arc<AppContext> {
             id: id.to_string(),
             catalog_id: "urn:catalog:1".into(),
             dct_title: None,
+            draft: false,
         })
     });
     catalog
@@ -356,7 +356,10 @@ async fn a_bare_uuid_consumer_pid_is_accepted_as_sent() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::CREATED);
     let ack = body_json(response).await;
-    assert_eq!(ack["consumerPid"], "2c066edf-0a95-49eb-bc5e-a85beea59645", "{ack}");
+    assert_eq!(
+        ack["consumerPid"], "2c066edf-0a95-49eb-bc5e-a85beea59645",
+        "{ack}"
+    );
 }
 
 /// DSP 9.2.1: a repeated request for a known consumerPid gets the first answer, not a second process.

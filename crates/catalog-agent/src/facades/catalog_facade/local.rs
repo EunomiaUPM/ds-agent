@@ -19,7 +19,9 @@
 
 use std::sync::Arc;
 
-use common::facades::catalog::{CatalogDataset, CatalogDistribution, CatalogFacadeTrait, CatalogOffer};
+use common::facades::catalog::{
+    CatalogDataset, CatalogDistribution, CatalogFacadeTrait, CatalogOffer,
+};
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 use ymir::types::oauth::UserInfo;
@@ -43,7 +45,9 @@ impl CatalogLocalFacade {
     /// A missing record keeps its missing-resource error, with `why` as the reason.
     fn not_found<T>(result: Outcome<T>, id: &Urn, why: &str) -> Outcome<T> {
         match result {
-            Err(Errors::MissingResourceError { .. }) => Err(Errors::missing_resource(id.to_string(), why, None)),
+            Err(Errors::MissingResourceError { .. }) => {
+                Err(Errors::missing_resource(id.to_string(), why, None))
+            }
             other => other,
         }
     }
@@ -51,8 +55,12 @@ impl CatalogLocalFacade {
     fn dataset(resource: CatalogResource) -> CatalogDataset {
         CatalogDataset {
             id: resource.id().to_string(),
-            catalog_id: resource.catalog_id().map(ToString::to_string).unwrap_or_default(),
+            catalog_id: resource
+                .catalog_id()
+                .map(ToString::to_string)
+                .unwrap_or_default(),
             dct_title: resource.title(),
+            draft: resource.is_draft(),
         }
     }
 
@@ -60,7 +68,10 @@ impl CatalogLocalFacade {
         let description = resource.description();
         CatalogDistribution {
             id: resource.id().to_string(),
-            dataset_id: resource.dataset_id().map(ToString::to_string).unwrap_or_default(),
+            dataset_id: resource
+                .dataset_id()
+                .map(ToString::to_string)
+                .unwrap_or_default(),
             dct_format: description.first_value(Vocab::DCT_FORMAT),
             dcat_access_service: description
                 .first_iri(Vocab::DCAT_ACCESS_SERVICE)
@@ -92,7 +103,11 @@ impl CatalogFacadeTrait for CatalogLocalFacade {
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "catalog"))]
-    async fn get_distribution_by_format(&self, dataset_id: &Urn, format: &str) -> Outcome<CatalogDistribution> {
+    async fn get_distribution_by_format(
+        &self,
+        dataset_id: &Urn,
+        format: &str,
+    ) -> Outcome<CatalogDistribution> {
         self.ctx
             .resources()
             .distribution_by_format(&UserInfo::system(), dataset_id, format)
@@ -101,7 +116,11 @@ impl CatalogFacadeTrait for CatalogLocalFacade {
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "catalog", user = %user.id()))]
-    async fn get_distribution(&self, user: &UserInfo, distribution_id: &Urn) -> Outcome<CatalogDistribution> {
+    async fn get_distribution(
+        &self,
+        user: &UserInfo,
+        distribution_id: &Urn,
+    ) -> Outcome<CatalogDistribution> {
         let found = self
             .ctx
             .resources()
@@ -114,6 +133,21 @@ impl CatalogFacadeTrait for CatalogLocalFacade {
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "catalog"))]
     async fn get_offer(&self, offer_id: &Urn) -> Outcome<CatalogOffer> {
         let found = self.ctx.offers().get(&UserInfo::system(), offer_id).await;
-        Self::not_found(found, offer_id, "Offer not found in the catalog").map(Self::offer)
+        let offer = Self::not_found(found, offer_id, "Offer not found in the catalog")?;
+        if offer.entity_type == ResourceKind::Dataset.term() {
+            let dataset = self
+                .ctx
+                .resources()
+                .get(&UserInfo::system(), ResourceKind::Dataset, &offer.entity)
+                .await?;
+            if dataset.is_draft() {
+                return Err(Errors::missing_resource(
+                    offer_id.to_string(),
+                    "the offer's dataset is a draft",
+                    None,
+                ));
+            }
+        }
+        Ok(Self::offer(offer))
     }
 }

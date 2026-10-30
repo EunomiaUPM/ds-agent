@@ -21,6 +21,7 @@
 #[path = "../support/mod.rs"]
 mod support;
 
+mod catalog_facade;
 mod catalog_import;
 mod closure;
 mod dataset_offerings;

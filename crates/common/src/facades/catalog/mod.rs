@@ -48,7 +48,8 @@ pub trait CatalogFacadeTrait: Send + Sync {
         distribution_id: &Urn,
     ) -> Outcome<CatalogDistribution>;
 
-    /// A published offer; a missing-resource error unless the catalog holds it.
+    /// A published offer; a missing-resource error unless the catalog holds it and its dataset
+    /// is not a draft, so a draft is never negotiated.
     async fn get_offer(&self, offer_id: &Urn) -> Outcome<CatalogOffer>;
 }
 

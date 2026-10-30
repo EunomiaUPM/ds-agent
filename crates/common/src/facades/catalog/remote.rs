@@ -17,6 +17,8 @@
 
 //! The catalog contract over the catalog agent's management API.
 
+use std::str::FromStr;
+
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use urn::Urn;
@@ -49,6 +51,7 @@ impl CatalogRemoteFacade {
     const SERVICE: &'static str = "catalog-agent";
     const DCT: &'static str = "http://purl.org/dc/terms/";
     const DCAT: &'static str = "http://www.w3.org/ns/dcat#";
+    const PUBLICATION_STATE: &'static str = "https://w3id.org/eunomia/v1/publicationState";
 
     pub fn new(catalog: &MinKnownConfig) -> Self {
         Self {
@@ -92,7 +95,9 @@ impl CatalogRemoteFacade {
             .as_array()
             .and_then(|nodes| nodes.first())
             .cloned()
-            .ok_or_else(|| Errors::missing_resource(path, format!("{what} not found in the catalog"), None))
+            .ok_or_else(|| {
+                Errors::missing_resource(path, format!("{what} not found in the catalog"), None)
+            })
     }
 
     /// The first value of `predicate`, IRI or literal.
@@ -118,7 +123,10 @@ impl CatalogRemoteFacade {
     }
 
     fn id(node: &Value) -> String {
-        node.get("@id").and_then(Value::as_str).unwrap_or_default().to_string()
+        node.get("@id")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string()
     }
 
     fn distribution(node: &Value) -> CatalogDistribution {
@@ -136,11 +144,14 @@ impl CatalogRemoteFacade {
 impl CatalogFacadeTrait for CatalogRemoteFacade {
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "catalog"))]
     async fn get_dataset(&self, dataset_id: &Urn) -> Outcome<CatalogDataset> {
-        let node = self.node(&format!("datasets/{dataset_id}"), "Dataset").await?;
+        let node = self
+            .node(&format!("datasets/{dataset_id}"), "Dataset")
+            .await?;
         Ok(CatalogDataset {
             id: Self::id(&node),
             catalog_id: Self::parent(&node, &format!("{}dataset", Self::DCAT)),
             dct_title: Self::first(&node, &format!("{}title", Self::DCT)),
+            draft: Self::first(&node, Self::PUBLICATION_STATE).as_deref() == Some("draft"),
         })
     }
 
@@ -160,15 +171,30 @@ impl CatalogFacadeTrait for CatalogRemoteFacade {
         _user: &UserInfo,
         distribution_id: &Urn,
     ) -> Outcome<CatalogDistribution> {
-        let node = self.node(&format!("distributions/{distribution_id}"), "Distribution").await?;
+        let node = self
+            .node(&format!("distributions/{distribution_id}"), "Distribution")
+            .await?;
         Ok(Self::distribution(&node))
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "catalog"))]
     async fn get_offer(&self, offer_id: &Urn) -> Outcome<CatalogOffer> {
-        let mut offer: CatalogOffer = self.get(&format!("odrl-policies/{offer_id}"), "Offer").await?;
+        let mut offer: CatalogOffer = self
+            .get(&format!("odrl-policies/{offer_id}"), "Offer")
+            .await?;
         offer.odrl_offer = JsonLd::<OdrlPolicyInfo>::untag(offer.odrl_offer)
             .map_err(|reason| Errors::format(BadFormat::Received, reason, None))?;
+        if offer.entity_type == "Dataset" {
+            let dataset = Urn::from_str(&offer.entity)
+                .map_err(|_| Errors::format(BadFormat::Received, "offer entity is no URN", None))?;
+            if self.get_dataset(&dataset).await?.draft {
+                return Err(Errors::missing_resource(
+                    offer_id.to_string(),
+                    "the offer's dataset is a draft",
+                    None,
+                ));
+            }
+        }
         Ok(offer)
     }
 }

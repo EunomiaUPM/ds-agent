@@ -37,6 +37,8 @@ const DATASET: &str = "urn:dataset:eba5144b-b684-4c63-b7e0-45f13e3fbc3e";
 const DISTRIBUTION: &str = "urn:distribution:cc62a869-b5aa-4c02-900a-5cbcde4b0589";
 const SERVICE: &str = "urn:data-service:3714c38d-16ed-42fe-a2f0-b5e3e622434c";
 const OFFER: &str = "urn:odrl-policy:563de2b1-bbfe-4ead-843b-d734d457c351";
+const DRAFT: &str = "urn:dataset:7f1c2a90-0d2e-4b8e-9b51-0c3d6f1a2b44";
+const DRAFT_OFFER: &str = "urn:odrl-policy:1b2c3d4e-0000-4000-8000-00000000d0af";
 const CONTEXT: &str = "https://w3id.org/eunomia/v1/catalog-context.jsonld";
 
 fn dataset() -> Value {
@@ -88,6 +90,24 @@ async fn facade() -> CatalogRemoteFacade {
         .route(
             &format!("{base}/odrl-policies/{OFFER}"),
             get(|| async { Json(offer()) }),
+        )
+        .route(
+            &format!("{base}/datasets/{DRAFT}"),
+            get(|| async {
+                let mut draft = dataset();
+                draft["@id"] = json!(DRAFT);
+                draft["publicationState"] = json!("draft");
+                Json(draft)
+            }),
+        )
+        .route(
+            &format!("{base}/odrl-policies/{DRAFT_OFFER}"),
+            get(|| async {
+                let mut on_draft = offer();
+                on_draft["id"] = json!(DRAFT_OFFER);
+                on_draft["entity"] = json!(DRAFT);
+                Json(on_draft)
+            }),
         )
         .fallback(missing);
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -142,7 +162,11 @@ async fn offer_keeps_entity_and_odrl() {
     assert_eq!(found.entity, DATASET);
     assert_eq!(found.entity_type, "Dataset");
     assert_eq!(found.odrl_offer["permission"][0]["action"], "use");
-    assert!(found.odrl_offer.get("@context").is_none(), "{}", found.odrl_offer);
+    assert!(
+        found.odrl_offer.get("@context").is_none(),
+        "{}",
+        found.odrl_offer
+    );
 }
 
 /// A 404 of the catalog API becomes the missing-resource error the local facade returns.
@@ -161,5 +185,18 @@ async fn missing_records_are_missing_resources() {
     assert!(
         matches!(distribution, Err(Errors::MissingResourceError { .. })),
         "{distribution:?}"
+    );
+}
+
+/// A draft dataset says so, and an offer on it is as missing as one that does not exist.
+#[tokio::test]
+async fn offers_on_drafts_cannot_be_negotiated() {
+    let remote = facade().await;
+    assert!(remote.get_dataset(&urn(DRAFT)).await.unwrap().draft);
+    assert!(!remote.get_dataset(&urn(DATASET)).await.unwrap().draft);
+    let refused = remote.get_offer(&urn(DRAFT_OFFER)).await;
+    assert!(
+        matches!(refused, Err(Errors::MissingResourceError { .. })),
+        "{refused:?}"
     );
 }

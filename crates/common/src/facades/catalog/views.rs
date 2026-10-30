@@ -27,6 +27,9 @@ pub struct CatalogDataset {
     pub id: String,
     pub catalog_id: String,
     pub dct_title: Option<String>,
+    /// Kept out of the profiles; its offers cannot be negotiated.
+    #[serde(default)]
+    pub draft: bool,
 }
 
 /// A distribution of a dataset, with the data service that gives access to it.

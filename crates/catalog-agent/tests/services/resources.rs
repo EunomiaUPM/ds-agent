@@ -31,7 +31,11 @@ use ymir::types::participants::Visibility;
 use crate::support::builders::{catalog, data_service, dataset, main_catalog, titled, urn};
 use crate::support::context::TestContext;
 
-fn command(kind: ResourceKind, parent: Option<urn::Urn>, description: ResourceGraph) -> NewResourceCommand {
+fn command(
+    kind: ResourceKind,
+    parent: Option<urn::Urn>,
+    description: ResourceGraph,
+) -> NewResourceCommand {
     NewResourceCommand {
         kind,
         id: None,
@@ -50,15 +54,25 @@ fn status(error: &Errors) -> u16 {
 #[tokio::test]
 async fn dataset_is_created_in_a_seen_catalog() {
     let mut repo = MockResourceRepoTrait::new();
-    repo.expect_get_by_id().returning(|_, _| Ok(Some(catalog(1))));
+    repo.expect_get_by_id()
+        .returning(|_, _| Ok(Some(catalog(1))));
     repo.expect_insert()
-        .withf(|r| r.catalog_id() == Some(&urn(ResourceKind::Catalog, 1)) && r.owner().user_id == "ana")
+        .withf(|r| {
+            r.catalog_id() == Some(&urn(ResourceKind::Catalog, 1)) && r.owner().user_id == "ana"
+        })
         .returning(|r| Ok(r.clone()));
     let ctx = TestContext::new().resource_repo(repo).build();
 
     let created = ctx
         .resources()
-        .create(&TestUsers::alone("ana"), &command(ResourceKind::Dataset, Some(urn(ResourceKind::Catalog, 1)), titled("d")))
+        .create(
+            &TestUsers::alone("ana"),
+            &command(
+                ResourceKind::Dataset,
+                Some(urn(ResourceKind::Catalog, 1)),
+                titled("d"),
+            ),
+        )
         .await
         .unwrap();
 
@@ -71,14 +85,25 @@ async fn dataset_is_created_in_a_seen_catalog() {
 #[tokio::test]
 async fn dataset_needs_a_catalog() {
     let mut repo = MockResourceRepoTrait::new();
-    repo.expect_get_by_id().returning(|_, _| Ok(Some(dataset(2, 1))));
+    repo.expect_get_by_id()
+        .returning(|_, _| Ok(Some(dataset(2, 1))));
     let ctx = TestContext::new().resource_repo(repo).build();
     let user = TestUsers::alone("ana");
 
-    let orphan = ctx.resources().create(&user, &command(ResourceKind::Dataset, None, titled("d"))).await;
+    let orphan = ctx
+        .resources()
+        .create(&user, &command(ResourceKind::Dataset, None, titled("d")))
+        .await;
     let misplaced = ctx
         .resources()
-        .create(&user, &command(ResourceKind::Dataset, Some(urn(ResourceKind::Dataset, 2)), titled("d")))
+        .create(
+            &user,
+            &command(
+                ResourceKind::Dataset,
+                Some(urn(ResourceKind::Dataset, 2)),
+                titled("d"),
+            ),
+        )
         .await;
 
     assert_eq!(status(&orphan.unwrap_err()), 400);
@@ -94,7 +119,10 @@ async fn catalogs_wait_for_the_main_one() {
 
     let refused = ctx
         .resources()
-        .create(&TestUsers::alone("ana"), &command(ResourceKind::Catalog, None, titled("c")))
+        .create(
+            &TestUsers::alone("ana"),
+            &command(ResourceKind::Catalog, None, titled("c")),
+        )
         .await;
 
     assert_eq!(status(&refused.unwrap_err()), 409);
@@ -104,21 +132,41 @@ async fn catalogs_wait_for_the_main_one() {
 #[tokio::test]
 async fn links_must_reach_resources_of_the_right_kind() {
     let mut repo = MockResourceRepoTrait::new();
-    repo.expect_get_by_id().returning(|_, _| Ok(Some(dataset(3, 1))));
-    repo.expect_get_batch().returning(|_, _| Ok(vec![dataset(9, 1)]));
+    repo.expect_get_by_id()
+        .returning(|_, _| Ok(Some(dataset(3, 1))));
+    repo.expect_get_batch()
+        .returning(|_, _| Ok(vec![dataset(9, 1)]));
     let ctx = TestContext::new().resource_repo(repo).build();
     let mut description = titled("dist");
-    description.put(Vocab::DCAT_ACCESS_SERVICE, vec![ResourceGraph::iri(urn(ResourceKind::Dataset, 9).as_ref())]);
-    description.put(Vocab::DCT_PUBLISHER, vec![ResourceGraph::iri("urn:agent:missing")]);
+    description.put(
+        Vocab::DCAT_ACCESS_SERVICE,
+        vec![ResourceGraph::iri(urn(ResourceKind::Dataset, 9).as_ref())],
+    );
+    description.put(
+        Vocab::DCT_PUBLISHER,
+        vec![ResourceGraph::iri("urn:agent:missing")],
+    );
 
     let refused = ctx
         .resources()
-        .create(&TestUsers::alone("ana"), &command(ResourceKind::Distribution, Some(urn(ResourceKind::Dataset, 3)), description))
+        .create(
+            &TestUsers::alone("ana"),
+            &command(
+                ResourceKind::Distribution,
+                Some(urn(ResourceKind::Dataset, 3)),
+                description,
+            ),
+        )
         .await
         .unwrap_err();
 
     assert_eq!(status(&refused), 400);
-    let paths: Vec<_> = refused.info().reasons.iter().map(|r| r.path.as_str()).collect();
+    let paths: Vec<_> = refused
+        .info()
+        .reasons
+        .iter()
+        .map(|r| r.path.as_str())
+        .collect();
     assert!(paths.contains(&Vocab::DCAT_ACCESS_SERVICE));
     assert!(paths.contains(&Vocab::DCT_PUBLISHER));
 }
@@ -130,7 +178,14 @@ async fn data_service_needs_an_endpoint() {
 
     let refused = ctx
         .resources()
-        .create(&TestUsers::alone("ana"), &command(ResourceKind::DataService, Some(urn(ResourceKind::Catalog, 1)), titled("s")))
+        .create(
+            &TestUsers::alone("ana"),
+            &command(
+                ResourceKind::DataService,
+                Some(urn(ResourceKind::Catalog, 1)),
+                titled("s"),
+            ),
+        )
         .await;
 
     assert_eq!(status(&refused.unwrap_err()), 400);
@@ -140,12 +195,20 @@ async fn data_service_needs_an_endpoint() {
 #[tokio::test]
 async fn main_catalog_is_the_roots_and_unique() {
     let mut repo = MockResourceRepoTrait::new();
-    repo.expect_get_main().returning(|_| Ok(Some(main_catalog(1))));
+    repo.expect_get_main()
+        .returning(|_| Ok(Some(main_catalog(1))));
     let ctx = TestContext::new().resource_repo(repo).build();
     let request = command(ResourceKind::Catalog, None, ResourceGraph::default());
 
-    let denied = ctx.resources().create_main(&TestUsers::alone("ana"), &request).await;
-    let existing = ctx.resources().create_main(&TestUsers::root(), &request).await.unwrap();
+    let denied = ctx
+        .resources()
+        .create_main(&TestUsers::alone("ana"), &request)
+        .await;
+    let existing = ctx
+        .resources()
+        .create_main(&TestUsers::root(), &request)
+        .await
+        .unwrap();
 
     assert!(denied.is_err());
     assert_eq!(existing.id(), &urn(ResourceKind::Catalog, 1));
@@ -155,7 +218,8 @@ async fn main_catalog_is_the_roots_and_unique() {
 #[tokio::test]
 async fn stale_version_is_refused() {
     let mut repo = MockResourceRepoTrait::new();
-    repo.expect_get_by_id().returning(|_, _| Ok(Some(dataset(3, 1))));
+    repo.expect_get_by_id()
+        .returning(|_, _| Ok(Some(dataset(3, 1))));
     let ctx = TestContext::new().resource_repo(repo).build();
     let replace = ReplaceResourceCommand {
         description: titled("new"),
@@ -166,7 +230,12 @@ async fn stale_version_is_refused() {
 
     let refused = ctx
         .resources()
-        .replace(&TestUsers::root(), ResourceKind::Dataset, &urn(ResourceKind::Dataset, 3), &replace)
+        .replace(
+            &TestUsers::root(),
+            ResourceKind::Dataset,
+            &urn(ResourceKind::Dataset, 3),
+            &replace,
+        )
         .await;
 
     assert_eq!(status(&refused.unwrap_err()), 412);
@@ -176,7 +245,8 @@ async fn stale_version_is_refused() {
 #[tokio::test]
 async fn replacement_moves_the_version_and_visibility() {
     let mut repo = MockResourceRepoTrait::new();
-    repo.expect_get_by_id().returning(|_, _| Ok(Some(dataset(3, 1))));
+    repo.expect_get_by_id()
+        .returning(|_, _| Ok(Some(dataset(3, 1))));
     repo.expect_replace()
         .withf(|_, r, expected| *expected == 1 && r.version() == 2)
         .returning(|_, r, _| Ok(r.clone()));
@@ -190,7 +260,12 @@ async fn replacement_moves_the_version_and_visibility() {
 
     let replaced = ctx
         .resources()
-        .replace(&TestUsers::root(), ResourceKind::Dataset, &urn(ResourceKind::Dataset, 3), &replace)
+        .replace(
+            &TestUsers::root(),
+            ResourceKind::Dataset,
+            &urn(ResourceKind::Dataset, 3),
+            &replace,
+        )
         .await
         .unwrap();
 
@@ -202,7 +277,8 @@ async fn replacement_moves_the_version_and_visibility() {
 #[tokio::test]
 async fn parent_cannot_change() {
     let mut repo = MockResourceRepoTrait::new();
-    repo.expect_get_by_id().returning(|_, _| Ok(Some(dataset(3, 1))));
+    repo.expect_get_by_id()
+        .returning(|_, _| Ok(Some(dataset(3, 1))));
     let ctx = TestContext::new().resource_repo(repo).build();
     let replace = ReplaceResourceCommand {
         description: titled("new"),
@@ -213,7 +289,12 @@ async fn parent_cannot_change() {
 
     let refused = ctx
         .resources()
-        .replace(&TestUsers::root(), ResourceKind::Dataset, &urn(ResourceKind::Dataset, 3), &replace)
+        .replace(
+            &TestUsers::root(),
+            ResourceKind::Dataset,
+            &urn(ResourceKind::Dataset, 3),
+            &replace,
+        )
         .await;
 
     assert_eq!(status(&refused.unwrap_err()), 400);
@@ -223,12 +304,17 @@ async fn parent_cannot_change() {
 #[tokio::test]
 async fn wrong_kind_is_not_found() {
     let mut repo = MockResourceRepoTrait::new();
-    repo.expect_get_by_id().returning(|_, _| Ok(Some(data_service(2, 1))));
+    repo.expect_get_by_id()
+        .returning(|_, _| Ok(Some(data_service(2, 1))));
     let ctx = TestContext::new().resource_repo(repo).build();
 
     let missing = ctx
         .resources()
-        .get(&TestUsers::root(), ResourceKind::Dataset, &urn(ResourceKind::DataService, 2))
+        .get(
+            &TestUsers::root(),
+            ResourceKind::Dataset,
+            &urn(ResourceKind::DataService, 2),
+        )
         .await;
 
     assert_eq!(status(&missing.unwrap_err()), 404);
@@ -238,16 +324,29 @@ async fn wrong_kind_is_not_found() {
 #[tokio::test]
 async fn linked_resource_cannot_be_deleted() {
     let mut repo = MockResourceRepoTrait::new();
-    repo.expect_get_by_id().returning(|_, _| Ok(Some(data_service(2, 1))));
-    repo.expect_delete()
-        .returning(|_, _| Err(catalog_agent::entities::errors::CatalogErrors::conflict("fk")));
-    repo.expect_referrers()
-        .returning(|_| Ok(vec![("urn:distribution:4".to_string(), Vocab::DCAT_ACCESS_SERVICE.to_string())]));
+    repo.expect_get_by_id()
+        .returning(|_, _| Ok(Some(data_service(2, 1))));
+    repo.expect_delete().returning(|_, _| {
+        Err(catalog_agent::entities::errors::CatalogErrors::conflict(
+            "fk",
+        ))
+    });
+    repo.expect_referrers().returning(|_| {
+        Ok(vec![(
+            "urn:distribution:4".to_string(),
+            Vocab::DCAT_ACCESS_SERVICE.to_string(),
+        )])
+    });
     let ctx = TestContext::new().resource_repo(repo).build();
 
     let refused = ctx
         .resources()
-        .delete(&TestUsers::root(), ResourceKind::DataService, &urn(ResourceKind::DataService, 2), None)
+        .delete(
+            &TestUsers::root(),
+            ResourceKind::DataService,
+            &urn(ResourceKind::DataService, 2),
+            None,
+        )
         .await
         .unwrap_err();
 
@@ -265,14 +364,142 @@ async fn documents_are_read_as_the_routes_kind() {
 
     let agent = ctx
         .resources()
-        .create_document(&user, ResourceKind::Agent, json!({"name": {"en": "ACME"}}), None, false)
+        .create_document(
+            &user,
+            ResourceKind::Agent,
+            json!({"name": {"en": "ACME"}}),
+            None,
+            false,
+        )
         .await
         .unwrap();
     let refused = ctx
         .resources()
-        .create_document(&user, ResourceKind::Agent, json!({"@context": EUNOMIA_CATALOG_CONTEXT_URL, "@type": "Dataset"}), None, false)
+        .create_document(
+            &user,
+            ResourceKind::Agent,
+            json!({"@context": EUNOMIA_CATALOG_CONTEXT_URL, "@type": "Dataset"}),
+            None,
+            false,
+        )
         .await;
 
     assert_eq!(agent.kind(), ResourceKind::Agent);
+    assert_eq!(status(&refused.unwrap_err()), 400);
+}
+
+/// Publishing a draft stores a new version that is not one; publishing it again changes nothing.
+#[tokio::test]
+async fn set_publication_moves_between_draft_and_published() {
+    let mut repo = MockResourceRepoTrait::new();
+    repo.expect_get_by_id()
+        .returning(|_, _| Ok(Some(dataset(3, 1).with_publication(true))));
+    repo.expect_replace()
+        .withf(|_, r, expected| *expected == 2 && !r.is_draft())
+        .times(1)
+        .returning(|_, r, _| Ok(r.clone()));
+    let ctx = TestContext::new().resource_repo(repo).build();
+    let id = urn(ResourceKind::Dataset, 3);
+
+    let published = ctx
+        .resources()
+        .set_publication(&TestUsers::root(), ResourceKind::Dataset, &id, false, None)
+        .await
+        .unwrap();
+    let unchanged = ctx
+        .resources()
+        .set_publication(&TestUsers::root(), ResourceKind::Dataset, &id, true, None)
+        .await
+        .unwrap();
+
+    assert!(!published.is_draft());
+    assert!(unchanged.is_draft());
+}
+
+/// Only datasets and distributions can be drafts.
+#[tokio::test]
+async fn catalogs_are_always_published() {
+    let ctx = TestContext::new().build();
+
+    let refused = ctx
+        .resources()
+        .set_publication(
+            &TestUsers::root(),
+            ResourceKind::Catalog,
+            &urn(ResourceKind::Catalog, 1),
+            true,
+            None,
+        )
+        .await;
+
+    assert_eq!(status(&refused.unwrap_err()), 400);
+}
+
+/// A replacement keeps the stored state whatever the body says.
+#[tokio::test]
+async fn replacement_keeps_the_publication_state() {
+    let mut repo = MockResourceRepoTrait::new();
+    repo.expect_get_by_id()
+        .returning(|_, _| Ok(Some(dataset(3, 1).with_publication(true))));
+    repo.expect_replace().returning(|_, r, _| Ok(r.clone()));
+    let ctx = TestContext::new().resource_repo(repo).build();
+    let mut description = titled("new");
+    description.put(
+        Vocab::EUNOMIA_PUBLICATION_STATE,
+        vec![ResourceGraph::literal("published", None)],
+    );
+    let replace = ReplaceResourceCommand {
+        description,
+        parent: None,
+        visibility: None,
+        expected_version: None,
+    };
+
+    let replaced = ctx
+        .resources()
+        .replace(
+            &TestUsers::root(),
+            ResourceKind::Dataset,
+            &urn(ResourceKind::Dataset, 3),
+            &replace,
+        )
+        .await
+        .unwrap();
+
+    assert!(replaced.is_draft());
+}
+
+/// A dataset can be created as a draft; an unknown state is refused.
+#[tokio::test]
+async fn created_as_draft_or_refused() {
+    let mut repo = MockResourceRepoTrait::new();
+    repo.expect_get_by_id()
+        .returning(|_, _| Ok(Some(catalog(1))));
+    repo.expect_insert().returning(|r| Ok(r.clone()));
+    let ctx = TestContext::new().resource_repo(repo).build();
+    let with_state = |state: &str| {
+        let mut description = titled("d");
+        description.put(
+            Vocab::EUNOMIA_PUBLICATION_STATE,
+            vec![ResourceGraph::literal(state, None)],
+        );
+        command(
+            ResourceKind::Dataset,
+            Some(urn(ResourceKind::Catalog, 1)),
+            description,
+        )
+    };
+
+    let draft = ctx
+        .resources()
+        .create(&TestUsers::root(), &with_state("draft"))
+        .await
+        .unwrap();
+    let refused = ctx
+        .resources()
+        .create(&TestUsers::root(), &with_state("hidden"))
+        .await;
+
+    assert!(draft.is_draft());
     assert_eq!(status(&refused.unwrap_err()), 400);
 }

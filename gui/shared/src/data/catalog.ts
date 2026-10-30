@@ -78,6 +78,8 @@ export interface ResourceView {
 
 export interface DatasetView extends ResourceView {
   catalogId: string;
+  /** Kept out of DSP, DCAT 3 and DCAT-AP until published. */
+  draft: boolean;
   keywords: string[];
   themes: string[];
 }
@@ -90,6 +92,7 @@ export interface DataServiceView extends ResourceView {
 
 export interface DistributionView extends ResourceView {
   datasetId: string;
+  draft: boolean;
   format: string;
   accessService: string;
   accessURL: string;
@@ -129,6 +132,7 @@ export const CatalogViews = {
     return {
       ...CatalogViews.resource(doc),
       catalogId: text(value(doc, "inCatalog")),
+      draft: text(value(doc, "publicationState")) === "draft",
       keywords: texts(value(doc, "keyword")),
       themes: texts(value(doc, "theme")),
     };
@@ -145,6 +149,7 @@ export const CatalogViews = {
     return {
       ...CatalogViews.resource(doc),
       datasetId: text(value(doc, "ofDataset")),
+      draft: text(value(doc, "publicationState")) === "draft",
       format: text(value(doc, "format")),
       accessService: texts(value(doc, "accessService"))[0] ?? "",
       accessURL: texts(value(doc, "accessURL"))[0] ?? "",

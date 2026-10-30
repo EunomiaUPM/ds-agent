@@ -200,6 +200,28 @@ impl CatalogResource {
         self.version
     }
 
+    /// Kept out of the profiles (DSP, DCAT 3, DCAT-AP) until it is published.
+    pub fn is_draft(&self) -> bool {
+        self.description
+            .first_value(Vocab::EUNOMIA_PUBLICATION_STATE)
+            .is_some_and(|state| state == Vocab::DRAFT)
+    }
+
+    /// The same resource in `state`, a new version of it.
+    pub fn with_publication(&self, draft: bool) -> Self {
+        let mut description = self.description.clone();
+        let state = if draft {
+            Vocab::DRAFT
+        } else {
+            Vocab::PUBLISHED
+        };
+        description.put(
+            Vocab::EUNOMIA_PUBLICATION_STATE,
+            vec![ResourceGraph::literal(state, None)],
+        );
+        self.revise(description)
+    }
+
     /// The title an index or a listing shows: English first, then any.
     pub fn title(&self) -> Option<String> {
         self.description.text(Vocab::DCT_TITLE, &["en"])

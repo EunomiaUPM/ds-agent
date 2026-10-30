@@ -14,6 +14,7 @@ are calls the GUI still makes to routes the backend no longer serves.
  */
 import type { DatasetDocumentContactPointItem } from './datasetDocumentContactPointItem';
 import type { DatasetDocumentContext } from './datasetDocumentContext';
+import type { DatasetDocumentPublicationState } from './datasetDocumentPublicationState';
 import type { DatasetDocumentTemporalItem } from './datasetDocumentTemporalItem';
 import type { LanguageText } from './languageText';
 
@@ -35,6 +36,8 @@ export interface DatasetDocument {
   readonly modified?: string;
   /** Data schema URL, hosted here or external; profiles publish it as `dct:conformsTo`, and a distribution without one inherits its dataset's. */
   schema?: string;
+  /** Absent means published. Set on create; changed only by the publish and draft actions, a replace keeps it. */
+  publicationState?: DatasetDocumentPublicationState;
   identifier?: string;
   conformsTo?: string[];
   creator?: string;

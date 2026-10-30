@@ -60,6 +60,7 @@ import {
   type DeleteTarget,
 } from "shared/src/components/catalog/DeleteResourceDialog";
 import { DatasetDcatSummary } from "shared/src/components/catalog/DcatSummary";
+import { PublicationBadge, PublicationToggle } from "shared/src/components/catalog/Publication";
 import { useParticipantDirectory } from "shared/src/data/useParticipantDirectory";
 
 export const Route = createFileRoute("/catalog/$catalogId/dataset/$datasetId")({
@@ -103,9 +104,16 @@ function DatasetPage() {
       <PageHeader
         eyebrow="Dataset"
         title={dataset.title || <Identifier value={dataset.id} />}
+        badge={<PublicationBadge draft={dataset.draft} />}
         description={dataset.description || "No description."}
         actions={
           <>
+            <PublicationToggle
+              kind="dataset"
+              id={datasetId}
+              draft={dataset.draft}
+              title={dataset.title}
+            />
             <Button
               variant="outline"
               onClick={() => setEditing({ kind: "dataset", id: datasetId })}
@@ -262,6 +270,24 @@ function DatasetPage() {
               {
                 header: "Format",
                 cell: (d) => d.format ?? <span className="text-ink/35">—</span>,
+              },
+              {
+                header: "State",
+                cell: (d) => (
+                  <span className="inline-flex items-center gap-1.5">
+                    <PublicationBadge draft={d.draft || dataset.draft} />
+                    {/* A draft dataset hides them all; their own state matters once it is published. */}
+                    {!dataset.draft && (
+                      <PublicationToggle
+                        kind="distribution"
+                        id={d.id}
+                        draft={d.draft}
+                        title={d.title}
+                        compact
+                      />
+                    )}
+                  </span>
+                ),
               },
               {
                 header: "Data service",

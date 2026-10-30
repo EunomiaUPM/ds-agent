@@ -31,7 +31,11 @@ use urn::Urn;
 
 /// The URN of resource `n` of `kind`, e.g. `urn:dataset:000…007`.
 pub fn urn(kind: ResourceKind, n: u32) -> Urn {
-    Urn::from_str(&format!("urn:{}:00000000-0000-0000-0000-{n:012}", kind.urn_nid())).unwrap()
+    Urn::from_str(&format!(
+        "urn:{}:00000000-0000-0000-0000-{n:012}",
+        kind.urn_nid()
+    ))
+    .unwrap()
 }
 
 pub fn id(kind: ResourceKind, n: u32) -> String {
@@ -41,7 +45,10 @@ pub fn id(kind: ResourceKind, n: u32) -> String {
 /// A description with an English title.
 pub fn titled(title: &str) -> ResourceGraph {
     let mut graph = ResourceGraph::default();
-    graph.put(Vocab::DCT_TITLE, vec![ResourceGraph::literal(title, Some("en"))]);
+    graph.put(
+        Vocab::DCT_TITLE,
+        vec![ResourceGraph::literal(title, Some("en"))],
+    );
     graph
 }
 
@@ -67,7 +74,10 @@ pub fn resource(
 /// The main catalog `n`, with the provider's participant id.
 pub fn main_catalog(n: u32) -> CatalogResource {
     let mut description = titled("Main catalog");
-    description.put(Vocab::DSPACE_PARTICIPANT_ID, vec![ResourceGraph::iri("did:web:provider.example")]);
+    description.put(
+        Vocab::DSPACE_PARTICIPANT_ID,
+        vec![ResourceGraph::iri("did:web:provider.example")],
+    );
     CatalogResource::create(
         urn(ResourceKind::Catalog, n),
         ResourceKind::Catalog,
@@ -80,33 +90,66 @@ pub fn main_catalog(n: u32) -> CatalogResource {
 }
 
 pub fn catalog(n: u32) -> CatalogResource {
-    resource(ResourceKind::Catalog, n, None, None, titled(&format!("catalog-{n}")))
+    resource(
+        ResourceKind::Catalog,
+        n,
+        None,
+        None,
+        titled(&format!("catalog-{n}")),
+    )
 }
 
 pub fn dataset(n: u32, catalog: u32) -> CatalogResource {
-    resource(ResourceKind::Dataset, n, Some(catalog), None, titled(&format!("dataset-{n}")))
+    resource(
+        ResourceKind::Dataset,
+        n,
+        Some(catalog),
+        None,
+        titled(&format!("dataset-{n}")),
+    )
 }
 
 pub fn data_service(n: u32, catalog: u32) -> CatalogResource {
     let mut description = titled(&format!("service-{n}"));
-    description.put(Vocab::DCAT_ENDPOINT_URL, vec![ResourceGraph::iri("https://provider.example/dsp")]);
-    resource(ResourceKind::DataService, n, Some(catalog), None, description)
+    description.put(
+        Vocab::DCAT_ENDPOINT_URL,
+        vec![ResourceGraph::iri("https://provider.example/dsp")],
+    );
+    resource(
+        ResourceKind::DataService,
+        n,
+        Some(catalog),
+        None,
+        description,
+    )
 }
 
 /// Distribution `n` of `dataset` in `format`, served by data service `service`.
 pub fn distribution(n: u32, dataset: u32, service: u32, format: &str) -> CatalogResource {
     let mut description = titled(&format!("distribution-{n}"));
-    description.put(Vocab::DCT_FORMAT, vec![ResourceGraph::literal(format, None)]);
+    description.put(
+        Vocab::DCT_FORMAT,
+        vec![ResourceGraph::literal(format, None)],
+    );
     description.put(
         Vocab::DCAT_ACCESS_SERVICE,
         vec![ResourceGraph::iri(&id(ResourceKind::DataService, service))],
     );
-    resource(ResourceKind::Distribution, n, None, Some(dataset), description)
+    resource(
+        ResourceKind::Distribution,
+        n,
+        None,
+        Some(dataset),
+        description,
+    )
 }
 
 pub fn agent(n: u32, name: &str) -> CatalogResource {
     let mut description = ResourceGraph::default();
-    description.put(Vocab::FOAF_NAME, vec![ResourceGraph::literal(name, Some("en"))]);
+    description.put(
+        Vocab::FOAF_NAME,
+        vec![ResourceGraph::literal(name, Some("en"))],
+    );
     resource(ResourceKind::Agent, n, None, None, description)
 }
 
@@ -137,6 +180,22 @@ pub fn provider_set() -> (CatalogResource, ResourceSet) {
     set.insert(distribution(4, 3, 2, "http+pull"));
     set.insert(catalog(5));
     set.insert(dataset(6, 5));
+    set.insert_offers([offer(1, &urn(ResourceKind::Dataset, 3))]);
+    (main, set)
+}
+
+/// The provider set with dataset 3 kept as a draft.
+pub fn provider_set_with_draft() -> (CatalogResource, ResourceSet) {
+    let (main, full) = provider_set();
+    let mut set = ResourceSet::new();
+    for resource in full.iter() {
+        let draft = resource.id() == &urn(ResourceKind::Dataset, 3);
+        set.insert(if draft {
+            resource.with_publication(true)
+        } else {
+            resource.clone()
+        });
+    }
     set.insert_offers([offer(1, &urn(ResourceKind::Dataset, 3))]);
     (main, set)
 }

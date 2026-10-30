@@ -5,13 +5,17 @@ import type { QueryClient } from "@tanstack/react-query";
 import {
   createDataset,
   deleteDataset,
+  draftDataset,
   getDatasetById,
+  publishDataset,
   updateDataset,
 } from "./orval/datasets/datasets";
 import {
   createDistribution,
   deleteDistribution,
+  draftDistribution,
   getDistributionById,
+  publishDistribution,
   updateDistribution,
 } from "./orval/distributions/distributions";
 import {
@@ -102,6 +106,24 @@ export const CatalogResources = {
   async remove(kind: CatalogResourceKind, id: string): Promise<void> {
     const answer = (await API[kind].remove(id)) as Answer;
     CatalogResources.check(answer, `delete the ${CatalogResources.noun[kind]}`);
+  },
+
+  /** Publishes a dataset or distribution, or keeps it as a draft, out of DSP and DCAT. */
+  async setPublication(
+    kind: "dataset" | "distribution",
+    id: string,
+    draft: boolean,
+  ): Promise<void> {
+    const action =
+      kind === "dataset"
+        ? draft
+          ? draftDataset
+          : publishDataset
+        : draft
+          ? draftDistribution
+          : publishDistribution;
+    const answer = (await action(id)) as Answer;
+    CatalogResources.check(answer, draft ? `move the ${kind} to draft` : `publish the ${kind}`);
   },
 
   async removePolicy(id: string): Promise<void> {

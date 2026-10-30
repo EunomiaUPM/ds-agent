@@ -118,6 +118,7 @@
     "dctType": { "@id": "dct:type", "@type": "@id" },
     "checksum": "spdx:checksum",
     "hasVersion": { "@id": "dct:hasVersion", "@type": "@id", "@container": "@set" },
-    "schema": { "@id": "eunomia:schema", "@type": "@id" }
+    "schema": { "@id": "eunomia:schema", "@type": "@id" },
+    "publicationState": "eunomia:publicationState"
   }
 }

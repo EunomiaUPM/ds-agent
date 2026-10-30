@@ -599,6 +599,86 @@
 								}
 							},
 							"response": []
+						},
+						{
+							"name": "Move to draft",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "If-Match",
+										"value": "{{etag}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/{{datasetId}}/draft",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"datasets",
+										"{{datasetId}}",
+										"draft"
+									]
+								},
+								"description": "Keeps the dataset out of DSP, DCAT 3 and DCAT-AP; it stays in this API."
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Publish",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "If-Match",
+										"value": "{{etag}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/{{datasetId}}/publish",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"datasets",
+										"{{datasetId}}",
+										"publish"
+									]
+								},
+								"description": "Puts the dataset back in every profile."
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
 						}
 					]
 				},
@@ -1506,6 +1586,86 @@
 								}
 							},
 							"response": []
+						},
+						{
+							"name": "Move to draft",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "If-Match",
+										"value": "{{etag}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions/{{distributionId}}/draft",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"distributions",
+										"{{distributionId}}",
+										"draft"
+									]
+								},
+								"description": "Keeps the distribution out of DSP, DCAT 3 and DCAT-AP; it stays in this API."
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Publish",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "If-Match",
+										"value": "{{etag}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{CatalogProvider}}/api/v1/catalog-agent/distributions/{{distributionId}}/publish",
+									"host": [
+										"{{CatalogProvider}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"catalog-agent",
+										"distributions",
+										"{{distributionId}}",
+										"publish"
+									]
+								},
+								"description": "Puts the distribution back in every profile."
+							},
+							"response": [],
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.headers.has(\"ETag\")) pm.collectionVariables.set(\"etag\", pm.response.headers.get(\"ETag\"));"
+										]
+									}
+								}
+							]
 						}
 					]
 				},
@@ -4676,6 +4836,11 @@
 								"key": "Content-Type",
 								"value": "application/json",
 								"type": "text"
+							},
+							{
+								"key": "Eunomia-Visibility",
+								"value": "Public",
+								"type": "text"
 							}
 						],
 						"url": {
@@ -4693,7 +4858,8 @@
 						"body": {
 							"mode": "raw",
 							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"Dataset\",\n    \"title\": { \"en\": \"Weather readings (schema tutorial)\" },\n    \"inCatalog\": \"{{catalogId}}\"\n}"
-						}
+						},
+						"description": "Public, so the public DCAT-AP route below shows it."
 					},
 					"response": [],
 					"event": [
@@ -4717,6 +4883,11 @@
 								"key": "Content-Type",
 								"value": "application/json",
 								"type": "text"
+							},
+							{
+								"key": "Eunomia-Visibility",
+								"value": "Public",
+								"type": "text"
 							}
 						],
 						"url": {
@@ -4734,7 +4905,8 @@
 						"body": {
 							"mode": "raw",
 							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"Distribution\",\n    \"title\": { \"en\": \"Readings over HTTP pull\" },\n    \"format\": \"http+pull\",\n    \"accessService\": [\"{{dataServiceId}}\"],\n    \"ofDataset\": \"{{datasetId}}\"\n}"
-						}
+						},
+						"description": "Public, so the public DCAT-AP route below shows it."
 					},
 					"response": [],
 					"event": [
@@ -5235,6 +5407,299 @@
 								"catalog-agent",
 								"schemas",
 								"{{schemaId}}"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"204\", () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Run - Draft and publish",
+			"description": "A dataset created as a draft is in the management API but not in the DSP catalog nor the public DCAT-AP route; publishing it puts it there.",
+			"item": [
+				{
+					"name": "Main catalog",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/main",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"main"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set(\"catalogId\", pm.response.json()[\"@id\"]);",
+									"pm.collectionVariables.set(\"mainCatalogId\", pm.response.json()[\"@id\"]);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create draft dataset",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Eunomia-Visibility",
+								"value": "Public",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"datasets"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"@context\": \"https://w3id.org/eunomia/v1/catalog-context.jsonld\",\n    \"@type\": \"Dataset\",\n    \"title\": { \"en\": \"Draft readings\" },\n    \"description\": { \"en\": \"Not shared until published\" },\n    \"publicationState\": \"draft\",\n    \"inCatalog\": \"{{catalogId}}\"\n}"
+						},
+						"description": "Public, so the public route could show it, and a draft, so it does not."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set(\"datasetId\", pm.response.json()[\"@id\"]);",
+									"pm.test(\"draft\", () => pm.expect(pm.response.json().publicationState).to.eql(\"draft\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "In the management API",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/{{datasetId}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"datasets",
+								"{{datasetId}}"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"visible\", () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Not in the public DCAT-AP route",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/public/dcat-ap/resources/{{datasetId}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"public",
+								"dcat-ap",
+								"resources",
+								"{{datasetId}}"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"404\", () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Not in the DCAT-AP export",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/catalogs/{{mainCatalogId}}/profiles/dcat-ap?download=true",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"catalogs",
+								"{{mainCatalogId}}",
+								"profiles",
+								"dcat-ap"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"absent\", () => pm.expect(pm.response.text()).to.not.include(pm.collectionVariables.get(\"datasetId\")));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Publish",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/{{datasetId}}/publish",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"datasets",
+								"{{datasetId}}",
+								"publish"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"published\", () => pm.expect(pm.response.json().publicationState).to.eql(\"published\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "In the public DCAT-AP route",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/public/dcat-ap/resources/{{datasetId}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"public",
+								"dcat-ap",
+								"resources",
+								"{{datasetId}}"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"no internal state\", () => pm.expect(pm.response.text()).to.not.include(\"publicationState\"));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Clean up",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{CatalogProvider}}/api/v1/catalog-agent/datasets/{{datasetId}}",
+							"host": [
+								"{{CatalogProvider}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"catalog-agent",
+								"datasets",
+								"{{datasetId}}"
 							]
 						}
 					},

@@ -82,6 +82,45 @@ impl ResourceSet {
         self.resources.get(id)
     }
 
+    /// What the profiles share: the set without drafts, what hangs from them (distributions,
+    /// records about them) and their offers.
+    pub fn published(&self) -> ResourceSet {
+        let hidden: HashSet<String> = self
+            .iter()
+            .filter(|r| r.is_draft())
+            .map(|r| r.id().to_string())
+            .collect();
+        if hidden.is_empty() {
+            return self.clone();
+        }
+        let hangs_from_hidden = |r: &CatalogResource| {
+            r.dataset_id()
+                .is_some_and(|d| hidden.contains(&d.to_string()))
+                || (r.kind() == ResourceKind::CatalogRecord
+                    && r.description()
+                        .iris(Vocab::FOAF_PRIMARY_TOPIC)
+                        .iter()
+                        .any(|topic| hidden.contains(*topic)))
+        };
+        let mut kept = ResourceSet::new();
+        for resource in self.iter() {
+            let id = resource.id().to_string();
+            if hidden.contains(&id) || hangs_from_hidden(resource) {
+                continue;
+            }
+            kept.insert_offers(self.offers_of(&id).iter().cloned());
+            kept.insert(resource.clone());
+        }
+        kept.parents = self.parents.clone();
+        kept
+    }
+
+    /// What the profiles share from `root`: `None` when it is a draft or hangs from one.
+    pub fn shared_from(&self, root: &CatalogResource) -> Option<ResourceSet> {
+        let hidden_parent = self.parent_of(root).is_some_and(CatalogResource::is_draft);
+        (!root.is_draft() && !hidden_parent).then(|| self.published())
+    }
+
     /// Holds a parent outside the set, so a child loaded alone still sees what it inherits.
     pub fn insert_parent(&mut self, resource: CatalogResource) {
         self.parents.insert(resource.id().to_string(), resource);

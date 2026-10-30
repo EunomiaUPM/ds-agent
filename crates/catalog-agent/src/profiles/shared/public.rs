@@ -110,8 +110,12 @@ impl PublicProfileRouter {
         if let Some(cached) = self.ctx.cache.get_projection(&key).await {
             return Ok(cached);
         }
-        let (root, set) = self.ctx.closures().main_catalog(&PublicReader::scope()).await?;
-        let body = self.adapter.project(&set, &root)?;
+        let (root, set) = self
+            .ctx
+            .closures()
+            .main_catalog(&PublicReader::scope())
+            .await?;
+        let body = self.adapter.project(&set.published(), &root)?;
         self.ctx.cache.put_projection(&key, &body).await;
         Ok(body)
     }
@@ -127,6 +131,10 @@ impl PublicProfileRouter {
             .resource(&PublicReader::scope(), id)
             .await?
             .ok_or_else(|| Errors::missing_resource(id.to_string(), "resource not found", None))?;
+        // A draft is not shared: to the public it does not exist.
+        let set = set
+            .shared_from(&root)
+            .ok_or_else(|| Errors::missing_resource(id.to_string(), "resource not found", None))?;
         let body = self.adapter.project(&set, &root)?;
         self.ctx.cache.put_projection(&key, &body).await;
         Ok(body)
@@ -139,7 +147,10 @@ impl PublicProfileRouter {
 
     /// JSON-LD with the profile link, a strong tag over the body and `304` when it matches.
     fn respond(&self, headers: &HeaderMap, body: Value) -> Response {
-        let etag = format!("\"{}\"", hex::encode(&Sha256::digest(body.to_string().as_bytes())[..12]));
+        let etag = format!(
+            "\"{}\"",
+            hex::encode(&Sha256::digest(body.to_string().as_bytes())[..12])
+        );
         if headers
             .get(header::IF_NONE_MATCH)
             .and_then(|v| v.to_str().ok())
@@ -150,7 +161,10 @@ impl PublicProfileRouter {
         let mut response = Json(body).into_response();
         Self::json_ld(&mut response);
         let headers = response.headers_mut();
-        if let Ok(link) = HeaderValue::from_str(&format!("<{}>; rel=\"profile\"", self.adapter.profile_iri())) {
+        if let Ok(link) = HeaderValue::from_str(&format!(
+            "<{}>; rel=\"profile\"",
+            self.adapter.profile_iri()
+        )) {
             headers.insert(header::LINK, link);
         }
         if let Ok(tag) = HeaderValue::from_str(&etag) {

@@ -70,8 +70,12 @@ impl DspCatalogServiceTrait for DspCatalogService {
         if let Some(cached) = self.ctx.cache.get_projection(&key).await {
             return Ok(cached);
         }
-        let (main, set) = self.ctx.closures().main_catalog(&OwnerScope::seeing(peer)).await?;
-        let catalog = adapter.project(&set, &main)?;
+        let (main, set) = self
+            .ctx
+            .closures()
+            .main_catalog(&OwnerScope::seeing(peer))
+            .await?;
+        let catalog = adapter.project(&set.published(), &main)?;
         self.ctx.cache.put_projection(&key, &catalog).await;
         Ok(catalog)
     }
@@ -91,6 +95,8 @@ impl DspCatalogServiceTrait for DspCatalogService {
             .await?
             .filter(|(root, _)| root.kind() == ResourceKind::Dataset)
             .ok_or_else(|| Self::not_found(id))?;
+        // A draft dataset is not offered: a peer gets the same 404 as for a missing one.
+        let set = set.shared_from(&root).ok_or_else(|| Self::not_found(id))?;
         let dataset = adapter.project(&set, &root)?;
         self.ctx.cache.put_projection(&key, &dataset).await;
         Ok(dataset)

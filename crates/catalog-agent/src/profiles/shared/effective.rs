@@ -84,6 +84,7 @@ impl EffectiveGraph {
     pub fn described(resource: &CatalogResource, set: &ResourceSet) -> ResourceGraph {
         let mut graph = resource.description().clone();
         graph.remove(Vocab::EUNOMIA_SCHEMA);
+        graph.remove(Vocab::EUNOMIA_PUBLICATION_STATE);
         let own = resource.description().first_iri(Vocab::EUNOMIA_SCHEMA);
         let inherited = || match resource.kind() {
             ResourceKind::Distribution => set

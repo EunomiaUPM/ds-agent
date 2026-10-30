@@ -114,6 +114,9 @@ pub mod catalog {
         pub const BY_CATALOG: &str = "/catalog/{id}";
         /// Whether the resource conforms to each profile (`?profile=`, `?deep=true`).
         pub const DOCTOR: &str = "/{id}/doctor";
+        /// Datasets and distributions: into every profile, or out of them as a draft.
+        pub const PUBLISH: &str = "/{id}/publish";
+        pub const DRAFT: &str = "/{id}/draft";
     }
 
     pub mod catalogs {

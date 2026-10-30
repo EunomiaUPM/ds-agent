@@ -72,6 +72,11 @@ impl ResourceKind {
         }
     }
 
+    /// Whether it can be kept as a draft, out of the profiles.
+    pub fn can_be_draft(&self) -> bool {
+        matches!(self, Self::Dataset | Self::Distribution)
+    }
+
     /// The class's local name, the `@type` term every context here uses.
     pub fn term(&self) -> &'static str {
         match self {

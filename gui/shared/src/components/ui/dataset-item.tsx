@@ -19,6 +19,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "./button";
+import { PublicationBadge } from "../catalog/Publication";
 
 interface DatasetItemProps {
   date: string;
@@ -79,7 +80,12 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
             >
               {title || "Untitled Dataset"}
             </Heading>
-            <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-brand-sky transition-colors flex-shrink-0 mt-0.5" />
+            <span className="flex flex-shrink-0 items-center gap-1.5">
+              {ownDataset && dataset?.draft !== undefined && (
+                <PublicationBadge draft={dataset.draft} />
+              )}
+              <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-brand-sky transition-colors flex-shrink-0 mt-0.5" />
+            </span>
           </div>
         </Link>
         <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">

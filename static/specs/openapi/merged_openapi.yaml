@@ -3740,6 +3740,70 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
       security:
       - bearerAuth: []
+  /api/v1/catalog-agent/datasets/{id}/publish:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    - $ref: '#/components/parameters/IfMatch'
+    post:
+      tags:
+      - Datasets
+      operationId: publishDataset
+      summary: 'Publish a dataset: DSP, DCAT 3 and DCAT-AP show it'
+      description: 'Drafts stay in the management API and the GUI; the profiles (the DSP catalog peers
+        read, the public DCAT 3 and DCAT-AP routes, the profile exports) leave them out, with the distributions
+        of a draft dataset. Emits a `publish` event. Already in that state: answered as it is.'
+      responses:
+        '200':
+          description: The dataset, now published
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/DatasetDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+      security:
+      - bearerAuth: []
+  /api/v1/catalog-agent/datasets/{id}/draft:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    - $ref: '#/components/parameters/IfMatch'
+    post:
+      tags:
+      - Datasets
+      operationId: draftDataset
+      summary: Keep a dataset as a draft, out of DSP, DCAT 3 and DCAT-AP
+      description: 'Drafts stay in the management API and the GUI; the profiles (the DSP catalog peers
+        read, the public DCAT 3 and DCAT-AP routes, the profile exports) leave them out, with the distributions
+        of a draft dataset. Emits a `draft` event. Already in that state: answered as it is.'
+      responses:
+        '200':
+          description: The dataset, now a draft
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/DatasetDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+      security:
+      - bearerAuth: []
   /api/v1/catalog-agent/datasets/{id}/doctor:
     parameters:
     - $ref: '#/components/parameters/UrnPathId'
@@ -4434,6 +4498,70 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+      security:
+      - bearerAuth: []
+  /api/v1/catalog-agent/distributions/{id}/publish:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    - $ref: '#/components/parameters/IfMatch'
+    post:
+      tags:
+      - Distributions
+      operationId: publishDistribution
+      summary: 'Publish a distribution: DSP, DCAT 3 and DCAT-AP show it'
+      description: 'Drafts stay in the management API and the GUI; the profiles (the DSP catalog peers
+        read, the public DCAT 3 and DCAT-AP routes, the profile exports) leave them out, Emits a `publish`
+        event. Already in that state: answered as it is.'
+      responses:
+        '200':
+          description: The distribution, now published
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/DistributionDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+      security:
+      - bearerAuth: []
+  /api/v1/catalog-agent/distributions/{id}/draft:
+    parameters:
+    - $ref: '#/components/parameters/UrnPathId'
+    - $ref: '#/components/parameters/IfMatch'
+    post:
+      tags:
+      - Distributions
+      operationId: draftDistribution
+      summary: Keep a distribution as a draft, out of DSP, DCAT 3 and DCAT-AP
+      description: 'Drafts stay in the management API and the GUI; the profiles (the DSP catalog peers
+        read, the public DCAT 3 and DCAT-AP routes, the profile exports) leave them out, Emits a `draft`
+        event. Already in that state: answered as it is.'
+      responses:
+        '200':
+          description: The distribution, now a draft
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/DistributionDocument'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
       security:
@@ -11215,6 +11343,13 @@ components:
           format: iri
           description: Data schema URL, hosted here or external; profiles publish it as `dct:conformsTo`,
             and a distribution without one inherits its dataset's.
+        publicationState:
+          type: string
+          enum:
+          - draft
+          - published
+          description: Absent means published. Set on create; changed only by the publish and draft actions,
+            a replace keeps it.
         identifier:
           type: string
         conformsTo:
@@ -11549,6 +11684,13 @@ components:
           format: iri
           description: Data schema URL, hosted here or external; profiles publish it as `dct:conformsTo`,
             and a distribution without one inherits its dataset's.
+        publicationState:
+          type: string
+          enum:
+          - draft
+          - published
+          description: Absent means published. Set on create; changed only by the publish and draft actions,
+            a replace keeps it.
         identifier:
           type: string
         conformsTo:

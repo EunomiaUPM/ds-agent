@@ -51,6 +51,7 @@ import {
   type FormProblems,
 } from "shared/src/data/dcat";
 import { DatasetFields, DistributionFields } from "shared/src/components/catalog/DcatFields";
+import { SegmentedControl } from "shared/src/components/ui/segmented";
 import type {
   DatasetDocument,
   DistributionDocument,
@@ -114,6 +115,8 @@ function NewDatasetOfferingPage() {
 
   // 7. Result state upon success
   const [createdResult, setCreatedResult] = useState<any | null>(null);
+  // A draft is created but kept out of DSP and DCAT until it is published.
+  const [asDraft, setAsDraft] = useState(false);
 
   // Keeps the distribution title following the dataset's until the user changes it
   const handleDatasetChange = (next: DatasetForm) => {
@@ -194,6 +197,7 @@ function NewDatasetOfferingPage() {
     const offering: NewDatasetOfferingDto = {
       dataset: DcatForms.datasetDocument(datasetForm, {
         inCatalog: catalogId || undefined,
+        publicationState: asDraft ? "draft" : undefined,
       }) as DatasetDocument,
       distribution: DcatForms.distributionDocument(distributionForm) as DistributionDocument,
     };
@@ -217,6 +221,7 @@ function NewDatasetOfferingPage() {
     return offering;
   }, [
     datasetForm,
+    asDraft,
     catalogId,
     distributionForm,
     enablePolicy,
@@ -870,6 +875,25 @@ function NewDatasetOfferingPage() {
                         This atomic operation creates all 4 resources and emits a{" "}
                         <code className="text-brand-sky">catalog.dataset.created</code> event.
                       </p>
+                      <div className="pt-2">
+                        <SegmentedControl<"published" | "draft">
+                          value={asDraft ? "draft" : "published"}
+                          onChange={(v) => setAsDraft(v === "draft")}
+                          ariaLabel="Publication"
+                          options={[
+                            {
+                              value: "published",
+                              label: "Publish now",
+                              hint: "Peers and crawlers see it in DSP, DCAT 3 and DCAT-AP",
+                            },
+                            {
+                              value: "draft",
+                              label: "Save as draft",
+                              hint: "Only here and in the management API until you publish it",
+                            },
+                          ]}
+                        />
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-3 w-full sm:w-auto">

@@ -69,11 +69,19 @@ impl ResourceRouter {
 
     pub fn router(self) -> Router {
         let mut router = Router::new()
-            .route(routes::entity::ROOT, get(Self::handle_list).post(Self::handle_create))
-            .route(routes::entity::BATCH, axum::routing::post(Self::handle_batch))
+            .route(
+                routes::entity::ROOT,
+                get(Self::handle_list).post(Self::handle_create),
+            )
+            .route(
+                routes::entity::BATCH,
+                axum::routing::post(Self::handle_batch),
+            )
             .route(
                 routes::entity::BY_ID,
-                get(Self::handle_get).put(Self::handle_put).delete(Self::handle_delete),
+                get(Self::handle_get)
+                    .put(Self::handle_put)
+                    .delete(Self::handle_delete),
             )
             .route(routes::entity::DOCTOR, get(Self::handle_doctor));
         if self.kind.has_main() {
@@ -82,13 +90,30 @@ impl ResourceRouter {
                 get(Self::handle_get_main).post(Self::handle_create_main),
             );
         }
+        if self.kind.can_be_draft() {
+            router = router
+                .route(
+                    routes::entity::PUBLISH,
+                    axum::routing::post(Self::handle_publish),
+                )
+                .route(
+                    routes::entity::DRAFT,
+                    axum::routing::post(Self::handle_draft),
+                );
+        }
         if self.kind.parent() == Parent::Catalog {
             router = router.route(routes::entity::BY_CATALOG, get(Self::handle_children));
         }
         if self.kind == ResourceKind::Distribution {
             router = router
-                .route(routes::distributions::BY_DATASET, get(Self::handle_children))
-                .route(routes::distributions::BY_DATASET_AND_FORMAT, get(Self::handle_by_format));
+                .route(
+                    routes::distributions::BY_DATASET,
+                    get(Self::handle_children),
+                )
+                .route(
+                    routes::distributions::BY_DATASET_AND_FORMAT,
+                    get(Self::handle_by_format),
+                );
         }
         router.with_state(self)
     }
@@ -100,7 +125,12 @@ impl ResourceRouter {
     ) -> Response {
         let (mut filter, page, sort) = query.into_domain();
         filter.kind = Some(state.kind);
-        match state.ctx.resources().list(&user, &filter, &page, &sort).await {
+        match state
+            .ctx
+            .resources()
+            .list(&user, &filter, &page, &sort)
+            .await
+        {
             Ok(page) => AdminHeaders::page(&page),
             Err(e) => e.into_response(),
         }
@@ -115,13 +145,22 @@ impl ResourceRouter {
             Ok(input) => input,
             Err(e) => return e.into_response(),
         };
-        match state.ctx.resources().batch(&user, state.kind, &input.ids).await {
+        match state
+            .ctx
+            .resources()
+            .batch(&user, state.kind, &input.ids)
+            .await
+        {
             Ok(found) => AdminHeaders::graph(&found),
             Err(e) => e.into_response(),
         }
     }
 
-    async fn handle_get(State(state): State<Self>, user: UserInfo, Path(id): Path<String>) -> Response {
+    async fn handle_get(
+        State(state): State<Self>,
+        user: UserInfo,
+        Path(id): Path<String>,
+    ) -> Response {
         let id = match Self::urn(&id) {
             Ok(id) => id,
             Err(e) => return e.into_response(),
@@ -145,12 +184,21 @@ impl ResourceRouter {
         }
     }
 
-    async fn handle_children(State(state): State<Self>, user: UserInfo, Path(id): Path<String>) -> Response {
+    async fn handle_children(
+        State(state): State<Self>,
+        user: UserInfo,
+        Path(id): Path<String>,
+    ) -> Response {
         let parent = match Self::urn(&id) {
             Ok(id) => id,
             Err(e) => return e.into_response(),
         };
-        match state.ctx.resources().children(&user, state.kind, &parent).await {
+        match state
+            .ctx
+            .resources()
+            .children(&user, state.kind, &parent)
+            .await
+        {
             Ok(children) => AdminHeaders::graph(&children),
             Err(e) => e.into_response(),
         }
@@ -165,7 +213,12 @@ impl ResourceRouter {
             Ok(id) => id,
             Err(e) => return e.into_response(),
         };
-        match state.ctx.resources().distribution_by_format(&user, &dataset, &format).await {
+        match state
+            .ctx
+            .resources()
+            .distribution_by_format(&user, &dataset, &format)
+            .await
+        {
             Ok(distribution) => AdminHeaders::resource(StatusCode::OK, &distribution),
             Err(e) => e.into_response(),
         }
@@ -208,6 +261,45 @@ impl ResourceRouter {
         }
     }
 
+    async fn handle_publish(
+        State(state): State<Self>,
+        user: UserInfo,
+        headers: HeaderMap,
+        Path(id): Path<String>,
+    ) -> Response {
+        state.publication(&user, &headers, &id, false).await
+    }
+
+    async fn handle_draft(
+        State(state): State<Self>,
+        user: UserInfo,
+        headers: HeaderMap,
+        Path(id): Path<String>,
+    ) -> Response {
+        state.publication(&user, &headers, &id, true).await
+    }
+
+    async fn publication(
+        &self,
+        user: &UserInfo,
+        headers: &HeaderMap,
+        id: &str,
+        draft: bool,
+    ) -> Response {
+        let outcome = async {
+            let id = Self::urn(id)?;
+            let expected = AdminHeaders::expected_version(headers)?;
+            self.ctx
+                .resources()
+                .set_publication(user, self.kind, &id, draft, expected)
+                .await
+        };
+        match outcome.await {
+            Ok(resource) => AdminHeaders::resource(StatusCode::OK, &resource),
+            Err(e) => e.into_response(),
+        }
+    }
+
     async fn handle_delete(
         State(state): State<Self>,
         user: UserInfo,
@@ -217,7 +309,11 @@ impl ResourceRouter {
         let outcome = async {
             let id = Self::urn(&id)?;
             let expected = AdminHeaders::expected_version(&headers)?;
-            state.ctx.resources().delete(&user, state.kind, &id, expected).await
+            state
+                .ctx
+                .resources()
+                .delete(&user, state.kind, &id, expected)
+                .await
         };
         match outcome.await {
             Ok(()) => StatusCode::NO_CONTENT.into_response(),
@@ -279,6 +375,7 @@ impl ResourceRouter {
     }
 
     fn urn(id: &str) -> Outcome<Urn> {
-        Urn::from_str(id).map_err(|_| Errors::format(BadFormat::Received, format!("{id} is not a URN"), None))
+        Urn::from_str(id)
+            .map_err(|_| Errors::format(BadFormat::Received, format!("{id} is not a URN"), None))
     }
 }

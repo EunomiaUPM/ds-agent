@@ -61,6 +61,7 @@ import {
 } from "shared/src/data/orval/data-services/data-services";
 import { useMyself } from "shared/src/data/useMyself";
 import { CatalogSpecificationPanel } from "shared/src/components/catalog/CatalogSpecificationPanel";
+import { PublicationBadge } from "shared/src/components/catalog/Publication";
 import {
   CatalogResourceEditor,
   type EditorTarget,
@@ -206,6 +207,10 @@ function RouteComponent() {
           {Array.isArray((row as any).hasPolicy) ? (row as any).hasPolicy.length : 0} rules
         </Badge>
       ),
+    },
+    {
+      header: "State",
+      cell: (row) => <PublicationBadge draft={row.draft} />,
     },
     {
       header: "Issued",

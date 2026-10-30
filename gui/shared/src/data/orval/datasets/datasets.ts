@@ -1105,4 +1105,212 @@ export const useDeleteDataset = <TError = ErrorType<UnauthorizedResponse | NotFo
       > => {
       return useMutation(getDeleteDatasetMutationOptions(options), queryClient);
     }
+    /**
+ * Drafts stay in the management API and the GUI; the profiles (the DSP catalog peers read, the public DCAT 3 and DCAT-AP routes, the profile exports) leave them out, with the distributions of a draft dataset. Emits a `publish` event. Already in that state: answered as it is.
+ * @summary Publish a dataset: DSP, DCAT 3 and DCAT-AP show it
+ */
+export type publishDatasetResponse200 = {
+  data: DatasetDocument
+  status: 200
+}
+
+export type publishDatasetResponse400 = {
+  data: BadRequestResponse
+  status: 400
+}
+
+export type publishDatasetResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type publishDatasetResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+
+export type publishDatasetResponse412 = {
+  data: PreconditionFailedResponse
+  status: 412
+}
+    
+export type publishDatasetResponseSuccess = (publishDatasetResponse200) & {
+  headers: Headers;
+};
+export type publishDatasetResponseError = (publishDatasetResponse400 | publishDatasetResponse401 | publishDatasetResponse404 | publishDatasetResponse412) & {
+  headers: Headers;
+};
+
+export type publishDatasetResponse = (publishDatasetResponseSuccess | publishDatasetResponseError)
+
+export const getPublishDatasetUrl = (id: string,) => {
+
+
+  
+
+  return `/datasets/${id}/publish`
+}
+
+export const publishDataset = async (id: string, options?: RequestInit): Promise<publishDatasetResponse> => {
+  
+  return customInstance<publishDatasetResponse>(getPublishDatasetUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getPublishDatasetMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | PreconditionFailedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishDataset>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof publishDataset>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['publishDataset'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof publishDataset>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  publishDataset(id,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PublishDatasetMutationResult = NonNullable<Awaited<ReturnType<typeof publishDataset>>>
+    
+    export type PublishDatasetMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | PreconditionFailedResponse>
+
+    /**
+ * @summary Publish a dataset: DSP, DCAT 3 and DCAT-AP show it
+ */
+export const usePublishDataset = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | PreconditionFailedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishDataset>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof publishDataset>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getPublishDatasetMutationOptions(options), queryClient);
+    }
+    /**
+ * Drafts stay in the management API and the GUI; the profiles (the DSP catalog peers read, the public DCAT 3 and DCAT-AP routes, the profile exports) leave them out, with the distributions of a draft dataset. Emits a `draft` event. Already in that state: answered as it is.
+ * @summary Keep a dataset as a draft, out of DSP, DCAT 3 and DCAT-AP
+ */
+export type draftDatasetResponse200 = {
+  data: DatasetDocument
+  status: 200
+}
+
+export type draftDatasetResponse400 = {
+  data: BadRequestResponse
+  status: 400
+}
+
+export type draftDatasetResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type draftDatasetResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+
+export type draftDatasetResponse412 = {
+  data: PreconditionFailedResponse
+  status: 412
+}
+    
+export type draftDatasetResponseSuccess = (draftDatasetResponse200) & {
+  headers: Headers;
+};
+export type draftDatasetResponseError = (draftDatasetResponse400 | draftDatasetResponse401 | draftDatasetResponse404 | draftDatasetResponse412) & {
+  headers: Headers;
+};
+
+export type draftDatasetResponse = (draftDatasetResponseSuccess | draftDatasetResponseError)
+
+export const getDraftDatasetUrl = (id: string,) => {
+
+
+  
+
+  return `/datasets/${id}/draft`
+}
+
+export const draftDataset = async (id: string, options?: RequestInit): Promise<draftDatasetResponse> => {
+  
+  return customInstance<draftDatasetResponse>(getDraftDatasetUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getDraftDatasetMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | PreconditionFailedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof draftDataset>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof draftDataset>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['draftDataset'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof draftDataset>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  draftDataset(id,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DraftDatasetMutationResult = NonNullable<Awaited<ReturnType<typeof draftDataset>>>
+    
+    export type DraftDatasetMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | PreconditionFailedResponse>
+
+    /**
+ * @summary Keep a dataset as a draft, out of DSP, DCAT 3 and DCAT-AP
+ */
+export const useDraftDataset = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | PreconditionFailedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof draftDataset>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof draftDataset>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDraftDatasetMutationOptions(options), queryClient);
+    }
     

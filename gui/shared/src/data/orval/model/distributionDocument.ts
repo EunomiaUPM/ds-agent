@@ -13,6 +13,7 @@ are calls the GUI still makes to routes the backend no longer serves.
  * OpenAPI spec version: 1.0.0
  */
 import type { DistributionDocumentContext } from './distributionDocumentContext';
+import type { DistributionDocumentPublicationState } from './distributionDocumentPublicationState';
 import type { LanguageText } from './languageText';
 
 /**
@@ -33,6 +34,8 @@ export interface DistributionDocument {
   readonly modified?: string;
   /** Data schema URL, hosted here or external; profiles publish it as `dct:conformsTo`, and a distribution without one inherits its dataset's. */
   schema?: string;
+  /** Absent means published. Set on create; changed only by the publish and draft actions, a replace keeps it. */
+  publicationState?: DistributionDocumentPublicationState;
   identifier?: string;
   conformsTo?: string[];
   creator?: string;

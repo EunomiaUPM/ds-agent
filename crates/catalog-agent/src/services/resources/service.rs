@@ -182,6 +182,20 @@ impl ResourceService {
 
     /// What every resource of a kind needs before it is stored; the rest is the doctor's.
     fn check_shape(kind: ResourceKind, description: &ResourceGraph) -> Outcome<()> {
+        if let Some(state) = description.first_value(Vocab::EUNOMIA_PUBLICATION_STATE) {
+            if !kind.can_be_draft() {
+                return Err(Self::invalid(
+                    "publicationState",
+                    format!("a {} is always published", kind.term()),
+                ));
+            }
+            if state != Vocab::DRAFT && state != Vocab::PUBLISHED {
+                return Err(Self::invalid(
+                    "publicationState",
+                    format!("{state} is neither draft nor published"),
+                ));
+            }
+        }
         match kind.missing_essential(description) {
             Some((term, reason)) => Err(Self::invalid(term, reason)),
             None => Ok(()),
@@ -441,9 +455,18 @@ impl ResourceServiceTrait for ResourceService {
                 ));
             }
         }
-        Self::check_shape(kind, &command.description)?;
-        self.check_links(user, &command.description).await?;
-        let mut revised = current.revise(command.description.clone());
+        // The publication state changes only through `set_publication`.
+        let mut description = command.description.clone();
+        description.put(
+            Vocab::EUNOMIA_PUBLICATION_STATE,
+            current
+                .description()
+                .values(Vocab::EUNOMIA_PUBLICATION_STATE)
+                .to_vec(),
+        );
+        Self::check_shape(kind, &description)?;
+        self.check_links(user, &description).await?;
+        let mut revised = current.revise(description);
         if let Some(visibility) = &command.visibility {
             let mut owner = current.owner().clone();
             owner.visibility = visibility.clone();
@@ -455,6 +478,40 @@ impl ResourceServiceTrait for ResourceService {
             .await?;
         self.touched().await;
         self.emit(&stored, "edit").await;
+        Ok(stored)
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn set_publication(
+        &self,
+        user: &UserInfo,
+        kind: ResourceKind,
+        id: &Urn,
+        draft: bool,
+        expected: Option<i64>,
+    ) -> Outcome<CatalogResource> {
+        if !kind.can_be_draft() {
+            return Err(Self::invalid(
+                "publicationState",
+                format!("a {} is always published", kind.term()),
+            ));
+        }
+        let current = self.acted_on(user, kind, id).await?;
+        Self::version_matches(&current, expected)?;
+        if current.is_draft() == draft {
+            return Ok(current);
+        }
+        let stored = self
+            .repo()
+            .replace(
+                &OwnerScope::acting(user),
+                &current.with_publication(draft),
+                current.version(),
+            )
+            .await?;
+        self.touched().await;
+        self.emit(&stored, if draft { "draft" } else { "publish" })
+            .await;
         Ok(stored)
     }
 

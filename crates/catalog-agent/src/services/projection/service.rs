@@ -155,7 +155,11 @@ impl ProjectionServiceTrait for ProjectionService {
                     None,
                 )
             })?;
-        let (set, truncation) = set.truncated(&root_id, request.limit);
+        // A profile is what the connector shares, so drafts stay out of it.
+        let shared = set.shared_from(&root).ok_or_else(|| {
+            Errors::missing_resource(root_id.clone(), format!("{} is a draft", kind.term()), None)
+        })?;
+        let (set, truncation) = shared.truncated(&root_id, request.limit);
         let projected = adapter.project(&set, &root)?;
         let projection = Projection {
             root: root_id,

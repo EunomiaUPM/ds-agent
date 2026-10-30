@@ -38,6 +38,7 @@ import { Identifier } from "shared/src/components/identity/Identifier";
 import { DatasetLabel } from "shared/src/components/identity/DatasetLabel";
 import { JsonTable } from "shared/src/components/json/JsonTable";
 import { SchemaUrl } from "shared/src/components/schemas/SchemaPicker";
+import { PublicationBadge, PublicationToggle } from "shared/src/components/catalog/Publication";
 import { useGetDatasetById } from "shared/src/data/orval/datasets/datasets";
 import { text } from "shared/src/data/catalog";
 import {
@@ -98,6 +99,10 @@ function DistributionConnectorPage() {
     distributionData?.status === 200 ? text((distributionData.data as CatalogDoc)?.schema) : "";
   const datasetSchema =
     datasetData?.status === 200 ? text((datasetData.data as CatalogDoc)?.schema) : "";
+  // A draft dataset hides its distributions, whatever their own state.
+  const datasetDraft =
+    datasetData?.status === 200 &&
+    text((datasetData.data as CatalogDoc)?.publicationState) === "draft";
   if (!distribution) return null;
 
   const interaction = instance?.interaction as
@@ -125,13 +130,25 @@ function DistributionConnectorPage() {
         title={distribution.title || <Identifier value={distribution.id} />}
         badge={
           <>
+            <PublicationBadge draft={distribution.draft || datasetDraft} />
             {distribution.format && <Badge variant="outline">{distribution.format}</Badge>}
             {interaction && <Badge variant="info">{interaction.mode}</Badge>}
           </>
         }
-        description={distribution.description || undefined}
+        description={
+          datasetDraft
+            ? "Hidden from DSP and DCAT while its dataset is a draft."
+            : distribution.description || undefined
+        }
         actions={
           <>
+            <PublicationToggle
+              kind="distribution"
+              id={distributionId}
+              draft={distribution.draft}
+              title={distribution.title}
+              size="sm"
+            />
             <Button asChild variant="outline" size="sm">
               <Link
                 to="/catalog/$catalogId/dataset/$datasetId"

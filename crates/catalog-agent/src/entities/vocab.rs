@@ -93,6 +93,11 @@ impl Vocab {
     pub const OWL_VERSION_INFO: &'static str = "http://www.w3.org/2002/07/owl#versionInfo";
     /// The data schema of a dataset or distribution; profiles publish it as `dct:conformsTo`.
     pub const EUNOMIA_SCHEMA: &'static str = "https://w3id.org/eunomia/v1/schema";
+    /// `draft` keeps a dataset or distribution out of every profile; absent means published.
+    pub const EUNOMIA_PUBLICATION_STATE: &'static str =
+        "https://w3id.org/eunomia/v1/publicationState";
+    pub const DRAFT: &'static str = "draft";
+    pub const PUBLISHED: &'static str = "published";
 
     pub const FOAF_NAME: &'static str = "http://xmlns.com/foaf/0.1/name";
     pub const FOAF_HOMEPAGE: &'static str = "http://xmlns.com/foaf/0.1/homepage";

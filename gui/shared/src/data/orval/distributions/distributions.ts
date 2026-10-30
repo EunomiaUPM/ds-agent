@@ -1317,4 +1317,212 @@ export const useDeleteDistribution = <TError = ErrorType<UnauthorizedResponse | 
       > => {
       return useMutation(getDeleteDistributionMutationOptions(options), queryClient);
     }
+    /**
+ * Drafts stay in the management API and the GUI; the profiles (the DSP catalog peers read, the public DCAT 3 and DCAT-AP routes, the profile exports) leave them out, Emits a `publish` event. Already in that state: answered as it is.
+ * @summary Publish a distribution: DSP, DCAT 3 and DCAT-AP show it
+ */
+export type publishDistributionResponse200 = {
+  data: DistributionDocument
+  status: 200
+}
+
+export type publishDistributionResponse400 = {
+  data: BadRequestResponse
+  status: 400
+}
+
+export type publishDistributionResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type publishDistributionResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+
+export type publishDistributionResponse412 = {
+  data: PreconditionFailedResponse
+  status: 412
+}
+    
+export type publishDistributionResponseSuccess = (publishDistributionResponse200) & {
+  headers: Headers;
+};
+export type publishDistributionResponseError = (publishDistributionResponse400 | publishDistributionResponse401 | publishDistributionResponse404 | publishDistributionResponse412) & {
+  headers: Headers;
+};
+
+export type publishDistributionResponse = (publishDistributionResponseSuccess | publishDistributionResponseError)
+
+export const getPublishDistributionUrl = (id: string,) => {
+
+
+  
+
+  return `/distributions/${id}/publish`
+}
+
+export const publishDistribution = async (id: string, options?: RequestInit): Promise<publishDistributionResponse> => {
+  
+  return customInstance<publishDistributionResponse>(getPublishDistributionUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getPublishDistributionMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | PreconditionFailedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishDistribution>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof publishDistribution>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['publishDistribution'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof publishDistribution>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  publishDistribution(id,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PublishDistributionMutationResult = NonNullable<Awaited<ReturnType<typeof publishDistribution>>>
+    
+    export type PublishDistributionMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | PreconditionFailedResponse>
+
+    /**
+ * @summary Publish a distribution: DSP, DCAT 3 and DCAT-AP show it
+ */
+export const usePublishDistribution = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | PreconditionFailedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishDistribution>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof publishDistribution>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getPublishDistributionMutationOptions(options), queryClient);
+    }
+    /**
+ * Drafts stay in the management API and the GUI; the profiles (the DSP catalog peers read, the public DCAT 3 and DCAT-AP routes, the profile exports) leave them out, Emits a `draft` event. Already in that state: answered as it is.
+ * @summary Keep a distribution as a draft, out of DSP, DCAT 3 and DCAT-AP
+ */
+export type draftDistributionResponse200 = {
+  data: DistributionDocument
+  status: 200
+}
+
+export type draftDistributionResponse400 = {
+  data: BadRequestResponse
+  status: 400
+}
+
+export type draftDistributionResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type draftDistributionResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+
+export type draftDistributionResponse412 = {
+  data: PreconditionFailedResponse
+  status: 412
+}
+    
+export type draftDistributionResponseSuccess = (draftDistributionResponse200) & {
+  headers: Headers;
+};
+export type draftDistributionResponseError = (draftDistributionResponse400 | draftDistributionResponse401 | draftDistributionResponse404 | draftDistributionResponse412) & {
+  headers: Headers;
+};
+
+export type draftDistributionResponse = (draftDistributionResponseSuccess | draftDistributionResponseError)
+
+export const getDraftDistributionUrl = (id: string,) => {
+
+
+  
+
+  return `/distributions/${id}/draft`
+}
+
+export const draftDistribution = async (id: string, options?: RequestInit): Promise<draftDistributionResponse> => {
+  
+  return customInstance<draftDistributionResponse>(getDraftDistributionUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getDraftDistributionMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | PreconditionFailedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof draftDistribution>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof draftDistribution>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['draftDistribution'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof draftDistribution>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  draftDistribution(id,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DraftDistributionMutationResult = NonNullable<Awaited<ReturnType<typeof draftDistribution>>>
+    
+    export type DraftDistributionMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | PreconditionFailedResponse>
+
+    /**
+ * @summary Keep a distribution as a draft, out of DSP, DCAT 3 and DCAT-AP
+ */
+export const useDraftDistribution = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse | PreconditionFailedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof draftDistribution>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof draftDistribution>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDraftDistributionMutationOptions(options), queryClient);
+    }
     

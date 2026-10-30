@@ -213,7 +213,7 @@ impl AdminDocument {
         ("Concept", "http://www.w3.org/2004/02/skos/core#Concept"),
     ];
 
-    const TERMS: [TermDef; 50] = [
+    const TERMS: [TermDef; 51] = [
         TermDef::new("title", Vocab::DCT_TITLE, Coercion::Language, false),
         TermDef::new(
             "description",
@@ -385,5 +385,12 @@ impl AdminDocument {
         ),
         // The data schema; profiles publish it (or the dataset's) as `dct:conformsTo`.
         TermDef::new("schema", Vocab::EUNOMIA_SCHEMA, Coercion::Id, false),
+        // `draft` or `published`; changed by the publish and draft actions, kept by a replace.
+        TermDef::new(
+            "publicationState",
+            Vocab::EUNOMIA_PUBLICATION_STATE,
+            Coercion::None,
+            false,
+        ),
     ];
 }

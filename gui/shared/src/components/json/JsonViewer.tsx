@@ -1,22 +1,18 @@
-import React, { useMemo, useState } from "react";
-import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
-import json from "react-syntax-highlighter/dist/esm/languages/prism/json";
-import oneDark from "react-syntax-highlighter/dist/esm/styles/prism/one-dark";
-import oneLight from "react-syntax-highlighter/dist/esm/styles/prism/one-light";
+import React, { Suspense, useMemo, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { cn } from "shared/src/lib/utils";
 import { useTheme } from "shared/src/hooks/useTheme";
 
-SyntaxHighlighter.registerLanguage("json", json);
+const MonacoJson = React.lazy(() => import("./MonacoJson"));
 
 export interface JsonViewerProps {
   value: unknown;
   className?: string;
-  /** Tailwind max-height class for the scroll area. */
+  /** Tailwind max-height class for the editor, such as `max-h-[60vh]` or `max-h-96`. */
   maxHeightClass?: string;
 }
 
-/** Pretty-printed, highlighted JSON with a copy button. */
+/** Pretty-printed JSON in a read-only Monaco editor framed like a VS Code tab, with a copy button. */
 export function JsonViewer({ value, className, maxHeightClass = "max-h-[60vh]" }: JsonViewerProps) {
   const { resolvedTheme } = useTheme();
   const [copied, setCopied] = useState(false);
@@ -24,6 +20,7 @@ export function JsonViewer({ value, className, maxHeightClass = "max-h-[60vh]" }
     () => (typeof value === "string" ? JsonViewer.prettify(value) : JSON.stringify(value, null, 2)),
     [value],
   );
+  const maxHeight = JsonViewer.pixels(maxHeightClass);
 
   const copy = () => {
     navigator.clipboard.writeText(text);
@@ -31,36 +28,68 @@ export function JsonViewer({ value, className, maxHeightClass = "max-h-[60vh]" }
     setTimeout(() => setCopied(false), 1500);
   };
 
+  const dark = resolvedTheme === "dark";
+  const lines = text.split("\n").length;
+
   return (
-    <div className={cn("group relative rounded-lg border border-ink/10 bg-sunken", className)}>
-      <button
-        type="button"
-        onClick={copy}
-        aria-label="Copy JSON"
-        className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-md border border-ink/10 bg-background/80 px-2 py-1 text-xs text-ink/70 opacity-0 backdrop-blur transition-opacity hover:text-ink group-hover:opacity-100 focus-visible:opacity-100"
+    <div
+      className={cn(
+        "overflow-hidden rounded-md border",
+        dark ? "border-[#3c3c3c] bg-[#1e1e1e]" : "border-[#e5e5e5] bg-white",
+        className,
+      )}
+    >
+      <div
+        className={cn(
+          "flex h-[30px] items-center justify-between border-b pl-3 pr-1.5 font-sans text-[12px]",
+          dark
+            ? "border-[#3c3c3c] bg-[#252526] text-[#cccccc]"
+            : "border-[#e5e5e5] bg-[#f3f3f3] text-[#616161]",
+        )}
       >
-        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-        {copied ? "Copied" : "Copy"}
-      </button>
-      <div className={cn("overflow-auto", maxHeightClass)}>
-        <SyntaxHighlighter
-          language="json"
-          style={resolvedTheme === "dark" ? oneDark : oneLight}
-          customStyle={{
-            margin: 0,
-            padding: "0.875rem 1rem",
-            background: "transparent",
-            fontSize: "0.8125rem",
-            lineHeight: 1.6,
-          }}
-          codeTagProps={{
-            style: { fontFamily: '"Source Code Pro", monospace', background: "transparent" },
-          }}
-          wrapLongLines
+        <span className="flex items-center gap-1.5">
+          <span
+            className={cn(
+              "font-mono text-[11px] font-semibold",
+              dark ? "text-[#cbcb41]" : "text-[#a16207]",
+            )}
+          >
+            {"{}"}
+          </span>
+          JSON
+          <span className="opacity-60">
+            · {lines} {lines === 1 ? "line" : "lines"}
+          </span>
+        </span>
+        <button
+          type="button"
+          onClick={copy}
+          aria-label="Copy JSON"
+          title="Copy"
+          className={cn(
+            "inline-flex h-[22px] items-center gap-1 rounded px-1.5 transition-colors",
+            dark ? "hover:bg-[#3c3c3c]" : "hover:bg-[#e1e1e1]",
+          )}
         >
-          {text}
-        </SyntaxHighlighter>
+          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? "Copied" : "Copy"}
+        </button>
       </div>
+      <Suspense
+        fallback={
+          <pre
+            className={cn(
+              "overflow-auto py-1.5 pl-[52px] pr-4 text-[12px] leading-[18px]",
+              dark ? "text-[#d4d4d4]" : "text-black",
+            )}
+            style={{ maxHeight, fontFamily: 'Menlo, Monaco, Consolas, "Courier New", monospace' }}
+          >
+            {text}
+          </pre>
+        }
+      >
+        <MonacoJson text={text} dark={dark} maxHeight={maxHeight} />
+      </Suspense>
     </div>
   );
 }
@@ -72,4 +101,17 @@ JsonViewer.prettify = (raw: string): string => {
   } catch {
     return raw;
   }
+};
+
+/** The pixels a Tailwind max-height class stands for (`max-h-[60vh]`, `max-h-96`, `max-h-[30rem]`). */
+JsonViewer.pixels = (heightClass: string): number => {
+  const vh = typeof window === "undefined" ? 800 : window.innerHeight;
+  const arbitrary = heightClass.match(/max-h-\[(\d+(?:\.\d+)?)(vh|px|rem)\]/);
+  if (arbitrary) {
+    const n = Number(arbitrary[1]);
+    return arbitrary[2] === "vh" ? (n / 100) * vh : arbitrary[2] === "rem" ? n * 16 : n;
+  }
+  const scale = heightClass.match(/max-h-(\d+)$/);
+  if (scale) return Number(scale[1]) * 4;
+  return 0.6 * vh;
 };

@@ -368,3 +368,9 @@ select:-webkit-autofill:focus {
     scrollbar-color: var(--sb-thumb-color) var(--sb-track-color);
   }
 }
+
+/* Monaco sets its own monospace font; the element rules above (span, p) must not reach inside it. */
+.monaco-editor span,
+.monaco-editor p {
+  font-family: inherit;
+}

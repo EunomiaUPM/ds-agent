@@ -15,7 +15,7 @@ are calls the GUI still makes to routes the backend no longer serves.
 import type { LocalizedText } from './localizedText';
 
 /**
- * Allowed values of a selection, plain or labelled.
+ * Allowed values of a selection, or of every item of a list.
  */
 export type PolicyTemplateParameterDefinitionRestrictionsValues = string[] | {
   value: string;

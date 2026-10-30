@@ -17,7 +17,6 @@
 
 import React, { useState } from "react";
 import { CatalogViews, type CatalogDoc, type DistributionView } from "shared/src/data/catalog";
-import { JsonLd } from "shared/src/data/jsonld";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowUpRight, Pencil, Plus, Trash2 } from "lucide-react";
 import {
@@ -28,10 +27,7 @@ import {
   useGetDistributionsByDatasetId,
   getGetDistributionsByDatasetIdQueryOptions,
 } from "shared/src/data/orval/distributions/distributions";
-import {
-  useCreateOdrlPolicy,
-  useGetPoliciesByEntityId,
-} from "shared/src/data/orval/odrl-policies/odrl-policies";
+import { useGetPoliciesByEntityId } from "shared/src/data/orval/odrl-policies/odrl-policies";
 import { useGetCatalogById } from "shared/src/data/orval/catalogs/catalogs";
 import { useDoctorDataset } from "shared/src/data/orval/doctor/doctor";
 import { OdrlPolicyDto } from "shared/src/data/orval/model";
@@ -49,6 +45,8 @@ import { ParticipantLabel } from "shared/src/components/identity/ParticipantLabe
 import { JsonTable } from "shared/src/components/json/JsonTable";
 import { PolicyCard } from "shared/src/components/policy/PolicyCard";
 import { PolicyComposer } from "shared/src/components/policy/PolicyComposer";
+import { PolicyDetailDialog } from "shared/src/components/policy/PolicyDetailDialog";
+import { PolicyTemplateApi } from "shared/src/data/policyTemplateApi";
 import { DoctorPanel } from "shared/src/components/catalog/DoctorPanel";
 import { ContractNegotiationNewOfferDialog } from "shared/src/components/dialogs/ContractNegotiationNewOfferDialog";
 import {
@@ -83,7 +81,6 @@ function DatasetPage() {
   const { data: datasetData } = useGetDatasetById(datasetId);
   const { data: distributionsData } = useGetDistributionsByDatasetId(datasetId);
   const { data: policiesData, refetch: refetchPolicies } = useGetPoliciesByEntityId(datasetId);
-  const { mutateAsync: createPolicy } = useCreateOdrlPolicy();
   const { data: doctorData } = useDoctorDataset(datasetId, { deep: true });
 
   const dataset =
@@ -203,6 +200,7 @@ function DatasetPage() {
                   policy={policy}
                   actions={
                     <>
+                      <PolicyDetailDialog policy={policy} />
                       <Button
                         size="sm"
                         variant="ghost"
@@ -355,14 +353,12 @@ function DatasetPage() {
         open={composerOpen}
         onOpenChange={setComposerOpen}
         targetLabel={dataset.title ?? dataset.id}
-        onSubmit={async (odrlOffer, description) => {
-          await createPolicy({
-            data: {
-              entityId: datasetId,
-              entityType: "Dataset",
-              odrlOffer: JsonLd.odrlOffer(odrlOffer),
-              description,
-            },
+        onSubmit={async (parts, description) => {
+          await PolicyTemplateApi.compose({
+            entityId: datasetId,
+            entityType: "Dataset",
+            parts,
+            description,
           });
           await refetchPolicies();
         }}

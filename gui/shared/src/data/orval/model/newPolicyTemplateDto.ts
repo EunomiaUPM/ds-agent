@@ -12,9 +12,11 @@ are calls the GUI still makes to routes the backend no longer serves.
 
  * OpenAPI spec version: 1.0.0
  */
+import type { ControlPoint } from './controlPoint';
 import type { LocalizedText } from './localizedText';
 import type { NewPolicyTemplateDtoParameters } from './newPolicyTemplateDtoParameters';
-import type { OdrlPolicyInfo } from './odrlPolicyInfo';
+import type { PolicyTemplateContent } from './policyTemplateContent';
+import type { PolicyTemplateKind } from './policyTemplateKind';
 import type { Visibility } from './visibility';
 
 export interface NewPolicyTemplateDto {
@@ -22,10 +24,13 @@ export interface NewPolicyTemplateDto {
   /** Who else sees it; private by default. */
   visibility?: Visibility;
   version?: string;
+  kind?: PolicyTemplateKind;
+  /** Where the template is meant to apply. Informative; nothing evaluates it. */
+  controlPoints?: ControlPoint[];
   date?: string;
   title?: LocalizedText;
   description?: LocalizedText;
   author?: string;
-  content: OdrlPolicyInfo;
+  content: PolicyTemplateContent;
   parameters?: NewPolicyTemplateDtoParameters;
 }

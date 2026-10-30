@@ -50,6 +50,7 @@ import {
   Pencil,
   Trash2,
   FileJson,
+  Library,
 } from "lucide-react";
 
 import { useGetCatalogById, useGetMainCatalogs } from "shared/src/data/orval/catalogs/catalogs";
@@ -460,6 +461,12 @@ function RouteComponent() {
                 <Button size="sm" variant="outline" className="w-full justify-start gap-2 text-xs">
                   <FileJson className="h-3.5 w-3.5" />
                   Data Schemas
+                </Button>
+              </Link>
+              <Link to="/my-catalog/policies">
+                <Button size="sm" variant="outline" className="w-full justify-start gap-2 text-xs">
+                  <Library className="h-3.5 w-3.5" />
+                  Policy Library
                 </Button>
               </Link>
               <Button

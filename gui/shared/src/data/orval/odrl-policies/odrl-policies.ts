@@ -42,9 +42,12 @@ import type {
   ForbiddenResponse,
   GetAllOdrlPoliciesParams,
   NewOdrlPolicyDto,
+  NewPolicyCompositionDto,
   NotFoundResponse,
   OdrlPolicyDto,
   PaginatedOdrlPolicyDto,
+  PolicyCompositionPreviewDto,
+  PolicyPreviewDto,
   UnauthorizedResponse
 } from '.././model';
 
@@ -453,6 +456,203 @@ export const useGetBatchOdrlPolicies = <TError = ErrorType<BadRequestResponse | 
         TContext
       > => {
       return useMutation(getGetBatchOdrlPoliciesMutationOptions(options), queryClient);
+    }
+    /**
+ * Parts add up in order: a template version with its values (`@ref`, `with`), another offer
+(`@offer`) or hand-written ODRL. A constraint template joins every rule of the list named
+by `into`. The offer stores the plain ODRL, the parts and the templates used.
+
+ * @summary Compose an offer from parts and attach it to an entity
+ */
+export type composeOdrlPolicyResponse201 = {
+  data: OdrlPolicyDto
+  status: 201
+}
+
+export type composeOdrlPolicyResponse400 = {
+  data: BadRequestResponse
+  status: 400
+}
+
+export type composeOdrlPolicyResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type composeOdrlPolicyResponse403 = {
+  data: ForbiddenResponse
+  status: 403
+}
+    
+export type composeOdrlPolicyResponseSuccess = (composeOdrlPolicyResponse201) & {
+  headers: Headers;
+};
+export type composeOdrlPolicyResponseError = (composeOdrlPolicyResponse400 | composeOdrlPolicyResponse401 | composeOdrlPolicyResponse403) & {
+  headers: Headers;
+};
+
+export type composeOdrlPolicyResponse = (composeOdrlPolicyResponseSuccess | composeOdrlPolicyResponseError)
+
+export const getComposeOdrlPolicyUrl = () => {
+
+
+  
+
+  return `/odrl-policies/compose`
+}
+
+export const composeOdrlPolicy = async (newPolicyCompositionDto: NewPolicyCompositionDto, options?: RequestInit): Promise<composeOdrlPolicyResponse> => {
+  
+  return customInstance<composeOdrlPolicyResponse>(getComposeOdrlPolicyUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      newPolicyCompositionDto,)
+  }
+);}
+
+
+
+
+export const getComposeOdrlPolicyMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof composeOdrlPolicy>>, TError,{data: BodyType<NewPolicyCompositionDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof composeOdrlPolicy>>, TError,{data: BodyType<NewPolicyCompositionDto>}, TContext> => {
+
+const mutationKey = ['composeOdrlPolicy'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof composeOdrlPolicy>>, {data: BodyType<NewPolicyCompositionDto>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  composeOdrlPolicy(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComposeOdrlPolicyMutationResult = NonNullable<Awaited<ReturnType<typeof composeOdrlPolicy>>>
+    export type ComposeOdrlPolicyMutationBody = BodyType<NewPolicyCompositionDto>
+    export type ComposeOdrlPolicyMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>
+
+    /**
+ * @summary Compose an offer from parts and attach it to an entity
+ */
+export const useComposeOdrlPolicy = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof composeOdrlPolicy>>, TError,{data: BodyType<NewPolicyCompositionDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof composeOdrlPolicy>>,
+        TError,
+        {data: BodyType<NewPolicyCompositionDto>},
+        TContext
+      > => {
+      return useMutation(getComposeOdrlPolicyMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary The plain ODRL of a composition, without storing it
+ */
+export type previewOdrlPolicyCompositionResponse200 = {
+  data: PolicyPreviewDto
+  status: 200
+}
+
+export type previewOdrlPolicyCompositionResponse400 = {
+  data: BadRequestResponse
+  status: 400
+}
+
+export type previewOdrlPolicyCompositionResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+    
+export type previewOdrlPolicyCompositionResponseSuccess = (previewOdrlPolicyCompositionResponse200) & {
+  headers: Headers;
+};
+export type previewOdrlPolicyCompositionResponseError = (previewOdrlPolicyCompositionResponse400 | previewOdrlPolicyCompositionResponse401) & {
+  headers: Headers;
+};
+
+export type previewOdrlPolicyCompositionResponse = (previewOdrlPolicyCompositionResponseSuccess | previewOdrlPolicyCompositionResponseError)
+
+export const getPreviewOdrlPolicyCompositionUrl = () => {
+
+
+  
+
+  return `/odrl-policies/compose/preview`
+}
+
+export const previewOdrlPolicyComposition = async (policyCompositionPreviewDto: PolicyCompositionPreviewDto, options?: RequestInit): Promise<previewOdrlPolicyCompositionResponse> => {
+  
+  return customInstance<previewOdrlPolicyCompositionResponse>(getPreviewOdrlPolicyCompositionUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      policyCompositionPreviewDto,)
+  }
+);}
+
+
+
+
+export const getPreviewOdrlPolicyCompositionMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewOdrlPolicyComposition>>, TError,{data: BodyType<PolicyCompositionPreviewDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof previewOdrlPolicyComposition>>, TError,{data: BodyType<PolicyCompositionPreviewDto>}, TContext> => {
+
+const mutationKey = ['previewOdrlPolicyComposition'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewOdrlPolicyComposition>>, {data: BodyType<PolicyCompositionPreviewDto>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  previewOdrlPolicyComposition(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreviewOdrlPolicyCompositionMutationResult = NonNullable<Awaited<ReturnType<typeof previewOdrlPolicyComposition>>>
+    export type PreviewOdrlPolicyCompositionMutationBody = BodyType<PolicyCompositionPreviewDto>
+    export type PreviewOdrlPolicyCompositionMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse>
+
+    /**
+ * @summary The plain ODRL of a composition, without storing it
+ */
+export const usePreviewOdrlPolicyComposition = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewOdrlPolicyComposition>>, TError,{data: BodyType<PolicyCompositionPreviewDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof previewOdrlPolicyComposition>>,
+        TError,
+        {data: BodyType<PolicyCompositionPreviewDto>},
+        TContext
+      > => {
+      return useMutation(getPreviewOdrlPolicyCompositionMutationOptions(options), queryClient);
     }
     /**
  * @summary Offers attached to an entity

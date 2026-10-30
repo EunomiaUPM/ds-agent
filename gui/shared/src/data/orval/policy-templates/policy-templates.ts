@@ -39,6 +39,7 @@ import type {
 import type {
   BadRequestResponse,
   BatchRequestsAsString,
+  ConflictResponse,
   CreatePolicyTemplateParams,
   ErrorInfo,
   ForbiddenResponse,
@@ -48,7 +49,10 @@ import type {
   NotFoundResponse,
   OdrlPolicyDto,
   PaginatedPolicyTemplateDto,
+  PolicyPreviewDto,
   PolicyTemplateDto,
+  TemplatePreviewDto,
+  TemplateUsagesDto,
   UnauthorizedResponse
 } from '.././model';
 
@@ -475,7 +479,9 @@ export const useGetBatchPolicyTemplates = <TError = ErrorType<BadRequestResponse
       return useMutation(getGetBatchPolicyTemplatesMutationOptions(options), queryClient);
     }
     /**
- * Validates the parameters, fills the placeholders and stores the resulting offer.
+ * Validates the parameters, fills the placeholders, expands the template's references and
+stores the plain ODRL as an offer. Same as composing an offer from this one template.
+
  * @summary Instantiate a template as an offer on an entity
  */
 export type instantiateOdrlOfferResponse202 = {
@@ -580,6 +586,310 @@ export const useInstantiateOdrlOffer = <TError = ErrorType<BadRequestResponse | 
       return useMutation(getInstantiateOdrlOfferMutationOptions(options), queryClient);
     }
     /**
+ * Give `id` and `version` of a stored template, or a `template` not stored yet. The answer is
+the plain ODRL every `@ref` and `@include` expands to, and the control points of its pieces.
+
+ * @summary Flatten a template with values, without storing anything
+ */
+export type previewPolicyTemplateResponse200 = {
+  data: PolicyPreviewDto
+  status: 200
+}
+
+export type previewPolicyTemplateResponse400 = {
+  data: BadRequestResponse
+  status: 400
+}
+
+export type previewPolicyTemplateResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+    
+export type previewPolicyTemplateResponseSuccess = (previewPolicyTemplateResponse200) & {
+  headers: Headers;
+};
+export type previewPolicyTemplateResponseError = (previewPolicyTemplateResponse400 | previewPolicyTemplateResponse401) & {
+  headers: Headers;
+};
+
+export type previewPolicyTemplateResponse = (previewPolicyTemplateResponseSuccess | previewPolicyTemplateResponseError)
+
+export const getPreviewPolicyTemplateUrl = () => {
+
+
+  
+
+  return `/v1/catalog-agent/policy-templates/preview`
+}
+
+export const previewPolicyTemplate = async (templatePreviewDto: TemplatePreviewDto, options?: RequestInit): Promise<previewPolicyTemplateResponse> => {
+  
+  return customInstance<previewPolicyTemplateResponse>(getPreviewPolicyTemplateUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      templatePreviewDto,)
+  }
+);}
+
+
+
+
+export const getPreviewPolicyTemplateMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewPolicyTemplate>>, TError,{data: BodyType<TemplatePreviewDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof previewPolicyTemplate>>, TError,{data: BodyType<TemplatePreviewDto>}, TContext> => {
+
+const mutationKey = ['previewPolicyTemplate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewPolicyTemplate>>, {data: BodyType<TemplatePreviewDto>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  previewPolicyTemplate(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreviewPolicyTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof previewPolicyTemplate>>>
+    export type PreviewPolicyTemplateMutationBody = BodyType<TemplatePreviewDto>
+    export type PreviewPolicyTemplateMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse>
+
+    /**
+ * @summary Flatten a template with values, without storing anything
+ */
+export const usePreviewPolicyTemplate = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewPolicyTemplate>>, TError,{data: BodyType<TemplatePreviewDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof previewPolicyTemplate>>,
+        TError,
+        {data: BodyType<TemplatePreviewDto>},
+        TContext
+      > => {
+      return useMutation(getPreviewPolicyTemplateMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Template versions and offers built from a version
+ */
+export type getPolicyTemplateUsagesResponse200 = {
+  data: TemplateUsagesDto
+  status: 200
+}
+
+export type getPolicyTemplateUsagesResponse401 = {
+  data: UnauthorizedResponse
+  status: 401
+}
+
+export type getPolicyTemplateUsagesResponse404 = {
+  data: NotFoundResponse
+  status: 404
+}
+    
+export type getPolicyTemplateUsagesResponseSuccess = (getPolicyTemplateUsagesResponse200) & {
+  headers: Headers;
+};
+export type getPolicyTemplateUsagesResponseError = (getPolicyTemplateUsagesResponse401 | getPolicyTemplateUsagesResponse404) & {
+  headers: Headers;
+};
+
+export type getPolicyTemplateUsagesResponse = (getPolicyTemplateUsagesResponseSuccess | getPolicyTemplateUsagesResponseError)
+
+export const getGetPolicyTemplateUsagesUrl = (id: string,
+    version: string,) => {
+
+
+  
+
+  return `/v1/catalog-agent/policy-templates/${id}/${version}/usages`
+}
+
+export const getPolicyTemplateUsages = async (id: string,
+    version: string, options?: RequestInit): Promise<getPolicyTemplateUsagesResponse> => {
+  
+  return customInstance<getPolicyTemplateUsagesResponse>(getGetPolicyTemplateUsagesUrl(id,version),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetPolicyTemplateUsagesInfiniteQueryKey = (id: string,
+    version: string,) => {
+    return [
+    'infinite', `/v1/catalog-agent/policy-templates/${id}/${version}/usages`
+    ] as const;
+    }
+
+export const getGetPolicyTemplateUsagesQueryKey = (id: string,
+    version: string,) => {
+    return [
+    `/v1/catalog-agent/policy-templates/${id}/${version}/usages`
+    ] as const;
+    }
+
+    
+export const getGetPolicyTemplateUsagesInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getPolicyTemplateUsages>>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(id: string,
+    version: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPolicyTemplateUsagesInfiniteQueryKey(id,version);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPolicyTemplateUsages>>> = ({ signal }) => getPolicyTemplateUsages(id,version, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id && version),  ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetPolicyTemplateUsagesInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getPolicyTemplateUsages>>>
+export type GetPolicyTemplateUsagesInfiniteQueryError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+
+
+export function useGetPolicyTemplateUsagesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPolicyTemplateUsages>>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ id: string,
+    version: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPolicyTemplateUsages>>,
+          TError,
+          Awaited<ReturnType<typeof getPolicyTemplateUsages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetPolicyTemplateUsagesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPolicyTemplateUsages>>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ id: string,
+    version: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPolicyTemplateUsages>>,
+          TError,
+          Awaited<ReturnType<typeof getPolicyTemplateUsages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetPolicyTemplateUsagesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPolicyTemplateUsages>>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ id: string,
+    version: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Template versions and offers built from a version
+ */
+
+export function useGetPolicyTemplateUsagesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPolicyTemplateUsages>>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ id: string,
+    version: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getGetPolicyTemplateUsagesInfiniteQueryOptions(id,version,options)
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+export const getGetPolicyTemplateUsagesQueryOptions = <TData = Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(id: string,
+    version: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPolicyTemplateUsagesQueryKey(id,version);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPolicyTemplateUsages>>> = ({ signal }) => getPolicyTemplateUsages(id,version, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id && version),  ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetPolicyTemplateUsagesQueryResult = NonNullable<Awaited<ReturnType<typeof getPolicyTemplateUsages>>>
+export type GetPolicyTemplateUsagesQueryError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+
+
+export function useGetPolicyTemplateUsages<TData = Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ id: string,
+    version: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPolicyTemplateUsages>>,
+          TError,
+          Awaited<ReturnType<typeof getPolicyTemplateUsages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetPolicyTemplateUsages<TData = Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ id: string,
+    version: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPolicyTemplateUsages>>,
+          TError,
+          Awaited<ReturnType<typeof getPolicyTemplateUsages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetPolicyTemplateUsages<TData = Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ id: string,
+    version: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Template versions and offers built from a version
+ */
+
+export function useGetPolicyTemplateUsages<TData = Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ id: string,
+    version: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPolicyTemplateUsages>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getGetPolicyTemplateUsagesQueryOptions(id,version,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+/**
  * @summary Every version of a template
  */
 export type getPolicyTemplateByIdResponse200 = {
@@ -975,6 +1285,7 @@ export function useGetPolicyTemplateByIdAndVersion<TData = Awaited<ReturnType<ty
 
 
 /**
+ * Refused with 409 while another template version references it.
  * @summary Delete one template version
  */
 export type deletePolicyTemplateByIdAndVersionResponse202 = {
@@ -996,11 +1307,16 @@ export type deletePolicyTemplateByIdAndVersionResponse404 = {
   data: NotFoundResponse
   status: 404
 }
+
+export type deletePolicyTemplateByIdAndVersionResponse409 = {
+  data: ConflictResponse
+  status: 409
+}
     
 export type deletePolicyTemplateByIdAndVersionResponseSuccess = (deletePolicyTemplateByIdAndVersionResponse202) & {
   headers: Headers;
 };
-export type deletePolicyTemplateByIdAndVersionResponseError = (deletePolicyTemplateByIdAndVersionResponse401 | deletePolicyTemplateByIdAndVersionResponse403 | deletePolicyTemplateByIdAndVersionResponse404) & {
+export type deletePolicyTemplateByIdAndVersionResponseError = (deletePolicyTemplateByIdAndVersionResponse401 | deletePolicyTemplateByIdAndVersionResponse403 | deletePolicyTemplateByIdAndVersionResponse404 | deletePolicyTemplateByIdAndVersionResponse409) & {
   headers: Headers;
 };
 
@@ -1030,7 +1346,7 @@ export const deletePolicyTemplateByIdAndVersion = async (id: string,
 
 
 
-export const getDeletePolicyTemplateByIdAndVersionMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+export const getDeletePolicyTemplateByIdAndVersionMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePolicyTemplateByIdAndVersion>>, TError,{id: string;version: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deletePolicyTemplateByIdAndVersion>>, TError,{id: string;version: string}, TContext> => {
 
@@ -1059,12 +1375,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DeletePolicyTemplateByIdAndVersionMutationResult = NonNullable<Awaited<ReturnType<typeof deletePolicyTemplateByIdAndVersion>>>
     
-    export type DeletePolicyTemplateByIdAndVersionMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+    export type DeletePolicyTemplateByIdAndVersionMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse>
 
     /**
  * @summary Delete one template version
  */
-export const useDeletePolicyTemplateByIdAndVersion = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+export const useDeletePolicyTemplateByIdAndVersion = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePolicyTemplateByIdAndVersion>>, TError,{id: string;version: string}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deletePolicyTemplateByIdAndVersion>>,

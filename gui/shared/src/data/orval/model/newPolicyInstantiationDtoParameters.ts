@@ -12,9 +12,9 @@ are calls the GUI still makes to routes the backend no longer serves.
 
  * OpenAPI spec version: 1.0.0
  */
-import type { PolicyTemplateAllowedDefaultValues } from './policyTemplateAllowedDefaultValues';
+import type { ParameterValue } from './parameterValue';
 
 /**
  * Values by parameter name.
  */
-export type NewPolicyInstantiationDtoParameters = {[key: string]: PolicyTemplateAllowedDefaultValues};
+export type NewPolicyInstantiationDtoParameters = {[key: string]: ParameterValue};

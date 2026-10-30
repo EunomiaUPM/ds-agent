@@ -4,6 +4,7 @@ import { OdrlPolicyDto } from "shared/src/data/orval/model";
 import { Identifier } from "shared/src/components/identity/Identifier";
 import { RelativeTime } from "shared/src/components/ui/format-date";
 import { OdrlRulesView } from "./OdrlRulesView";
+import { ControlPointChips } from "./ControlPointChips";
 
 /** A catalog offer: what it says, its rules as a table, and whatever actions the page adds. */
 export function PolicyCard({
@@ -25,13 +26,24 @@ export function PolicyCard({
             <span>
               created <RelativeTime date={policy.createdAt} />
             </span>
-            {policy.sourceTemplateId && (
+            {policy.composition ? (
               <>
                 <span>·</span>
-                <span>from template</span>
+                <span>
+                  composed from {policy.composition.length}{" "}
+                  {policy.composition.length === 1 ? "part" : "parts"}
+                </span>
               </>
+            ) : (
+              policy.sourceTemplateId && (
+                <>
+                  <span>·</span>
+                  <span>from template</span>
+                </>
+              )
             )}
           </p>
+          <ControlPointChips points={policy.controlPoints} className="mt-1.5" />
         </div>
       </header>
       <div className="flex-1 p-4">

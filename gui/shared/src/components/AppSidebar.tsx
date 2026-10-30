@@ -20,6 +20,7 @@
 import {
   Archive,
   FileJson,
+  Library,
   ArrowLeftRight,
   Feather,
   Handshake,
@@ -172,6 +173,11 @@ export function AppSidebar() {
           title: "Data Schemas",
           url: "/admin/my-catalog/schemas",
           icon: FileJson,
+        },
+        {
+          title: "Policy Library",
+          url: "/admin/my-catalog/policies",
+          icon: Library,
         },
         // The former built-in OAuth module (clients, PATs) is disabled; identities live in
         // the identity provider.

@@ -13,6 +13,9 @@ are calls the GUI still makes to routes the backend no longer serves.
  * OpenAPI spec version: 1.0.0
  */
 
+/**
+ * `date` is YYYY-MM-DD, `time` HH:MM[:SS], `dateTime` RFC 3339 (`datetime` is accepted too), `duration` an xsd:duration such as P30D, `list` an array of strings.
+ */
 export type PolicyTemplateParameterDefinitionDataType = typeof PolicyTemplateParameterDefinitionDataType[keyof typeof PolicyTemplateParameterDefinitionDataType];
 
 
@@ -23,6 +26,9 @@ export const PolicyTemplateParameterDefinitionDataType = {
   boolean: 'boolean',
   date: 'date',
   time: 'time',
-  datetime: 'datetime',
+  dateTime: 'dateTime',
   selection: 'selection',
+  duration: 'duration',
+  iri: 'iri',
+  list: 'list',
 } as const;

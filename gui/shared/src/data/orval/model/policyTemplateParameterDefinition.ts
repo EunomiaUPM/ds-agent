@@ -12,14 +12,15 @@ are calls the GUI still makes to routes the backend no longer serves.
 
  * OpenAPI spec version: 1.0.0
  */
-import type { PolicyTemplateAllowedDefaultValues } from './policyTemplateAllowedDefaultValues';
+import type { ParameterValue } from './parameterValue';
 import type { PolicyTemplateParameterDefinitionDataType } from './policyTemplateParameterDefinitionDataType';
 import type { PolicyTemplateParameterDefinitionRestrictions } from './policyTemplateParameterDefinitionRestrictions';
 import type { PolicyTemplateParameterDefinitionUi } from './policyTemplateParameterDefinitionUi';
 
 export interface PolicyTemplateParameterDefinition {
+  /** `date` is YYYY-MM-DD, `time` HH:MM[:SS], `dateTime` RFC 3339 (`datetime` is accepted too), `duration` an xsd:duration such as P30D, `list` an array of strings. */
   dataType: PolicyTemplateParameterDefinitionDataType;
   restrictions?: PolicyTemplateParameterDefinitionRestrictions;
   ui?: PolicyTemplateParameterDefinitionUi;
-  defaultValue?: PolicyTemplateAllowedDefaultValues;
+  defaultValue?: ParameterValue;
 }

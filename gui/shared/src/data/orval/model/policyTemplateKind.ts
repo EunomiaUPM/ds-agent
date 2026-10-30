@@ -13,4 +13,14 @@ are calls the GUI still makes to routes the backend no longer serves.
  * OpenAPI spec version: 1.0.0
  */
 
-export type PolicyTemplateAllowedDefaultValues = string | number;
+/**
+ * What a template's content is. `policy` when not given.
+ */
+export type PolicyTemplateKind = typeof PolicyTemplateKind[keyof typeof PolicyTemplateKind];
+
+
+export const PolicyTemplateKind = {
+  constraint: 'constraint',
+  rule: 'rule',
+  policy: 'policy',
+} as const;

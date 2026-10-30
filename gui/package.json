@@ -16,12 +16,16 @@
     "shared"
   ],
   "dependencies": {
+    "@dnd-kit/core": "6.3.1",
+    "@dnd-kit/utilities": "3.2.2",
+    "@monaco-editor/react": "4.7.0",
     "@tanstack/react-query": "^5.59.15",
     "@tanstack/react-router": "^1.105.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
     "lucide-react": "^0.453.0",
+    "monaco-editor": "0.52.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.56.4",

@@ -12,11 +12,13 @@ are calls the GUI still makes to routes the backend no longer serves.
 
  * OpenAPI spec version: 1.0.0
  */
+import type { ControlPoint } from './controlPoint';
 import type { CreatedAfterParameter } from './createdAfterParameter';
 import type { CreatedBeforeParameter } from './createdBeforeParameter';
 import type { CursorParameter } from './cursorParameter';
 import type { LimitParameter } from './limitParameter';
 import type { PageNumberParameter } from './pageNumberParameter';
+import type { PolicyTemplateKind } from './policyTemplateKind';
 import type { SortParameter } from './sortParameter';
 import type { UserIdQueryParameter } from './userIdQueryParameter';
 
@@ -44,6 +46,11 @@ user_id?: UserIdQueryParameter;
 id?: string;
 version?: string;
 author?: string;
+kind?: PolicyTemplateKind;
+/**
+ * Templates meant for this control point.
+ */
+control_point?: ControlPoint;
 created_after?: CreatedAfterParameter;
 created_before?: CreatedBeforeParameter;
 };

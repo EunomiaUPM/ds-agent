@@ -22,6 +22,10 @@ export type PolicyTemplateParameterDefinitionRestrictions = {
   maxValue?: number;
   minDate?: string;
   maxDate?: string;
-  /** Allowed values of a selection, plain or labelled. */
+  /** Fewest items of a list. */
+  minItems?: number;
+  /** Most items of a list. */
+  maxItems?: number;
+  /** Allowed values of a selection, or of every item of a list. */
   values?: PolicyTemplateParameterDefinitionRestrictionsValues;
 };

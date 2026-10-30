@@ -12,8 +12,10 @@ are calls the GUI still makes to routes the backend no longer serves.
 
  * OpenAPI spec version: 1.0.0
  */
+import type { ControlPoint } from './controlPoint';
 import type { OdrlPolicyDtoEntityType } from './odrlPolicyDtoEntityType';
 import type { OdrlPolicyInfo } from './odrlPolicyInfo';
+import type { PolicyPart } from './policyPart';
 import type { Visibility } from './visibility';
 
 export interface OdrlPolicyDto {
@@ -37,4 +39,8 @@ export interface OdrlPolicyDto {
   instantiationParameters?: unknown;
   /** @nullable */
   description?: string | null;
+  /** The parts a composed offer was made from, as they were asked for. */
+  composition?: PolicyPart[];
+  /** Where the pieces of a composed offer are meant to apply. Informative. */
+  controlPoints?: ControlPoint[];
 }

@@ -61,12 +61,15 @@ import { Route as CatalogCatalogIdRouteImport } from './routes/catalog/$catalogI
 import { Route as TransferProcessTransferProcessIdIndexImport } from './routes/transfer-process/$transferProcessId/index'
 import { Route as ParticipantsParticipantIdIndexImport } from './routes/participants/$participantId/index'
 import { Route as MyCatalogSchemasIndexImport } from './routes/my-catalog/schemas/index'
+import { Route as MyCatalogPoliciesIndexImport } from './routes/my-catalog/policies/index'
 import { Route as ContractNegotiationCnProcessIndexImport } from './routes/contract-negotiation/$cnProcess/index'
 import { Route as ConnectionsSentIndexImport } from './routes/connections/sent/index'
 import { Route as ConnectionsReceivedIndexImport } from './routes/connections/received/index'
 import { Route as CatalogCatalogIdIndexImport } from './routes/catalog/$catalogId/index'
 import { Route as MyCatalogSchemasNewImport } from './routes/my-catalog/schemas/new'
 import { Route as MyCatalogSchemasSchemaIdImport } from './routes/my-catalog/schemas/$schemaId'
+import { Route as MyCatalogPoliciesNewImport } from './routes/my-catalog/policies/new'
+import { Route as MyCatalogPoliciesTemplateIdImport } from './routes/my-catalog/policies/$templateId'
 import { Route as ConnectionsSentRequestDetailsImport } from './routes/connections/sent/request-details'
 import { Route as ConnectionsSentNewImport } from './routes/connections/sent/new'
 import { Route as ConnectionsReceivedRequestDetailsImport } from './routes/connections/received/request-details'
@@ -384,6 +387,12 @@ const MyCatalogSchemasIndexRoute = MyCatalogSchemasIndexImport.update({
   getParentRoute: () => MyCatalogRouteRoute,
 } as any)
 
+const MyCatalogPoliciesIndexRoute = MyCatalogPoliciesIndexImport.update({
+  id: '/policies/',
+  path: '/policies/',
+  getParentRoute: () => MyCatalogRouteRoute,
+} as any)
+
 const ContractNegotiationCnProcessIndexRoute =
   ContractNegotiationCnProcessIndexImport.update({
     id: '/',
@@ -420,6 +429,19 @@ const MyCatalogSchemasSchemaIdRoute = MyCatalogSchemasSchemaIdImport.update({
   path: '/schemas/$schemaId',
   getParentRoute: () => MyCatalogRouteRoute,
 } as any)
+
+const MyCatalogPoliciesNewRoute = MyCatalogPoliciesNewImport.update({
+  id: '/policies/new',
+  path: '/policies/new',
+  getParentRoute: () => MyCatalogRouteRoute,
+} as any)
+
+const MyCatalogPoliciesTemplateIdRoute =
+  MyCatalogPoliciesTemplateIdImport.update({
+    id: '/policies/$templateId',
+    path: '/policies/$templateId',
+    getParentRoute: () => MyCatalogRouteRoute,
+  } as any)
 
 const ConnectionsSentRequestDetailsRoute =
   ConnectionsSentRequestDetailsImport.update({
@@ -839,6 +861,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConnectionsSentRequestDetailsImport
       parentRoute: typeof ConnectionsSentRouteImport
     }
+    '/my-catalog/policies/$templateId': {
+      id: '/my-catalog/policies/$templateId'
+      path: '/policies/$templateId'
+      fullPath: '/my-catalog/policies/$templateId'
+      preLoaderRoute: typeof MyCatalogPoliciesTemplateIdImport
+      parentRoute: typeof MyCatalogRouteImport
+    }
+    '/my-catalog/policies/new': {
+      id: '/my-catalog/policies/new'
+      path: '/policies/new'
+      fullPath: '/my-catalog/policies/new'
+      preLoaderRoute: typeof MyCatalogPoliciesNewImport
+      parentRoute: typeof MyCatalogRouteImport
+    }
     '/my-catalog/schemas/$schemaId': {
       id: '/my-catalog/schemas/$schemaId'
       path: '/schemas/$schemaId'
@@ -880,6 +916,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/contract-negotiation/$cnProcess/'
       preLoaderRoute: typeof ContractNegotiationCnProcessIndexImport
       parentRoute: typeof ContractNegotiationCnProcessRouteImport
+    }
+    '/my-catalog/policies/': {
+      id: '/my-catalog/policies/'
+      path: '/policies'
+      fullPath: '/my-catalog/policies'
+      preLoaderRoute: typeof MyCatalogPoliciesIndexImport
+      parentRoute: typeof MyCatalogRouteImport
     }
     '/my-catalog/schemas/': {
       id: '/my-catalog/schemas/'
@@ -1153,8 +1196,11 @@ interface MyCatalogRouteRouteChildren {
   MyCatalogImportRoute: typeof MyCatalogImportRoute
   MyCatalogNewRoute: typeof MyCatalogNewRoute
   MyCatalogIndexRoute: typeof MyCatalogIndexRoute
+  MyCatalogPoliciesTemplateIdRoute: typeof MyCatalogPoliciesTemplateIdRoute
+  MyCatalogPoliciesNewRoute: typeof MyCatalogPoliciesNewRoute
   MyCatalogSchemasSchemaIdRoute: typeof MyCatalogSchemasSchemaIdRoute
   MyCatalogSchemasNewRoute: typeof MyCatalogSchemasNewRoute
+  MyCatalogPoliciesIndexRoute: typeof MyCatalogPoliciesIndexRoute
   MyCatalogSchemasIndexRoute: typeof MyCatalogSchemasIndexRoute
 }
 
@@ -1162,8 +1208,11 @@ const MyCatalogRouteRouteChildren: MyCatalogRouteRouteChildren = {
   MyCatalogImportRoute: MyCatalogImportRoute,
   MyCatalogNewRoute: MyCatalogNewRoute,
   MyCatalogIndexRoute: MyCatalogIndexRoute,
+  MyCatalogPoliciesTemplateIdRoute: MyCatalogPoliciesTemplateIdRoute,
+  MyCatalogPoliciesNewRoute: MyCatalogPoliciesNewRoute,
   MyCatalogSchemasSchemaIdRoute: MyCatalogSchemasSchemaIdRoute,
   MyCatalogSchemasNewRoute: MyCatalogSchemasNewRoute,
+  MyCatalogPoliciesIndexRoute: MyCatalogPoliciesIndexRoute,
   MyCatalogSchemasIndexRoute: MyCatalogSchemasIndexRoute,
 }
 
@@ -1306,12 +1355,15 @@ export interface FileRoutesByFullPath {
   '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
   '/connections/sent/new': typeof ConnectionsSentNewRoute
   '/connections/sent/request-details': typeof ConnectionsSentRequestDetailsRoute
+  '/my-catalog/policies/$templateId': typeof MyCatalogPoliciesTemplateIdRoute
+  '/my-catalog/policies/new': typeof MyCatalogPoliciesNewRoute
   '/my-catalog/schemas/$schemaId': typeof MyCatalogSchemasSchemaIdRoute
   '/my-catalog/schemas/new': typeof MyCatalogSchemasNewRoute
   '/catalog/$catalogId/': typeof CatalogCatalogIdIndexRoute
   '/connections/received/': typeof ConnectionsReceivedIndexRoute
   '/connections/sent/': typeof ConnectionsSentIndexRoute
   '/contract-negotiation/$cnProcess/': typeof ContractNegotiationCnProcessIndexRoute
+  '/my-catalog/policies': typeof MyCatalogPoliciesIndexRoute
   '/my-catalog/schemas': typeof MyCatalogSchemasIndexRoute
   '/participants/$participantId/': typeof ParticipantsParticipantIdIndexRoute
   '/transfer-process/$transferProcessId/': typeof TransferProcessTransferProcessIdIndexRoute
@@ -1357,12 +1409,15 @@ export interface FileRoutesByTo {
   '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
   '/connections/sent/new': typeof ConnectionsSentNewRoute
   '/connections/sent/request-details': typeof ConnectionsSentRequestDetailsRoute
+  '/my-catalog/policies/$templateId': typeof MyCatalogPoliciesTemplateIdRoute
+  '/my-catalog/policies/new': typeof MyCatalogPoliciesNewRoute
   '/my-catalog/schemas/$schemaId': typeof MyCatalogSchemasSchemaIdRoute
   '/my-catalog/schemas/new': typeof MyCatalogSchemasNewRoute
   '/catalog/$catalogId': typeof CatalogCatalogIdIndexRoute
   '/connections/received': typeof ConnectionsReceivedIndexRoute
   '/connections/sent': typeof ConnectionsSentIndexRoute
   '/contract-negotiation/$cnProcess': typeof ContractNegotiationCnProcessIndexRoute
+  '/my-catalog/policies': typeof MyCatalogPoliciesIndexRoute
   '/my-catalog/schemas': typeof MyCatalogSchemasIndexRoute
   '/participants/$participantId': typeof ParticipantsParticipantIdIndexRoute
   '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdIndexRoute
@@ -1426,12 +1481,15 @@ export interface FileRoutesById {
   '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
   '/connections/sent/new': typeof ConnectionsSentNewRoute
   '/connections/sent/request-details': typeof ConnectionsSentRequestDetailsRoute
+  '/my-catalog/policies/$templateId': typeof MyCatalogPoliciesTemplateIdRoute
+  '/my-catalog/policies/new': typeof MyCatalogPoliciesNewRoute
   '/my-catalog/schemas/$schemaId': typeof MyCatalogSchemasSchemaIdRoute
   '/my-catalog/schemas/new': typeof MyCatalogSchemasNewRoute
   '/catalog/$catalogId/': typeof CatalogCatalogIdIndexRoute
   '/connections/received/': typeof ConnectionsReceivedIndexRoute
   '/connections/sent/': typeof ConnectionsSentIndexRoute
   '/contract-negotiation/$cnProcess/': typeof ContractNegotiationCnProcessIndexRoute
+  '/my-catalog/policies/': typeof MyCatalogPoliciesIndexRoute
   '/my-catalog/schemas/': typeof MyCatalogSchemasIndexRoute
   '/participants/$participantId/': typeof ParticipantsParticipantIdIndexRoute
   '/transfer-process/$transferProcessId/': typeof TransferProcessTransferProcessIdIndexRoute
@@ -1496,12 +1554,15 @@ export interface FileRouteTypes {
     | '/connections/received/request-details'
     | '/connections/sent/new'
     | '/connections/sent/request-details'
+    | '/my-catalog/policies/$templateId'
+    | '/my-catalog/policies/new'
     | '/my-catalog/schemas/$schemaId'
     | '/my-catalog/schemas/new'
     | '/catalog/$catalogId/'
     | '/connections/received/'
     | '/connections/sent/'
     | '/contract-negotiation/$cnProcess/'
+    | '/my-catalog/policies'
     | '/my-catalog/schemas'
     | '/participants/$participantId/'
     | '/transfer-process/$transferProcessId/'
@@ -1546,12 +1607,15 @@ export interface FileRouteTypes {
     | '/connections/received/request-details'
     | '/connections/sent/new'
     | '/connections/sent/request-details'
+    | '/my-catalog/policies/$templateId'
+    | '/my-catalog/policies/new'
     | '/my-catalog/schemas/$schemaId'
     | '/my-catalog/schemas/new'
     | '/catalog/$catalogId'
     | '/connections/received'
     | '/connections/sent'
     | '/contract-negotiation/$cnProcess'
+    | '/my-catalog/policies'
     | '/my-catalog/schemas'
     | '/participants/$participantId'
     | '/transfer-process/$transferProcessId'
@@ -1613,12 +1677,15 @@ export interface FileRouteTypes {
     | '/connections/received/request-details'
     | '/connections/sent/new'
     | '/connections/sent/request-details'
+    | '/my-catalog/policies/$templateId'
+    | '/my-catalog/policies/new'
     | '/my-catalog/schemas/$schemaId'
     | '/my-catalog/schemas/new'
     | '/catalog/$catalogId/'
     | '/connections/received/'
     | '/connections/sent/'
     | '/contract-negotiation/$cnProcess/'
+    | '/my-catalog/policies/'
     | '/my-catalog/schemas/'
     | '/participants/$participantId/'
     | '/transfer-process/$transferProcessId/'
@@ -1750,8 +1817,11 @@ export const routeTree = rootRoute
         "/my-catalog/import",
         "/my-catalog/new",
         "/my-catalog/",
+        "/my-catalog/policies/$templateId",
+        "/my-catalog/policies/new",
         "/my-catalog/schemas/$schemaId",
         "/my-catalog/schemas/new",
+        "/my-catalog/policies/",
         "/my-catalog/schemas/"
       ]
     },
@@ -1962,6 +2032,14 @@ export const routeTree = rootRoute
       "filePath": "connections/sent/request-details.tsx",
       "parent": "/connections/sent"
     },
+    "/my-catalog/policies/$templateId": {
+      "filePath": "my-catalog/policies/$templateId.tsx",
+      "parent": "/my-catalog"
+    },
+    "/my-catalog/policies/new": {
+      "filePath": "my-catalog/policies/new.tsx",
+      "parent": "/my-catalog"
+    },
     "/my-catalog/schemas/$schemaId": {
       "filePath": "my-catalog/schemas/$schemaId.tsx",
       "parent": "/my-catalog"
@@ -1985,6 +2063,10 @@ export const routeTree = rootRoute
     "/contract-negotiation/$cnProcess/": {
       "filePath": "contract-negotiation/$cnProcess/index.tsx",
       "parent": "/contract-negotiation/$cnProcess"
+    },
+    "/my-catalog/policies/": {
+      "filePath": "my-catalog/policies/index.tsx",
+      "parent": "/my-catalog"
     },
     "/my-catalog/schemas/": {
       "filePath": "my-catalog/schemas/index.tsx",

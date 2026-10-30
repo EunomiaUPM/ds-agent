@@ -134,7 +134,7 @@ function SchemaPage() {
               { label: "Visibility", value: shown.visibility },
               {
                 label: "Saved",
-                value: <FormatDate date={shown.createdAt} format="YYYY-MM-DD HH:mm" />,
+                value: <FormatDate date={shown.createdAt} />,
               },
               {
                 label: "SHA-256",

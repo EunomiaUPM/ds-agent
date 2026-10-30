@@ -25,7 +25,7 @@ import {
 } from "shared/src/components/ui/dialog";
 import { useState } from "react";
 import { KEYSTORE_CONTEXT } from "shared/src/data/jsonld";
-import { Trash2, Pencil, Plus } from "lucide-react";
+import { Eye, EyeOff, Trash2, Pencil, Plus } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // New dialog
@@ -293,7 +293,7 @@ const KeystoreSecrets = () => {
         action={
           <Button size="sm" onClick={() => setCreating(true)}>
             <Plus className="h-3.5 w-3.5 mr-1.5" />
-            New
+            New secret
           </Button>
         }
       >
@@ -330,7 +330,7 @@ const KeystoreSecrets = () => {
               header: "Value",
               accessorKey: "value",
               sortable: false,
-              cell: (s) => <Badge variant="code">{s.value}</Badge>,
+              cell: (s) => <MaskedValue value={s.value} />,
             },
             {
               header: "Updated at",
@@ -372,6 +372,26 @@ const KeystoreSecrets = () => {
         <EditSecretDialog secret={editing} open={!!editing} onClose={() => setEditing(null)} />
       )}
     </>
+  );
+};
+
+/** A secret value hidden until asked for, so it does not show on a shared screen. */
+const MaskedValue = ({ value }: { value: unknown }) => {
+  const [shown, setShown] = useState(false);
+  const text = typeof value === "string" ? value : JSON.stringify(value);
+  return (
+    <span className="inline-flex items-center gap-1">
+      <Badge variant="code">{shown ? text : "••••••••"}</Badge>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-6 w-6 text-muted-foreground"
+        aria-label={shown ? "Hide value" : "Show value"}
+        onClick={() => setShown(!shown)}
+      >
+        {shown ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+      </Button>
+    </span>
   );
 };
 

@@ -16,7 +16,7 @@
 
 import React, { useContext, useMemo } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { cn } from "shared/src/lib/utils";
+import { cn, decodePathId } from "shared/src/lib/utils";
 import { Identifier } from "shared/src/components/identity/Identifier";
 import {
   Breadcrumb,
@@ -93,8 +93,16 @@ const ROUTE_LABELS: Record<string, string> = {
   config: "Configuration",
   wallet: "Wallet",
   connections: "Connections",
-  authority: "Authority",
+  authority: "VC Requests",
+  did: "DID",
+  keys: "Keys",
+  oidc4vp: "OID4VP",
+  oidc4vci: "OID4VCI",
+  "request-details": "Request",
 };
+
+/** Segments whose next segment is a base64url id (see `pathIdParams`). */
+const ENCODED_ID_PARENTS = new Set(["participants", "participant"]);
 
 /**
  * Segments that should be hidden from breadcrumbs.
@@ -177,6 +185,13 @@ function generateBreadcrumbs(pathname: string): BreadcrumbItemData[] {
     // Check if previous segment wanted to merge
     const prevSegment = segments[i - 1] ? decodeURIComponent(segments[i - 1]) : null;
     let label = formatSegmentLabel(segment);
+    if (prevSegment && ENCODED_ID_PARENTS.has(prevSegment)) {
+      try {
+        label = Identifier.short(decodePathId(segment));
+      } catch {
+        // An id written by hand, not encoded: shown as it is.
+      }
+    }
     if (prevSegment && MERGE_WITH_NEXT.has(prevSegment)) {
       const prevLabel = formatSegmentLabel(prevSegment);
       label = `${prevLabel}: ${formatSegmentLabel(segment)}`;

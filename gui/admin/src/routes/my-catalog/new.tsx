@@ -269,19 +269,10 @@ function NewDatasetOfferingPage() {
 
   return (
     <PageLayout>
-      <PageHeader title="Publish Dataset Offering">
-        <div className="flex items-center justify-between mt-1 text-xs text-muted-foreground">
-          <span>
-            Register a dataset, its distribution and an ODRL policy into the main catalog.
-          </span>
-          <Link to="/my-catalog">
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Back to Catalog
-            </Button>
-          </Link>
-        </div>
-      </PageHeader>
+      <PageHeader
+        title="Publish Dataset Offering"
+        description="Register a dataset, its distribution and an ODRL policy into the main catalog."
+      />
 
       <div className="container mx-auto px-4 py-6 max-w-5xl space-y-6">
         {/* Step Indicator Progress Bar */}

@@ -6,7 +6,7 @@
  *
  * Variants:
  * - `default`: Standard badge with subtle styling
- * - `info`: Monospace uppercase badge for IDs and technical values
+ * - `info`: Monospace badge for IDs and technical values, case preserved
  * - `infoLighter`: Lighter version of info badge
  * - `role`: Role indicator with role-specific coloring
  * - `status`: Process state badge with colored dot indicator
@@ -108,8 +108,8 @@ const badgeVariants = cva(
         success: "bg-success-500/15 text-success-700 dark:text-success-300 border-success-500/30",
         warning: "bg-warn-500/15 text-warn-700 dark:text-warn-300 border-warn-500/30",
         warn: "bg-warn-500/15 text-warn-700 dark:text-warn-300 border-warn-500/30",
-        info: "font-mono uppercase bg-primary-100 dark:bg-primary-900/40 text-brand-sky border-primary-600/30",
-        infoLighter: "font-mono uppercase bg-ink/10 text-secondary-700 dark:text-secondary-300 border-ink/15",
+        info: "font-mono bg-primary-100 dark:bg-primary-900/40 text-brand-sky border-primary-600/30",
+        infoLighter: "font-mono bg-ink/10 text-secondary-700 dark:text-secondary-300 border-ink/15",
         role: "text-ink uppercase border-ink/15",
         status: "border-ink/15 text-foreground-300 uppercase tracking-wide",
         detail:

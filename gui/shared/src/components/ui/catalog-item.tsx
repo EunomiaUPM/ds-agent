@@ -78,7 +78,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
 
   const displayTitle = liveTitle || title;
   const displayDate = liveDate || date;
-  const displayDatasetNr = liveDatasetNr ?? datasetNumber ?? "?";
+  const displayDatasetNr = liveDatasetNr ?? datasetNumber;
 
   const headingText = displayTitle ? displayTitle : `${organizationName}'s Catalog`;
   const headingNode = (
@@ -234,13 +234,16 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-ink/5 text-xs font-mono text-muted-foreground">
-            <Server className="h-3 w-3 text-brand-sky" /> 1 Service
+          <span className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-0.5 rounded-md bg-ink/5 text-xs text-muted-foreground">
+            <Server className="h-3 w-3 text-brand-sky" /> 1 service
           </span>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-ink/5 text-xs font-mono text-muted-foreground">
-            <Database className="h-3 w-3 text-emerald-700 dark:text-emerald-400" />{" "}
-            {displayDatasetNr} Datasets
-          </span>
+          {/* Unknown until the catalog is asked for: no count rather than a guess. */}
+          {displayDatasetNr !== undefined && (
+            <span className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-0.5 rounded-md bg-ink/5 text-xs text-muted-foreground">
+              <Database className="h-3 w-3 text-emerald-700 dark:text-emerald-400" />
+              {displayDatasetNr} {displayDatasetNr === 1 ? "dataset" : "datasets"}
+            </span>
+          )}
         </div>
       </CardFooter>
     </Card>

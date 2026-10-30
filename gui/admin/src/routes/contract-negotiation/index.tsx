@@ -116,13 +116,13 @@ function NegotiationsPage() {
           { header: "Negotiation", cell: (p) => <Identifier value={p.id} /> },
           {
             header: "Last change",
-            cell: (p) => <RelativeTime date={p.updatedAt} className="text-ink/70" />,
+            cell: (p) => <RelativeTime date={p.updatedAt} className="whitespace-nowrap text-ink/70" />,
           },
           {
             header: "Started",
             accessorKey: "createdAt",
             sortKey: "created_at",
-            cell: (p) => <FormatDate date={p.createdAt} format="YYYY-MM-DD HH:mm" />,
+            cell: (p) => <FormatDate date={p.createdAt} />,
           },
           {
             header: "",

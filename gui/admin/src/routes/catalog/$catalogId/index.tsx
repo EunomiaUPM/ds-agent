@@ -1,47 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { formatUrn } from "shared/src/lib/utils";
-import dayjs from "dayjs";
-import { Badge } from "shared/src/components/ui/badge";
-import Heading from "shared/src/components/ui/heading";
-
+import { Plus } from "lucide-react";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
-import { InfoGrid } from "shared/src/components/layout/InfoGrid";
-
-import { DataTable } from "shared/src/components/DataTable";
+import { FieldGrid } from "shared/src/components/layout/FieldGrid";
 import { FormatDate } from "shared/src/components/ui/format-date";
-
-import { ArrowRight, Plus } from "lucide-react";
-
+import { Button } from "shared/src/components/ui/button";
+import { Badge } from "shared/src/components/ui/badge";
+import { Identifier } from "shared/src/components/identity/Identifier";
+import { ParticipantLabel } from "shared/src/components/identity/ParticipantLabel";
+import DatasetItem from "shared/src/components/ui/dataset-item";
 import { useGetCatalogById } from "shared/src/data/orval/catalogs/catalogs";
 import { useGetDatasetsByCatalogId } from "shared/src/data/orval/datasets/datasets";
 import { useGetDataServicesByCatalogId } from "shared/src/data/orval/data-services/data-services";
-import { Button } from "shared/src/components/ui/button";
-// Icons
-import { InfoList } from "shared/src/components/ui/info-list";
-import {
-  Drawer,
-  DrawerBody,
-  DrawerClose,
-  DrawerContent,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "shared/src/components/ui/drawer";
-import DatasetItem from "shared/components/ui/dataset-item";
-import AvatarImg from "shared/components/ui/avatar-img";
-import { useGetMainCatalogs } from "shared/data/orval/catalogs/catalogs";
 import { useMyself } from "shared/src/data/useMyself";
 import { CatalogViews, type CatalogDoc } from "shared/src/data/catalog";
 
-const RouteComponent = () => {
-  const { data: mainCatalogData } = useGetMainCatalogs();
-  const mainCatalog =
-    mainCatalogData?.status === 200 ? CatalogViews.catalog(mainCatalogData.data as CatalogDoc) : undefined;
-
-  const catalogId = mainCatalog?.id || "";
+/** A catalog of this connector: its metadata, data services and datasets. */
+const CatalogPage = () => {
+  const { catalogId } = Route.useParams();
+  const myAgent = useMyself();
   const { data: catalogData } = useGetCatalogById(catalogId);
   const { data: datasetsData } = useGetDatasetsByCatalogId(catalogId);
   const { data: dataservicesData } = useGetDataServicesByCatalogId(catalogId);
@@ -56,115 +34,83 @@ const RouteComponent = () => {
       : [];
 
   if (!catalog) return null;
-  const myAgent = useMyself();
-
-  const myAgentSlug = myAgent?.participant_nick;
+  const own = !catalog.participantId || catalog.participantId === myAgent?.participant_id;
 
   return (
     <PageLayout>
-      <div className="grid grid-cols-3 gap-12">
-        <div className="rounded-md border border-background-200/60 bg-background-200/5 p-4 max-h-[70vh] ">
-          <Heading level="h2" className="capitalize">
-            {" "}
-            {catalog.title ? catalog.title : `${myAgentSlug}'s Catalog`}
-          </Heading>
+      <PageHeader
+        eyebrow="Catalog"
+        title={catalog.title || `${myAgent?.participant_nick ?? "My"} catalog`}
+        badge={own && <Badge variant="outline">Mine</Badge>}
+        description={catalog.description || undefined}
+        actions={
+          own && (
+            <Link to="/my-catalog/new">
+              <Button>
+                <Plus />
+                New dataset
+              </Button>
+            </Link>
+          )
+        }
+      />
 
-          <Badge variant="detail" size="lg" className="uppercase text-blue-700 dark:text-blue-300 font-semibold mb-3">
-            My own catalog
-          </Badge>
-          <p className="text-sm mb-2">
-            Description of the catalog. This is the catalog of{" "}
-            <span className="capitalize">{myAgentSlug}</span>
-          </p>
-          <InfoList
-            items={[
-              { label: "Catalog title", value: catalog.title },
+      <PageSection title="Summary">
+        <FieldGrid
+          columns={4}
+          fields={[
+            { label: "Publisher", value: <ParticipantLabel id={catalog.participantId || myAgent?.participant_id} /> },
+            { label: "Issued", value: <FormatDate date={catalog.issued || null} /> },
+            {
+              label: "Homepage",
+              value: catalog.homepage ? (
+                <a href={catalog.homepage} className="text-brand-sky hover:underline break-all">
+                  {catalog.homepage}
+                </a>
+              ) : null,
+            },
+            { label: "Identifier", value: <Identifier value={catalog.id} tail={36} /> },
+          ]}
+        />
+      </PageSection>
 
-              { label: "Catalog homepage", value: catalog.homepage },
-              {
-                label: "Catalog creation date",
-                value: { type: "custom", content: <FormatDate date={catalog.issued} /> },
-              },
-              {
-                label: "Organization",
-                value: {
-                  type: "custom",
-                  content: (
-                    <div className={`catalog-participant-container flex gap-2 justify-start `}>
-                      <AvatarImg sizeClass="h-7" />
-                      <Heading level="h4" className="capitalize">
-                        {" "}
-                        {myAgentSlug}{" "}
-                      </Heading>
-                    </div>
-                  ),
-                },
-              },
-            ]}
-          />
+      <PageSection title="Data services">
+        <FieldGrid
+          columns={2}
+          fields={dataservices.flatMap((ds) => [
+            { label: "Data service", value: <Identifier value={ds.id} tail={36} /> },
+            {
+              label: "Endpoint",
+              value: ds.endpointURL ? <span className="font-mono text-xs">{ds.endpointURL}</span> : null,
+            },
+          ])}
+        />
+      </PageSection>
 
-          <div className="h-1"></div>
-          <div className="border-t border-ink/10"></div>
-          <div className="h-2"></div>
-
-          <>
-            <Heading level="h4" className="text-left">
-              Dataservice
-            </Heading>
-            <InfoList
-              items={[
-                {
-                  label: "Dataservice ID",
-                  value: { type: "urn", value: dataservices[0].id! },
-                },
-
-                {
-                  label: "Dataservice creation date",
-                  value: {
-                    type: "custom",
-                    content: <FormatDate date={dataservices[0].issued} />,
-                  },
-                },
-                {
-                  label: "Endpoint",
-                  value: "Dataservice URL",
-                },
-              ]}
-            />
-          </>
-        </div>
-        <div className="col-span-2">
-          <Heading level="h4" className="text-left">
-            Datasets
-          </Heading>
-          <div className="grid grid-cols-2 gap-3">
-            {datasets.length > 0 ? (
-              datasets.map((dataset) => (
-                <DatasetItem
-                  key={dataset.id}
-                  title={dataset.title!}
-                  description={dataset.description!}
-                  date={dataset.issued!}
-                  prevRoute={catalog.id!}
-                  datasetId={dataset.id!}
-                  ownDataset={true}
-                  dataset={dataset}
-                />
-              ))
-            ) : (
-              <p className="text-muted-foreground italic text-sm">No datasets to show</p>
-            )}
+      <PageSection title={`Datasets · ${datasets.length}`}>
+        {datasets.length > 0 ? (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {datasets.map((dataset) => (
+              <DatasetItem
+                key={dataset.id}
+                title={dataset.title}
+                description={dataset.description}
+                date={dataset.issued}
+                prevRoute={catalog.id}
+                datasetId={dataset.id}
+                ownDataset={own}
+                dataset={dataset}
+              />
+            ))}
           </div>
-        </div>
-      </div>
+        ) : (
+          <p className="text-sm text-ink/50">This catalog has no datasets yet.</p>
+        )}
+      </PageSection>
     </PageLayout>
   );
 };
 
-/**
- * Route for displaying catalog details.
- */
 export const Route = createFileRoute("/catalog/$catalogId/")({
-  component: RouteComponent,
-  pendingComponent: () => <div>Loading...</div>,
+  component: CatalogPage,
 });

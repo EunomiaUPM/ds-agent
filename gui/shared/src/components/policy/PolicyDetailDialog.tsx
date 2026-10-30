@@ -50,7 +50,7 @@ export function PolicyDetailDialog({ policy }: { policy: OdrlPolicyDto }) {
             fields={[
               {
                 label: "Created",
-                value: <FormatDate date={policy.createdAt} format="YYYY-MM-DD HH:mm" />,
+                value: <FormatDate date={policy.createdAt} />,
               },
               { label: "Visibility", value: policy.visibility },
               { label: "Made", value: source },

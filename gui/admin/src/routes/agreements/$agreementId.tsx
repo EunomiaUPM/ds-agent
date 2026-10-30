@@ -136,7 +136,12 @@ function RouteComponent() {
                 </Badge>
               ),
             },
-            { header: "Protocol", cell: (t) => <span className="text-sm">{t.protocol}</span> },
+            {
+              header: "Protocol",
+              cell: (t) => (
+                <span className="text-sm">{t.protocol === "dsp2025_1" ? "DSP 2025-1" : t.protocol}</span>
+              ),
+            },
             {
               header: "Created",
               accessorKey: "createdAt",

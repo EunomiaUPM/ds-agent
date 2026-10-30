@@ -197,7 +197,7 @@ function DistributionConnectorPage() {
           },
           {
             label: "Issued",
-            value: <FormatDate date={distribution.issued} format="YYYY-MM-DD HH:mm" />,
+            value: <FormatDate date={distribution.issued} />,
           },
           {
             label: "Media type",

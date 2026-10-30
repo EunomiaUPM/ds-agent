@@ -154,7 +154,7 @@ function PolicyLibraryPage() {
             },
             {
               header: "Updated",
-              cell: (g) => <FormatDate date={g.latest.date} format="YYYY-MM-DD HH:mm" />,
+              cell: (g) => <FormatDate date={g.latest.date} />,
             },
           ]}
         />

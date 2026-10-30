@@ -1,10 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Identifier } from "shared/src/components/identity/Identifier";
 import { useQuery } from "@tanstack/react-query";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { Skeleton } from "shared/src/components/ui/skeleton";
 import { Badge } from "shared/src/components/ui/badge";
-import { InfoList } from "shared/src/components/ui/info-list";
+import { FieldGrid } from "shared/src/components/layout/FieldGrid";
+import { FormatDate } from "shared/src/components/ui/format-date";
 import { DataTable } from "shared/src/components/DataTable";
 
 interface KeyRef {
@@ -65,23 +67,25 @@ const WalletInfoPage = () => {
 
   return (
     <div className="space-y-12 pb-20">
-      <PageSection title="General Information">
-        <div className="bg-ink/5 border border-ink/10 rounded-xl p-8 backdrop-blur-sm shadow-xl">
-          <InfoList
-            items={[
-              { label: "Wallet ID", value: info.id },
-              { label: "Name", value: info.name },
-              { label: "Created On", value: info.createdOn || "—" },
-              { label: "Permission Level", value: info.permission },
-            ]}
-          />
-        </div>
+      <PageSection title="General information">
+        <FieldGrid
+          columns={4}
+          fields={[
+            { label: "Wallet ID", value: <span className="font-mono text-xs">{info.id}</span> },
+            { label: "Name", value: info.name },
+            { label: "Created", value: <FormatDate date={info.createdOn || null} /> },
+            { label: "Permission level", value: <Badge variant="outline">{info.permission}</Badge> },
+          ]}
+        />
       </PageSection>
 
       <PageSection title="Associated DIDs">
         <p className="text-xs text-muted-foreground mb-4">
-          Quick overview of stored DIDs. Manage keys and defaults from the{" "}
-          <span className="font-semibold text-primary">DID</span> tab.
+          Keys and the default DID are managed in the{" "}
+          <Link to="/wallet/did" className="font-medium text-brand-sky hover:underline">
+            DID
+          </Link>{" "}
+          tab.
         </p>
         <DataTable
           searchable={false}
@@ -91,19 +95,12 @@ const WalletInfoPage = () => {
             {
               header: "Alias",
               accessorKey: "alias",
-              cell: (d) => <span className="font-semibold text-primary/80">{d.alias}</span>,
+              cell: (d) => <span className="font-medium">{d.alias}</span>,
             },
             {
               header: "DID",
               accessorKey: "did",
-              cell: (d) => (
-                <span
-                  className="font-mono text-xs text-muted-foreground block max-w-[260px] truncate"
-                  title={d.did}
-                >
-                  {d.did}
-                </span>
-              ),
+              cell: (d) => <Identifier value={d.did} tail={12} />,
             },
             {
               header: "Type",

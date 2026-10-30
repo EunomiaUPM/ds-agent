@@ -46,8 +46,8 @@ export function PageHeader({
             </div>
           )}
           <Heading
-            level="h4"
-            className="flex flex-wrap gap-2 items-center font-display mb-0 text-ink/90"
+            level="h1"
+            className="flex flex-wrap gap-2 items-center font-display text-2xl mb-0 text-ink/90"
           >
             <span className="min-w-0 break-words">{title}</span>
             {badge}

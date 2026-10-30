@@ -58,7 +58,7 @@ export function PageSection({ title, action, className, children, ...props }: Pa
   return (
     <div className={cn("mb-6", className)} {...props}>
       {/* Section header with title and optional action */}
-      <div className="flex items-center justify-start gap-4 mb-2">
+      <div className="flex items-center justify-between gap-4 mb-2">
         {title && (
           <Heading
             level="h6"
@@ -67,7 +67,7 @@ export function PageSection({ title, action, className, children, ...props }: Pa
             {title}
           </Heading>
         )}
-        {action && <div className="mt-1">{action}</div>}
+        {action && <div className="mt-1 ml-auto">{action}</div>}
       </div>
       {/* Section content */}
       {children}

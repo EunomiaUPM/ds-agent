@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import CatalogItem from "shared/src/components/ui/catalog-item";
+import { PageHeader } from "shared/src/components/layout/PageHeader";
 import Heading from "shared/src/components/ui/heading.tsx";
 import { Button } from "shared/src/components/ui/button.tsx";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
@@ -80,9 +81,10 @@ const RouteComponent = () => {
 
   return (
     <PageLayout>
-      <div className="bg-violet-700/40 flex justify-center items-center h-48">
-        <Heading level="h2">Browse public catalogs and your connections' catalogs </Heading>
-      </div>
+      <PageHeader
+        title="Catalog Browser"
+        description="Public catalogs of the dataspace and the catalogs of the participants you are connected to."
+      />
       {!onboardedWithKnownProvider && (
         <WizardDialog
           open={wizardCatalogOpen}

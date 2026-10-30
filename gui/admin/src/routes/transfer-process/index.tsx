@@ -118,13 +118,13 @@ function TransfersPage() {
           { header: "Transfer", cell: (tp) => <Identifier value={tp.id} /> },
           {
             header: "Last change",
-            cell: (tp) => <RelativeTime date={tp.updatedAt} className="text-ink/70" />,
+            cell: (tp) => <RelativeTime date={tp.updatedAt} className="whitespace-nowrap text-ink/70" />,
           },
           {
             header: "Requested",
             accessorKey: "createdAt",
             sortKey: "created_at",
-            cell: (tp) => <FormatDate date={tp.createdAt} format="YYYY-MM-DD HH:mm" />,
+            cell: (tp) => <FormatDate date={tp.createdAt} />,
           },
           {
             header: "",

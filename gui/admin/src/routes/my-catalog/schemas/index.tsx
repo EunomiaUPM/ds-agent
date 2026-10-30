@@ -104,7 +104,7 @@ function SchemasPage() {
             },
             {
               header: "Updated",
-              cell: (g) => <FormatDate date={g.latest.createdAt} format="YYYY-MM-DD HH:mm" />,
+              cell: (g) => <FormatDate date={g.latest.createdAt} />,
             },
           ]}
         />

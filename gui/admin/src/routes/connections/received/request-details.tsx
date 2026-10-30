@@ -99,7 +99,7 @@ interface DetailsResponse {
 }
 
 const searchSchema = z.object({
-  requestId: z.string(),
+  requestId: z.string().optional(),
 });
 
 // @ts-ignore
@@ -162,7 +162,7 @@ function ReceivedRequestDetails() {
       <PageSection>
         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
           <AlertCircle className="h-12 w-12 mb-4 opacity-20" />
-          <p>We couldn't find an incoming request with the ID: {requestId}</p>
+          <p>{requestId ? `We couldn't find an incoming request with the ID ${requestId}.` : "No request selected."}</p>
           <Link to="/connections/received" className="mt-4">
             <Button variant="outline">
               <ArrowLeft className="mr-2 h-4 w-4" />

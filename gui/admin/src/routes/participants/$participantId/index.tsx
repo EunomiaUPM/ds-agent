@@ -15,7 +15,6 @@ import { useGetParticipantById } from "shared/data/orval/participants/participan
 import { GeneralErrorComponent } from "@/components/GeneralErrorComponent.tsx";
 import { useGetAgreementsByParticipantId } from "shared/data/orval/negotiations/negotiations.ts";
 import { Skeleton } from "shared/src/components/ui/skeleton";
-import dayjs from "dayjs";
 import { Card, CardContent, CardHeader, CardTitle } from "shared/src/components/ui/card";
 import { Separator } from "shared/src/components/ui/separator";
 import { History, Shield, Globe, Cpu, Key, Calendar, Activity, Users } from "lucide-react";
@@ -273,7 +272,7 @@ function RouteComponent() {
                   <Key className="h-3 w-3" /> First Registered
                 </span>
                 <span className="font-medium">
-                  {p.saved_at ? dayjs(p.saved_at).format("MMM D, YYYY") : "N/A"}
+                  <FormatDate date={p.saved_at} />
                 </span>
               </div>
               <Separator />
@@ -282,7 +281,7 @@ function RouteComponent() {
                   <Activity className="h-3 w-3" /> Last Interaction
                 </span>
                 <span className="font-medium">
-                  {p.last_interaction ? dayjs(p.last_interaction).format("MMM d, HH:mm") : "None"}
+                  {p.last_interaction ? <FormatDate date={p.last_interaction} /> : "None"}
                 </span>
               </div>
             </CardContent>

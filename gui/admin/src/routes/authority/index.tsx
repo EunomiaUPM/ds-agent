@@ -97,16 +97,18 @@ function AuthorityRequestsPage() {
         actionHref={"/catalog/"}
         actionLabel={"See dataspace"}
       />
-      <PageHeader title="Credential Requests">
-        <div className="flex justify-end mb-4">
+      <PageHeader
+        title="VC Requests"
+        description="Verifiable credentials this connector asked authorities for."
+        actions={
           <Link to="/authority/new">
             <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Request New Credential
+              <Plus />
+              Request credential
             </Button>
           </Link>
-        </div>
-      </PageHeader>
+        }
+      />
 
       <PageSection>
         <DataTable<SentGrant>

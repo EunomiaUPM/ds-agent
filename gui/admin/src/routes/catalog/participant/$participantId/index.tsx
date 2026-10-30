@@ -5,11 +5,12 @@ import { CatalogRpc, DspViews, dspIssued, dspTitle, text } from "shared/src/data
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { FormatDate } from "shared/src/components/ui/format-date";
-import { formatUrn } from "shared/src/lib/utils";
+import { formatUrn, pathIdParams } from "shared/src/lib/utils";
 import React, { useEffect, useState, useMemo } from "react";
 import { Skeleton } from "shared/src/components/ui/skeleton";
 import Heading from "shared/src/components/ui/heading";
 import DatasetItem from "shared/src/components/ui/dataset-item";
+import { CountBadge } from "shared/src/components/ui/count-badge";
 import Avatar from "shared/components/ui/avatar-img";
 import { useFederatedCatalog } from "shared/data/useFederatedCatalog";
 import { Badge } from "shared/src/components/ui/badge";
@@ -150,20 +151,7 @@ function RouteComponent() {
     const nick = participant?.participant_nick || "this participant";
     return (
       <PageLayout>
-        <PageHeader title={`${participant?.participant_nick || "Participant"}'s Catalog`}>
-          <div className="pt-2">
-            <Link to="/catalog">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs px-2 gap-1 text-muted-foreground hover:text-foreground"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" />
-                <span>Back to Catalogs</span>
-              </Button>
-            </Link>
-          </div>
-        </PageHeader>
+        <PageHeader title={`${participant?.participant_nick || "Participant"}'s Catalog`} />
         <Card className="p-6 max-w-lg">
           <CardTitle className="mb-4">Connect with {nick}</CardTitle>
           {connection === "pending" ? (
@@ -214,20 +202,7 @@ function RouteComponent() {
             </Badge>
           )
         }
-      >
-        <div className="pt-2">
-          <Link to="/catalog">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs px-2 gap-1 text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Back to Catalogs</span>
-            </Button>
-          </Link>
-        </div>
-      </PageHeader>
+      />
 
       <InnerSidebarLayout>
         {/* Secondary Sidebar (Sidebar Sec) */}
@@ -325,13 +300,10 @@ function RouteComponent() {
               {/* Header Toolbar */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-ink/10">
                 <div className="flex items-center gap-2">
-                  <Heading level="h4" className="!mb-0 text-lg font-semibold">
+                  <Heading level="h4" className="!mb-0 text-lg font-semibold whitespace-nowrap">
                     Offered Datasets
                   </Heading>
-                  <Badge variant="code" className="text-xs">
-                    {filteredDatasets.length}{" "}
-                    {filteredDatasets.length === 1 ? "dataset" : "datasets"}
-                  </Badge>
+                  <CountBadge n={filteredDatasets.length} showZero />
                 </div>
 
                 <Input
@@ -387,7 +359,7 @@ function RouteComponent() {
           {activeTab === "dataservice" && dataservice && (
             <div className="flex flex-col gap-4">
               <div className="pb-3 border-b border-ink/10">
-                <Heading level="h4" className="!mb-0 text-lg font-semibold">
+                <Heading level="h4" className="!mb-0 text-lg font-semibold whitespace-nowrap">
                   Dataservice Details
                 </Heading>
               </div>
@@ -431,6 +403,7 @@ function RouteComponent() {
 }
 
 export const Route = createFileRoute("/catalog/participant/$participantId/")({
+  params: pathIdParams("participantId"),
   component: RouteComponent,
   // This connector is not among its own peers: its catalog is the local one.
   beforeLoad: async ({ params, context: { queryClient } }) => {

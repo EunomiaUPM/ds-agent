@@ -11,6 +11,7 @@
  */
 
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { FormatDate } from "shared/src/components/ui/format-date";
 import { formatIdentifier, formatUrn } from "shared/src/lib/utils";
 import { DataTable } from "shared/src/components/DataTable";
 import { Button } from "shared/src/components/ui/button.tsx";
@@ -26,7 +27,6 @@ import { useGetAllParticipants } from "shared/data/orval/participants/participan
 import { GeneralErrorComponent } from "@/components/GeneralErrorComponent";
 import { ParticipantDto } from "shared/data/orval/model/participantDto";
 import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
-import dayjs from "dayjs";
 import { Card, CardContent, CardHeader, CardTitle } from "shared/src/components/ui/card";
 import { Skeleton } from "shared/src/components/ui/skeleton";
 
@@ -97,11 +97,7 @@ function RouteComponent() {
     <PageLayout>
       <PageHeader
         title="Participants"
-        badge={
-          <Badge size="lg" className="uppercase font-medium">
-            {allParticipants.length} total
-          </Badge>
-        }
+        description="This agent and the peers and authorities it has dealt with."
       />
 
       {/* Quick Stats / My Agent info */}
@@ -207,11 +203,7 @@ function RouteComponent() {
               accessorKey: "last_interaction",
               sortKey: "last_interaction",
               cell: (p: Participant) => (
-                <p>
-                  {p.last_interaction
-                    ? dayjs(p.last_interaction).format("DD MM YYYY - HH:mm")
-                    : "Never"}
-                </p>
+                <p>{p.last_interaction ? <FormatDate date={p.last_interaction} /> : "Never"}</p>
               ),
             },
             {

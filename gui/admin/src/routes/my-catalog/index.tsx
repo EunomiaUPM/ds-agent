@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useState, useMemo } from "react";
 import Heading from "shared/src/components/ui/heading";
 import DatasetItem from "shared/src/components/ui/dataset-item";
+import { CountBadge } from "shared/src/components/ui/count-badge";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { Skeleton } from "shared/src/components/ui/skeleton";
@@ -433,40 +434,18 @@ function RouteComponent() {
           )}
 
           {/* 4. Quick Actions */}
-          <InnerSidebarSection title="Quick Actions">
+          <InnerSidebarSection title="Actions">
             <div className="flex flex-col gap-2">
-              <Link to="/my-catalog/new">
-                <Button
-                  size="sm"
-                  variant="default"
-                  className="w-full justify-start gap-2 text-xs font-medium"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  New Dataset Offering
-                </Button>
-              </Link>
               <Link to="/catalog/$catalogId" params={{ catalogId: catalog.id! }}>
-                <Button size="sm" variant="default" className="w-full justify-start gap-2 text-xs">
+                <Button size="sm" variant="outline" className="w-full justify-start gap-2 text-xs">
                   <Layers className="h-3.5 w-3.5" />
-                  Manage Offerings
+                  View as consumers see it
                 </Button>
               </Link>
               <Link to="/my-catalog/import">
                 <Button size="sm" variant="outline" className="w-full justify-start gap-2 text-xs">
                   <Upload className="h-3.5 w-3.5" />
                   Import DCAT-AP / DCAT 3
-                </Button>
-              </Link>
-              <Link to="/my-catalog/schemas">
-                <Button size="sm" variant="outline" className="w-full justify-start gap-2 text-xs">
-                  <FileJson className="h-3.5 w-3.5" />
-                  Data Schemas
-                </Button>
-              </Link>
-              <Link to="/my-catalog/policies">
-                <Button size="sm" variant="outline" className="w-full justify-start gap-2 text-xs">
-                  <Library className="h-3.5 w-3.5" />
-                  Policy Library
                 </Button>
               </Link>
               <Button
@@ -490,12 +469,10 @@ function RouteComponent() {
               {/* Body Toolbar */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-ink/10">
                 <div className="flex items-center gap-2">
-                  <Heading level="h4" className="!mb-0 text-lg font-semibold">
+                  <Heading level="h4" className="!mb-0 text-lg font-semibold whitespace-nowrap">
                     Published Datasets
                   </Heading>
-                  <Badge variant="code" className="text-xs">
-                    {filteredDatasets.length} {filteredDatasets.length === 1 ? "item" : "items"}
-                  </Badge>
+                  <CountBadge n={filteredDatasets.length} showZero />
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -610,12 +587,10 @@ function RouteComponent() {
           {activeTab === "dataservices" && (
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between pb-3 border-b border-ink/10">
-                <Heading level="h4" className="!mb-0 text-lg font-semibold">
+                <Heading level="h4" className="!mb-0 text-lg font-semibold whitespace-nowrap">
                   Registered Data Services
                 </Heading>
-                <Badge variant="code" className="text-xs">
-                  {dataservices.length} {dataservices.length === 1 ? "service" : "services"}
-                </Badge>
+                <CountBadge n={dataservices.length} showZero />
               </div>
 
               {dataservices.length > 0 ? (
@@ -721,11 +696,11 @@ function RouteComponent() {
           {activeTab === "policies" && (
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between pb-3 border-b border-ink/10">
-                <Heading level="h4" className="!mb-0 text-lg font-semibold">
+                <Heading level="h4" className="!mb-0 text-lg font-semibold whitespace-nowrap">
                   Catalog ODRL Policies Overview
                 </Heading>
-                <Badge variant="code" className="text-xs">
-                  ODRL 2.2 Compatible
+                <Badge variant="outline" className="text-xs">
+                  ODRL 2.2
                 </Badge>
               </div>
 
@@ -782,7 +757,7 @@ function RouteComponent() {
           {activeTab === "metadata" && (
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between gap-3">
-                <Heading level="h4" className="!mb-0 text-lg font-semibold">
+                <Heading level="h4" className="!mb-0 text-lg font-semibold whitespace-nowrap">
                   Catalog Specification
                 </Heading>
                 <Link to="/my-catalog/import">

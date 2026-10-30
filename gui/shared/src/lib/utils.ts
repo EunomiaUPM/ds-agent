@@ -186,5 +186,23 @@ export const encodePathId = (id: string): string => {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 };
 
+export const decodePathId = (encoded: string): string => {
+  const base64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
+  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+};
+
+// Route params for ids such as did:web:host%3Aport, which the router would decode twice.
+export const pathIdParams = <P extends string>(key: P) => ({
+  parse: (raw: Record<P, string>): Record<P, string> => {
+    try {
+      return { ...raw, [key]: decodePathId(raw[key]) };
+    } catch {
+      return raw;
+    }
+  },
+  stringify: (params: Record<P, string>): Record<P, string> => ({ ...params, [key]: encodePathId(params[key]) }),
+});
+
 export const grantBadgeState = (status: string | undefined): string | undefined =>
   status === "Finalized" ? "expired" : status;

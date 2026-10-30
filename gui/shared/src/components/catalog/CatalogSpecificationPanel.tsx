@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Download, FileCode, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "shared/src/components/ui/badge";
@@ -68,18 +69,18 @@ export function CatalogSpecificationPanel({ catalogId }: { catalogId: string }) 
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-ink/60">
         <div className="flex items-center gap-2">
           <span>Preview of</span>
-          <select
-            aria-label="Datasets in the preview"
-            value={limit}
-            onChange={(e) => setLimit(Number(e.target.value))}
-            className="rounded-md border border-ink/15 bg-background px-1.5 py-0.5 text-xs"
-          >
-            {PREVIEW_SIZES.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
+          <Select value={String(limit)} onValueChange={(v) => setLimit(Number(v))}>
+            <SelectTrigger aria-label="Datasets in the preview" className="h-7 w-auto gap-2">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PREVIEW_SIZES.map((n) => (
+                <SelectItem key={n} value={String(n)}>
+                  {n}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <span>datasets</span>
           {document && (
             <span className="text-ink/45">

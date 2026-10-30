@@ -1,5 +1,6 @@
 import {
   AlertCircle,
+  ArrowLeft,
   Check,
   CheckCircle2,
   Clock,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import QRCode from "react-qr-code";
+import { Identifier } from "shared/src/components/identity/Identifier";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageSection } from "shared/src/components/layout/PageSection";
@@ -33,7 +35,7 @@ import { formatUrn, getFriendlyVCType } from "shared/src/lib/utils";
 import { z } from "zod";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 const searchSchema = z.object({
   requestId: z.string().optional(),
@@ -167,11 +169,21 @@ function RequestDetailsPage() {
   if (!grant) {
     return (
       <PageLayout>
-        <PageHeader title="Request Not Found" />
+        <PageHeader title="Request not found" />
         <PageSection>
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
             <AlertCircle className="h-12 w-12 mb-4 opacity-20" />
-            <p>We couldn't find a VC request with the ID: {requestId}</p>
+            <p>
+              {requestId
+                ? `We couldn't find a VC request with the ID ${requestId}.`
+                : "No request selected."}
+            </p>
+            <Link to="/authority" className="mt-4">
+              <Button variant="outline">
+                <ArrowLeft />
+                Back to VC requests
+              </Button>
+            </Link>
           </div>
         </PageSection>
       </PageLayout>
@@ -180,9 +192,11 @@ function RequestDetailsPage() {
 
   return (
     <PageLayout>
-      <PageHeader title={`Request: ${grant.participant_nick || "Authority"}`}>
-        <div className="text-xs text-muted-foreground font-mono mt-1">ID: {grant.id}</div>
-      </PageHeader>
+      <PageHeader
+        eyebrow="VC request"
+        title={grant.participant_nick || "Authority"}
+        description={<Identifier value={grant.id} tail={36} />}
+      />
 
       <PageSection>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

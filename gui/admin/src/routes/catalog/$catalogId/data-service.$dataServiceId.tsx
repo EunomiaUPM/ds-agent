@@ -90,7 +90,7 @@ function RouteComponent() {
           },
           {
             label: "Issued",
-            value: <FormatDate date={dataService.issued} format="YYYY-MM-DD HH:mm" />,
+            value: <FormatDate date={dataService.issued} />,
           },
           {
             label: "Endpoint description",

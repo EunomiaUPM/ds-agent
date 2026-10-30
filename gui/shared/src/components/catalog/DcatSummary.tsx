@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { FieldGrid } from "shared/src/components/layout/FieldGrid";
 import { SchemaUrl } from "shared/src/components/schemas/SchemaPicker";
@@ -40,16 +40,14 @@ const link = (href: string) =>
 const iri = (value: string) =>
   value ? <span className="break-all font-mono text-xs">{value}</span> : null;
 
-/** The DCAT metadata of a dataset document as label/value pairs. */
-export function DatasetDcatSummary({ doc }: { doc: DcatDocument }) {
+/** The DCAT metadata of a dataset document as label/value pairs; empty ones folded away. */
+export function DatasetDcatSummary({ doc, action }: { doc: DcatDocument; action?: React.ReactNode }) {
+  const [showEmpty, setShowEmpty] = useState(false);
   const d = DcatForms.readDataset(doc);
   const period =
     d.temporalStart || d.temporalEnd ? `${d.temporalStart || "…"} → ${d.temporalEnd || "…"}` : null;
   const contact = [d.contactName, d.contactEmail].filter(Boolean).join(" · ");
-  return (
-    <FieldGrid
-      columns={3}
-      fields={[
+  const fields = [
         { label: "Keywords", value: chips(d.keywords) },
         { label: "Themes", value: chips(d.themes, DcatVocabularies.themes) },
         { label: "License", value: term(d.license, DcatVocabularies.licenses) },
@@ -75,14 +73,36 @@ export function DatasetDcatSummary({ doc }: { doc: DcatDocument }) {
         { label: "Creator", value: iri(d.creator) },
         { label: "Contact", value: contact || null },
         { label: "Identifier", value: d.identifier || null },
-        { label: "Landing page", value: link(d.landingPage), span: 2 },
+        { label: "Landing page", value: link(d.landingPage), span: 2 as const },
         {
           label: "Data schema",
           value: d.schema ? <SchemaUrl url={d.schema} /> : null,
-          span: 3,
+          span: 3 as const,
         },
-        { label: "Other standard", value: link(d.conformsTo), span: 3 },
-      ]}
-    />
+        { label: "Other standard", value: link(d.conformsTo), span: 3 as const },
+  ];
+  const empty = fields.filter((f) => f.value === null).length;
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-end gap-2">
+        {empty > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowEmpty(!showEmpty)}
+            className="text-xs text-ink/50 hover:text-ink"
+          >
+            {showEmpty ? "Hide empty fields" : `Show ${empty} empty fields`}
+          </button>
+        )}
+        {action}
+      </div>
+      {fields.length - empty > 0 || showEmpty ? (
+        <FieldGrid columns={3} fields={fields.map((f) => ({ ...f, hidden: !showEmpty && f.value === null }))} />
+      ) : (
+        <p className="rounded-lg border border-dashed border-ink/15 p-4 text-sm text-ink/50">
+          No DCAT metadata yet beyond the title and description.
+        </p>
+      )}
+    </div>
   );
 }

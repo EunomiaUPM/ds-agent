@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import {
   ArrowDown,
   ArrowUp,
@@ -720,41 +721,45 @@ export function DataTable<T extends Record<string, any> = any>({
                     f.value !== undefined ? f.value : (filterValues[f.id] ?? "all");
                   return (
                     <div key={f.id} className="flex items-center gap-1.5">
-                      <select
-                        aria-label={f.label}
-                        value={currentVal}
-                        onChange={(e) => handleFilterChange(f, e.target.value)}
-                        className={cn(
-                          "h-8 rounded-md border bg-background-800/90 px-2.5 py-1 text-xs shadow-xs transition-colors focus:outline-none focus:ring-1 focus:ring-brand-sky/60 cursor-pointer",
-                          currentVal !== "all"
-                            ? "border-brand-sky/60 bg-brand-sky/10 text-brand-sky font-medium"
-                            : "border-ink/15 text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        <option value="all">{f.label}: All</option>
-                        {f.options.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
+                      <Select value={currentVal} onValueChange={(v) => handleFilterChange(f, v)}>
+                        <SelectTrigger
+                          aria-label={f.label}
+                          className={cn(
+                            "h-8 w-auto gap-2",
+                            currentVal !== "all" &&
+                              "border-brand-sky/60 bg-brand-sky/10 text-brand-sky font-medium",
+                          )}
+                        >
+                          <span className="text-ink/50">{f.label}:</span>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          {f.options.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   );
                 })}
               </div>
             )}
 
-            {!hideCount && (
+            {/* The paginated footer already gives the total; the toolbar only says what a filter left. */}
+            {!hideCount && (isFiltered || !paginated) && (
               <div className="flex items-center gap-1.5">
-                <Badge
-                  variant={isFiltered ? "info" : "default"}
-                  size="sm"
-                  className="font-mono text-xs"
-                >
-                  {isFiltered
-                    ? `${rawItems.length} of ${totalItems}`
-                    : `${totalItems} records`}
-                </Badge>
+                {isFiltered ? (
+                  <Badge variant="info" size="sm" className="text-xs">
+                    {rawItems.length} of {totalItems}
+                  </Badge>
+                ) : (
+                  <span className="text-xs text-ink/50">
+                    {totalItems} {totalItems === 1 ? "record" : "records"}
+                  </span>
+                )}
                 {isFiltered && (
                   <Button
                     variant="ghost"
@@ -900,7 +905,8 @@ export function DataTable<T extends Record<string, any> = any>({
               {totalCountValue !== undefined ? (
                 <>
                   {" of "}
-                  <span className="font-medium text-brand-snow">{totalItems}</span> records
+                  <span className="font-medium text-brand-snow">{totalItems}</span>{" "}
+                  {totalItems === 1 ? "record" : "records"}
                 </>
               ) : hasMore ? (
                 <>
@@ -918,19 +924,22 @@ export function DataTable<T extends Record<string, any> = any>({
             {/* Rows per page selector */}
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-muted-foreground">Rows per page:</span>
-              <select
-                aria-label="Rows per page"
-                value={activeItemsPerPage ?? -1}
-                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                className="h-7 rounded-md border border-ink/15 bg-background-800 px-2 py-0.5 text-xs text-brand-snow shadow-xs focus:outline-none focus:ring-1 focus:ring-brand-sky/60 cursor-pointer"
+              <Select
+                value={String(activeItemsPerPage ?? -1)}
+                onValueChange={(v) => handlePageSizeChange(Number(v))}
               >
-                {pageSizeOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-                <option value={-1}>All</option>
-              </select>
+                <SelectTrigger aria-label="Rows per page" className="h-7 w-auto gap-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {pageSizeOptions.map((opt) => (
+                    <SelectItem key={opt} value={String(opt)}>
+                      {opt}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="-1">All</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Page navigation */}

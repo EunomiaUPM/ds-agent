@@ -364,7 +364,7 @@ function Summary({ template }: { template: PolicyTemplateDto }) {
     },
     { label: "Visibility", value: template.visibility },
     { label: "Author", value: template.author || template.userId },
-    { label: "Saved", value: <FormatDate date={template.date} format="YYYY-MM-DD HH:mm" /> },
+    { label: "Saved", value: <FormatDate date={template.date} /> },
     {
       label: "Meant to apply at",
       wide: true,

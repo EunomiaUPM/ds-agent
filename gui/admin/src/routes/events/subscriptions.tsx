@@ -43,6 +43,7 @@ import {
 } from "shared/src/components/ui/dialog";
 import { Plus, Trash2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { EventTopics } from "shared/src/lib/eventTopics";
 
 interface CreateSubscriptionDialogProps {
   open: boolean;
@@ -57,11 +58,8 @@ const CreateSubscriptionDialog = ({ open, onClose }: CreateSubscriptionDialogPro
   const [retryLimit, setRetryLimit] = useState("5");
 
   const topicPresets = [
-    { label: "transfers:*", pattern: "transfers:*" },
-    { label: "transfers:bla", pattern: "transfers:bla" },
-    { label: "transfers:**", pattern: "transfers:**" },
-    { label: "catalog:*", pattern: "catalog:*" },
-    { label: "* (All)", pattern: "*" },
+    ...EventTopics.areas.map((a) => ({ label: `${a.prefix}:*`, pattern: `${a.prefix}:*` })),
+    { label: "* (all)", pattern: "*" },
   ];
 
   const { mutate: createSub, isPending } = useCreateEventSubscription({
@@ -117,7 +115,7 @@ const CreateSubscriptionDialog = ({ open, onClose }: CreateSubscriptionDialogPro
             <Input
               value={topicPattern}
               onChange={(e) => setTopicPattern(e.target.value)}
-              placeholder="e.g. transfers:*, transfers:bla, or catalog:*"
+              placeholder="e.g. transfers:* or catalog:dataset:create"
             />
             <div className="flex flex-wrap items-center gap-1.5 mt-1">
               <span className="text-[11px] text-muted-foreground">Presets:</span>
@@ -224,53 +222,14 @@ const SubscriptionsComponent = () => {
 
   return (
     <div className="flex flex-col gap-6 w-full">
-      <div className="flex items-center justify-end">
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus /> New subscription
-        </Button>
-      </div>
-
-      {/* Quick Pattern Filter Chips */}
-      <div className="flex items-center gap-2">
-        <Button
-          variant={
-            !queryParams.filters.pattern || queryParams.filters.pattern === "all"
-              ? "default"
-              : "outline"
-          }
-          size="sm"
-          className="text-xs h-7"
-          onClick={() =>
-            onQueryChange({
-              filters: { ...queryParams.filters, pattern: "all" },
-              page: 1,
-            })
-          }
-        >
-          All
-        </Button>
-        {["transfers:*", "transfers:bla", "transfers:**", "catalog:*"].map((tag) => (
-          <Button
-            key={tag}
-            variant={queryParams.filters.pattern === tag ? "default" : "outline"}
-            size="sm"
-            className="text-xs h-7 font-mono"
-            onClick={() =>
-              onQueryChange({
-                filters: {
-                  ...queryParams.filters,
-                  pattern: queryParams.filters.pattern === tag ? "all" : tag,
-                },
-                page: 1,
-              })
-            }
-          >
-            {tag}
+      <PageSection
+        title="Webhooks"
+        action={
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus /> New subscription
           </Button>
-        ))}
-      </div>
-
-      <PageSection>
+        }
+      >
         {isLoading && !data ? (
           <div className="flex flex-col gap-3 p-4">
             <Skeleton className="h-12 w-full" />

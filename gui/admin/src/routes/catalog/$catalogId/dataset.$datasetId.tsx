@@ -150,7 +150,7 @@ function DatasetPage() {
           { label: "Publisher", value: <ParticipantLabel id={self?.participant_id} compact /> },
           {
             label: "Issued",
-            value: <FormatDate date={dataset.issued} format="YYYY-MM-DD HH:mm" />,
+            value: <FormatDate date={dataset.issued} />,
           },
           { label: "Identifier", value: <Identifier value={dataset.id} /> },
         ]}
@@ -170,16 +170,18 @@ function DatasetPage() {
         </TabsList>
 
         <TabsContent value="details" className="pt-5">
-          <DatasetDcatSummary doc={datasetData?.data as Record<string, unknown>} />
-          <div className="mt-3 flex justify-end">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setEditing({ kind: "dataset", id: datasetId })}
-            >
-              <Pencil /> Edit metadata
-            </Button>
-          </div>
+          <DatasetDcatSummary
+            doc={datasetData?.data as Record<string, unknown>}
+            action={
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setEditing({ kind: "dataset", id: datasetId })}
+              >
+                <Pencil /> Edit metadata
+              </Button>
+            }
+          />
         </TabsContent>
 
         <TabsContent value="policies" className="pt-5">

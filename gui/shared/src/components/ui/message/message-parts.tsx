@@ -1,4 +1,5 @@
 import * as React from "react";
+import { DATE_TIME_FORMAT } from "../format-date";
 import { cva } from "class-variance-authority";
 import { cn } from "shared/src/lib/utils";
 import dayjs from "dayjs";
@@ -87,7 +88,7 @@ export const MessageTimestamp = React.forwardRef<
   { created_at: string } & React.HTMLAttributes<HTMLParagraphElement>
 >(({ created_at, className, ...props }, ref) => (
   <p ref={ref} className={cn("text-foreground mb-3", className)} {...props}>
-    <i>{dayjs(created_at).format("DD/MM/YYYY - HH:mm")}</i>
+    <i>{dayjs(created_at).format(DATE_TIME_FORMAT)}</i>
   </p>
 ));
 MessageTimestamp.displayName = "MessageTimestamp";

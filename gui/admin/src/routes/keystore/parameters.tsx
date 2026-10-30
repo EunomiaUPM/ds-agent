@@ -280,7 +280,7 @@ const KeystoreParameters = () => {
         action={
           <Button size="sm" onClick={() => setCreating(true)}>
             <Plus className="h-3.5 w-3.5 mr-1" />
-            New
+            New parameter
           </Button>
         }
       >

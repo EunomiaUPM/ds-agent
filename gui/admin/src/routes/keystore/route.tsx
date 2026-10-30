@@ -13,7 +13,10 @@ const KeystoreLayout = () => {
 
   return (
     <PageLayout>
-      <PageHeader title="Keystore"></PageHeader>
+      <PageHeader
+        title="Keystore"
+        description="Parameters and secrets the agents read at runtime, and the configuration they run with."
+      />
 
       <RouteTabs tabs={tabs} />
 

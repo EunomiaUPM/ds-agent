@@ -10,7 +10,7 @@ import { PageSection } from "shared/src/components/layout/PageSection";
 import { InfoList } from "shared/src/components/ui/info-list";
 import { Badge } from "shared/src/components/ui/badge";
 import { FormatDate } from "shared/src/components/ui/format-date";
-import { formatUrn } from "shared/src/lib/utils";
+import { formatUrn, pathIdParams } from "shared/src/lib/utils";
 import { DataTable } from "shared/src/components/DataTable";
 import { useEffect, useMemo } from "react";
 import { Skeleton } from "shared/src/components/ui/skeleton";
@@ -236,5 +236,6 @@ function RouteComponent() {
 }
 
 export const Route = createFileRoute("/catalog/participant/$participantId/dataset/$datasetId")({
+  params: pathIdParams<"participantId" | "datasetId">("participantId"),
   component: RouteComponent,
 });

@@ -42,63 +42,32 @@ const Oidc4vciPage = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-8">
-      <PageSection title="Credential Issuance (OID4VCI)">
-        <div className="bg-ink/5 border border-ink/10 rounded-2xl p-10 backdrop-blur-md shadow-2xl space-y-8">
-          <div className="text-center space-y-2">
-            <FileText className="h-12 w-12 text-primary mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
-              Paste a Credential Offer URI to receive new verifiable credentials.
-            </p>
-          </div>
-
-          <form onSubmit={handleProcess} className="space-y-6">
-            <div className="space-y-2">
-              <Label
-                htmlFor="oidc4vci-uri"
-                className="text-xs uppercase tracking-widest text-muted-foreground/60 font-bold"
-              >
-                Credential Offer URI
-              </Label>
-              <Input
-                id="oidc4vci-uri"
-                placeholder="openid-credential-offer://..."
-                value={uri}
-                onChange={(e) => setUri(e.target.value)}
-                className="bg-sunken/30 border-ink/10 h-12 focus:ring-primary/50 text-sm font-mono"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              disabled={isPending || !uri}
-              className="w-full h-12 text-base font-bold shadow-lg shadow-primary/10 transition-all active:scale-[0.98]"
-            >
-              {isPending ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Issuing...
-                </span>
-              ) : (
-                "Request Credential"
-              )}
-            </Button>
-          </form>
-
-          {isSuccess && (
-            <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400 text-sm text-center font-medium animate-in fade-in zoom-in duration-300">
-              ✓ Credential issuance completed successfully
-            </div>
-          )}
-
-          {!!error && (
-            <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center font-mono">
-              Error: Failed to process credential offer
-            </div>
-          )}
+    <PageSection title="Receive a credential (OID4VCI)">
+      <form onSubmit={handleProcess} className="max-w-2xl space-y-4 rounded-lg border border-ink/10 p-5">
+        <div className="flex items-start gap-3">
+          <FileText className="mt-0.5 h-5 w-5 shrink-0 text-ink/40" />
+          <p className="text-sm text-ink/70">Paste the credential offer URI an issuer gave you to add the credential to this wallet.</p>
         </div>
-      </PageSection>
-    </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="oidc4vci-uri">Credential offer URI</Label>
+          <Input
+            id="oidc4vci-uri"
+            placeholder="openid-credential-offer://…"
+            value={uri}
+            onChange={(e) => setUri(e.target.value)}
+            className="font-mono text-xs"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <Button type="submit" disabled={isPending || !uri}>
+            {isPending && <Loader2 className="animate-spin" />}
+            Request credential
+          </Button>
+          {isSuccess && <span className="text-sm text-success-700 dark:text-success-300">Credential added to the wallet.</span>}
+          {!!error && <span className="text-sm text-danger-700 dark:text-danger-300">The credential offer could not be processed.</span>}
+        </div>
+      </form>
+    </PageSection>
   );
 };
 

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { DATE_FORMAT, FormatDate } from "shared/src/components/ui/format-date";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { toast } from "sonner";
@@ -136,13 +137,13 @@ const WalletCredentials = () => {
     <div className="space-y-8 pb-20">
       {/* Gaia-X Compliance Section */}
       <PageSection title="Gaia-X Compliance">
+        <StepTrail step={step} />
         <ComplianceStepCard
           step={step}
           isGenerating={isGenerating}
           onGenerate={handleGenerateGaia}
           flags={{ hasRegistration, hasLegalPerson, hasTermsAndConditions, hasLabel }}
         />
-        <StepTrail step={step} />
       </PageSection>
 
       {/* Credentials List */}
@@ -176,9 +177,9 @@ const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => P
   // Format dates. `added_on` and `valid_until` come from the entity; `validUntil` may
   // also live inside the parsed VC document depending on the issuer.
   const addedRaw = vc.added_on ?? vc.addedOn;
-  const addedDate = addedRaw ? new Date(addedRaw).toLocaleDateString() : "N/A";
+  const addedDate = <FormatDate date={addedRaw} format={DATE_FORMAT} />;
   const validRaw = vc.valid_until ?? parsed.validUntil ?? parsed.expirationDate;
-  const validUntil = validRaw ? new Date(validRaw).toLocaleDateString() : "Never";
+  const validUntil = validRaw ? <FormatDate date={validRaw} format={DATE_FORMAT} /> : "Never";
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -368,7 +369,7 @@ const ComplianceStepCard = ({
       {step === 1 && (
         <Hint
           tone="amber"
-          text="REQUIREMENT: pick a credential type like VatId, TaxId or LeiCode from a legal authority."
+          text="Request a registration credential (VatId, TaxId or LeiCode) from a legal authority."
         />
       )}
       {step === 2 && !flags.hasLegalPerson && !flags.hasTermsAndConditions && (
@@ -470,16 +471,16 @@ function stepDescription(step: 1 | 2 | 3 | 4) {
 const Hint = ({ tone, text }: { tone: "amber" | "primary"; text: string }) => {
   const cls =
     tone === "amber"
-      ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
+      ? "bg-warn-500/10 border-warn-500/30 text-warn-700 dark:text-warn-300"
       : "bg-primary/10 border-primary/20 text-primary";
   return (
     <div
       className={cn(
-        "mt-4 p-3 rounded-lg text-xs flex items-center gap-2 font-mono border",
+        "mt-4 p-3 rounded-lg text-sm flex items-center gap-2 border",
         cls,
       )}
     >
-      <ShieldAlert className="h-3 w-3" />
+      <ShieldAlert className="h-4 w-4 shrink-0" />
       {text}
     </div>
   );
@@ -493,7 +494,7 @@ const StepTrail = ({ step }: { step: 1 | 2 | 3 | 4 }) => {
     { n: 4, label: "Compliant" },
   ];
   return (
-    <div className="mt-4 flex items-center gap-2">
+    <div className="mb-3 flex items-center gap-2">
       {items.map((it, idx) => {
         const done = it.n < step;
         const current = it.n === step;

@@ -73,6 +73,8 @@ interface NavItem {
   url: string;
   /** Lucide icon component to display */
   icon: React.ComponentType<{ className?: string }>;
+  /** Path prefix that marks the item active; defaults to `url` */
+  section?: string;
 }
 
 // =============================================================================
@@ -157,11 +159,13 @@ export function AppSidebar() {
         {
           title: "My Wallet",
           url: "/admin/wallet/info",
+          section: "/admin/wallet",
           icon: Wallet,
         },
         {
           title: "Keystore",
           url: "/admin/keystore/parameters",
+          section: "/admin/keystore",
           icon: KeyRound,
         },
         {
@@ -189,6 +193,7 @@ export function AppSidebar() {
         {
           title: "Events",
           url: "/admin/events/feed",
+          section: "/admin/events",
           icon: Radio,
         },
       ],
@@ -209,6 +214,16 @@ export function AppSidebar() {
     }
     return true;
   });
+
+  // The longest matching section wins, so /my-catalog/policies selects Policy Library.
+  const pathname = routerState.location.pathname.replace(/\/$/, "");
+  const activeItem = navGroups
+    .flatMap((group) => group.items)
+    .filter((item) => {
+      const section = item.section ?? item.url;
+      return pathname === section || pathname.startsWith(`${section}/`);
+    })
+    .sort((a, b) => (b.section ?? b.url).length - (a.section ?? a.url).length)[0];
 
   // ---------------------------------------------------------------------------
   // Render
@@ -243,37 +258,16 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
               <SidebarMenu>
-                {navGroups[0].title !== group.title
-                  ? group.items.map((item) => (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild>
-                          <Link
-                            to={item.url}
-                            className={
-                              routerState.location.pathname === item.url ? "bg-ink/10 text-ink" : ""
-                            }
-                          >
-                            <item.icon />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))
-                  : itemsFiltered.map((item) => (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild>
-                          <Link
-                            to={item.url}
-                            className={
-                              routerState.location.pathname === item.url ? "bg-ink/10 text-ink" : ""
-                            }
-                          >
-                            <item.icon />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
+                {(group === navGroups[0] ? itemsFiltered : group.items).map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <Link to={item.url} className={item === activeItem ? "bg-ink/10 text-ink" : ""}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

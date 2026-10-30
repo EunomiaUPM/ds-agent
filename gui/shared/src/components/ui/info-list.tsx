@@ -22,6 +22,7 @@
  */
 
 import React from "react";
+import { DATE_TIME_FORMAT } from "./format-date";
 import { Badge, BadgeState, BadgeRole } from "./badge";
 import dayjs from "dayjs";
 import { cn } from "shared/src/lib/utils";
@@ -128,7 +129,7 @@ export const InfoListItem = ({ label, value, className, keyClassName }: InfoItem
 
       switch (value.type) {
         case "date":
-          return <p>{dayjs(value.value).format("DD/MM/YY HH:mm")}</p>;
+          return <p>{dayjs(value.value).format(DATE_TIME_FORMAT)}</p>;
 
         case "status":
           return (

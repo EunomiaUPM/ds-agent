@@ -854,7 +854,12 @@ const KeystoreConfig = () => {
   const [copiedAll, setCopiedAll] = useState(false);
   const [allExpanded, setAllExpanded] = useState(false);
 
-  const cfg = (response?.status === 200 ? response.data : {}) as Record<string, unknown>;
+  // The document is JSON-LD; its @context and @type are not configuration modules.
+  const cfg = Object.fromEntries(
+    Object.entries((response?.status === 200 ? response.data : {}) as Record<string, unknown>).filter(
+      ([key]) => !key.startsWith("@"),
+    ),
+  );
   const sectionKeys = Object.keys(cfg);
 
   const visibleSections = useMemo(() => {

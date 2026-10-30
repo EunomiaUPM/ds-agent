@@ -1,7 +1,4 @@
-import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
-import { formatUrn } from "shared/src/lib/utils";
-import { Badge } from "shared/src/components/ui/badge";
-import Heading from "shared/src/components/ui/heading";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { getGetCatalogByIdQueryOptions } from "shared/src/data/orval/catalogs/catalogs";
 import { getGetDatasetsByCatalogIdQueryOptions } from "shared/src/data/orval/datasets/datasets";
 import { getGetDataServicesByCatalogIdQueryOptions } from "shared/src/data/orval/data-services/data-services";
@@ -24,24 +21,5 @@ export const Route = createFileRoute("/catalog/$catalogId")({
 });
 
 function RouteComponent() {
-  const { catalogId } = Route.useParams();
-  const routerState = useRouterState();
-
-  const catalogIdURL = "/catalog/" + catalogId.replace(/:/g, "%3A");
-
-  return (
-    <div className="h-full w-full flex flex-col">
-      {routerState.location.pathname !== `${catalogIdURL}` ? null : (
-        <header className="mb-2 shrink-0">
-          <Heading level="h3" className="flex gap-2 items-center">
-            Catalog
-            <Badge variant="info" size="lg">
-              {formatUrn(catalogId)}
-            </Badge>
-          </Heading>
-        </header>
-      )}
-      <Outlet />
-    </div>
-  );
+  return <Outlet />;
 }

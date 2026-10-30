@@ -11,24 +11,24 @@
  */
 
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FormatDate } from "shared/src/components/ui/format-date";
-import { formatIdentifier, formatUrn } from "shared/src/lib/utils";
-import { DataTable } from "shared/src/components/DataTable";
-import { Button } from "shared/src/components/ui/button.tsx";
-import { Badge, BadgeRole } from "shared/src/components/ui/badge";
-import { buttonVariants } from "shared/src/components/ui/button";
+import { FormatDate } from "@eunomia/ui";
+import { formatIdentifier, formatUrn } from "@eunomia/ui";
+import { DataTable } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { Badge, BadgeRole } from "@eunomia/ui";
+import { buttonVariants } from "@eunomia/ui";
 
 // Icons
 import { ArrowRight } from "lucide-react";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { PageSection } from "shared/src/components/layout/PageSection";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { PageSection } from "@eunomia/ui";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";
-import { GeneralErrorComponent } from "@/components/GeneralErrorComponent";
+import { GeneralErrorComponent } from "@eunomia/ui";
 import { ParticipantDto } from "shared/data/orval/model/participantDto";
-import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
-import { Card, CardContent, CardHeader, CardTitle } from "shared/src/components/ui/card";
-import { Skeleton } from "shared/src/components/ui/skeleton";
+import { useTableQueryParams } from "@eunomia/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@eunomia/ui";
+import { Skeleton } from "@eunomia/ui";
 
 import { keepPreviousData } from "@tanstack/react-query";
 import { useMyself } from "shared/src/data/useMyself";

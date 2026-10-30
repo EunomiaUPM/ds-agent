@@ -3,7 +3,7 @@ import { cva } from "class-variance-authority";
 import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/GlobalInfoContext";
 import { TransferProcessStartDialog } from "shared/src/components/dialogs/TransferProcessStartDialog";
 import { TransferProcessTerminationDialog } from "shared/src/components/dialogs/TransferProcessTerminationDialog";
-import NoFurtherActions from "../ui/noFurtherActions";
+import { NoFurtherActions } from "@eunomia/ui";
 import { TransferProcessSuspensionDialog } from "shared/src/components/dialogs/TransferProcessSuspensionDialog";
 import { TransferProcessCompletionDialog } from "shared/src/components/dialogs/TransferProcessCompletionDialog";
 import { ProcessActionDialog } from "./ProcessActionDialog";

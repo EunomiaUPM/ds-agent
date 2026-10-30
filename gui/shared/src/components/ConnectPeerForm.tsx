@@ -1,10 +1,10 @@
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
-import { Button } from 'shared/src/components/ui/button';
-import { FormatDate } from 'shared/src/components/ui/format-date';
+import { Button } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from 'shared/src/components/ui/select';
+} from "@eunomia/ui";
 import { Visibility } from 'shared/src/data/orval/model/visibility';
 import { connectToPeer } from 'shared/src/data/orval/onboard/onboard';
 import { discoverPeer } from 'shared/src/data/peerConnection';

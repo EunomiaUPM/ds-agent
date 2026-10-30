@@ -1,21 +1,21 @@
 import React, { useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Library, Plus } from "lucide-react";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { DataTable } from "shared/src/components/DataTable";
-import { Button } from "shared/src/components/ui/button";
-import { Badge } from "shared/src/components/ui/badge";
-import { Input } from "shared/src/components/ui/input";
-import { FormatDate } from "shared/src/components/ui/format-date";
-import { SegmentedControl } from "shared/src/components/ui/segmented";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { DataTable } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
+import { SegmentedControl } from "@eunomia/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "shared/src/components/ui/select";
+} from "@eunomia/ui";
 import { ControlPointChips } from "shared/src/components/policy/ControlPointChips";
 import { useGetAllPolicyTemplates } from "shared/src/data/orval/policy-templates/policy-templates";
 import {

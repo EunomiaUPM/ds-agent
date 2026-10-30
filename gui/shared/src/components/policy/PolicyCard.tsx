@@ -1,8 +1,8 @@
 import React from "react";
 import { ShieldCheck } from "lucide-react";
 import { OdrlPolicyDto } from "shared/src/data/orval/model";
-import { Identifier } from "shared/src/components/identity/Identifier";
-import { RelativeTime } from "shared/src/components/ui/format-date";
+import { Identifier } from "@eunomia/ui";
+import { RelativeTime } from "@eunomia/ui";
 import { OdrlRulesView } from "./OdrlRulesView";
 import { ControlPointChips } from "./ControlPointChips";
 

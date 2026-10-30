@@ -1,6 +1,6 @@
 import React from "react";
-import { InfoList } from "./ui/info-list";
-import { Badge } from "shared/src/components/ui/badge";
+import { InfoList } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
 
 type TransferProcessDataPlaneComponentProps = {
   dataPlane: DataplaneSession;

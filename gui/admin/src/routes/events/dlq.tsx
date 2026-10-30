@@ -31,12 +31,12 @@ import {
   ListDeadLettersStatus,
   ReplayAllResponse,
 } from "shared/src/data/orval/model";
-import { PageSection } from "shared/src/components/layout/PageSection";
-import { DataTable } from "shared/src/components/DataTable";
-import { FormatDate } from "shared/src/components/ui/format-date";
-import { Skeleton } from "shared/src/components/ui/skeleton";
-import { Button } from "shared/src/components/ui/button";
-import { Badge } from "shared/src/components/ui/badge";
+import { PageSection } from "@eunomia/ui";
+import { DataTable } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
+import { Skeleton } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
 import {
   Dialog,
   DialogContent,
@@ -44,8 +44,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "shared/src/components/ui/dialog";
-import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
+} from "@eunomia/ui";
+import { useTableQueryParams } from "@eunomia/ui";
 import { AlertTriangle, RefreshCw, Trash2, Eye, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 

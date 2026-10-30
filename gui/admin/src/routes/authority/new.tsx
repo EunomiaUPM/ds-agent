@@ -1,18 +1,18 @@
 import { AlertCircle, CheckCircle2, Info, Loader2, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageSection } from "shared/src/components/layout/PageSection";
-import { Badge } from "shared/src/components/ui/badge";
-import { Button } from "shared/src/components/ui/button";
+import { PageHeader } from "@eunomia/ui";
+import { PageLayout } from "@eunomia/ui";
+import { PageSection } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "shared/src/components/ui/card";
+} from "@eunomia/ui";
 import {
   Form,
   FormControl,
@@ -21,27 +21,27 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "shared/src/components/ui/form";
-import { Input } from "shared/src/components/ui/input";
-import { Checkbox } from "shared/src/components/ui/checkbox";
+} from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
+import { Checkbox } from "@eunomia/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "shared/src/components/ui/select";
+} from "@eunomia/ui";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "shared/src/components/ui/tooltip";
-import WizardDialog from "shared/src/components/WizardDialog";
+} from "@eunomia/ui";
+import { WizardDialog } from "@eunomia/ui";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
-import { formatIdentifier, getFriendlyVCType } from "shared/src/lib/utils";
+import { formatIdentifier, getFriendlyVCType } from "@eunomia/ui";
 import * as z from "zod";
 
 import { zodResolver } from "@hookform/resolvers/zod";

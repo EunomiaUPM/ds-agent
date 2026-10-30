@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { formatUrn } from "shared/src/lib/utils";
+import { formatUrn } from "@eunomia/ui";
 import { NegotiationMessageDto } from "../data/orval/model";
-import { Badge } from "shared/src/components/ui/badge";
-import { Button } from "shared/src/components/ui/button";
+import { Badge } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
 import dayjs from "dayjs";
 import {
   Send,
@@ -19,7 +19,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "shared/src/lib/utils";
+import { cn } from "@eunomia/ui";
 
 export { ProcessMessagesTable } from "./ProcessMessagesTable";
 

@@ -9,11 +9,11 @@ import {
   useMarkEventRead,
 } from "shared/src/data/orval/events/events";
 import { EventEnvelope } from "shared/src/data/orval/model";
-import { Popover, PopoverContent, PopoverTrigger } from "shared/src/components/ui/popover";
-import { RelativeTime } from "shared/src/components/ui/format-date";
+import { Popover, PopoverContent, PopoverTrigger } from "@eunomia/ui";
+import { RelativeTime } from "@eunomia/ui";
 import { EventTopics } from "shared/src/lib/eventTopics";
 import { useLive } from "shared/src/context/LiveContext";
-import { cn } from "shared/src/lib/utils";
+import { cn } from "@eunomia/ui";
 
 /** Header bell: unread bus events, kept current by the live socket, marked read on open. */
 export const NotificationBell = () => {

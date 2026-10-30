@@ -5,9 +5,9 @@ import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { EyeOff, Send } from "lucide-react";
-import { cn } from "shared/src/lib/utils";
-import { Button, type ButtonSizes } from "shared/src/components/ui/button";
-import { ConfirmDialog } from "shared/src/components/ui/confirm-dialog";
+import { cn } from "@eunomia/ui";
+import { Button, type ButtonSizes } from "@eunomia/ui";
+import { ConfirmDialog } from "@eunomia/ui";
 import { CatalogResources } from "shared/src/data/catalogResources";
 
 type Kind = "dataset" | "distribution";

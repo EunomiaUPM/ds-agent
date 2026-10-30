@@ -8,21 +8,21 @@ import {
   getListSecretsQueryKey,
 } from "shared/src/data/orval/keystore-secrets/keystore-secrets";
 import { KeystoreSecretView } from "shared/src/data/orval/model";
-import { PageSection } from "shared/src/components/layout/PageSection";
-import { DataTable } from "shared/src/components/DataTable";
-import { FormatDate } from "shared/src/components/ui/format-date";
-import { Skeleton } from "shared/src/components/ui/skeleton";
-import { Button } from "shared/src/components/ui/button";
-import { Badge } from "shared/src/components/ui/badge";
-import { Input } from "shared/src/components/ui/input";
-import { Textarea } from "shared/src/components/ui/textarea";
+import { PageSection } from "@eunomia/ui";
+import { DataTable } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
+import { Skeleton } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
+import { Textarea } from "@eunomia/ui";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "shared/src/components/ui/dialog";
+} from "@eunomia/ui";
 import { useState } from "react";
 import { KEYSTORE_CONTEXT } from "shared/src/data/jsonld";
 import { Eye, EyeOff, Trash2, Pencil, Plus } from "lucide-react";

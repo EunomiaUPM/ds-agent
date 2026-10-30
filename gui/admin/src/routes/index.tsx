@@ -26,11 +26,11 @@ import {
   Radio,
   ShieldCheck,
 } from "lucide-react";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { PageSection } from "shared/src/components/layout/PageSection";
-import { StatTile } from "shared/src/components/dashboard/StatTile";
-import { FeatureCard, FeatureCardProps } from "shared/src/components/dashboard/FeatureCard";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { PageSection } from "@eunomia/ui";
+import { StatTile } from "@eunomia/ui";
+import { FeatureCard, FeatureCardProps } from "@eunomia/ui";
 import {
   useGetAgreements,
   useGetNegotiationProcesses,

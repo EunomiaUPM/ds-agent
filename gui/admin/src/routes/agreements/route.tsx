@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
-import Heading from "shared/src/components/ui/heading.tsx";
+import { Heading } from "@eunomia/ui";
 import { getGetAgreementsQueryOptions } from "shared/src/data/orval/negotiations/negotiations";
 
 const NotFound = () => {

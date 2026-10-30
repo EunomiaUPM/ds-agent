@@ -1,20 +1,20 @@
 import { ArrowRight, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { DataTable } from "shared/src/components/DataTable";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageSection } from "shared/src/components/layout/PageSection";
-import { Badge } from "shared/src/components/ui/badge";
-import { Button } from "shared/src/components/ui/button";
-import { FormatDate } from "shared/src/components/ui/format-date";
+import { DataTable } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { PageLayout } from "@eunomia/ui";
+import { PageSection } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { customInstance } from "shared/src/data/orval-mutator";
-import { formatIdentifier, getFriendlyVCType } from "shared/src/lib/utils";
-import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
+import { formatIdentifier, getFriendlyVCType } from "@eunomia/ui";
+import { useTableQueryParams } from "@eunomia/ui";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
-import WizardEndDialog from "shared/src/components/WizardEndDialog";
+import { WizardEndDialog } from "@eunomia/ui";
 
 interface SentGrant {
   id: string;

@@ -1,6 +1,6 @@
 import { useContext, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { encodePathId } from "../lib/utils";
+import { encodePathId } from "@eunomia/ui";
 import { useGetWellKnownDSpaceVersion } from "../data/orval/well-known/well-known";
 import { useFetchDataspaceVersionFromParticipant } from "../data/orval/well-known-rp-c/well-known-rp-c";
 import {

@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { InfoList } from "shared/src/components/ui/info-list";
-import { FormatDate } from "shared/src/components/ui/format-date";
+import { InfoList } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
 import { useGetTransferMessageById } from "shared/data/orval/transfers/transfers";
-import { GeneralErrorComponent } from "@/components/GeneralErrorComponent";
-import { PageLayout } from "shared/components/layout/PageLayout";
-import { PageHeader } from "shared/components/layout/PageHeader";
-import { Skeleton } from "shared/components/ui/skeleton";
+import { GeneralErrorComponent } from "@eunomia/ui";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { Skeleton } from "@eunomia/ui";
 
 /**
  * Route for specific transfer process message details.

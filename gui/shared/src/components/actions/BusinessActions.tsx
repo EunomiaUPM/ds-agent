@@ -2,7 +2,7 @@ import React, { useContext } from "react";
 import { AuthContext, AuthContextType } from "shared/src/context/AuthContext";
 import { BusinessRequestTerminationDialog } from "../dialogs/BusinessRequestTerminationDialog";
 import { BusinessRequestAcceptanceDialog } from "../dialogs/BusinessRequestAcceptanceDialog";
-import NoFurtherActions from "../ui/noFurtherActions";
+import { NoFurtherActions } from "@eunomia/ui";
 import { ProcessActionDialog } from "./ProcessActionDialog";
 
 /**

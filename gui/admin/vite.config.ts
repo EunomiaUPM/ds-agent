@@ -17,7 +17,7 @@ export default defineConfig(() => {
       },
     },
     optimizeDeps: {
-      exclude: ["lucide-react"],
+      exclude: ["lucide-react", "@eunomia/ui"],
     },
     server: {
       port: 5174,

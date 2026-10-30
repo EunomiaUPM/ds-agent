@@ -4,19 +4,19 @@
 import React, { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle2, FlaskConical, Sparkles, XCircle } from "lucide-react";
-import { Button } from "shared/src/components/ui/button";
-import { Input } from "shared/src/components/ui/input";
-import { Textarea } from "shared/src/components/ui/textarea";
-import { Checkbox } from "shared/src/components/ui/checkbox";
-import { ConfirmDialog } from "shared/src/components/ui/confirm-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "shared/src/components/ui/tabs";
+import { Button } from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
+import { Textarea } from "@eunomia/ui";
+import { Checkbox } from "@eunomia/ui";
+import { ConfirmDialog } from "@eunomia/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@eunomia/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "shared/src/components/ui/select";
+} from "@eunomia/ui";
 import { FormField } from "shared/src/components/catalog/DcatFields";
 import { SchemaFieldTree } from "shared/src/components/schemas/SchemaFieldTree";
 import { SchemaApi } from "shared/src/data/schemaApi";

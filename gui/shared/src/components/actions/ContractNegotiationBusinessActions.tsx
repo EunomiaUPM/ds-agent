@@ -1,10 +1,10 @@
-import { Button } from "../ui/button";
+import { Button } from "@eunomia/ui";
 import React from "react";
 import { cva } from "class-variance-authority";
 import { ContractNegotiationBusinessAgreementDialog } from "../dialogs/ContractNegotiationBusinessAgreementDialog";
 import { ContractNegotiationBusinessAcceptanceDialog } from "../dialogs/ContractNegotiationBusinessAcceptanceDialog";
 import { ContractNegotiationTerminationDialog } from "../dialogs/ContractNegotiationTerminationDialog";
-import NoFurtherActions from "../ui/noFurtherActions";
+import { NoFurtherActions } from "@eunomia/ui";
 import { ProcessActionDialog } from "./ProcessActionDialog";
 import { NegotiationProcessDto } from "shared/src/data/orval/model/negotiationProcessDto";
 import { useGetAgreementsByNegotiationProcess } from "shared/src/data/orval/negotiations/negotiations";

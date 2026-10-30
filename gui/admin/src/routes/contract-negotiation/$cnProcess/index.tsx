@@ -8,26 +8,26 @@ import {
   useGetNegotiationProcessById,
   useGetOffersByProcessId,
 } from "shared/src/data/orval/negotiations/negotiations";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { PageSection } from "shared/src/components/layout/PageSection";
-import { FieldGrid } from "shared/src/components/layout/FieldGrid";
-import { Badge } from "shared/src/components/ui/badge";
-import { Skeleton } from "shared/src/components/ui/skeleton";
-import { RelativeTime } from "shared/src/components/ui/format-date";
-import { SegmentedControl } from "shared/src/components/ui/segmented";
-import { CountBadge } from "shared/src/components/ui/count-badge";
-import { ParticipantLabel } from "shared/src/components/identity/ParticipantLabel";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { PageSection } from "@eunomia/ui";
+import { FieldGrid } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { Skeleton } from "@eunomia/ui";
+import { RelativeTime } from "@eunomia/ui";
+import { SegmentedControl } from "@eunomia/ui";
+import { CountBadge } from "@eunomia/ui";
+import { ParticipantLabel } from "@eunomia/ui";
 import { DatasetLabel } from "shared/src/components/identity/DatasetLabel";
-import { Identifier } from "shared/src/components/identity/Identifier";
+import { Identifier } from "@eunomia/ui";
 import { OdrlRulesView } from "shared/src/components/policy/OdrlRulesView";
-import { JsonTable } from "shared/src/components/json/JsonTable";
-import { StateStepper } from "shared/src/components/process/StateStepper";
+import { JsonTable } from "@eunomia/ui";
+import { StateStepper } from "@eunomia/ui";
 import { ProcessMessagesTable } from "shared/src/components/ProcessMessagesTable";
 import { ContractNegotiationActions } from "shared/src/components/actions/ContractNegotiationActions";
 import { ContractNegotiationBusinessActions } from "shared/src/components/actions/ContractNegotiationBusinessActions";
 import { ACTIONS_MODE_OPTIONS, useActionsMode } from "shared/src/hooks/useActionsMode";
-import { GeneralErrorComponent } from "@/components/GeneralErrorComponent";
+import { GeneralErrorComponent } from "@eunomia/ui";
 
 export const Route = createFileRoute("/contract-negotiation/$cnProcess/")({
   component: NegotiationPage,

@@ -2,20 +2,20 @@ import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-ro
 import { getGetMyselfQueryOptions } from "shared/src/data/orval/participants/participants";
 import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
 import { CatalogRpc, DspViews, dspIssued, dspTitle, text } from "shared/src/data/catalog";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { FormatDate } from "shared/src/components/ui/format-date";
-import { formatUrn, pathIdParams } from "shared/src/lib/utils";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
+import { formatUrn, pathIdParams } from "@eunomia/ui";
 import React, { useEffect, useState, useMemo } from "react";
-import { Skeleton } from "shared/src/components/ui/skeleton";
-import Heading from "shared/src/components/ui/heading";
+import { Skeleton } from "@eunomia/ui";
+import { Heading } from "@eunomia/ui";
 import DatasetItem from "shared/src/components/ui/dataset-item";
-import { CountBadge } from "shared/src/components/ui/count-badge";
-import Avatar from "shared/components/ui/avatar-img";
+import { CountBadge } from "@eunomia/ui";
+import { Avatar } from "@eunomia/ui";
 import { useFederatedCatalog } from "shared/data/useFederatedCatalog";
-import { Badge } from "shared/src/components/ui/badge";
-import { Button } from "shared/src/components/ui/button";
-import { Input } from "shared/src/components/ui/input";
+import { Badge } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
 import {
   InnerSidebarLayout,
   InnerSidebar,
@@ -23,7 +23,7 @@ import {
   InnerSidebarSection,
   InnerSidebarNav,
   InnerSidebarNavItem,
-} from "shared/src/components/layout/InnerSidebarLayout";
+} from "@eunomia/ui";
 import {
   Card,
   CardHeader,
@@ -31,7 +31,7 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "shared/src/components/ui/card";
+} from "@eunomia/ui";
 import {
   Database,
   Server,

@@ -1,1 +1,9 @@
-export * from "shared/src/lib/session";
+export {
+  type SessionUser,
+  getSessionUser,
+  sessionDisplayName,
+  loadSession,
+  signIn,
+  signOut,
+  UNAUTHORIZED_EVENT,
+} from "@eunomia/ui";

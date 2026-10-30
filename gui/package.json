@@ -13,7 +13,8 @@
   "license": "ISC",
   "workspaces": [
     "admin",
-    "shared"
+    "shared",
+    "packages/*"
   ],
   "dependencies": {
     "@dnd-kit/core": "6.3.1",

@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@eunomia/ui";
 import { Download, FileCode, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "shared/src/components/ui/badge";
-import { Button } from "shared/src/components/ui/button";
-import { SegmentedControl } from "shared/src/components/ui/segmented";
-import { JsonViewer } from "shared/src/components/json/JsonViewer";
+import { Badge } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { SegmentedControl } from "@eunomia/ui";
+import { JsonViewer } from "@eunomia/ui";
 import { useGetCatalogInProfile } from "shared/src/data/orval/catalog-exchange/catalog-exchange";
 import { useDoctorCatalog } from "shared/src/data/orval/doctor/doctor";
 import {

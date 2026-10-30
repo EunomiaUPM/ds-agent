@@ -1,12 +1,12 @@
 import { ArrowRight, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
-import WizardEndDialog from "shared/src/components/WizardEndDialog";
-import { DataTable } from "shared/src/components/DataTable";
-import { PageSection } from "shared/src/components/layout/PageSection";
-import { Badge } from "shared/src/components/ui/badge";
-import { Button } from "shared/src/components/ui/button";
-import { FormatDate } from "shared/src/components/ui/format-date";
-import { formatUrn, grantBadgeState } from "shared/src/lib/utils";
+import { WizardEndDialog } from "@eunomia/ui";
+import { DataTable } from "@eunomia/ui";
+import { PageSection } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
+import { formatUrn, grantBadgeState } from "@eunomia/ui";
 import { customInstance } from "shared/src/data/orval-mutator";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -37,7 +37,7 @@ export interface SentGrant {
   ended_at?: string | null;
 }
 
-import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
+import { useTableQueryParams } from "@eunomia/ui";
 
 export const Route = createFileRoute("/connections/sent/")({
   component: SentConnectionsPage,

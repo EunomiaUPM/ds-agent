@@ -11,7 +11,7 @@
  * - Role-based field variations (provider vs consumer)
  */
 
-import { InfoItemProps } from "../../ui/info-list";
+import { InfoItemProps } from "@eunomia/ui";
 
 // =============================================================================
 // CONTRACT NEGOTIATION PROCESS MAPPERS

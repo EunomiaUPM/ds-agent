@@ -1,6 +1,6 @@
 import React from "react";
 import { Eye } from "lucide-react";
-import { Button } from "shared/src/components/ui/button";
+import { Button } from "@eunomia/ui";
 import {
   Dialog,
   DialogContent,
@@ -8,12 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "shared/src/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "shared/src/components/ui/tabs";
-import { FieldGrid } from "shared/src/components/layout/FieldGrid";
-import { JsonViewer } from "shared/src/components/json/JsonViewer";
-import { Identifier } from "shared/src/components/identity/Identifier";
-import { FormatDate } from "shared/src/components/ui/format-date";
+} from "@eunomia/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@eunomia/ui";
+import { FieldGrid } from "@eunomia/ui";
+import { JsonViewer } from "@eunomia/ui";
+import { Identifier } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
 import { OdrlPolicyDto } from "shared/src/data/orval/model";
 import { OdrlRulesView } from "./OdrlRulesView";
 import { ControlPointChips } from "./ControlPointChips";

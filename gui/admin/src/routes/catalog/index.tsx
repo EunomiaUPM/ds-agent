@@ -1,18 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import CatalogItem from "shared/src/components/ui/catalog-item";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import Heading from "shared/src/components/ui/heading.tsx";
-import { Button } from "shared/src/components/ui/button.tsx";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
+import { PageHeader } from "@eunomia/ui";
+import { Heading } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { PageLayout } from "@eunomia/ui";
 import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
 import { usePeerConnections } from "shared/src/data/peerConnection";
-import WizardDialog from "shared/src/components/WizardDialog";
+import { WizardDialog } from "@eunomia/ui";
 import { useRef, useState } from "react";
-import { Card, CardContent } from "shared/components/ui/card";
-import logoImg from "./../../../../shared/src/img/eunomia_logo_lg_light.svg";
-import logoImgDark from "./../../../../shared/src/img/eunomia_logo_lg_dark.svg";
-import { useTheme } from "shared/src/hooks/useTheme";
+import { Card, CardContent } from "@eunomia/ui";
+import { eunomiaLogoLight as logoImg } from "@eunomia/ui";
+import { eunomiaLogoDark as logoImgDark } from "@eunomia/ui";
+import { useTheme } from "@eunomia/ui";
 import { useMyself } from "shared/src/data/useMyself";
 
 const RouteComponent = () => {

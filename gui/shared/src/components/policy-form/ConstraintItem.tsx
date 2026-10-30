@@ -23,9 +23,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "shared/src/components/ui/select";
-import { Input } from "shared/src/components/ui/input";
-import { Button } from "shared/src/components/ui/button";
+} from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
 import { leftOperands, operators } from "shared/src/odrl_actions";
 import { OperandType } from "shared/src/hooks/usePolicyForm";
 import { OdrlConstraint } from "shared/src/data/orval/model";

@@ -11,14 +11,14 @@ import {
   History,
   Trash2,
 } from "lucide-react";
-import { cn } from "shared/src/lib/utils";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { Button } from "shared/src/components/ui/button";
-import { Badge } from "shared/src/components/ui/badge";
-import { FormatDate } from "shared/src/components/ui/format-date";
-import { ConfirmDialog } from "shared/src/components/ui/confirm-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "shared/src/components/ui/tabs";
+import { cn } from "@eunomia/ui";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
+import { ConfirmDialog } from "@eunomia/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@eunomia/ui";
 import {
   Table,
   TableBody,
@@ -26,16 +26,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "shared/src/components/ui/table";
+} from "@eunomia/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "shared/src/components/ui/select";
-import { JsonViewer } from "shared/src/components/json/JsonViewer";
-import { Identifier } from "shared/src/components/identity/Identifier";
+} from "@eunomia/ui";
+import { JsonViewer } from "@eunomia/ui";
+import { Identifier } from "@eunomia/ui";
 import { OdrlRulesView } from "shared/src/components/policy/OdrlRulesView";
 import { ControlPointChips } from "shared/src/components/policy/ControlPointChips";
 import { TemplateParameterFields } from "shared/src/components/policy/TemplateParameterFields";

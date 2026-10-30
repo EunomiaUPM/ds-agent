@@ -3,24 +3,24 @@ import {
   useRpcSetupCatalogRequest,
   useRpcSetupDatasetRequest,
 } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { InfoGrid } from "shared/src/components/layout/InfoGrid";
-import { PageSection } from "shared/src/components/layout/PageSection";
-import { InfoList } from "shared/src/components/ui/info-list";
-import { Badge } from "shared/src/components/ui/badge";
-import { FormatDate } from "shared/src/components/ui/format-date";
-import { formatUrn, pathIdParams } from "shared/src/lib/utils";
-import { DataTable } from "shared/src/components/DataTable";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { InfoGrid } from "@eunomia/ui";
+import { PageSection } from "@eunomia/ui";
+import { InfoList } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
+import { formatUrn, pathIdParams } from "@eunomia/ui";
+import { DataTable } from "@eunomia/ui";
 import { useEffect, useMemo } from "react";
-import { Skeleton } from "shared/src/components/ui/skeleton";
+import { Skeleton } from "@eunomia/ui";
 import { PolicyWrapperShow } from "shared/src/components/PolicyWrapperShow.tsx";
 import { OdrlOffer } from "shared/src/data/orval/model/odrlOffer";
 import { CatalogRpc, DspViews, dspDescription, dspIssued, dspTitle, type DspNode } from "shared/src/data/catalog";
-import Heading from "shared/components/ui/heading";
+import { Heading } from "@eunomia/ui";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 import DistributionItem from "shared/components/ui/distribution-item";
-import Avatar from "shared/components/ui/avatar-img";
+import { Avatar } from "@eunomia/ui";
 
 function RouteComponent() {
   const { participantId, datasetId } = Route.useParams();

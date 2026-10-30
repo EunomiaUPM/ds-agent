@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { getGetParticipantByIdQueryOptions } from "shared/src/data/orval/participants/participants";
-import { encodePathId, pathIdParams } from "shared/src/lib/utils";
+import { encodePathId, pathIdParams } from "@eunomia/ui";
 
 const NotFound = () => {
   return <div>not found</div>;

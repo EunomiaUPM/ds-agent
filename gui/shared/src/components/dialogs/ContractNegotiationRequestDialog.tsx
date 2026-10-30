@@ -13,7 +13,7 @@ import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/Glo
 import { PolicyWrapperEdit } from "../PolicyWrapperEdit";
 import { BaseProcessDialog } from "./base";
 import { mapCNProcessToInfoItemsForConsumer } from "./base/infoItemMappers";
-import Heading from "../ui/heading";
+import { Heading } from "@eunomia/ui";
 import { OdrlInfo, NegotiationProcessDto } from "../../data/orval/model";
 import {
   useRpcSetupRequest,

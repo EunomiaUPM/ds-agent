@@ -16,8 +16,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
 import {
   Card,
   CardHeader,
@@ -25,17 +25,17 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "shared/src/components/ui/card";
-import { Button } from "shared/src/components/ui/button";
-import { Input } from "shared/src/components/ui/input";
-import { Badge } from "shared/src/components/ui/badge";
+} from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from "shared/src/components/ui/select";
+} from "@eunomia/ui";
 
 import {
   useCreateDatasetOffering,
@@ -51,7 +51,7 @@ import {
   type FormProblems,
 } from "shared/src/data/dcat";
 import { DatasetFields, DistributionFields } from "shared/src/components/catalog/DcatFields";
-import { SegmentedControl } from "shared/src/components/ui/segmented";
+import { SegmentedControl } from "@eunomia/ui";
 import type {
   DatasetDocument,
   DistributionDocument,

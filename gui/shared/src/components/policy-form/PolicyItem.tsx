@@ -21,14 +21,14 @@
 
 import React, { FC } from "react";
 import { Plus, Trash } from "lucide-react";
-import { Button } from "shared/src/components/ui/button";
+import { Button } from "@eunomia/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "shared/src/components/ui/select";
+} from "@eunomia/ui";
 import { odrlActions } from "shared/src/odrl_actions";
 import { ConstraintItem } from "./ConstraintItem";
 import { OperandType } from "shared/src/hooks/usePolicyForm";

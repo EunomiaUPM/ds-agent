@@ -16,22 +16,22 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import QRCode from "react-qr-code";
-import { Identifier } from "shared/src/components/identity/Identifier";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageSection } from "shared/src/components/layout/PageSection";
-import { Badge } from "shared/src/components/ui/badge";
-import { Button } from "shared/src/components/ui/button";
+import { Identifier } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { PageLayout } from "@eunomia/ui";
+import { PageSection } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "shared/src/components/ui/card";
-import { FormatDate } from "shared/src/components/ui/format-date";
+} from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
 import { customInstance } from "shared/src/data/orval-mutator";
-import { formatUrn, getFriendlyVCType } from "shared/src/lib/utils";
+import { formatUrn, getFriendlyVCType } from "@eunomia/ui";
 import { z } from "zod";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";

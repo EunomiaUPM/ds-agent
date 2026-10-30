@@ -1,27 +1,27 @@
 import React, { useEffect, useState } from "react";
 import { CatalogRpc, asArray, type DspNode } from "../../data/catalog";
-import { formatUrn } from "shared/src/lib/utils";
-import { Badge } from "shared/src/components/ui/badge";
+import { formatUrn } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "shared/src/components/ui/select";
+} from "@eunomia/ui";
 import {
   FormControl,
   FormDescription,
   FormField,
   FormItem,
   FormMessage,
-} from "shared/src/components/ui/form";
-import { Input } from "shared/src/components/ui/input";
-import { Checkbox } from "shared/src/components/ui/checkbox";
+} from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
+import { Checkbox } from "@eunomia/ui";
 import { useForm } from "react-hook-form";
 import { BaseProcessDialog } from "./base";
 import { urnInfoItem } from "./base/infoItemMappers";
-import { InfoItemProps } from "../ui/info-list";
+import { InfoItemProps } from "@eunomia/ui";
 import {
   AgreementDto,
   DataAddressDto,

@@ -20,10 +20,10 @@ import { AuthContext, AuthContextType } from "shared/src/context/AuthContext";
 import { PolicyWrapperShow } from "shared/src/components/PolicyWrapperShow";
 import { BaseProcessDialog } from "./base";
 import { urnInfoItem, textInfoItem } from "./base/infoItemMappers";
-import { InfoItemProps } from "../ui/info-list";
-import { Badge } from "../ui/badge";
-import { formatUrn } from "shared/src/lib/utils";
-import { DialogClose } from "../ui/dialog";
+import { InfoItemProps } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { formatUrn } from "@eunomia/ui";
+import { DialogClose } from "@eunomia/ui";
 
 // =============================================================================
 // TYPES

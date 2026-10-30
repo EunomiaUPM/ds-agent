@@ -1,7 +1,7 @@
 import React from "react";
 import { Ban, CheckCircle2, ClipboardList, GitMerge, Layers, Puzzle } from "lucide-react";
-import { cn } from "shared/src/lib/utils";
-import { formatOperator } from "shared/src/components/ui/format-operator";
+import { cn } from "@eunomia/ui";
+import { formatOperator } from "@eunomia/ui";
 import type { PolicyTemplateKind } from "shared/src/data/orval/model";
 
 type Json = Record<string, unknown>;

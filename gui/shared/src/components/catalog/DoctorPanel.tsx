@@ -1,8 +1,8 @@
 import React from "react";
 import { CheckCircle2, CircleAlert, Info, XCircle } from "lucide-react";
 import type { DoctorReport, Finding, ProfileDiagnosis } from "shared/src/data/orval/model";
-import { Badge } from "shared/src/components/ui/badge";
-import { Identifier } from "shared/src/components/identity/Identifier";
+import { Badge } from "@eunomia/ui";
+import { Identifier } from "@eunomia/ui";
 
 export const PROFILE_NAMES: Record<string, string> = {
   dsp: "DSP 2025-1",

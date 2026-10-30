@@ -1,22 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { formatUrn } from "shared/src/lib/utils.ts";
-import { encodePathId } from "shared/src/lib/utils";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { PageSection } from "shared/src/components/layout/PageSection";
+import { formatUrn } from "@eunomia/ui";
+import { encodePathId } from "@eunomia/ui";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { PageSection } from "@eunomia/ui";
 
 // Components
-import Heading from "../../../../../shared/src/components/ui/heading.tsx";
-import { Badge, BadgeRole } from "shared/src/components/ui/badge.tsx";
-import { InfoList } from "shared/src/components/ui/info-list";
-import { DataTable } from "shared/src/components/DataTable";
-import { FormatDate } from "shared/src/components/ui/format-date";
+import { Heading } from "@eunomia/ui";
+import { Badge, BadgeRole } from "@eunomia/ui";
+import { InfoList } from "@eunomia/ui";
+import { DataTable } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
 import { useGetParticipantById } from "shared/data/orval/participants/participants.ts";
-import { GeneralErrorComponent } from "@/components/GeneralErrorComponent.tsx";
+import { GeneralErrorComponent } from "@eunomia/ui";
 import { useGetAgreementsByParticipantId } from "shared/data/orval/negotiations/negotiations.ts";
-import { Skeleton } from "shared/src/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "shared/src/components/ui/card";
-import { Separator } from "shared/src/components/ui/separator";
+import { Skeleton } from "@eunomia/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@eunomia/ui";
+import { Separator } from "@eunomia/ui";
 import { History, Shield, Globe, Cpu, Key, Calendar, Activity, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 

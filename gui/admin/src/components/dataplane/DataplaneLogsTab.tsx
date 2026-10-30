@@ -1,8 +1,8 @@
 import React from "react";
 import { ArrowRight } from "lucide-react";
 import dayjs from "dayjs";
-import { Badge } from "shared/src/components/ui/badge";
-import { RelativeTime } from "shared/src/components/ui/format-date";
+import { Badge } from "@eunomia/ui";
+import { RelativeTime } from "@eunomia/ui";
 import { DataplaneTransferLogDto } from "shared/src/data/orval/model";
 import { dataplaneStateVariant } from "./utils/dataplaneState";
 

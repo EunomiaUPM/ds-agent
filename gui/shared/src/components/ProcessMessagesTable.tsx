@@ -20,20 +20,20 @@ import {
   ShieldCheck,
   XCircle,
 } from "lucide-react";
-import { cn } from "shared/src/lib/utils";
-import { Badge } from "shared/src/components/ui/badge";
-import { RelativeTime } from "shared/src/components/ui/format-date";
+import { cn } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { RelativeTime } from "@eunomia/ui";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "shared/src/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "shared/src/components/ui/tabs";
-import { FieldGrid } from "shared/src/components/layout/FieldGrid";
-import { JsonTable } from "shared/src/components/json/JsonTable";
-import { Identifier } from "shared/src/components/identity/Identifier";
+} from "@eunomia/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@eunomia/ui";
+import { FieldGrid } from "@eunomia/ui";
+import { JsonTable } from "@eunomia/ui";
+import { Identifier } from "@eunomia/ui";
 import dayjs from "dayjs";
 
 export interface ProcessMessageItem {

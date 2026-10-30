@@ -2,16 +2,16 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { keepPreviousData } from "@tanstack/react-query";
 import { useGetAgreements } from "shared/src/data/orval/negotiations/negotiations";
 import { AgreementDto } from "shared/src/data/orval/model";
-import { DataTable } from "shared/src/components/DataTable";
-import { FormatDate } from "shared/src/components/ui/format-date";
-import { Badge } from "shared/src/components/ui/badge";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { ParticipantLabel } from "shared/src/components/identity/ParticipantLabel";
+import { DataTable } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { ParticipantLabel } from "@eunomia/ui";
 import { DatasetLabel } from "shared/src/components/identity/DatasetLabel";
-import { Identifier } from "shared/src/components/identity/Identifier";
+import { Identifier } from "@eunomia/ui";
 import { useParticipantDirectory } from "shared/src/data/useParticipantDirectory";
-import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
+import { useTableQueryParams } from "@eunomia/ui";
 
 export const Route = createFileRoute("/agreements/")({
   component: RouteComponent,

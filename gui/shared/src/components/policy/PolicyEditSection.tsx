@@ -26,8 +26,8 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "shared/src/components/ui/accordion";
-import { Button } from "shared/src/components/ui/button";
+} from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
 import { Plus, Trash } from "lucide-react";
 import {
   Select,
@@ -35,8 +35,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "shared/src/components/ui/select";
-import { Input } from "shared/src/components/ui/input";
+} from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
 import { leftOperands, odrlActions, operators } from "shared/src/odrl_actions";
 
 // =============================================================================

@@ -28,7 +28,7 @@
 
 import * as React from "react";
 import { FC } from "react";
-import { cn } from "shared/src/lib/utils";
+import { cn } from "@eunomia/ui";
 import { cva, type VariantProps } from "class-variance-authority";
 
 // =============================================================================

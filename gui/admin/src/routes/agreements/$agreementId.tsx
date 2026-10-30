@@ -6,18 +6,18 @@ import {
 } from "shared/src/data/orval/negotiations/negotiations";
 import { useGetTransferProcesses } from "shared/src/data/orval/transfers/transfers";
 import { TransferProcessDto } from "shared/src/data/orval/model";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { PageSection } from "shared/src/components/layout/PageSection";
-import { FieldGrid } from "shared/src/components/layout/FieldGrid";
-import { Badge } from "shared/src/components/ui/badge";
-import { FormatDate } from "shared/src/components/ui/format-date";
-import { DataTable } from "shared/src/components/DataTable";
-import { ParticipantLabel } from "shared/src/components/identity/ParticipantLabel";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { PageSection } from "@eunomia/ui";
+import { FieldGrid } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
+import { DataTable } from "@eunomia/ui";
+import { ParticipantLabel } from "@eunomia/ui";
 import { DatasetLabel } from "shared/src/components/identity/DatasetLabel";
-import { Identifier } from "shared/src/components/identity/Identifier";
+import { Identifier } from "@eunomia/ui";
 import { OdrlRulesView } from "shared/src/components/policy/OdrlRulesView";
-import { JsonViewer } from "shared/src/components/json/JsonViewer";
+import { JsonViewer } from "@eunomia/ui";
 import { AgreementActions } from "shared/src/components/actions/AgreementActions";
 import { useParticipantDirectory } from "shared/src/data/useParticipantDirectory";
 import {
@@ -25,7 +25,7 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "shared/src/components/ui/accordion";
+} from "@eunomia/ui";
 
 export const Route = createFileRoute("/agreements/$agreementId")({
   component: RouteComponent,

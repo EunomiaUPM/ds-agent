@@ -2,8 +2,8 @@ import { useContext } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Button } from "shared/src/components/ui/button";
-import { Input } from "shared/src/components/ui/input";
+import { Button } from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
 import { SSIAuthContext } from "shared/src/context/SSIAuthContext";
 import { GlobalInfoContext } from "shared/src/context/GlobalInfoContext";
 import {
@@ -13,14 +13,14 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "shared/src/components/ui/form";
+} from "@eunomia/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "shared/src/components/ui/select";
+} from "@eunomia/ui";
 
 const peerDidSchema = z.object({
   url: z.string().url("Please enter a valid URL"),

@@ -29,22 +29,22 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "shared/src/lib/utils";
-import { Button } from "shared/src/components/ui/button";
-import { Badge } from "shared/src/components/ui/badge";
-import { Input } from "shared/src/components/ui/input";
-import { SegmentedControl } from "shared/src/components/ui/segmented";
+import { cn } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
+import { SegmentedControl } from "@eunomia/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "shared/src/components/ui/select";
+} from "@eunomia/ui";
 import { ControlPointChips } from "../ControlPointChips";
 import { TemplateParameterFields } from "../TemplateParameterFields";
 import { leftOperands, odrlActions, operators } from "shared/src/odrl_actions";
-import { formatOperator } from "shared/src/components/ui/format-operator";
+import { formatOperator } from "@eunomia/ui";
 import { PolicyTemplateApi } from "shared/src/data/policyTemplateApi";
 import type { PolicyTemplateDto, PolicyTemplateKind } from "shared/src/data/orval/model";
 import {

@@ -4,11 +4,11 @@ import {
   getGetApplicationConfigQueryKey,
 } from "shared/src/data/orval/keystore-config/keystore-config";
 import { useQueryClient } from "@tanstack/react-query";
-import { Skeleton } from "shared/src/components/ui/skeleton";
-import { Button } from "shared/src/components/ui/button";
-import { Badge } from "shared/src/components/ui/badge";
-import { Input } from "shared/src/components/ui/input";
-import { cn } from "shared/src/lib/utils";
+import { Skeleton } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
+import { cn } from "@eunomia/ui";
 import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import {

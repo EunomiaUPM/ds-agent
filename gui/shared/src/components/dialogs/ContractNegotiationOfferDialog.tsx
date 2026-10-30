@@ -22,7 +22,7 @@ import { OdrlInfo } from "shared/src/data/orval/model/odrlInfo";
 import { PolicyWrapperEdit } from "../PolicyWrapperEdit";
 import { BaseProcessDialog } from "./base";
 import { mapCNProcessToInfoItemsForProvider } from "./base/infoItemMappers";
-import Heading from "../ui/heading";
+import { Heading } from "@eunomia/ui";
 import { useRouter } from "@tanstack/react-router";
 import { PolicyWrapperShow } from "../PolicyWrapperShow";
 

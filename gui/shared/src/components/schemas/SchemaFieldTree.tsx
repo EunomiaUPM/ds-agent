@@ -3,17 +3,17 @@
 
 import React, { useState } from "react";
 import { ArrowDown, ArrowUp, ChevronRight, Plus, Trash2 } from "lucide-react";
-import { cn } from "shared/src/lib/utils";
-import { Button } from "shared/src/components/ui/button";
-import { Input } from "shared/src/components/ui/input";
-import { Checkbox } from "shared/src/components/ui/checkbox";
+import { cn } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
+import { Checkbox } from "@eunomia/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "shared/src/components/ui/select";
+} from "@eunomia/ui";
 import {
   FIELD_TYPES,
   STRING_FORMATS,

@@ -3,19 +3,19 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { keepPreviousData } from "@tanstack/react-query";
 import { useGetTransferProcesses } from "shared/src/data/orval/transfers/transfers";
 import { GetTransferProcessesParams, TransferProcessDto } from "shared/src/data/orval/model";
-import { DataTable } from "shared/src/components/DataTable";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { Badge } from "shared/src/components/ui/badge";
-import { FormatDate, RelativeTime } from "shared/src/components/ui/format-date";
-import { SegmentedControl } from "shared/src/components/ui/segmented";
-import { ParticipantLabel } from "shared/src/components/identity/ParticipantLabel";
-import { Identifier } from "shared/src/components/identity/Identifier";
+import { DataTable } from "@eunomia/ui";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { FormatDate, RelativeTime } from "@eunomia/ui";
+import { SegmentedControl } from "@eunomia/ui";
+import { ParticipantLabel } from "@eunomia/ui";
+import { Identifier } from "@eunomia/ui";
 import { AgreementDatasetLabel } from "shared/src/components/identity/AgreementDatasetLabel";
 import { TransferProcessActions } from "shared/src/components/actions/TransferProcessActions";
 import { TransferProcessBusinessActions } from "shared/src/components/actions/TransferProcessBusinessActions";
 import { ACTIONS_MODE_OPTIONS, useActionsMode } from "shared/src/hooks/useActionsMode";
-import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
+import { useTableQueryParams } from "@eunomia/ui";
 
 export const Route = createFileRoute("/transfer-process/")({
   component: TransfersPage,

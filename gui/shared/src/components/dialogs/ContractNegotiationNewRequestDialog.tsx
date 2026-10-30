@@ -17,7 +17,7 @@ import React, { useRef } from "react";
 import { PolicyWrapperShow } from "shared/src/components/PolicyWrapperShow";
 import { BaseProcessDialog } from "./base";
 import { urnInfoItem } from "./base/infoItemMappers";
-import { InfoItemProps } from "../ui/info-list";
+import { InfoItemProps } from "@eunomia/ui";
 import { useRpcSetupRequestInit } from "../../data/orval/negotiation-rp-c/negotiation-rp-c";
 import { EUNOMIA_CONTEXT } from "../../data/eunomia";
 import { useNavigate } from "@tanstack/react-router";

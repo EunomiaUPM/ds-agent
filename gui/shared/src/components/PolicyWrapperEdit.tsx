@@ -20,9 +20,9 @@
  */
 
 import React, { useEffect, useState, useCallback } from "react";
-import Heading from "shared/src/components/ui/heading";
-import { Badge } from "shared/src/components/ui/badge";
-import { InfoList } from "shared/src/components/ui/info-list";
+import { Heading } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { InfoList } from "@eunomia/ui";
 import {
   ComponentType,
   OperandType,

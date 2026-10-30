@@ -1,19 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { customInstance } from "shared/src/data/orval-mutator";
-import { PageSection } from "shared/src/components/layout/PageSection";
+import { PageSection } from "@eunomia/ui";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from "shared/src/components/ui/card";
-import { Badge } from "shared/src/components/ui/badge";
-import { Button } from "shared/src/components/ui/button";
+} from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
 import * as z from "zod";
 import { useState } from "react";
-import { FormatDate } from "shared/src/components/ui/format-date";
+import { FormatDate } from "@eunomia/ui";
 import {
   AlertCircle,
   ArrowLeft,
@@ -26,7 +26,7 @@ import {
   Key,
   Layers,
 } from "lucide-react";
-import { getFriendlyVCType, grantBadgeState } from "shared/src/lib/utils";
+import { getFriendlyVCType, grantBadgeState } from "@eunomia/ui";
 
 interface RecvGrant {
   id: string;

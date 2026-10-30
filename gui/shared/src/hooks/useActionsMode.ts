@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { SegmentedOption } from "shared/src/components/ui/segmented";
+import { SegmentedOption } from "@eunomia/ui";
 
 export type ActionsMode = "business" | "standard";
 

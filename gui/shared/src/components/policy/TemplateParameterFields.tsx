@@ -1,14 +1,14 @@
 import React from "react";
-import { Input } from "shared/src/components/ui/input";
-import { Checkbox } from "shared/src/components/ui/checkbox";
-import { TagInput } from "shared/src/components/ui/tag-input";
+import { Input } from "@eunomia/ui";
+import { Checkbox } from "@eunomia/ui";
+import { TagInput } from "@eunomia/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "shared/src/components/ui/select";
+} from "@eunomia/ui";
 import { PolicyTemplateApi, type ParameterValues } from "shared/src/data/policyTemplateApi";
 import type { PolicyTemplateParameterDefinition } from "shared/src/data/orval/model";
 

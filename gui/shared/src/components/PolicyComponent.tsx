@@ -1,8 +1,8 @@
 import React, { FC } from "react";
 import { PolicyVariants } from "shared/src/components/ui/policy";
 import { OdrlPermission, OdrlProhibition, OdrlObligation } from "shared/src/data/orval/model";
-import { formatOperator } from "shared/src/components/ui/format-operator";
-import { formatValue } from "shared/src/components/ui/format-value";
+import { formatOperator } from "@eunomia/ui";
+import { formatValue } from "@eunomia/ui";
 
 export interface PolicyComponentProps {
   policyItem: (OdrlPermission | OdrlProhibition | OdrlObligation)[] | null | undefined;

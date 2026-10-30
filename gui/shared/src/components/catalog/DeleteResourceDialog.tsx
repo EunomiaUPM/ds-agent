@@ -1,7 +1,7 @@
 import React from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ConfirmDialog } from "shared/src/components/ui/confirm-dialog";
+import { ConfirmDialog } from "@eunomia/ui";
 import { CatalogResources, type CatalogResourceKind } from "shared/src/data/catalogResources";
 import { CatalogViews, type CatalogDoc } from "shared/src/data/catalog";
 import { useGetMainDataService } from "shared/src/data/orval/data-services/data-services";

@@ -1,17 +1,17 @@
 import { AlertCircle, ArrowLeft, CheckCircle2, Loader2, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { formatIdentifier } from "shared/lib/utils";
-import { PageSection } from "shared/src/components/layout/PageSection";
-import { Badge } from "shared/src/components/ui/badge";
-import { Button } from "shared/src/components/ui/button";
+import { formatIdentifier } from "@eunomia/ui";
+import { PageSection } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "shared/src/components/ui/card";
+} from "@eunomia/ui";
 import {
   Form,
   FormControl,
@@ -20,16 +20,16 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "shared/src/components/ui/form";
-import { Input } from "shared/src/components/ui/input";
-import { Checkbox } from "shared/src/components/ui/checkbox";
+} from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
+import { Checkbox } from "@eunomia/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "shared/src/components/ui/select";
+} from "@eunomia/ui";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
 import { DiscoveredPeer, discoverPeer } from "shared/src/data/peerConnection";
@@ -38,7 +38,7 @@ import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
-import WizardDialog from "shared/src/components/WizardDialog";
+import { WizardDialog } from "@eunomia/ui";
 
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),

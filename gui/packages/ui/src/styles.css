@@ -1,0 +1,130 @@
+@import url("https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap");
+@import "./tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-stroke;
+  }
+
+  body {
+    @apply bg-background text-brand-snow;
+  }
+
+  #root {
+    @apply text-foreground-300 dark:text-slate-300;
+  }
+
+  html,
+  body {
+    @apply font-source leading-snug min-h-[100dvh] text-base bg-background text-brand-sky;
+    font-family: "Source Sans 3", "Source Sans Pro", sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-brand-sky;
+    font-family:
+      "Ubuntu", "Lucida Sans", "Lucida Sans Regular", "Lucida Grande", "Lucida Sans Unicode",
+      Geneva, Verdana, sans-serif;
+  }
+
+  h5,
+  h6,
+  p,
+  span {
+    font-family: "Source Sans 3", "Source Sans Pro", sans-serif;
+  }
+
+  a {
+    @apply text-brand-sky;
+  }
+
+  p {
+    @apply text-foreground-500 dark:text-gray-400;
+  }
+}
+
+.page-container {
+  @apply w-screen flex flex-col justify-start items-center ml-[14rem];
+}
+
+.main-container {
+  @apply w-full p-16 max-w-screen-xl;
+}
+
+.login-container {
+  @apply w-screen h-[calc(100dvh-39px)] mx-auto max-w-screen-2xl;
+}
+
+.singlePage-container {
+  @apply h-fit flex flex-col gap-8 w-full;
+}
+
+.flexColsLayout {
+  @apply flex flex-wrap !h-fit gap-4 [&>div]:w-full [&>div]:min-w-fit;
+}
+
+.gridColsLayout {
+  @apply grid grid-cols-1 gap-4 xl:grid-cols-2 xl:gap-8;
+}
+
+/* Scrollbar & Autofill */
+* {
+  --sb-size: 9px;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--c-autofill) inset !important;
+  -webkit-text-fill-color: var(--c-autofill-text) !important;
+  caret-color: var(--c-autofill-text) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+*::-webkit-scrollbar {
+  width: var(--sb-size);
+  height: var(--sb-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--sb-track-color);
+  border-radius: 5px;
+}
+
+*::-webkit-scrollbar-thumb {
+  transition: ease-in-out 0.2s;
+  background: var(--sb-thumb-color);
+  border-radius: 5px;
+  border: 1px solid var(--sb-thumb-border-color);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  transition: ease-in-out 0.2s;
+  background: var(--sb-thumb-hover-color);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  body {
+    scrollbar-color: var(--sb-thumb-color) var(--sb-track-color);
+  }
+}
+
+.monaco-editor span,
+.monaco-editor p {
+  font-family: inherit;
+}

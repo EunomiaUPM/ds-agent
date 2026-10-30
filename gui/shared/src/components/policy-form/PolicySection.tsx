@@ -28,8 +28,8 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "shared/src/components/ui/accordion";
-import { Button } from "shared/src/components/ui/button";
+} from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
 import { Plus } from "lucide-react";
 import { PolicyItem } from "./PolicyItem";
 import { ComponentType, OperandType } from "shared/src/hooks/usePolicyForm";

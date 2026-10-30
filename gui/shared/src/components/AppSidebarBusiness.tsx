@@ -1,6 +1,6 @@
 import { Apple, Archive, ChartBarIncreasing } from "lucide-react";
-import logoImg from "./../img/eunomia_logo_lg_light.svg";
-import logoImgDark from "./../img/eunomia_logo_lg_dark.svg";
+import { eunomiaLogoLight as logoImg } from "@eunomia/ui";
+import { eunomiaLogoDark as logoImgDark } from "@eunomia/ui";
 import React, { useContext } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
@@ -11,10 +11,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "./ui/sidebar";
+} from "@eunomia/ui";
 
 import { AuthContext, AuthContextType } from "shared/src/context/AuthContext";
-import { useTheme } from "shared/src/hooks/useTheme";
+import { useTheme } from "@eunomia/ui";
 
 const businessItems = [
   {

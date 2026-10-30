@@ -7,15 +7,15 @@ import {
   getGetDataServiceByIdQueryOptions,
   useGetMainDataService,
 } from "shared/src/data/orval/data-services/data-services";
-import { FormatDate } from "shared/src/components/ui/format-date";
-import { Button } from "shared/src/components/ui/button";
-import { Badge } from "shared/src/components/ui/badge";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { FieldGrid } from "shared/src/components/layout/FieldGrid";
-import { Identifier } from "shared/src/components/identity/Identifier";
-import { JsonTable } from "shared/src/components/json/JsonTable";
-import { PageSection } from "shared/src/components/layout/PageSection";
+import { FormatDate } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { FieldGrid } from "@eunomia/ui";
+import { Identifier } from "@eunomia/ui";
+import { JsonTable } from "@eunomia/ui";
+import { PageSection } from "@eunomia/ui";
 import {
   CatalogResourceEditor,
   type EditorTarget,

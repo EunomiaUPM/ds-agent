@@ -1,5 +1,5 @@
 import React from "react";
-import Heading from "shared/src/components/ui/heading";
+import { Heading } from "@eunomia/ui";
 import { ArrowRight, Layers, Server } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -8,7 +8,7 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
-} from "shared/src/components/ui/card";
+} from "@eunomia/ui";
 
 interface DistributionItemProps {
   title?: string;

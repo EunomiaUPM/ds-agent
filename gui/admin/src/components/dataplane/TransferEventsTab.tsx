@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
-import { FormatDate } from "shared/src/components/ui/format-date";
-import { Badge } from "shared/components/ui/badge";
+import { FormatDate } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
 import {
   Table,
   TableBody,
@@ -8,13 +8,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "shared/components/ui/table";
+} from "@eunomia/ui";
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from "shared/components/ui/chart";
+} from "@eunomia/ui";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { TransferEventDto } from "shared/src/data/orval/model";
 import { EventData } from "./EventData";

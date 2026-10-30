@@ -1,9 +1,9 @@
 import React, { FC, useState } from "react";
-import { Accordion } from "shared/src/components/ui/accordion";
-import { Button } from "shared/src/components/ui/button";
+import { Accordion } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
 import { usePolicyForm } from "shared/src/hooks/usePolicyForm";
 import { PolicySection } from "./policy-form/PolicySection";
-import { Textarea } from "shared/src/components/ui/textarea";
+import { Textarea } from "@eunomia/ui";
 import { OdrlPolicyInfo } from "shared/src/data/orval/model/odrlPolicyInfo";
 
 /**

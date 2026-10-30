@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useState, useMemo } from "react";
-import Heading from "shared/src/components/ui/heading";
+import { Heading } from "@eunomia/ui";
 import DatasetItem from "shared/src/components/ui/dataset-item";
-import { CountBadge } from "shared/src/components/ui/count-badge";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { Skeleton } from "shared/src/components/ui/skeleton";
-import AvatarImg from "shared/src/components/ui/avatar-img";
+import { CountBadge } from "@eunomia/ui";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { Skeleton } from "@eunomia/ui";
+import { Avatar as AvatarImg } from "@eunomia/ui";
 import {
   InnerSidebarLayout,
   InnerSidebar,
@@ -14,7 +14,7 @@ import {
   InnerSidebarSection,
   InnerSidebarNav,
   InnerSidebarNavItem,
-} from "shared/src/components/layout/InnerSidebarLayout";
+} from "@eunomia/ui";
 import {
   Card,
   CardHeader,
@@ -22,13 +22,13 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "shared/src/components/ui/card";
-import { Badge } from "shared/src/components/ui/badge";
-import { Button } from "shared/src/components/ui/button";
-import { Input } from "shared/src/components/ui/input";
-import { DataTable, type Column } from "shared/src/components/DataTable";
-import { FormatDate } from "shared/src/components/ui/format-date";
-import { formatUrn } from "shared/src/lib/utils";
+} from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
+import { DataTable, type Column } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
+import { formatUrn } from "@eunomia/ui";
 import {
   Database,
   Server,

@@ -1,7 +1,7 @@
 import React from "react";
 import { useGetAgreementByIdS } from "shared/src/data/orval/negotiations/negotiations";
 import { DatasetLabel } from "./DatasetLabel";
-import { Identifier } from "./Identifier";
+import { Identifier } from "@eunomia/ui";
 
 /** The dataset an agreement covers; transfers only carry the agreement id. */
 export function AgreementDatasetLabel({

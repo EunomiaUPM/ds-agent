@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { getGetTransferProcessByIdQueryOptions } from "shared/src/data/orval/transfers/transfers";
-import { GeneralErrorComponent } from "@/components/GeneralErrorComponent";
+import { GeneralErrorComponent } from "@eunomia/ui";
 
 /** Loads the transfer process; each child page draws its own header. */
 export const Route = createFileRoute("/transfer-process/$transferProcessId")({

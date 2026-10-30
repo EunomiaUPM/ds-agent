@@ -1,8 +1,8 @@
 import React from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
 import { SchemaBuilder } from "shared/src/components/schemas/SchemaBuilder";
 import { SchemaApi } from "shared/src/data/schemaApi";
 

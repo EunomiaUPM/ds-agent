@@ -16,9 +16,9 @@
  */
 
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { RouteTabs } from "shared/src/components/layout/RouteTabs";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
+import { RouteTabs } from "@eunomia/ui";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
 
 const EventsLayout = () => {
   const tabs = [

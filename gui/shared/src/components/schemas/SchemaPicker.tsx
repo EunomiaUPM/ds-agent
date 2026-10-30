@@ -4,17 +4,17 @@
 import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ExternalLink, Plus, XCircle } from "lucide-react";
-import { Button } from "shared/src/components/ui/button";
-import { Input } from "shared/src/components/ui/input";
-import { SegmentedControl } from "shared/src/components/ui/segmented";
+import { Button } from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
+import { SegmentedControl } from "@eunomia/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "shared/src/components/ui/select";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "shared/src/components/ui/sheet";
+} from "@eunomia/ui";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@eunomia/ui";
 import { SchemaBuilder } from "shared/src/components/schemas/SchemaBuilder";
 import { SchemaApi } from "shared/src/data/schemaApi";
 import { useGetSchemas } from "shared/src/data/orval/schemas/schemas";

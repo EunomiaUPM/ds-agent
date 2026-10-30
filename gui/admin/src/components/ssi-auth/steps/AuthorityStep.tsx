@@ -3,7 +3,7 @@ import { SSIAuthContext } from "shared/src/context/SSIAuthContext";
 import { AuthorityConnectorForm } from "../forms/AuthorityConnectorForm";
 import { VCRequestForm } from "../forms/VCRequestForm";
 import { VCAcceptForm } from "../forms/VCAcceptForm";
-import { DataTable, Column } from "shared/src/components/DataTable";
+import { DataTable, Column } from "@eunomia/ui";
 import { Loader2, Circle } from "lucide-react";
 import { AuthorityConnectorFormForDemo } from "@/components/ssi-auth/forms/AuthorityConnectorFormForDemo.tsx";
 

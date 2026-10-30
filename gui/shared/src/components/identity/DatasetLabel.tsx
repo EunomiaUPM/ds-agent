@@ -1,8 +1,8 @@
 import React from "react";
 import { CatalogViews, type CatalogDoc } from "../../data/catalog";
-import { cn } from "shared/src/lib/utils";
+import { cn } from "@eunomia/ui";
 import { useGetDatasetById } from "shared/src/data/orval/datasets/datasets";
-import { Identifier } from "./Identifier";
+import { Identifier } from "@eunomia/ui";
 
 /** A dataset by its title when it is in the local catalog, else by its identifier. */
 export function DatasetLabel({

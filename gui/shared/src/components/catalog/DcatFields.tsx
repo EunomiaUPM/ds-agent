@@ -3,17 +3,17 @@
 
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { cn } from "shared/src/lib/utils";
-import { Input } from "shared/src/components/ui/input";
-import { Textarea } from "shared/src/components/ui/textarea";
-import { TagInput } from "shared/src/components/ui/tag-input";
+import { cn } from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
+import { Textarea } from "@eunomia/ui";
+import { TagInput } from "@eunomia/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "shared/src/components/ui/select";
+} from "@eunomia/ui";
 import {
   DcatVocabularies,
   type DataServiceForm,

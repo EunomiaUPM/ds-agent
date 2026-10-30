@@ -1,11 +1,11 @@
 import React from "react";
 import { DataplaneInfoResponse, DataplaneTransferDto } from "shared/src/data/orval/model";
-import { Badge } from "shared/src/components/ui/badge";
-import { RelativeTime } from "shared/src/components/ui/format-date";
-import { FieldGrid } from "shared/src/components/layout/FieldGrid";
-import { PageSection } from "shared/src/components/layout/PageSection";
-import { JsonTable } from "shared/src/components/json/JsonTable";
-import { Identifier } from "shared/src/components/identity/Identifier";
+import { Badge } from "@eunomia/ui";
+import { RelativeTime } from "@eunomia/ui";
+import { FieldGrid } from "@eunomia/ui";
+import { PageSection } from "@eunomia/ui";
+import { JsonTable } from "@eunomia/ui";
+import { Identifier } from "@eunomia/ui";
 import { dataplaneStateVariant } from "./utils/dataplaneState";
 import { CopyButton } from "./CopyButton";
 

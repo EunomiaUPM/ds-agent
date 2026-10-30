@@ -22,16 +22,16 @@
  */
 
 import React from "react";
-import { formatUrn } from "shared/src/lib/utils";
-import { InfoList } from "shared/src/components/ui/info-list";
-import Heading from "shared/src/components/ui/heading";
-import { Badge } from "shared/src/components/ui/badge";
+import { formatUrn } from "@eunomia/ui";
+import { InfoList } from "@eunomia/ui";
+import { Heading } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
 import PolicyComponent from "shared/src/components/PolicyComponent";
 import { Trash, Shield } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "@eunomia/ui";
 import { useRouterState } from "@tanstack/react-router";
 import { BusinessRemovePolicyDialog } from "./dialogs/BusinessRemovePolicyDialog";
-import { Dialog, DialogTrigger } from "shared/src/components/ui/dialog";
+import { Dialog, DialogTrigger } from "@eunomia/ui";
 import { ContractNegotiationNewRequestDialog } from "./dialogs/ContractNegotiationNewRequestDialog";
 import { OdrlAgreement, OdrlOffer, OdrlPolicyDto } from "../data/orval/model";
 import { JsonLd } from "shared/src/data/jsonld";
@@ -41,7 +41,7 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "shared/src/components/ui/accordion";
+} from "@eunomia/ui";
 
 // =============================================================================
 // TYPES

@@ -17,7 +17,7 @@ import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/Glo
 //import { useDeleteBusinessNewPolicyInDataset } from "shared/src/data/business-mutations";
 import { BaseProcessDialog } from "./base";
 import { urnInfoItem } from "./base/infoItemMappers";
-import { InfoItemProps } from "../ui/info-list";
+import { InfoItemProps } from "@eunomia/ui";
 import { OdrlOffer } from "../../data/orval/model";
 
 // =============================================================================

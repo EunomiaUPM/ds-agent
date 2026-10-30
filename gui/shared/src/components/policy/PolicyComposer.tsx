@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Button } from "shared/src/components/ui/button";
-import { Textarea } from "shared/src/components/ui/textarea";
+import { Button } from "@eunomia/ui";
+import { Textarea } from "@eunomia/ui";
 import {
   Dialog,
   DialogContent,
@@ -8,9 +8,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "shared/src/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "shared/src/components/ui/tabs";
-import { JsonViewer } from "shared/src/components/json/JsonViewer";
+} from "@eunomia/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@eunomia/ui";
+import { JsonViewer } from "@eunomia/ui";
 import { OdrlRulesView } from "./OdrlRulesView";
 import { ControlPointChips } from "./ControlPointChips";
 import { PolicyBuilder } from "./builder/PolicyBuilder";

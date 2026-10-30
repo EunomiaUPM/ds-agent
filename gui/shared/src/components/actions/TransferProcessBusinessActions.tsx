@@ -3,7 +3,7 @@ import { cva } from "class-variance-authority";
 import { TransferProcessTerminationDialog } from "shared/src/components/dialogs/TransferProcessTerminationDialog";
 import { TransferProcessCompletionDialog } from "shared/src/components/dialogs/TransferProcessCompletionDialog";
 import { TransferProcessSuspensionDialog } from "shared/src/components/dialogs/TransferProcessSuspensionDialog";
-import NoFurtherActions from "../ui/noFurtherActions";
+import { NoFurtherActions } from "@eunomia/ui";
 import { ProcessActionDialog } from "./ProcessActionDialog";
 import { TransferProcessDto } from "../../data/orval/model";
 

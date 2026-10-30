@@ -2,22 +2,22 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { cn } from "shared/src/lib/utils";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { PageSection } from "shared/src/components/layout/PageSection";
-import { Button } from "shared/src/components/ui/button";
-import { Input } from "shared/src/components/ui/input";
-import { SegmentedControl } from "shared/src/components/ui/segmented";
+import { cn } from "@eunomia/ui";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
+import { PageSection } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { Input } from "@eunomia/ui";
+import { SegmentedControl } from "@eunomia/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "shared/src/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "shared/src/components/ui/tabs";
-import { JsonViewer } from "shared/src/components/json/JsonViewer";
+} from "@eunomia/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@eunomia/ui";
+import { JsonViewer } from "@eunomia/ui";
 import { OdrlRulesView } from "shared/src/components/policy/OdrlRulesView";
 import { ControlPointChips } from "shared/src/components/policy/ControlPointChips";
 import { TemplateParameterFields } from "shared/src/components/policy/TemplateParameterFields";

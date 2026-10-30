@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { dspTitle } from "../../data/catalog";
 import { DcatVocabularies } from "../../data/dcat";
-import Heading from "shared/src/components/ui/heading";
-import { Badge } from "./badge";
-import { FormatDate } from "./format-date";
+import { Heading } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
 import { Link } from "@tanstack/react-router";
 import { useGetDistributionsByDatasetId } from "shared/src/data/orval/distributions/distributions";
 import { useGetPoliciesByEntityId } from "../../data/orval/odrl-policies/odrl-policies";
-import { Card, CardHeader, CardContent, CardFooter } from "shared/src/components/ui/card";
+import { Card, CardHeader, CardContent, CardFooter } from "@eunomia/ui";
 import {
   ArrowUpRight,
   ShieldCheck,
@@ -18,7 +18,7 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { Button } from "./button";
+import { Button } from "@eunomia/ui";
 import { PublicationBadge } from "../catalog/Publication";
 
 interface DatasetItemProps {

@@ -4,8 +4,7 @@
  * Exports all base components and utilities for building process dialogs.
  */
 
-export { BaseProcessDialog } from "./BaseProcessDialog";
-export type { BaseProcessDialogProps, ButtonVariant } from "./BaseProcessDialog";
+export { BaseProcessDialog, type BaseProcessDialogProps, type ButtonVariant } from "@eunomia/ui";
 
 export {
   // Contract Negotiation mappers

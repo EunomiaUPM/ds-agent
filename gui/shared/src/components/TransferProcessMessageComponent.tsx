@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { formatUrn } from "shared/src/lib/utils";
+import { formatUrn } from "@eunomia/ui";
 import { TransferMessageDto } from "../data/orval/model";
-import { Badge } from "shared/src/components/ui/badge";
+import { Badge } from "@eunomia/ui";
 import dayjs from "dayjs";
 import { Copy, ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "shared/src/lib/utils";
+import { cn } from "@eunomia/ui";
 
 export { ProcessMessagesTable } from "./ProcessMessagesTable";
 

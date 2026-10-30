@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "shared/src/lib/utils";
+import { cn } from "@eunomia/ui";
 import { CONTROL_POINTS } from "shared/src/data/policyTemplateApi";
 import type { ControlPoint } from "shared/src/data/orval/model";
 

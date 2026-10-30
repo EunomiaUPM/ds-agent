@@ -2,9 +2,9 @@ import { useContext } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Button } from "shared/src/components/ui/button";
+import { Button } from "@eunomia/ui";
 import { SSIAuthContext } from "shared/src/context/SSIAuthContext";
-import { Form } from "shared/src/components/ui/form";
+import { Form } from "@eunomia/ui";
 
 const vcRequestSchema = z.object({});
 

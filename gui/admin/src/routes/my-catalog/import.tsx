@@ -12,19 +12,19 @@ import {
   XCircle,
 } from "lucide-react";
 
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
+import { PageLayout } from "@eunomia/ui";
+import { PageHeader } from "@eunomia/ui";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "shared/src/components/ui/card";
-import { Badge } from "shared/src/components/ui/badge";
-import { Button } from "shared/src/components/ui/button";
-import { SegmentedControl } from "shared/src/components/ui/segmented";
-import { Identifier } from "shared/src/components/identity/Identifier";
+} from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { SegmentedControl } from "@eunomia/ui";
+import { Identifier } from "@eunomia/ui";
 import { FindingRow } from "shared/src/components/catalog/DoctorPanel";
 import { useGetMainCatalogs } from "shared/src/data/orval/catalogs/catalogs";
 import { CatalogViews, type CatalogDoc } from "shared/src/data/catalog";

@@ -18,8 +18,8 @@
  */
 
 import React, { FC, useState } from "react";
-import { Button, ButtonSizes } from "shared/src/components/ui/button";
-import { Dialog, DialogTrigger } from "shared/src/components/ui/dialog";
+import { Button, ButtonSizes } from "@eunomia/ui";
+import { Dialog, DialogTrigger } from "@eunomia/ui";
 
 // =============================================================================
 // TYPES

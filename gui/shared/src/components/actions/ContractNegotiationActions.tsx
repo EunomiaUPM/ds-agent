@@ -1,4 +1,4 @@
-import { Button, ButtonSizes } from "../ui/button";
+import { Button, ButtonSizes } from "@eunomia/ui";
 import React, { useContext } from "react";
 import { cva } from "class-variance-authority";
 import { ContractNegotiationOfferDialog } from "../dialogs/ContractNegotiationOfferDialog";
@@ -9,7 +9,7 @@ import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/Glo
 import { ContractNegotiationRequestDialog } from "../dialogs/ContractNegotiationRequestDialog";
 import { ContractNegotiationAcceptanceDialog } from "../dialogs/ContractNegotiationAcceptanceDialog";
 import { ContractNegotiationVerificationDialog } from "../dialogs/ContractNegotiationVerificationDialog";
-import NoFurtherActions from "../ui/noFurtherActions";
+import { NoFurtherActions } from "@eunomia/ui";
 import { ProcessActionDialog } from "./ProcessActionDialog";
 import { NegotiationProcessDto } from "shared/src/data/orval/model/negotiationProcessDto";
 import { useGetAgreementsByNegotiationProcess } from "shared/src/data/orval/negotiations/negotiations";

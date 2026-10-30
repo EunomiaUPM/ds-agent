@@ -25,23 +25,23 @@ import {
   useMarkEventRead,
 } from "shared/src/data/orval/events/events";
 import { EventEnvelope, ListEventsFeedParams } from "shared/src/data/orval/model";
-import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
-import { DataTable } from "shared/src/components/DataTable";
-import { RelativeTime } from "shared/src/components/ui/format-date";
-import { Button } from "shared/src/components/ui/button";
-import { Badge } from "shared/src/components/ui/badge";
-import { FieldGrid } from "shared/src/components/layout/FieldGrid";
-import { JsonTable } from "shared/src/components/json/JsonTable";
-import { Identifier } from "shared/src/components/identity/Identifier";
+import { useTableQueryParams } from "@eunomia/ui";
+import { DataTable } from "@eunomia/ui";
+import { RelativeTime } from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { Badge } from "@eunomia/ui";
+import { FieldGrid } from "@eunomia/ui";
+import { JsonTable } from "@eunomia/ui";
+import { Identifier } from "@eunomia/ui";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "shared/src/components/ui/sheet";
+} from "@eunomia/ui";
 import { EventTopics } from "shared/src/lib/eventTopics";
-import { cn } from "shared/src/lib/utils";
+import { cn } from "@eunomia/ui";
 
 export const Route = createFileRoute("/events/feed")({
   component: EventFeedPage,

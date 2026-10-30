@@ -11,11 +11,11 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "shared/src/components/ui/sheet";
-import { Button } from "shared/src/components/ui/button";
-import { ConfirmDialog } from "shared/src/components/ui/confirm-dialog";
-import { FormatDate } from "shared/src/components/ui/format-date";
-import { Identifier } from "shared/src/components/identity/Identifier";
+} from "@eunomia/ui";
+import { Button } from "@eunomia/ui";
+import { ConfirmDialog } from "@eunomia/ui";
+import { FormatDate } from "@eunomia/ui";
+import { Identifier } from "@eunomia/ui";
 import {
   DataServiceFields,
   DatasetFields,

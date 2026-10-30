@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ExternalLink } from "lucide-react";
-import { FieldGrid } from "shared/src/components/layout/FieldGrid";
+import { FieldGrid } from "@eunomia/ui";
 import { SchemaUrl } from "shared/src/components/schemas/SchemaPicker";
 import {
   DcatForms,

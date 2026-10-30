@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/GlobalInfoContext";
-import { cn } from "shared/src/lib/utils";
+import { cn } from "@eunomia/ui";
 
 const randomThemes = [
   { border: "border-red-500/50", bg: "bg-red-500", text: "text-red-500" },

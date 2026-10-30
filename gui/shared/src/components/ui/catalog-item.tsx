@@ -1,20 +1,20 @@
 import React, { useState } from "react";
 import { CatalogRpc, DspViews, dspIssued, dspTitle } from "../../data/catalog";
 import avatarImg from "../../../public/avatar.png";
-import Avatar from "./avatar-img";
-import Heading from "shared/src/components/ui/heading";
+import { Avatar } from "@eunomia/ui";
+import { Heading } from "@eunomia/ui";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { FormatDate } from "shared/src/components/ui/format-date";
+import { FormatDate } from "@eunomia/ui";
 import { Lock, Database, Server, Calendar, ArrowUpRight } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "shared/src/components/ui/popover";
-import WizardDialog from "shared/src/components/WizardDialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@eunomia/ui";
+import { WizardDialog } from "@eunomia/ui";
 import { useRef } from "react";
-import { Badge } from "shared/src/components/ui/badge";
+import { Badge } from "@eunomia/ui";
 import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
 import { ConnectPeerForm } from "shared/src/components/ConnectPeerForm";
 import type { PeerConnection } from "shared/src/data/peerConnection";
 import type { FederatedParticipant } from "shared/src/data/useFederatedCatalog";
-import { Card, CardHeader, CardFooter } from "shared/src/components/ui/card";
+import { Card, CardHeader, CardFooter } from "@eunomia/ui";
 
 interface CatalogItemProps {
   date?: string | undefined;

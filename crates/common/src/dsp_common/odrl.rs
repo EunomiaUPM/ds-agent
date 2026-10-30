@@ -259,6 +259,7 @@ pub struct OdrlDuty {
     #[serde(rename = "action")]
     pub action: OdrlAction,
     #[serde(rename = "constraint")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub constraint: Option<Vec<OdrlConstraint>>,
 }
 

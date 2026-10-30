@@ -171,7 +171,7 @@ declare const UNAUTHORIZED_EVENT = "eunomia:unauthorized";
 declare const setApiGatewayBase: (url: string) => void;
 declare const getApiGatewayBase: () => string;
 type RequestConfig = RequestInit;
-interface CustomInstanceOptions extends Omit<Partial<RequestConfig>, "headers"> {
+interface CustomInstanceOptions extends Partial<RequestConfig> {
     method?: string;
     headers?: HeadersInit;
     params?: Record<string, unknown>;

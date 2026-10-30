@@ -14,7 +14,7 @@ export const getApiGatewayBase = (): string => API_GATEWAY_BASE;
 
 export type RequestConfig = RequestInit;
 
-export interface CustomInstanceOptions extends Omit<Partial<RequestConfig>, "headers"> {
+export interface CustomInstanceOptions extends Partial<RequestConfig> {
   method?: string;
   headers?: HeadersInit;
   params?: Record<string, unknown>;
@@ -42,7 +42,11 @@ export const customInstance = async <T>(
         normalizedHeaders[k] = v;
       });
     } else {
-      Object.assign(normalizedHeaders, headers);
+      Object.entries(headers).forEach(([k, v]) => {
+        if (v !== undefined) {
+          normalizedHeaders[k] = Array.isArray(v) ? v.join(", ") : String(v);
+        }
+      });
     }
   }
 

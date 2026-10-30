@@ -30,7 +30,11 @@ var customInstance = async (url, options) => {
         normalizedHeaders[k] = v;
       });
     } else {
-      Object.assign(normalizedHeaders, headers);
+      Object.entries(headers).forEach(([k, v]) => {
+        if (v !== void 0) {
+          normalizedHeaders[k] = Array.isArray(v) ? v.join(", ") : String(v);
+        }
+      });
     }
   }
   const config = {
@@ -3265,4 +3269,4 @@ export {
   WalletOidc4vpView,
   WalletOidc4vciView
 };
-//# sourceMappingURL=chunk-YOWM37K7.js.map
+//# sourceMappingURL=chunk-JSO64RSZ.js.map

@@ -49,14 +49,14 @@ export const DEFAULT_EUNOMIA_COLORS: BubbleColors = {
   sixth: "85, 180, 235",  // Interactive glow cyan
 };
 
-// Warm orange & sovereign amber palette for Eunomia Heimdall Authority.
+// Soft copper, warm dusk-plum & apricot-sand palette for Eunomia Heimdall Authority.
 export const HEIMDALL_BUBBLE_COLORS: BubbleColors = {
-  first: "234, 88, 12",   // Rich Heimdall orange
-  second: "194, 65, 12",  // Deep burnt amber
-  third: "251, 146, 60",  // Luminous warm orange
-  fourth: "140, 45, 15",  // Deep copper ember
-  fifth: "245, 158, 11",  // Sovereign gold-amber
-  sixth: "253, 186, 116", // Interactive warm glow
+  first: "175, 92, 52",    // Muted terracotta copper
+  second: "118, 62, 92",   // Soft Eunomia dusk plum
+  third: "212, 145, 98",   // Warm sand apricot
+  fourth: "88, 46, 38",    // Deep espresso bronze
+  fifth: "165, 108, 82",   // Ethereal muted sienna
+  sixth: "228, 172, 132",  // Soft champagne interactive glow
 };
 
 export const BubbleBackground = React.forwardRef<

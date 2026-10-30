@@ -1,14 +1,12 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { QueryClient } from "@tanstack/react-query";
-import { createRootRouteWithContext, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { Loader2 } from "lucide-react";
 import {
   GeneralErrorComponent,
   GlobalLoadingIndicator,
-  type LinkProps,
   loadSession,
-  NavigationProvider,
   ParticipantDirectoryProvider,
   type SessionUser,
   SidebarInset,
@@ -30,11 +28,6 @@ export const Route = createRootRouteWithContext<{
   component: RootComponent,
   errorComponent: GeneralErrorComponent,
 });
-
-const TanStackRouterLink = React.forwardRef<HTMLAnchorElement, LinkProps>(
-  ({ to, ...rest }, ref) => <Link ref={ref} to={to as any} {...rest} />,
-);
-TanStackRouterLink.displayName = "TanStackRouterLink";
 
 /** `undefined` while asking the gateway; `null` when there is no session. */
 type SessionState = SessionUser | null | undefined;
@@ -61,7 +54,6 @@ function AuthenticatedDirectoryBridge({ children }: { children: React.ReactNode 
 
 function RootComponent() {
   const [user, setUser] = useState<SessionState>(undefined);
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
     loadSession().then(setUser);
@@ -83,23 +75,21 @@ function RootComponent() {
   }
 
   return (
-    <NavigationProvider link={TanStackRouterLink} activePath={pathname}>
-      <AuthenticatedDirectoryBridge>
-        <LiveContextProvider>
-          <SidebarProvider>
-            <AppSidebar />
-            <SidebarInset>
-              <Header user={user} onSignOut={signOut} />
-              <div className="flex flex-1 flex-col gap-4 p-8 items-start justify-start w-full h-full min-w-0">
-                <Outlet />
-              </div>
-            </SidebarInset>
-          </SidebarProvider>
-          <Toaster />
-          <GlobalLoadingIndicator />
-          <TanStackRouterDevtools />
-        </LiveContextProvider>
-      </AuthenticatedDirectoryBridge>
-    </NavigationProvider>
+    <AuthenticatedDirectoryBridge>
+      <LiveContextProvider>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset>
+            <Header user={user} onSignOut={signOut} />
+            <div className="flex flex-1 flex-col gap-4 p-8 items-start justify-start w-full h-full min-w-0">
+              <Outlet />
+            </div>
+          </SidebarInset>
+        </SidebarProvider>
+        <Toaster />
+        <GlobalLoadingIndicator />
+        <TanStackRouterDevtools />
+      </LiveContextProvider>
+    </AuthenticatedDirectoryBridge>
   );
 }

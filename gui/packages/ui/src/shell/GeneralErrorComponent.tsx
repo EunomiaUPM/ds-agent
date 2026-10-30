@@ -11,7 +11,7 @@ import {
 } from "../ui/card";
 
 export interface GeneralErrorComponentProps {
-  error: Error;
+  error?: unknown;
   reset?: () => void;
   onRetry?: () => void;
 }
@@ -20,6 +20,13 @@ export interface GeneralErrorComponentProps {
  * Component for displaying a general error message.
  */
 export function GeneralErrorComponent({ error, reset, onRetry }: GeneralErrorComponentProps) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : "Unknown error";
+
   return (
     <div className="flex h-[50vh] w-full items-center justify-center p-4">
       <Card className="w-full max-w-md border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/20">
@@ -34,7 +41,7 @@ export function GeneralErrorComponent({ error, reset, onRetry }: GeneralErrorCom
         </CardHeader>
         <CardContent>
           <div className="rounded-md bg-white/50 p-3 text-sm font-medium text-red-800 dark:bg-sunken/20 dark:text-red-200">
-            {error?.message || "Unknown error"}
+            {message}
           </div>
         </CardContent>
         <CardFooter className="flex justify-end gap-2">

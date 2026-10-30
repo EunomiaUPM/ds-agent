@@ -44,15 +44,15 @@ interface LinkProps {
 }
 type LinkLike = React__default.ComponentType<LinkProps & React__default.RefAttributes<HTMLAnchorElement>>;
 declare const LinkProvider: React__default.Provider<LinkLike>;
-declare const ActivePathProvider: React__default.Provider<string>;
+declare const ActivePathProvider: React__default.Provider<string | null>;
 declare const useLink: () => LinkLike;
 declare const useActivePath: () => string;
 interface NavigationProviderProps {
-    link: LinkLike;
+    link?: LinkLike;
     activePath?: string;
     children: React__default.ReactNode;
 }
-declare function NavigationProvider({ link, activePath, children }: NavigationProviderProps): react_jsx_runtime.JSX.Element;
+declare function NavigationProvider({ link, activePath, children, }: NavigationProviderProps): react_jsx_runtime.JSX.Element;
 
 /** User-selectable preference; "system" follows the OS setting. */
 type ThemePreference = "light" | "dark" | "system";
@@ -227,7 +227,7 @@ declare function Avatar({ src, alt, sizeClass, wrapperClass, }: AvatarProps): re
  * Consolidated palette supporting states, roles, and enterprise semantics.
  */
 declare const badgeVariants: (props?: ({
-    variant?: "role" | "default" | "status" | "code" | "secondary" | "outline" | "destructive" | "danger" | "success" | "warning" | "warn" | "info" | "infoLighter" | "detail" | "wizard" | "wizardSuccess" | null | undefined;
+    variant?: "role" | "code" | "status" | "default" | "secondary" | "outline" | "destructive" | "danger" | "success" | "warning" | "warn" | "info" | "infoLighter" | "detail" | "wizard" | "wizardSuccess" | null | undefined;
     state?: "default" | "danger" | "success" | "warn" | "process" | "pause" | null | undefined;
     dsrole?: "Provider" | "Consumer" | "Business" | "Customer" | null | undefined;
     size?: "default" | "xs" | "sm" | "lg" | null | undefined;
@@ -424,7 +424,7 @@ declare const CommandInput: React.ForwardRefExoticComponent<Omit<Omit<Pick<Pick<
     ref?: React.Ref<HTMLInputElement>;
 } & {
     asChild?: boolean;
-}, "key" | "asChild" | keyof React.InputHTMLAttributes<HTMLInputElement>>, "value" | "onChange" | "type"> & {
+}, "key" | "asChild" | keyof React.InputHTMLAttributes<HTMLInputElement>>, "type" | "onChange" | "value"> & {
     value?: string;
     onValueChange?: (search: string) => void;
 } & React.RefAttributes<HTMLInputElement>, "ref"> & React.RefAttributes<HTMLInputElement>>;
@@ -468,7 +468,7 @@ declare const CommandItem: React.ForwardRefExoticComponent<Omit<{
     ref?: React.Ref<HTMLDivElement>;
 } & {
     asChild?: boolean;
-}, "key" | keyof React.HTMLAttributes<HTMLDivElement> | "asChild">, "value" | "onSelect" | "disabled"> & {
+}, "key" | keyof React.HTMLAttributes<HTMLDivElement> | "asChild">, "disabled" | "onSelect" | "value"> & {
     disabled?: boolean;
     onSelect?: (value: string) => void;
     value?: string;
@@ -1547,7 +1547,7 @@ interface SignInScreenProps {
 declare function SignInScreen({ title, description, tagline, pillars, logoSrc, bubbleColors, bubbleClassName, onSignIn, }: SignInScreenProps): react_jsx_runtime.JSX.Element;
 
 interface GeneralErrorComponentProps {
-    error: Error;
+    error?: unknown;
     reset?: () => void;
     onRetry?: () => void;
 }

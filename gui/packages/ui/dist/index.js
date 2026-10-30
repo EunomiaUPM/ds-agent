@@ -80,7 +80,7 @@ import {
   useActivePath,
   useLink,
   useTableQueryParams
-} from "./chunk-JSO64RSZ.js";
+} from "./chunk-QPVAQWPD.js";
 import {
   Identifier,
   cn,
@@ -3471,6 +3471,7 @@ function SignInScreen({
 import { AlertCircle, RotateCcw } from "lucide-react";
 import { jsx as jsx42, jsxs as jsxs26 } from "react/jsx-runtime";
 function GeneralErrorComponent({ error, reset, onRetry }) {
+  const message = error instanceof Error ? error.message : typeof error === "string" ? error : "Unknown error";
   return /* @__PURE__ */ jsx42("div", { className: "flex h-[50vh] w-full items-center justify-center p-4", children: /* @__PURE__ */ jsxs26(Card, { className: "w-full max-w-md border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/20", children: [
     /* @__PURE__ */ jsxs26(CardHeader, { children: [
       /* @__PURE__ */ jsxs26("div", { className: "flex items-center gap-2 text-red-600 dark:text-red-400", children: [
@@ -3479,7 +3480,7 @@ function GeneralErrorComponent({ error, reset, onRetry }) {
       ] }),
       /* @__PURE__ */ jsx42(CardDescription, { className: "text-red-600/90 dark:text-red-400/90", children: "An error occurred while loading this page." })
     ] }),
-    /* @__PURE__ */ jsx42(CardContent, { children: /* @__PURE__ */ jsx42("div", { className: "rounded-md bg-white/50 p-3 text-sm font-medium text-red-800 dark:bg-sunken/20 dark:text-red-200", children: error?.message || "Unknown error" }) }),
+    /* @__PURE__ */ jsx42(CardContent, { children: /* @__PURE__ */ jsx42("div", { className: "rounded-md bg-white/50 p-3 text-sm font-medium text-red-800 dark:bg-sunken/20 dark:text-red-200", children: message }) }),
     /* @__PURE__ */ jsxs26(CardFooter, { className: "flex justify-end gap-2", children: [
       /* @__PURE__ */ jsx42(
         Button,

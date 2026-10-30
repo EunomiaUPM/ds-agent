@@ -20,6 +20,7 @@ export default defineConfig({
     "react-dom",
     "react/jsx-runtime",
     "@tanstack/react-query",
+    "@tanstack/react-router",
     /^monaco-editor/,
     /^@monaco-editor\/react/,
     /^@radix-ui\//,

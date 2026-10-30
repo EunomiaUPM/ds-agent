@@ -1,4 +1,5 @@
 import React, { createContext, useContext } from "react";
+import { Link as TanStackLink, useRouterState } from "@tanstack/react-router";
 
 export interface LinkProps {
   to: string;
@@ -12,13 +13,13 @@ export interface LinkProps {
 
 export type LinkLike = React.ComponentType<LinkProps & React.RefAttributes<HTMLAnchorElement>>;
 
-const DefaultLink = React.forwardRef<HTMLAnchorElement, LinkProps>(({ to, ...rest }, ref) => (
-  <a ref={ref} href={to} {...rest} />
-));
-DefaultLink.displayName = "DefaultLink";
+const DefaultTanStackLink = React.forwardRef<HTMLAnchorElement, LinkProps>(
+  ({ to, ...rest }, ref) => <TanStackLink ref={ref} to={to as any} {...rest} />,
+);
+DefaultTanStackLink.displayName = "DefaultTanStackLink";
 
-const LinkContext = createContext<LinkLike>(DefaultLink);
-const ActivePathContext = createContext<string>("");
+const LinkContext = createContext<LinkLike>(DefaultTanStackLink);
+const ActivePathContext = createContext<string | null>(null);
 
 export const LinkProvider = LinkContext.Provider;
 export const ActivePathProvider = ActivePathContext.Provider;
@@ -27,21 +28,26 @@ export const useLink = (): LinkLike => useContext(LinkContext);
 
 export const useActivePath = (): string => {
   const ctxPath = useContext(ActivePathContext);
-  if (ctxPath) return ctxPath;
-  if (typeof window !== "undefined") return window.location.pathname;
-  return "";
+  const routerPath = useRouterState({ select: (s) => s.location.pathname });
+  return ctxPath ?? routerPath ?? "";
 };
 
 export interface NavigationProviderProps {
-  link: LinkLike;
+  link?: LinkLike;
   activePath?: string;
   children: React.ReactNode;
 }
 
-export function NavigationProvider({ link, activePath = "", children }: NavigationProviderProps) {
+export function NavigationProvider({
+  link = DefaultTanStackLink,
+  activePath,
+  children,
+}: NavigationProviderProps) {
   return (
     <LinkContext.Provider value={link}>
-      <ActivePathContext.Provider value={activePath}>{children}</ActivePathContext.Provider>
+      <ActivePathContext.Provider value={activePath ?? null}>
+        {children}
+      </ActivePathContext.Provider>
     </LinkContext.Provider>
   );
 }

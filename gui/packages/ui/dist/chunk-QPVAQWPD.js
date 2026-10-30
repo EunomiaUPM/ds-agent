@@ -180,22 +180,28 @@ function PageHeader({
 
 // src/link.tsx
 import React, { createContext, useContext } from "react";
+import { Link as TanStackLink, useRouterState } from "@tanstack/react-router";
 import { jsx as jsx4 } from "react/jsx-runtime";
-var DefaultLink = React.forwardRef(({ to, ...rest }, ref) => /* @__PURE__ */ jsx4("a", { ref, href: to, ...rest }));
-DefaultLink.displayName = "DefaultLink";
-var LinkContext = createContext(DefaultLink);
-var ActivePathContext = createContext("");
+var DefaultTanStackLink = React.forwardRef(
+  ({ to, ...rest }, ref) => /* @__PURE__ */ jsx4(TanStackLink, { ref, to, ...rest })
+);
+DefaultTanStackLink.displayName = "DefaultTanStackLink";
+var LinkContext = createContext(DefaultTanStackLink);
+var ActivePathContext = createContext(null);
 var LinkProvider = LinkContext.Provider;
 var ActivePathProvider = ActivePathContext.Provider;
 var useLink = () => useContext(LinkContext);
 var useActivePath = () => {
   const ctxPath = useContext(ActivePathContext);
-  if (ctxPath) return ctxPath;
-  if (typeof window !== "undefined") return window.location.pathname;
-  return "";
+  const routerPath = useRouterState({ select: (s) => s.location.pathname });
+  return ctxPath ?? routerPath ?? "";
 };
-function NavigationProvider({ link, activePath = "", children }) {
-  return /* @__PURE__ */ jsx4(LinkContext.Provider, { value: link, children: /* @__PURE__ */ jsx4(ActivePathContext.Provider, { value: activePath, children }) });
+function NavigationProvider({
+  link = DefaultTanStackLink,
+  activePath,
+  children
+}) {
+  return /* @__PURE__ */ jsx4(LinkContext.Provider, { value: link, children: /* @__PURE__ */ jsx4(ActivePathContext.Provider, { value: activePath ?? null, children }) });
 }
 
 // src/ui/count-badge.tsx
@@ -3269,4 +3275,4 @@ export {
   WalletOidc4vpView,
   WalletOidc4vciView
 };
-//# sourceMappingURL=chunk-JSO64RSZ.js.map
+//# sourceMappingURL=chunk-QPVAQWPD.js.map

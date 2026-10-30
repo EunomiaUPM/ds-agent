@@ -287,6 +287,8 @@ async fn published_is_read_as_the_public() {
         schema["$schema"],
         "https://json-schema.org/draft/2020-12/schema"
     );
+    assert_eq!(schema["title"], "Readings");
+    assert_eq!(schema["description"], "Hourly readings");
 }
 
 /// A version the public does not see is not found.

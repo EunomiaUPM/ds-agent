@@ -166,6 +166,23 @@ impl SchemaService {
         )
     }
 
+    /// The content as served at `url`; a document without title or description takes the
+    /// version's, so whoever dereferences it knows what it is.
+    fn served(schema: &DataSchema, url: &str) -> Value {
+        let mut content = JsonSchemaCheck::published(&schema.content, url);
+        if let Value::Object(object) = &mut content {
+            object
+                .entry("title")
+                .or_insert_with(|| Value::String(schema.title.clone()));
+            if let Some(description) = &schema.description {
+                object
+                    .entry("description")
+                    .or_insert_with(|| Value::String(description.clone()));
+            }
+        }
+        content
+    }
+
     fn url_issue(message: impl Into<String>) -> SchemaIssue {
         SchemaIssue {
             path: "/".to_string(),
@@ -220,7 +237,7 @@ impl SchemaServiceTrait for SchemaService {
             .await?
             .or_not_found(format!("{id}/{version}"), "schema")?;
         let url = self.url(id, version);
-        let content = JsonSchemaCheck::published(&schema.content, &url);
+        let content = Self::served(&schema, &url);
         Ok(SchemaVersionView {
             used_by: self.usage(user, &url).await?,
             schema: content,
@@ -395,10 +412,7 @@ impl SchemaServiceTrait for SchemaService {
             .get_version(&PublicReader::scope(), id, version)
             .await?
             .or_not_found(format!("{id}/{version}"), "schema")?;
-        Ok(JsonSchemaCheck::published(
-            &schema.content,
-            &self.url(id, version),
-        ))
+        Ok(Self::served(&schema, &self.url(id, version)))
     }
 
     fn url(&self, id: &str, version: i32) -> String {

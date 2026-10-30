@@ -1,0 +1,29 @@
+{
+  "id": "spatial",
+  "version": "1.0",
+  "kind": "constraint",
+  "controlPoints": [
+    "dataplane"
+  ],
+  "title": "Only in these regions",
+  "description": "The data may only be accessed from the listed regions.",
+  "author": "Eunomia connector",
+  "visibility": "Public",
+  "content": {
+    "leftOperand": "odrl:spatial",
+    "operator": "isAnyOf",
+    "rightOperand": "$regions"
+  },
+  "parameters": {
+    "$regions": {
+      "dataType": "list",
+      "restrictions": {
+        "minItems": 1
+      },
+      "ui": {
+        "label": "Regions",
+        "placeholder": "ES"
+      }
+    }
+  }
+}

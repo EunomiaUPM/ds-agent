@@ -28,6 +28,7 @@ use ymir::types::participants::Visibility;
 
 use crate::entities::graph::ResourceGraph;
 use crate::entities::odrl_offer::CatalogEntityTypes;
+use crate::entities::policy_templates::{ControlPoint, PolicyTemplateKind};
 use crate::entities::resource_kind::ResourceKind;
 
 /// A resource to create: its description and where it hangs from.
@@ -105,6 +106,12 @@ pub struct NewOdrlOfferCommand {
     pub instantiation_parameters: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    /// The parts it was composed from; set by composition, never by the API.
+    #[serde(skip)]
+    pub composition: Option<Value>,
+    /// Template versions, `(id, version)`, the composition used.
+    #[serde(skip)]
+    pub references: Vec<(String, String)>,
 }
 
 /// A template version to store, its owner already resolved.
@@ -113,12 +120,16 @@ pub struct NewPolicyTemplateCommand {
     pub id: Option<String>,
     pub owner: Owner,
     pub version: Option<String>,
+    pub kind: PolicyTemplateKind,
+    pub control_points: Vec<ControlPoint>,
     pub date: Option<DateTime<FixedOffset>>,
     pub author: Option<String>,
     pub title: Option<Value>,
     pub description: Option<Value>,
     pub content: Value,
     pub parameters: Value,
+    /// Template versions the content references directly, as `(id, version)`.
+    pub references: Vec<(String, String)>,
 }
 
 /// A schema version to store, owner resolved and content checked.

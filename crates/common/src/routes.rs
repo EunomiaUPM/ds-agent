@@ -156,11 +156,15 @@ pub mod catalog {
     pub mod odrl_policies {
         pub const PREFIX: &str = "/odrl-policies";
         pub const BY_ENTITY: &str = "/entity/{entity_id}";
+        pub const COMPOSE: &str = "/compose";
+        pub const COMPOSE_PREVIEW: &str = "/compose/preview";
     }
 
     pub mod policy_templates {
         pub const PREFIX: &str = "/policy-templates";
         pub const BY_ID_AND_VERSION: &str = "/{id}/{version}";
+        pub const USAGES: &str = "/{id}/{version}/usages";
+        pub const PREVIEW: &str = "/preview";
         pub const INSTANTIATE_ODRL_OFFER: &str = "/instantiate-odrl-offer";
     }
 

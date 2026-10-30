@@ -35,6 +35,8 @@ use catalog_agent::services::catalog_import::CatalogImportServiceTrait;
 use catalog_agent::services::closure::ClosureServiceTrait;
 use catalog_agent::services::doctor::DoctorServiceTrait;
 use catalog_agent::services::odrl_policies::OdrlPolicyServiceTrait;
+use catalog_agent::services::policy_composition::PolicyCompositionServiceTrait;
+use catalog_agent::services::policy_templates::PolicyTemplateServiceTrait;
 use catalog_agent::services::projection::ProjectionServiceTrait;
 use catalog_agent::services::resources::ResourceServiceTrait;
 use catalog_agent::services::schemas::SchemaServiceTrait;
@@ -83,6 +85,8 @@ pub struct TestContext {
     resources: Option<Arc<dyn ResourceServiceTrait>>,
     closures: Option<Arc<dyn ClosureServiceTrait>>,
     offers: Option<Arc<dyn OdrlPolicyServiceTrait>>,
+    templates: Option<Arc<dyn PolicyTemplateServiceTrait>>,
+    composition: Option<Arc<dyn PolicyCompositionServiceTrait>>,
     doctor: Option<Arc<dyn DoctorServiceTrait>>,
     projections: Option<Arc<dyn ProjectionServiceTrait>>,
     imports: Option<Arc<dyn CatalogImportServiceTrait>>,
@@ -104,6 +108,8 @@ impl TestContext {
             resources: None,
             closures: None,
             offers: None,
+            templates: None,
+            composition: None,
             doctor: None,
             projections: None,
             imports: None,
@@ -166,6 +172,16 @@ impl TestContext {
         self
     }
 
+    pub fn templates(mut self, service: impl PolicyTemplateServiceTrait + 'static) -> Self {
+        self.templates = Some(Arc::new(service));
+        self
+    }
+
+    pub fn composition(mut self, service: impl PolicyCompositionServiceTrait + 'static) -> Self {
+        self.composition = Some(Arc::new(service));
+        self
+    }
+
     pub fn doctor(mut self, service: impl DoctorServiceTrait + 'static) -> Self {
         self.doctor = Some(Arc::new(service));
         self
@@ -203,6 +219,12 @@ impl TestContext {
         }
         if let Some(offers) = self.offers {
             services.offers = offers;
+        }
+        if let Some(templates) = self.templates {
+            services.templates = templates;
+        }
+        if let Some(composition) = self.composition {
+            services.composition = composition;
         }
         if let Some(doctor) = self.doctor {
             services.doctor = doctor;

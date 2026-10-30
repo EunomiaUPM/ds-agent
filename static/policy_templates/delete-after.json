@@ -1,0 +1,33 @@
+{
+  "id": "delete-after",
+  "version": "1.0",
+  "kind": "rule",
+  "controlPoints": [
+    "duties"
+  ],
+  "title": "Delete after a while",
+  "description": "The consumer must delete the data once the given time has passed.",
+  "author": "Eunomia connector",
+  "visibility": "Public",
+  "content": {
+    "obligation": {
+      "action": "delete",
+      "constraint": [
+        {
+          "leftOperand": "odrl:elapsedTime",
+          "operator": "gteq",
+          "rightOperand": "$duration"
+        }
+      ]
+    }
+  },
+  "parameters": {
+    "$duration": {
+      "dataType": "duration",
+      "defaultValue": "P90D",
+      "ui": {
+        "label": "Delete after"
+      }
+    }
+  }
+}

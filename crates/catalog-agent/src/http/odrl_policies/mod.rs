@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! The ODRL offer API; offers stay ODRL JSON.
+//! The ODRL offer API; offers stay ODRL JSON, written by hand or composed from parts.
 
 use std::sync::Arc;
 
@@ -34,6 +34,7 @@ use ymir::utils::{extract_path_urn, extract_payload};
 use crate::entities::commands::NewOdrlOfferCommand;
 use crate::entities::filters::OdrlPolicyFilter;
 use crate::entities::odrl_offer::OdrlOffer;
+use crate::entities::policy_composition::{NewPolicyCompositionDto, PolicyCompositionPreviewDto};
 use crate::services::odrl_policies::views::OdrlPolicyView;
 use crate::setup::context::AppContext;
 
@@ -53,6 +54,8 @@ impl OdrlOfferEntityRouter {
         Router::new()
             .route(routes::entity::ROOT, get(Self::handle_list).post(Self::handle_create))
             .route(routes::entity::BATCH, post(Self::handle_batch))
+            .route(routes::odrl_policies::COMPOSE, post(Self::handle_compose))
+            .route(routes::odrl_policies::COMPOSE_PREVIEW, post(Self::handle_compose_preview))
             .route(routes::entity::BY_ID, get(Self::handle_get).delete(Self::handle_delete))
             .route(
                 routes::odrl_policies::BY_ENTITY,
@@ -143,6 +146,36 @@ impl OdrlOfferEntityRouter {
         };
         match state.ctx.offers().delete_by_entity(&user, &entity).await {
             Ok(()) => StatusCode::NO_CONTENT.into_response(),
+            Err(e) => e.into_response(),
+        }
+    }
+
+    async fn handle_compose(
+        State(state): State<Self>,
+        user: UserInfo,
+        input: Result<Json<NewPolicyCompositionDto>, JsonRejection>,
+    ) -> Response {
+        let input = match extract_payload(input) {
+            Ok(input) => input,
+            Err(e) => return e.into_response(),
+        };
+        match state.ctx.composition().compose(&user, &input).await {
+            Ok(offer) => (StatusCode::CREATED, Json(OdrlPolicyView::assemble(offer))).into_response(),
+            Err(e) => e.into_response(),
+        }
+    }
+
+    async fn handle_compose_preview(
+        State(state): State<Self>,
+        user: UserInfo,
+        input: Result<Json<PolicyCompositionPreviewDto>, JsonRejection>,
+    ) -> Response {
+        let input = match extract_payload(input) {
+            Ok(input) => input,
+            Err(e) => return e.into_response(),
+        };
+        match state.ctx.composition().preview(&user, &input.parts).await {
+            Ok(preview) => Json(preview).into_response(),
             Err(e) => e.into_response(),
         }
     }

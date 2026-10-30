@@ -15,20 +15,22 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Policy templates in Postgres.
+//! Policy templates in Postgres; a version and its references are written in one transaction.
 
 use std::sync::Arc;
 
 use common::oauth::OwnerScope;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use sea_orm::sea_query::Expr;
 use sea_orm::{
-    ColumnTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
-    Select,
+    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, Select, TransactionTrait,
 };
 use ymir::errors::{Errors, Outcome, RepoIntoErrors};
 
 use crate::data::repo::policy_template::{PolicyTemplateRepoErrors, PolicyTemplateRepoTrait};
 use crate::data::sea_orm::orm::policy_template as orm;
+use crate::data::sea_orm::orm::policy_template_ref as refs;
 use crate::entities::commands::NewPolicyTemplateCommand;
 use crate::entities::filters::PolicyTemplateFilter;
 use crate::entities::policy_templates::PolicyTemplateDto;
@@ -63,6 +65,15 @@ impl SeaOrmPolicyTemplateRepo {
         }
         if let Some(author) = &filter.author {
             q = q.filter(orm::Column::Author.eq(author.as_str()));
+        }
+        if let Some(kind) = filter.kind {
+            q = q.filter(orm::Column::Kind.eq(kind.as_str()));
+        }
+        if let Some(point) = filter.control_point {
+            q = q.filter(Expr::cust_with_values(
+                "catalog_policy_templates.control_points @> $1",
+                [serde_json::json!([point])],
+            ));
         }
         if let Some(after) = filter.created_after {
             q = q.filter(orm::Column::Date.gte(after));
@@ -150,12 +161,69 @@ impl PolicyTemplateRepoTrait for SeaOrmPolicyTemplateRepo {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn insert(&self, command: &NewPolicyTemplateCommand) -> Outcome<PolicyTemplateDto> {
-        orm::Entity::insert(orm::ActiveModel::from_command(command))
-            .exec_with_returning(self.db.as_ref())
+    async fn get_by_keys(
+        &self,
+        scope: &OwnerScope,
+        keys: &[(String, String)],
+    ) -> Outcome<Vec<PolicyTemplateDto>> {
+        if keys.is_empty() {
+            return Ok(vec![]);
+        }
+        let any = keys.iter().fold(Condition::any(), |any, (id, version)| {
+            any.add(
+                Condition::all()
+                    .add(orm::Column::Id.eq(id.as_str()))
+                    .add(orm::Column::Version.eq(version.as_str())),
+            )
+        });
+        let models = Self::scoped(scope)
+            .filter(any)
+            .all(self.db.as_ref())
             .await
-            .map_err(|e| PolicyTemplateRepoErrors::Creating(Box::new(e)).into_errors())?
-            .into_domain()
+            .map_err(Self::fetch_err)?;
+        Self::decode(models)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn insert(&self, command: &NewPolicyTemplateCommand) -> Outcome<PolicyTemplateDto> {
+        let create_err = |e: DbErr| PolicyTemplateRepoErrors::Creating(Box::new(e)).into_errors();
+        let txn = self.db.begin().await.map_err(create_err)?;
+        let stored = orm::Entity::insert(orm::ActiveModel::from_command(command))
+            .exec_with_returning(&txn)
+            .await
+            .map_err(create_err)?
+            .into_domain()?;
+        if !command.references.is_empty() {
+            let rows = command.references.iter().map(|(id, version)| refs::ActiveModel {
+                template_id: sea_orm::ActiveValue::Set(stored.id.clone()),
+                template_version: sea_orm::ActiveValue::Set(stored.version.clone()),
+                ref_id: sea_orm::ActiveValue::Set(id.clone()),
+                ref_version: sea_orm::ActiveValue::Set(version.clone()),
+            });
+            refs::Entity::insert_many(rows)
+                .on_conflict_do_nothing()
+                .exec(&txn)
+                .await
+                .map_err(create_err)?;
+        }
+        txn.commit().await.map_err(create_err)?;
+        Ok(stored)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn dependents(&self, id: &str, version: &str) -> Outcome<Vec<String>> {
+        let rows = refs::Entity::find()
+            .filter(refs::Column::RefId.eq(id))
+            .filter(refs::Column::RefVersion.eq(version))
+            .order_by_asc(refs::Column::TemplateId)
+            .order_by_asc(refs::Column::TemplateVersion)
+            .all(self.db.as_ref())
+            .await
+            .map_err(Self::fetch_err)?;
+        Ok(rows
+            .into_iter()
+            .map(|r| format!("{}@{}", r.template_id, r.template_version))
+            .collect())
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]

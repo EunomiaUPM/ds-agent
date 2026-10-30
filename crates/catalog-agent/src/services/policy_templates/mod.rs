@@ -15,15 +15,18 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Policy template management use cases.
+//! Policy template management use cases: versions, references between them and previews.
 
 pub mod service;
+pub mod views;
 
 use crate::entities::filters::PolicyTemplateFilter;
+use crate::entities::policy_composition::{TemplateLibrary, TemplatePreviewDto};
 use crate::entities::policy_templates::{NewPolicyTemplateDto, PolicyTemplateDto};
-use ymir::types::oauth::UserInfo;
+use crate::services::policy_templates::views::{PolicyPreviewView, TemplateUsagesView};
 use common::paginated_spec::{Page, Paginated, Sort};
 use ymir::errors::Outcome;
+use ymir::types::oauth::UserInfo;
 
 /// Management of policy templates and their versions.
 #[mockall::automock]
@@ -55,16 +58,28 @@ pub trait PolicyTemplateServiceTrait: Sync + Send {
         template_id: &str,
         version_id: &str,
     ) -> Outcome<PolicyTemplateDto>;
-    /// Validates the template and stores it.
+    /// Validates the template and its references and stores it with them.
     async fn create_policy_template(
         &self,
         user: &UserInfo,
         new_policy_template: &NewPolicyTemplateDto,
     ) -> Outcome<PolicyTemplateDto>;
+    /// Fails with a 409 while another template version references it.
     async fn delete_policy_template_by_version_and_id(
         &self,
         user: &UserInfo,
         template_id: &str,
         version_id: &str,
     ) -> Outcome<()>;
+    /// Template versions and offers built from this version.
+    async fn usages(
+        &self,
+        user: &UserInfo,
+        template_id: &str,
+        version_id: &str,
+    ) -> Outcome<TemplateUsagesView>;
+    /// The plain ODRL of a stored version or a draft, filled with the given values; stores nothing.
+    async fn preview(&self, user: &UserInfo, request: &TemplatePreviewDto) -> Outcome<PolicyPreviewView>;
+    /// The versions named by `(id, version)` that the caller sees, and every piece below them.
+    async fn library(&self, user: &UserInfo, keys: Vec<(String, String)>) -> Outcome<TemplateLibrary>;
 }

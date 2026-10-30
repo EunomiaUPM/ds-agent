@@ -15,24 +15,28 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod validator_request;
+//! Filling one template with values to make an offer, and the checks each value goes through.
+
 pub mod validators;
 
-use crate::entities::odrl_offer::CatalogEntityTypes;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
 use urn::Urn;
 
+use crate::entities::odrl_offer::CatalogEntityTypes;
+use crate::entities::policy_templates::ParameterValue;
+
+/// An offer made from one template version and the values of its parameters.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct NewPolicyInstantiationDto {
     pub id: String,
     pub version: String,
-    pub parameters: HashMap<String, PolicyTemplateAllowedDefaultValues>,
+    #[serde(default)]
+    pub parameters: HashMap<String, ParameterValue>,
     pub entity_id: Urn,
     pub entity_type: CatalogEntityTypes,
     pub description: Option<String>,
 }
-
-use crate::entities::policy_templates::PolicyTemplateAllowedDefaultValues;

@@ -16,7 +16,7 @@
  */
 
 //! Catalog-agent use cases over mocked repositories: resources, closures, the doctor, offers,
-//! offerings, the main catalog, projections and imports.
+//! offerings, templates and their composition, the main catalog, projections and imports.
 
 #[path = "../support/mod.rs"]
 mod support;
@@ -28,6 +28,8 @@ mod dataset_offerings;
 mod doctor;
 mod main_catalog;
 mod odrl_policies;
+mod policy_composition;
+mod policy_templates;
 mod projection;
 mod resources;
 mod schemas;

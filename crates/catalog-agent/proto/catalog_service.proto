@@ -127,21 +127,25 @@ service CatalogResourceService {
   rpc Doctor (DoctorRequest) returns (JsonDocument);
 }
 
-// ODRL offers, as the management API's JSON.
+// ODRL offers, as the management API's JSON; composed from parts or written by hand.
 service OdrlOfferService {
   rpc List (ListJsonRequest) returns (JsonDocument);
   rpc Get (IdRequest) returns (JsonDocument);
   rpc ByEntity (IdRequest) returns (JsonDocument);
   rpc Create (JsonDocument) returns (JsonDocument);
+  rpc Compose (JsonDocument) returns (JsonDocument);
+  rpc ComposePreview (JsonDocument) returns (JsonDocument);
   rpc Delete (IdRequest) returns (google.protobuf.Empty);
 }
 
-// Policy templates and their instantiation, as the management API's JSON.
+// Policy templates, who uses them, previews and instantiation, as the management API's JSON.
 service PolicyTemplateService {
   rpc List (ListJsonRequest) returns (JsonDocument);
   rpc Versions (IdRequest) returns (JsonDocument);
   rpc Get (TemplateVersionRequest) returns (JsonDocument);
   rpc Create (JsonDocument) returns (JsonDocument);
   rpc Delete (TemplateVersionRequest) returns (google.protobuf.Empty);
+  rpc Usages (TemplateVersionRequest) returns (JsonDocument);
+  rpc Preview (JsonDocument) returns (JsonDocument);
   rpc Instantiate (JsonDocument) returns (JsonDocument);
 }

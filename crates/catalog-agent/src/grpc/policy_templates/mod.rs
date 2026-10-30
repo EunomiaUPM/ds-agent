@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! The template RPCs over the template and instantiation services.
+//! The template RPCs over the template and composition services.
 
 use std::sync::Arc;
 
@@ -25,6 +25,7 @@ use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 
 use crate::entities::filters::PolicyTemplateFilter;
+use crate::entities::policy_composition::TemplatePreviewDto;
 use crate::entities::policy_instantiation::NewPolicyInstantiationDto;
 use crate::entities::policy_templates::NewPolicyTemplateDto;
 use crate::grpc::api::catalog_agent::policy_template_service_server::PolicyTemplateService;
@@ -117,13 +118,37 @@ impl PolicyTemplateService for PolicyTemplateGrpc {
         Ok(Response::new(()))
     }
 
+    async fn usages(&self, request: Request<TemplateVersionRequest>) -> Result<Response<JsonDocument>, Status> {
+        let user = self.auth.user(request.metadata()).await?;
+        let request = request.into_inner();
+        let found = self
+            .ctx
+            .templates()
+            .usages(&user, &request.id, &request.version)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(GrpcJson::document(&found)?))
+    }
+
+    async fn preview(&self, request: Request<JsonDocument>) -> Result<Response<JsonDocument>, Status> {
+        let user = self.auth.user(request.metadata()).await?;
+        let preview: TemplatePreviewDto = GrpcJson::parse(&request.into_inner().json, "json")?;
+        let found = self
+            .ctx
+            .templates()
+            .preview(&user, &preview)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(GrpcJson::document(&found)?))
+    }
+
     async fn instantiate(&self, request: Request<JsonDocument>) -> Result<Response<JsonDocument>, Status> {
         let user = self.auth.user(request.metadata()).await?;
         let instantiation: NewPolicyInstantiationDto = GrpcJson::parse(&request.into_inner().json, "json")?;
         let offer = self
             .ctx
-            .instantiation()
-            .instantiate_policy(&user, &instantiation)
+            .composition()
+            .instantiate(&user, &instantiation)
             .await
             .map_err(Errors::into_status)?;
         Ok(Response::new(GrpcJson::document(&OdrlPolicyView::assemble(offer))?))

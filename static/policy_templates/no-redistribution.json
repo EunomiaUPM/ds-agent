@@ -1,0 +1,18 @@
+{
+  "id": "no-redistribution",
+  "version": "1.0",
+  "kind": "rule",
+  "controlPoints": [
+    "duties"
+  ],
+  "title": "No redistribution",
+  "description": "The data may not be passed on to third parties.",
+  "author": "Eunomia connector",
+  "visibility": "Public",
+  "content": {
+    "prohibition": {
+      "action": "distribute"
+    }
+  },
+  "parameters": {}
+}

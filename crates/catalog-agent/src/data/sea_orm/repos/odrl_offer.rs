@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Offers in Postgres.
+//! Offers in Postgres; an offer and the templates it was composed from are written together.
 
 use std::sync::Arc;
 
@@ -23,13 +23,14 @@ use common::oauth::OwnerScope;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
-    Select, SqlErr,
+    QuerySelect, Select, SqlErr, TransactionTrait,
 };
 use urn::Urn;
 use ymir::errors::{Errors, Outcome, RepoIntoErrors};
 
 use crate::data::repo::odrl_offer::{OdrlOfferRepoErrors, OdrlOfferRepoTrait};
 use crate::data::sea_orm::orm::odrl_offer as orm;
+use crate::data::sea_orm::orm::offer_ref as refs;
 use crate::entities::errors::CatalogErrors;
 use crate::entities::filters::OdrlPolicyFilter;
 use crate::entities::odrl_offer::OdrlOffer;
@@ -153,17 +154,56 @@ impl OdrlOfferRepoTrait for SeaOrmOdrlOfferRepo {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
-    async fn insert(&self, offer: &OdrlOffer) -> Outcome<OdrlOffer> {
-        orm::Entity::insert(orm::ActiveModel::from_domain(offer))
-            .exec_with_returning(self.db.as_ref())
+    async fn insert(&self, offer: &OdrlOffer, references: &[(String, String)]) -> Outcome<OdrlOffer> {
+        let create_err = |e: DbErr| match e.sql_err() {
+            Some(SqlErr::ForeignKeyConstraintViolation(detail)) => CatalogErrors::conflict(
+                format!("the offer is on a resource or template that does not exist: {detail}"),
+            ),
+            _ => OdrlOfferRepoErrors::Creating(Box::new(e)).into_errors(),
+        };
+        let txn = self.db.begin().await.map_err(create_err)?;
+        let stored = orm::Entity::insert(orm::ActiveModel::from_domain(offer))
+            .exec_with_returning(&txn)
             .await
-            .map_err(|e| match e.sql_err() {
-                Some(SqlErr::ForeignKeyConstraintViolation(detail)) => CatalogErrors::conflict(
-                    format!("the offer is on a resource or template that does not exist: {detail}"),
-                ),
-                _ => OdrlOfferRepoErrors::Creating(Box::new(e)).into_errors(),
-            })?
-            .into_domain()
+            .map_err(create_err)?
+            .into_domain()?;
+        if !references.is_empty() {
+            let rows = references.iter().map(|(id, version)| refs::ActiveModel {
+                offer_id: sea_orm::ActiveValue::Set(stored.id.to_string()),
+                ref_id: sea_orm::ActiveValue::Set(id.clone()),
+                ref_version: sea_orm::ActiveValue::Set(version.clone()),
+            });
+            refs::Entity::insert_many(rows)
+                .on_conflict_do_nothing()
+                .exec(&txn)
+                .await
+                .map_err(create_err)?;
+        }
+        txn.commit().await.map_err(create_err)?;
+        Ok(stored)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn using_template(&self, scope: &OwnerScope, id: &str, version: &str) -> Outcome<Vec<Urn>> {
+        let offer_ids: Vec<String> = refs::Entity::find()
+            .select_only()
+            .column(refs::Column::OfferId)
+            .filter(refs::Column::RefId.eq(id))
+            .filter(refs::Column::RefVersion.eq(version))
+            .into_tuple()
+            .all(self.db.as_ref())
+            .await
+            .map_err(Self::fetch_err)?;
+        if offer_ids.is_empty() {
+            return Ok(vec![]);
+        }
+        let models = Self::scoped(scope)
+            .filter(orm::Column::Id.is_in(offer_ids))
+            .order_by_asc(orm::Column::CreatedAt)
+            .all(self.db.as_ref())
+            .await
+            .map_err(Self::fetch_err)?;
+        Ok(Self::decode(models)?.into_iter().map(|o| o.id).collect())
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]

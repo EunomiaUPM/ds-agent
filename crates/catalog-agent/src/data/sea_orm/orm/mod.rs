@@ -18,7 +18,9 @@
 //! SeaORM table entities and their mapping to the domain.
 
 pub mod odrl_offer;
+pub mod offer_ref;
 pub mod policy_template;
+pub mod policy_template_ref;
 pub mod resource;
 pub mod resource_link;
 pub mod schema;

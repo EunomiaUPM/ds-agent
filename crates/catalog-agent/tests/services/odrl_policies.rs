@@ -44,7 +44,7 @@ async fn offer_on_a_seen_dataset_is_stored() {
     let mut resources = MockResourceRepoTrait::new();
     resources.expect_get_by_id().returning(|_, _| Ok(Some(dataset(3, 1))));
     let mut offers = MockOdrlOfferRepoTrait::new();
-    offers.expect_insert().returning(|o| Ok(o.clone()));
+    offers.expect_insert().returning(|o, _| Ok(o.clone()));
     let ctx = TestContext::new().resource_repo(resources).offer_repo(offers).build();
 
     let stored = ctx

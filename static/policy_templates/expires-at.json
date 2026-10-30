@@ -1,0 +1,26 @@
+{
+  "id": "expires-at",
+  "version": "1.0",
+  "kind": "constraint",
+  "controlPoints": [
+    "transfer",
+    "validity"
+  ],
+  "title": "Expires on a date",
+  "description": "The agreement may be used until the given date and time.",
+  "author": "Eunomia connector",
+  "visibility": "Public",
+  "content": {
+    "leftOperand": "odrl:dateTime",
+    "operator": "lteq",
+    "rightOperand": "$until"
+  },
+  "parameters": {
+    "$until": {
+      "dataType": "dateTime",
+      "ui": {
+        "label": "Valid until"
+      }
+    }
+  }
+}

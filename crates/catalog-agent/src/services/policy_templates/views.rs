@@ -15,23 +15,25 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Instantiates ODRL policies from policy templates.
+//! What the template API answers besides templates: usages and previews.
 
-pub mod service;
+use serde::Serialize;
+use serde_json::Value;
 
-use crate::entities::policy_instantiation::NewPolicyInstantiationDto;
-use crate::entities::odrl_offer::OdrlOffer;
-use ymir::types::oauth::UserInfo;
-use ymir::errors::Outcome;
+use crate::entities::policy_templates::ControlPoint;
 
-/// Turning a policy template into a concrete ODRL offer.
-#[mockall::automock]
-#[async_trait::async_trait]
-pub trait PolicyInstantiationServiceTrait: Send + Sync {
-    /// Fills the template's parameters with the given values and stores the offer.
-    async fn instantiate_policy(
-        &self,
-        user: &UserInfo,
-        instantiation_request: &NewPolicyInstantiationDto,
-    ) -> Outcome<OdrlOffer>;
+/// Who uses a template version: other versions (`id@version`) and offers (their ids).
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct TemplateUsagesView {
+    pub templates: Vec<String>,
+    pub offers: Vec<String>,
+}
+
+/// A composition flattened without storing it, and where its pieces are meant to apply.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PolicyPreviewView {
+    pub odrl: Value,
+    pub control_points: Vec<ControlPoint>,
 }

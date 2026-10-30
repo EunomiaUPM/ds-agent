@@ -1,0 +1,29 @@
+{
+  "id": "max-transfers",
+  "version": "1.0",
+  "kind": "constraint",
+  "controlPoints": [
+    "transfer"
+  ],
+  "title": "Limited transfers",
+  "description": "The agreement allows at most the given number of transfers.",
+  "author": "Eunomia connector",
+  "visibility": "Public",
+  "content": {
+    "leftOperand": "odrl:count",
+    "operator": "lteq",
+    "rightOperand": "$count"
+  },
+  "parameters": {
+    "$count": {
+      "dataType": "integer",
+      "defaultValue": 10,
+      "restrictions": {
+        "minValue": 1
+      },
+      "ui": {
+        "label": "Transfers"
+      }
+    }
+  }
+}

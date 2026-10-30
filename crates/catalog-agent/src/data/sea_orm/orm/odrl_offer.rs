@@ -44,6 +44,7 @@ pub struct Model {
     pub source_template_version: Option<String>,
     pub instantiation_parameters: Option<Json>,
     pub description: Option<String>,
+    pub composition: Option<Json>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -64,6 +65,7 @@ impl Model {
             source_template_version: self.source_template_version,
             instantiation_parameters: self.instantiation_parameters,
             description: self.description,
+            composition: self.composition,
         })
     }
 }
@@ -83,6 +85,7 @@ impl ActiveModel {
             source_template_version: Set(offer.source_template_version.clone()),
             instantiation_parameters: Set(offer.instantiation_parameters.clone()),
             description: Set(offer.description.clone()),
+            composition: Set(offer.composition.clone()),
         }
     }
 }

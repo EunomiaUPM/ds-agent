@@ -1,0 +1,27 @@
+{
+  "id": "purpose",
+  "version": "1.0",
+  "kind": "constraint",
+  "controlPoints": [
+    "negotiation",
+    "transfer"
+  ],
+  "title": "Purpose",
+  "description": "The data may only be used for the given purpose.",
+  "author": "Eunomia connector",
+  "visibility": "Public",
+  "content": {
+    "leftOperand": "odrl:purpose",
+    "operator": "eq",
+    "rightOperand": "$purpose"
+  },
+  "parameters": {
+    "$purpose": {
+      "dataType": "string",
+      "defaultValue": "research",
+      "ui": {
+        "label": "Purpose"
+      }
+    }
+  }
+}

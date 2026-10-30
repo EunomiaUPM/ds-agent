@@ -15,32 +15,111 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Policy templates and their parameters.
+//! Policy templates: pieces of ODRL with `$parameter` placeholders that can reference each other.
 
+pub mod placeholder;
 pub mod types;
 pub mod validator;
 
-use crate::entities::commands::NewPolicyTemplateCommand;
-use crate::entities::policy_templates::types::{LocalizedText, ParameterDefinition};
-use common::oauth::Owner;
-use ymir::types::oauth::RolePath;
-use ymir::types::participants::Visibility;
+use std::collections::HashMap;
+use std::fmt::Display;
+
 use common::dsp_common::odrl::OdrlPolicyInfo;
 use common::eunomia::document::JsonLd;
-type DateTimeWithTimeZone = chrono::DateTime<chrono::FixedOffset>;
+use common::oauth::Owner;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use ymir::errors::Outcome;
+use serde_json::Value;
+use ymir::errors::{Errors, Outcome};
+use ymir::types::oauth::RolePath;
+use ymir::types::participants::Visibility;
 
-/// Default value of a parameter: a string or a number.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+use crate::entities::commands::NewPolicyTemplateCommand;
+use crate::entities::policy_instantiation::validators::ValidatorFactory;
+use crate::entities::policy_templates::types::{LocalizedText, ParameterDefinition};
+
+type DateTimeWithTimeZone = chrono::DateTime<chrono::FixedOffset>;
+
+/// Value of a parameter, as JSON: a boolean, a number, a string or a list of strings.
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(untagged)]
-pub enum PolicyTemplateAllowedDefaultValues {
-    Stringable(String),
-    Numerable(f32),
+pub enum ParameterValue {
+    Boolean(bool),
+    Number(serde_json::Number),
+    Text(String),
+    List(Vec<String>),
 }
 
-/// Policy template as returned by the API: ODRL content with `$parameter` placeholders.
+impl ParameterValue {
+    /// The value as it goes into the policy.
+    pub fn to_json(&self) -> Value {
+        match self {
+            Self::Boolean(b) => Value::Bool(*b),
+            Self::Number(n) => Value::Number(n.clone()),
+            Self::Text(t) => Value::String(t.clone()),
+            Self::List(items) => items.iter().cloned().map(Value::String).collect(),
+        }
+    }
+}
+
+/// What a template's content is: one constraint, one rule or a whole policy.
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash)]
+#[serde(rename_all = "camelCase")]
+pub enum PolicyTemplateKind {
+    Constraint,
+    Rule,
+    #[default]
+    Policy,
+}
+
+impl PolicyTemplateKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Constraint => "constraint",
+            Self::Rule => "rule",
+            Self::Policy => "policy",
+        }
+    }
+}
+
+impl Display for PolicyTemplateKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl std::str::FromStr for PolicyTemplateKind {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "constraint" => Ok(Self::Constraint),
+            "rule" => Ok(Self::Rule),
+            "policy" => Ok(Self::Policy),
+            other => Err(format!("unknown template kind: {other}")),
+        }
+    }
+}
+
+/// Where a piece is meant to be enforced, as the control points of the policy plan group them.
+/// Informative only: nothing evaluates policies yet.
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[serde(rename_all = "camelCase")]
+pub enum ControlPoint {
+    /// Catalog requests and public profiles (P1, P1b).
+    Catalog,
+    /// Opening and agreeing a contract (P2–P6).
+    Negotiation,
+    /// Requesting and starting a transfer (P7, P8).
+    Transfer,
+    /// Each pull request or push of the dataplane (P9, P10).
+    Dataplane,
+    /// The agreement's lifetime (P11).
+    Validity,
+    /// Duties and obligations after use (P12).
+    Duties,
+}
+
+/// Policy template as returned by the API. `content` keeps its `@ref` and `@include` pieces.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PolicyTemplateDto {
@@ -49,13 +128,17 @@ pub struct PolicyTemplateDto {
     pub user_role: RolePath,
     pub visibility: Visibility,
     pub version: String,
+    #[serde(default)]
+    pub kind: PolicyTemplateKind,
+    #[serde(default)]
+    pub control_points: Vec<ControlPoint>,
     pub date: DateTimeWithTimeZone,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<LocalizedText>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<LocalizedText>,
     pub author: String,
-    pub content: JsonLd<OdrlPolicyInfo>,
+    pub content: Value,
     #[serde(default)]
     pub parameters: HashMap<String, ParameterDefinition>,
 }
@@ -75,6 +158,11 @@ pub struct NewPolicyTemplateDto {
     pub owner: Option<Owner>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
+    /// `policy` when not given.
+    #[serde(default)]
+    pub kind: PolicyTemplateKind,
+    #[serde(default)]
+    pub control_points: Vec<ControlPoint>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub date: Option<DateTimeWithTimeZone>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -83,26 +171,79 @@ pub struct NewPolicyTemplateDto {
     pub description: Option<LocalizedText>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub author: Option<String>,
-    pub content: JsonLd<OdrlPolicyInfo>,
+    pub content: Value,
     #[serde(default)]
     pub parameters: HashMap<String, ParameterDefinition>,
 }
 
 common::impl_owned!(PolicyTemplateDto);
 
+impl PolicyTemplateDto {
+    /// `id@version`, the way references name it.
+    pub fn reference(&self) -> String {
+        format!("{}@{}", self.id, self.version)
+    }
+
+    /// The values the content is filled with: the given ones over the defaults, each checked
+    /// against its definition. Unknown or missing parameters fail.
+    pub fn resolve_values(&self, given: &HashMap<String, Value>) -> Outcome<HashMap<String, Value>> {
+        if let Some(unknown) = given.keys().find(|k| !self.parameters.contains_key(*k)) {
+            return Err(Errors::validation(
+                format!("{} has no parameter '{unknown}'", self.reference()),
+                None,
+            ));
+        }
+        let mut values = HashMap::with_capacity(self.parameters.len());
+        for (name, definition) in &self.parameters {
+            let value = match (given.get(name), &definition.default_value) {
+                (Some(value), _) => value.clone(),
+                (None, Some(default)) => default.to_json(),
+                (None, None) => {
+                    return Err(Errors::validation(
+                        format!("{} needs a value for '{name}'", self.reference()),
+                        None,
+                    ))
+                }
+            };
+            let typed: ParameterValue = serde_json::from_value(value.clone()).map_err(|_| {
+                Errors::validation(format!("'{name}' of {} cannot be {value}", self.reference()), None)
+            })?;
+            ValidatorFactory::get_validator(definition.data_type)
+                .validate(&typed, &definition.restrictions)
+                .map_err(|e| {
+                    Errors::validation(format!("'{name}' of {}: {e}", self.reference()), None)
+                })?;
+            values.insert(name.clone(), value);
+        }
+        Ok(values)
+    }
+}
+
 impl NewPolicyTemplateDto {
+    /// The content as stored: a policy loses the ODRL `@context` and `@type` it may come with.
+    pub fn stored_content(&self) -> Outcome<Value> {
+        match self.kind {
+            PolicyTemplateKind::Policy => JsonLd::<OdrlPolicyInfo>::untag(self.content.clone())
+                .map_err(|e| Errors::validation(format!("content: {e}"), None)),
+            _ => Ok(self.content.clone()),
+        }
+    }
+
     /// The command creating it for `owner`; fails when content or parameters cannot be serialized.
     pub fn into_command(self, owner: Owner) -> Outcome<NewPolicyTemplateCommand> {
         Ok(NewPolicyTemplateCommand {
+            content: self.stored_content()?,
             id: self.id,
             owner,
             version: self.version,
+            kind: self.kind,
+            control_points: self.control_points,
             date: self.date,
             author: self.author,
             title: self.title.map(serde_json::to_value).transpose()?,
             description: self.description.map(serde_json::to_value).transpose()?,
-            content: serde_json::to_value(self.content.inner())?,
             parameters: serde_json::to_value(self.parameters)?,
+            references: Vec::new(),
         })
     }
 }

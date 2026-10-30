@@ -89,6 +89,8 @@ pub struct OdrlOffer {
     pub source_template_version: Option<String>,
     pub instantiation_parameters: Option<Value>,
     pub description: Option<String>,
+    /// The parts the offer was composed from, as asked; none for offers written as plain ODRL.
+    pub composition: Option<Value>,
 }
 
 impl OwnedTrait for OdrlOffer {

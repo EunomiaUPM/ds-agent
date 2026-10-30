@@ -1,0 +1,18 @@
+{
+  "id": "use",
+  "version": "1.0",
+  "kind": "rule",
+  "controlPoints": [
+    "transfer"
+  ],
+  "title": "Use",
+  "description": "Permission to use the data.",
+  "author": "Eunomia connector",
+  "visibility": "Public",
+  "content": {
+    "permission": {
+      "action": "use"
+    }
+  },
+  "parameters": {}
+}

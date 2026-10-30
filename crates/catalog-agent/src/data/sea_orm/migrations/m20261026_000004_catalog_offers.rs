@@ -15,12 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! ODRL offers, each on one resource through a real foreign key, and on the template version it
-//! was made from, if any.
+//! ODRL offers, each on one resource through a real foreign key, on the template version it was
+//! made from, if any, and on every template version its composition used.
 
 use sea_orm_migration::prelude::*;
 
 use crate::data::sea_orm::migrations::m20261026_000001_catalog_resources::CatalogResources;
+use crate::data::sea_orm::migrations::m20261026_000003_catalog_policy_templates::CatalogPolicyTemplates;
 
 pub struct Migration;
 
@@ -62,6 +63,7 @@ impl MigrationTrait for Migration {
                             .null(),
                     )
                     .col(ColumnDef::new(CatalogOffers::Description).text().null())
+                    .col(ColumnDef::new(CatalogOffers::Composition).json_binary().null())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_catalog_offers_entity")
@@ -86,10 +88,53 @@ impl MigrationTrait for Migration {
         .await?;
         db.execute_unprepared("CREATE INDEX ix_catalog_offers_entity ON catalog_offers (entity)")
             .await?;
+        // An offer is a flat snapshot: losing a template only loses the record of having used it.
+        manager
+            .create_table(
+                Table::create()
+                    .table(CatalogOfferRefs::Table)
+                    .col(ColumnDef::new(CatalogOfferRefs::OfferId).string().not_null())
+                    .col(ColumnDef::new(CatalogOfferRefs::RefId).string().not_null())
+                    .col(ColumnDef::new(CatalogOfferRefs::RefVersion).string().not_null())
+                    .primary_key(
+                        Index::create()
+                            .name("pk_catalog_offer_refs")
+                            .col(CatalogOfferRefs::OfferId)
+                            .col(CatalogOfferRefs::RefId)
+                            .col(CatalogOfferRefs::RefVersion),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_catalog_offer_refs_offer")
+                            .from(CatalogOfferRefs::Table, CatalogOfferRefs::OfferId)
+                            .to(CatalogOffers::Table, CatalogOffers::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_catalog_offer_refs_ref")
+                            .from_tbl(CatalogOfferRefs::Table)
+                            .from_col(CatalogOfferRefs::RefId)
+                            .from_col(CatalogOfferRefs::RefVersion)
+                            .to_tbl(CatalogPolicyTemplates::Table)
+                            .to_col(CatalogPolicyTemplates::Id)
+                            .to_col(CatalogPolicyTemplates::Version)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+        db.execute_unprepared(
+            "CREATE INDEX ix_catalog_offer_refs_ref ON catalog_offer_refs (ref_id, ref_version)",
+        )
+        .await?;
         Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_table(Table::drop().table(CatalogOfferRefs::Table).to_owned())
+            .await?;
         manager
             .drop_table(Table::drop().table(CatalogOffers::Table).to_owned())
             .await
@@ -111,4 +156,13 @@ pub enum CatalogOffers {
     SourceTemplateVersion,
     InstantiationParameters,
     Description,
+    Composition,
+}
+
+#[derive(Iden)]
+pub enum CatalogOfferRefs {
+    Table,
+    OfferId,
+    RefId,
+    RefVersion,
 }

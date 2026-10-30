@@ -15,9 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! The policy template API: templates and their versions, and offers instantiated from them.
+//! The policy template API: templates and their versions, who uses them, previews, and offers
+//! instantiated from one.
 
 use crate::entities::filters::PolicyTemplateFilter;
+use crate::entities::policy_composition::TemplatePreviewDto;
 use crate::entities::policy_instantiation::NewPolicyInstantiationDto;
 use crate::entities::policy_templates::NewPolicyTemplateDto;
 use crate::http::common::to_camel_case::ToCamelCase;
@@ -68,6 +70,8 @@ impl PolicyTemplateEntityRouter {
                 routes::policy_templates::BY_ID_AND_VERSION,
                 delete(Self::handle_delete_policy_template_by_id_and_version),
             )
+            .route(routes::policy_templates::USAGES, get(Self::handle_usages))
+            .route(routes::policy_templates::PREVIEW, post(Self::handle_preview))
             .route(
                 routes::policy_templates::INSTANTIATE_ODRL_OFFER,
                 post(Self::handle_instantiate_offer),
@@ -191,8 +195,34 @@ impl PolicyTemplateEntityRouter {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.ctx.instantiation().instantiate_policy(&user, &input).await {
+        match state.ctx.composition().instantiate(&user, &input).await {
             Ok(offer) => (StatusCode::ACCEPTED, Json(OdrlPolicyView::assemble(offer))).into_response(),
+            Err(e) => e.into_response(),
+        }
+    }
+
+    async fn handle_usages(
+        State(state): State<PolicyTemplateEntityRouter>,
+        user: ymir::types::oauth::UserInfo,
+        Path((id, version)): Path<(String, String)>,
+    ) -> impl IntoResponse {
+        match state.ctx.templates().usages(&user, &id, &version).await {
+            Ok(usages) => Json(usages).into_response(),
+            Err(e) => e.into_response(),
+        }
+    }
+
+    async fn handle_preview(
+        State(state): State<PolicyTemplateEntityRouter>,
+        user: ymir::types::oauth::UserInfo,
+        input: Result<Json<TemplatePreviewDto>, JsonRejection>,
+    ) -> impl IntoResponse {
+        let input = match extract_payload(input) {
+            Ok(v) => v,
+            Err(e) => return e.into_response(),
+        };
+        match state.ctx.templates().preview(&user, &input).await {
+            Ok(preview) => Json(preview).into_response(),
             Err(e) => e.into_response(),
         }
     }

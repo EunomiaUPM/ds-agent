@@ -42,7 +42,10 @@ pub trait OdrlOfferRepoTrait: Send + Sync {
     /// Offers attached to any of the entities, in one query.
     async fn get_by_entities(&self, scope: &OwnerScope, entities: &[Urn]) -> Outcome<Vec<OdrlOffer>>;
     async fn get_by_id(&self, scope: &OwnerScope, id: &Urn) -> Outcome<Option<OdrlOffer>>;
-    async fn insert(&self, offer: &OdrlOffer) -> Outcome<OdrlOffer>;
+    /// Stores the offer and the template versions, `(id, version)`, it was composed from.
+    async fn insert(&self, offer: &OdrlOffer, references: &[(String, String)]) -> Outcome<OdrlOffer>;
+    /// Ids of the offers the scope sees that were composed from the template version.
+    async fn using_template(&self, scope: &OwnerScope, id: &str, version: &str) -> Outcome<Vec<Urn>>;
     /// Removes the offer and returns it.
     async fn delete(&self, scope: &OwnerScope, id: &Urn) -> Outcome<OdrlOffer>;
     /// Removes every offer of the entity and returns them.

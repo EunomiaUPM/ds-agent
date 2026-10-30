@@ -141,8 +141,14 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
             source_template_version: command.source_template_version.clone(),
             instantiation_parameters: command.instantiation_parameters.clone(),
             description: command.description.clone(),
+            composition: command.composition.clone(),
         };
-        let stored = self.ctx.repos.odrl_offer_repo().insert(&offer).await?;
+        let stored = self
+            .ctx
+            .repos
+            .odrl_offer_repo()
+            .insert(&offer, &command.references)
+            .await?;
         self.ctx.cache.invalidate().await;
         events::emit_action!(
             self.ctx.events,

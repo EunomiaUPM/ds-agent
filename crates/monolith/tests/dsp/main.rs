@@ -23,5 +23,6 @@
 mod support;
 
 mod catalog;
+mod composed_policies;
 mod negotiation;
 mod transfer;

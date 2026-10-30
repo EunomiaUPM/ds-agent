@@ -1,0 +1,37 @@
+{
+  "id": "members-only",
+  "version": "1.0",
+  "kind": "policy",
+  "controlPoints": [
+    "negotiation",
+    "transfer"
+  ],
+  "title": "Members only",
+  "description": "Use for peers holding a credential of the given type.",
+  "author": "Eunomia connector",
+  "visibility": "Public",
+  "content": {
+    "permission": [
+      {
+        "action": "use",
+        "constraint": [
+          {
+            "@ref": "credential-type@1.0",
+            "with": {
+              "$type": "$credential"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "parameters": {
+    "$credential": {
+      "dataType": "iri",
+      "defaultValue": "gx:LegalParticipant",
+      "ui": {
+        "label": "Credential type"
+      }
+    }
+  }
+}

@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::entities::policy_templates::placeholder::Placeholder;
 use crate::entities::policy_templates::NewPolicyTemplateDto;
 use regex::Regex;
 use std::collections::HashSet;
@@ -91,10 +92,7 @@ pub trait NewPolicyTemplateDtoValidator: Send + Sync {
 
 impl NewPolicyTemplateDtoValidator for NewPolicyTemplateDto {
     fn detect_parameters(&self) -> Outcome<Vec<String>> {
-        let content_value = serde_json::to_value(&self.content)?;
-        let mut params = Vec::new();
-        find_params_recursive(&content_value, &mut params);
-        Ok(params)
+        Ok(Placeholder::collect(&serde_json::to_value(&self.content)?))
     }
     fn validate_parameter_existence(&self, parameter: &str) -> Outcome<()> {
         if !self.parameters.contains_key(parameter) {
@@ -128,24 +126,3 @@ pub enum PolicyTemplateError {
 }
 
 impl RepoIntoErrors for PolicyTemplateError {}
-
-fn find_params_recursive(value: &serde_json::Value, collector: &mut Vec<String>) {
-    match value {
-        serde_json::Value::String(s) => {
-            if s.starts_with('$') {
-                collector.push(s.clone());
-            }
-        }
-        serde_json::Value::Array(arr) => {
-            for item in arr {
-                find_params_recursive(item, collector);
-            }
-        }
-        serde_json::Value::Object(map) => {
-            for (_, v) in map {
-                find_params_recursive(v, collector);
-            }
-        }
-        _ => {}
-    }
-}

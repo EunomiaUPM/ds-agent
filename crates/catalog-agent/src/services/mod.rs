@@ -25,7 +25,7 @@ pub mod doctor;
 pub mod main_catalog;
 pub mod odrl_policies;
 pub mod peer_catalogs;
-pub mod policy_instantiation;
+pub mod policy_composition;
 pub mod policy_templates;
 pub mod projection;
 pub mod resources;

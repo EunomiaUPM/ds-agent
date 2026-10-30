@@ -63,8 +63,8 @@ impl BootSeeder for MainCatalogProvisioner {
     }
 }
 
-/// Registers every `*.json` template of a folder; unreadable, invalid or already
-/// registered templates are skipped, keeping boot idempotent.
+/// Registers every `*.json` template of a folder, those referenced first whatever the file
+/// order; unreadable, invalid or already registered templates are skipped, keeping boot idempotent.
 pub struct PolicyTemplateLoader {
     ctx: Arc<AppContext>,
     folder: String,
@@ -89,6 +89,30 @@ impl PolicyTemplateLoader {
             .ok()
     }
 
+    /// Every readable `*.json` template of the folder, as the connector's.
+    async fn read_folder(&self) -> Vec<(std::path::PathBuf, NewPolicyTemplateDto)> {
+        let mut entries = match fs::read_dir(&self.folder).await {
+            Ok(entries) => entries,
+            Err(e) => {
+                tracing::error!("Failed to read policy templates folder {}: {e}", self.folder);
+                return Vec::new();
+            }
+        };
+        let mut templates = Vec::new();
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            let path = entry.path();
+            if !path.is_file() || path.extension().is_none_or(|ext| ext != "json") {
+                continue;
+            }
+            if let Some(mut template) = Self::read_template(&path).await {
+                template.owner = Some(Owner::connector());
+                templates.push((path, template));
+            }
+        }
+        templates.sort_by(|a, b| a.0.cmp(&b.0));
+        templates
+    }
+
     /// A duplicate key means the template is already registered.
     fn is_duplicate(err: &Errors) -> bool {
         matches!(err, Errors::DatabaseError { reason, .. } if reason.contains("duplicate key"))
@@ -105,37 +129,32 @@ impl BootSeeder for PolicyTemplateLoader {
         BootPhase::BeforeServe
     }
 
+    /// Passes over the folder until a pass stores nothing new: a template that references one
+    /// further down the list goes in on a later pass.
     async fn seed(&self) -> Outcome<()> {
-        let mut entries = match fs::read_dir(&self.folder).await {
-            Ok(entries) => entries,
-            Err(e) => {
-                tracing::error!(
-                    "Failed to read policy templates folder {}: {e}",
-                    self.folder
-                );
+        let mut pending = self.read_folder().await;
+        let user = UserInfo::system();
+        loop {
+            let mut failed = Vec::new();
+            let before = pending.len();
+            for (path, template) in pending {
+                match self.ctx.templates().create_policy_template(&user, &template).await {
+                    Ok(_) => {}
+                    Err(e) if Self::is_duplicate(&e) => tracing::info!(
+                        "Policy template '{}' v{} already exists, skipping",
+                        template.id.as_deref().unwrap_or("unknown"),
+                        template.version.as_deref().unwrap_or("unknown")
+                    ),
+                    Err(e) => failed.push((path, template, e)),
+                }
+            }
+            if failed.is_empty() || failed.len() == before {
+                for (path, _, e) in &failed {
+                    tracing::warn!("Policy template {path:?} rejected: {e}");
+                }
                 return Ok(());
             }
-        };
-        let user = UserInfo::system();
-        while let Ok(Some(entry)) = entries.next_entry().await {
-            let path = entry.path();
-            if !path.is_file() || path.extension().is_none_or(|ext| ext != "json") {
-                continue;
-            }
-            let Some(mut template) = Self::read_template(&path).await else {
-                continue;
-            };
-            template.owner = Some(Owner::connector());
-            match self.ctx.templates().create_policy_template(&user, &template).await {
-                Ok(_) => {}
-                Err(e) if Self::is_duplicate(&e) => tracing::info!(
-                    "Policy template '{}' v{} already exists, skipping",
-                    template.id.as_deref().unwrap_or("unknown"),
-                    template.version.as_deref().unwrap_or("unknown")
-                ),
-                Err(e) => tracing::warn!("Policy template {path:?} rejected: {e}"),
-            }
+            pending = failed.into_iter().map(|(path, template, _)| (path, template)).collect();
         }
-        Ok(())
     }
 }

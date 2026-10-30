@@ -15,7 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Persistence of policy templates, one row per template version.
+//! Persistence of policy templates, one row per template version, and of which versions each
+//! one references.
 
 use common::oauth::OwnerScope;
 use common::paginated_spec::{Page, Sort};
@@ -47,7 +48,16 @@ pub trait PolicyTemplateRepoTrait: Send + Sync {
         id: &str,
         version: &str,
     ) -> Outcome<Option<PolicyTemplateDto>>;
+    /// The versions named by `(id, version)` among those the scope sees, in one query.
+    async fn get_by_keys(
+        &self,
+        scope: &OwnerScope,
+        keys: &[(String, String)],
+    ) -> Outcome<Vec<PolicyTemplateDto>>;
+    /// Stores the version and the versions it references, in one transaction.
     async fn insert(&self, command: &NewPolicyTemplateCommand) -> Outcome<PolicyTemplateDto>;
+    /// `id@version` of every template version, whoever owns it, that references this one.
+    async fn dependents(&self, id: &str, version: &str) -> Outcome<Vec<String>>;
     async fn delete_version(&self, scope: &OwnerScope, id: &str, version: &str) -> Outcome<()>;
 }
 

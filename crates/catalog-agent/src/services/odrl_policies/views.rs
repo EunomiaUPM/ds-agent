@@ -27,6 +27,7 @@ use common::dsp_common::odrl::OdrlPolicyInfo;
 use common::eunomia::document::JsonLd;
 
 use crate::entities::odrl_offer::OdrlOffer;
+use crate::entities::policy_templates::ControlPoint;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -43,6 +44,11 @@ pub struct OdrlPolicyView {
     pub source_template_version: Option<String>,
     pub instantiation_parameters: Option<Value>,
     pub description: Option<String>,
+    /// The parts a composed offer was made from.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub composition: Option<Value>,
+    /// Where its pieces are meant to apply; informative, nothing evaluates it.
+    pub control_points: Vec<ControlPoint>,
 }
 
 impl OdrlPolicyView {
@@ -60,6 +66,13 @@ impl OdrlPolicyView {
             source_template_version: offer.source_template_version,
             instantiation_parameters: offer.instantiation_parameters,
             description: offer.description,
+            control_points: offer
+                .composition
+                .as_ref()
+                .and_then(|c| c.get("controlPoints"))
+                .and_then(|points| serde_json::from_value(points.clone()).ok())
+                .unwrap_or_default(),
+            composition: offer.composition.and_then(|mut c| c.get_mut("parts").map(serde_json::Value::take)),
         }
     }
 }

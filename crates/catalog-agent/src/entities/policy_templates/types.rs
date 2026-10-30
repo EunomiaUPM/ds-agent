@@ -17,7 +17,7 @@
 
 //! Parameter definitions and localized texts.
 
-use crate::entities::policy_templates::PolicyTemplateAllowedDefaultValues;
+use crate::entities::policy_templates::ParameterValue;
 use serde::{Deserialize, Serialize};
 
 /// Text in one language.
@@ -55,16 +55,27 @@ pub enum SelectionAllowedValues {
 
 /// Type of a template parameter.
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "camelCase")]
 pub enum ParameterDataType {
     String,
     Integer,
     Float,
     Boolean,
+    /// `YYYY-MM-DD`.
     Date,
+    /// `HH:MM` or `HH:MM:SS`.
     Time,
+    /// RFC 3339; `datetime` is accepted too.
+    #[serde(alias = "datetime")]
     DateTime,
+    /// One of `restrictions.values`.
     Selection,
+    /// An xsd:duration such as `P30D` or `PT12H`.
+    Duration,
+    /// An absolute or compact IRI such as `gx:LegalParticipant`.
+    Iri,
+    /// A list of strings, for operators such as `isAnyOf`.
+    List,
 }
 
 /// Limits a parameter value must respect, depending on its type.
@@ -88,8 +99,14 @@ pub struct ValidationRestrictions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_date: Option<String>,
 
+    /// Allowed values of a selection, or of every item of a list.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub values: Option<SelectionAllowedValues>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_items: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_items: Option<usize>,
 }
 
 /// How the admin UI shows a parameter.
@@ -117,5 +134,5 @@ pub struct ParameterDefinition {
     #[serde(default)]
     pub ui: UiHints,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub default_value: Option<PolicyTemplateAllowedDefaultValues>,
+    pub default_value: Option<ParameterValue>,
 }

@@ -35,6 +35,8 @@ pub struct Model {
     pub id: String,
     #[sea_orm(primary_key, auto_increment = false)]
     pub version: String,
+    pub kind: String,
+    pub control_points: Json,
     pub user_id: String,
     pub user_role: RolePath,
     pub visibility: Visibility,
@@ -60,11 +62,13 @@ impl Model {
             user_role: self.user_role,
             visibility: self.visibility,
             version: self.version,
+            kind: self.kind.parse().map_err(|e: String| PolicyTemplateRepoErrors::Decoding(e).into_errors())?,
+            control_points: serde_json::from_value(self.control_points).map_err(decode)?,
             date: self.date,
             title: self.title.map(serde_json::from_value).transpose().map_err(decode)?,
             description: self.description.map(serde_json::from_value).transpose().map_err(decode)?,
             author: self.author,
-            content: serde_json::from_value(self.content).map_err(decode)?,
+            content: self.content,
             parameters: serde_json::from_value(self.parameters).map_err(decode)?,
         })
     }
@@ -80,6 +84,8 @@ impl ActiveModel {
         Self {
             id: Set(id),
             version: Set(command.version.clone().unwrap_or_else(|| "1.0".to_string())),
+            kind: Set(command.kind.to_string()),
+            control_points: Set(serde_json::json!(command.control_points)),
             user_id: Set(owner.user_id.clone()),
             user_role: Set(owner.role.clone()),
             visibility: Set(owner.visibility.clone()),

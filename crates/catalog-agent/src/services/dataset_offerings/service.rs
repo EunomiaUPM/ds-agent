@@ -151,6 +151,8 @@ impl DatasetOfferingService {
                     .clone()
                     .unwrap_or_else(|| "Dataset Usage Policy".to_string()),
             ),
+            composition: None,
+            references: Vec::new(),
         })
     }
 }

@@ -43,8 +43,8 @@ use crate::services::odrl_policies::service::OdrlPolicyService;
 use crate::services::odrl_policies::OdrlPolicyServiceTrait;
 use crate::services::peer_catalogs::service::PeerCatalogService;
 use crate::services::peer_catalogs::PeerCatalogServiceTrait;
-use crate::services::policy_instantiation::service::PolicyInstantiationService;
-use crate::services::policy_instantiation::PolicyInstantiationServiceTrait;
+use crate::services::policy_composition::service::PolicyCompositionService;
+use crate::services::policy_composition::PolicyCompositionServiceTrait;
 use crate::services::policy_templates::service::PolicyTemplateService;
 use crate::services::policy_templates::PolicyTemplateServiceTrait;
 use crate::services::projection::service::ProjectionService;
@@ -75,7 +75,7 @@ pub struct CatalogServices {
     pub closures: Arc<dyn ClosureServiceTrait>,
     pub offers: Arc<dyn OdrlPolicyServiceTrait>,
     pub templates: Arc<dyn PolicyTemplateServiceTrait>,
-    pub instantiation: Arc<dyn PolicyInstantiationServiceTrait>,
+    pub composition: Arc<dyn PolicyCompositionServiceTrait>,
     pub offerings: Arc<dyn DatasetOfferingServiceTrait>,
     pub peer_catalogs: Arc<dyn PeerCatalogServiceTrait>,
     pub main_catalog: Arc<dyn MainCatalogServiceTrait>,
@@ -93,7 +93,7 @@ impl CatalogServices {
             closures: Arc::new(ClosureService::new(ctx.clone())),
             offers: Arc::new(OdrlPolicyService::new(ctx.clone())),
             templates: Arc::new(PolicyTemplateService::new(ctx.clone())),
-            instantiation: Arc::new(PolicyInstantiationService::new(ctx.clone())),
+            composition: Arc::new(PolicyCompositionService::new(ctx.clone())),
             offerings: Arc::new(DatasetOfferingService::new(ctx.clone())),
             peer_catalogs: Arc::new(PeerCatalogService::new(ctx.clone())),
             main_catalog: Arc::new(MainCatalogService::new(ctx.clone())),
@@ -168,8 +168,8 @@ impl AppContext {
         &self.services().templates
     }
 
-    pub fn instantiation(&self) -> &Arc<dyn PolicyInstantiationServiceTrait> {
-        &self.services().instantiation
+    pub fn composition(&self) -> &Arc<dyn PolicyCompositionServiceTrait> {
+        &self.services().composition
     }
 
     pub fn offerings(&self) -> &Arc<dyn DatasetOfferingServiceTrait> {

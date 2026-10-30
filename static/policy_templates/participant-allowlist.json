@@ -1,0 +1,28 @@
+{
+  "id": "participant-allowlist",
+  "version": "1.0",
+  "kind": "constraint",
+  "controlPoints": [
+    "negotiation"
+  ],
+  "title": "Only these participants",
+  "description": "Only the listed participants (DIDs) may negotiate.",
+  "author": "Eunomia connector",
+  "visibility": "Public",
+  "content": {
+    "leftOperand": "eunomia:participant",
+    "operator": "isAnyOf",
+    "rightOperand": "$participants"
+  },
+  "parameters": {
+    "$participants": {
+      "dataType": "list",
+      "restrictions": {
+        "minItems": 1
+      },
+      "ui": {
+        "label": "Participant DIDs"
+      }
+    }
+  }
+}

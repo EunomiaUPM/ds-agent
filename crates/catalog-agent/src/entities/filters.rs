@@ -22,6 +22,7 @@ use common::query::{DateRange, QueryFilter};
 use serde::{Deserialize, Serialize};
 use ymir::errors::Outcome;
 
+use crate::entities::policy_templates::{ControlPoint, PolicyTemplateKind};
 use crate::entities::resource_kind::ResourceKind;
 
 /// Filter criteria for querying resources of one kind.
@@ -129,6 +130,9 @@ pub struct PolicyTemplateFilter {
     pub id: Option<String>,
     pub version: Option<String>,
     pub author: Option<String>,
+    pub kind: Option<PolicyTemplateKind>,
+    /// Templates meant for this control point.
+    pub control_point: Option<ControlPoint>,
     pub created_after: Option<DateTime<Utc>>,
     pub created_before: Option<DateTime<Utc>>,
 }
@@ -162,6 +166,8 @@ impl QueryFilter for PolicyTemplateFilter {
             && self.id.is_none()
             && self.version.is_none()
             && self.author.is_none()
+            && self.kind.is_none()
+            && self.control_point.is_none()
             && self.created_after.is_none()
             && self.created_before.is_none()
     }

@@ -1,0 +1,28 @@
+{
+  "id": "expires-after",
+  "version": "1.0",
+  "kind": "constraint",
+  "controlPoints": [
+    "transfer",
+    "validity"
+  ],
+  "title": "Expires after a while",
+  "description": "The agreement may be used for the given time, counted from when it is agreed.",
+  "author": "Eunomia connector",
+  "visibility": "Public",
+  "content": {
+    "leftOperand": "odrl:elapsedTime",
+    "operator": "lteq",
+    "rightOperand": "$duration"
+  },
+  "parameters": {
+    "$duration": {
+      "dataType": "duration",
+      "defaultValue": "P30D",
+      "ui": {
+        "label": "Duration",
+        "placeholder": "P30D"
+      }
+    }
+  }
+}

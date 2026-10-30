@@ -26,6 +26,7 @@ use ymir::errors::Errors;
 
 use crate::entities::commands::NewOdrlOfferCommand;
 use crate::entities::filters::OdrlPolicyFilter;
+use crate::entities::policy_composition::{NewPolicyCompositionDto, PolicyCompositionPreviewDto};
 use crate::grpc::api::catalog_agent::odrl_offer_service_server::OdrlOfferService;
 use crate::grpc::api::catalog_agent::{IdRequest, JsonDocument, ListJsonRequest};
 use crate::grpc::GrpcJson;
@@ -94,6 +95,30 @@ impl OdrlOfferService for OdrlOfferGrpc {
         let command: NewOdrlOfferCommand = GrpcJson::parse(&request.into_inner().json, "json")?;
         let offer = self.ctx.offers().create(&user, &command).await.map_err(Errors::into_status)?;
         Ok(Response::new(GrpcJson::document(&OdrlPolicyView::assemble(offer))?))
+    }
+
+    async fn compose(&self, request: Request<JsonDocument>) -> Result<Response<JsonDocument>, Status> {
+        let user = self.auth.user(request.metadata()).await?;
+        let composition: NewPolicyCompositionDto = GrpcJson::parse(&request.into_inner().json, "json")?;
+        let offer = self
+            .ctx
+            .composition()
+            .compose(&user, &composition)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(GrpcJson::document(&OdrlPolicyView::assemble(offer))?))
+    }
+
+    async fn compose_preview(&self, request: Request<JsonDocument>) -> Result<Response<JsonDocument>, Status> {
+        let user = self.auth.user(request.metadata()).await?;
+        let preview: PolicyCompositionPreviewDto = GrpcJson::parse(&request.into_inner().json, "json")?;
+        let found = self
+            .ctx
+            .composition()
+            .preview(&user, &preview.parts)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(GrpcJson::document(&found)?))
     }
 
     async fn delete(&self, request: Request<IdRequest>) -> Result<Response<()>, Status> {

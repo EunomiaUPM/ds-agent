@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Policy templates, one row per template version.
+//! Policy templates, one row per template version, and which versions each one references.
 
 use sea_orm_migration::prelude::*;
 
@@ -36,6 +36,18 @@ impl MigrationTrait for Migration {
                     .table(CatalogPolicyTemplates::Table)
                     .col(ColumnDef::new(CatalogPolicyTemplates::Id).string().not_null())
                     .col(ColumnDef::new(CatalogPolicyTemplates::Version).string().not_null())
+                    .col(
+                        ColumnDef::new(CatalogPolicyTemplates::Kind)
+                            .string_len(16)
+                            .not_null()
+                            .default("policy"),
+                    )
+                    .col(
+                        ColumnDef::new(CatalogPolicyTemplates::ControlPoints)
+                            .json_binary()
+                            .not_null()
+                            .default("[]"),
+                    )
                     .col(ColumnDef::new(CatalogPolicyTemplates::UserId).string().not_null())
                     .col(
                         ColumnDef::new(CatalogPolicyTemplates::UserRole)
@@ -69,10 +81,63 @@ impl MigrationTrait for Migration {
                     )
                     .to_owned(),
             )
-            .await
+            .await?;
+        // A version another one references cannot go; removing the referencing one frees it.
+        manager
+            .create_table(
+                Table::create()
+                    .table(CatalogPolicyTemplateRefs::Table)
+                    .col(ColumnDef::new(CatalogPolicyTemplateRefs::TemplateId).string().not_null())
+                    .col(ColumnDef::new(CatalogPolicyTemplateRefs::TemplateVersion).string().not_null())
+                    .col(ColumnDef::new(CatalogPolicyTemplateRefs::RefId).string().not_null())
+                    .col(ColumnDef::new(CatalogPolicyTemplateRefs::RefVersion).string().not_null())
+                    .primary_key(
+                        Index::create()
+                            .name("pk_catalog_policy_template_refs")
+                            .col(CatalogPolicyTemplateRefs::TemplateId)
+                            .col(CatalogPolicyTemplateRefs::TemplateVersion)
+                            .col(CatalogPolicyTemplateRefs::RefId)
+                            .col(CatalogPolicyTemplateRefs::RefVersion),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_catalog_policy_template_refs_template")
+                            .from_tbl(CatalogPolicyTemplateRefs::Table)
+                            .from_col(CatalogPolicyTemplateRefs::TemplateId)
+                            .from_col(CatalogPolicyTemplateRefs::TemplateVersion)
+                            .to_tbl(CatalogPolicyTemplates::Table)
+                            .to_col(CatalogPolicyTemplates::Id)
+                            .to_col(CatalogPolicyTemplates::Version)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_catalog_policy_template_refs_ref")
+                            .from_tbl(CatalogPolicyTemplateRefs::Table)
+                            .from_col(CatalogPolicyTemplateRefs::RefId)
+                            .from_col(CatalogPolicyTemplateRefs::RefVersion)
+                            .to_tbl(CatalogPolicyTemplates::Table)
+                            .to_col(CatalogPolicyTemplates::Id)
+                            .to_col(CatalogPolicyTemplates::Version)
+                            .on_delete(ForeignKeyAction::Restrict),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "CREATE INDEX ix_catalog_policy_template_refs_ref \
+                 ON catalog_policy_template_refs (ref_id, ref_version)",
+            )
+            .await?;
+        Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_table(Table::drop().table(CatalogPolicyTemplateRefs::Table).to_owned())
+            .await?;
         manager
             .drop_table(Table::drop().table(CatalogPolicyTemplates::Table).to_owned())
             .await
@@ -84,6 +149,8 @@ pub enum CatalogPolicyTemplates {
     Table,
     Id,
     Version,
+    Kind,
+    ControlPoints,
     UserId,
     UserRole,
     Visibility,
@@ -93,4 +160,13 @@ pub enum CatalogPolicyTemplates {
     Description,
     Content,
     Parameters,
+}
+
+#[derive(Iden)]
+pub enum CatalogPolicyTemplateRefs {
+    Table,
+    TemplateId,
+    TemplateVersion,
+    RefId,
+    RefVersion,
 }

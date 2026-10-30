@@ -1,0 +1,49 @@
+{
+  "id": "research-30-days",
+  "version": "1.0",
+  "kind": "policy",
+  "controlPoints": [
+    "negotiation",
+    "transfer",
+    "validity"
+  ],
+  "title": "Research, 30 days",
+  "description": "Use for research for 30 days after the agreement, without redistribution.",
+  "author": "Eunomia connector",
+  "visibility": "Public",
+  "content": {
+    "permission": [
+      {
+        "action": "use",
+        "constraint": [
+          {
+            "@ref": "purpose@1.0",
+            "with": {
+              "$purpose": "research"
+            }
+          },
+          {
+            "@ref": "expires-after@1.0",
+            "with": {
+              "$duration": "$duration"
+            }
+          }
+        ]
+      }
+    ],
+    "prohibition": [
+      {
+        "@ref": "no-redistribution@1.0"
+      }
+    ]
+  },
+  "parameters": {
+    "$duration": {
+      "dataType": "duration",
+      "defaultValue": "P30D",
+      "ui": {
+        "label": "Duration"
+      }
+    }
+  }
+}

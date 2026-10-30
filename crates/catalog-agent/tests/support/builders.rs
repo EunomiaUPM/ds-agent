@@ -166,6 +166,7 @@ pub fn offer(n: u32, entity: &Urn) -> OdrlOffer {
         source_template_version: None,
         instantiation_parameters: None,
         description: None,
+        composition: None,
     }
 }
 
@@ -217,4 +218,28 @@ pub fn policy_template(
         "parameters": parameters,
     }))
     .expect("valid policy template")
+}
+
+/// Template version `id@1` of the given kind, content, parameters and control points.
+pub fn piece(
+    id: &str,
+    kind: &str,
+    content: serde_json::Value,
+    parameters: serde_json::Value,
+    control_points: serde_json::Value,
+) -> catalog_agent::entities::policy_templates::PolicyTemplateDto {
+    serde_json::from_value(json!({
+        "id": id,
+        "userId": "connector",
+        "userRole": "/admin",
+        "visibility": "Public",
+        "version": "1",
+        "kind": kind,
+        "controlPoints": control_points,
+        "date": "2026-01-01T00:00:00Z",
+        "author": "tests",
+        "content": content,
+        "parameters": parameters,
+    }))
+    .expect("valid template piece")
 }

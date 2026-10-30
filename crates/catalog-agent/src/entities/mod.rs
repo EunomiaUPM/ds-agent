@@ -28,6 +28,7 @@ pub mod graph;
 pub mod import_plan;
 pub mod jsonld;
 pub mod odrl_offer;
+pub mod policy_composition;
 pub mod policy_instantiation;
 pub mod policy_templates;
 pub mod resource;

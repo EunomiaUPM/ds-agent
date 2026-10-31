@@ -27,7 +27,8 @@ use ymir::http::routes::fill;
 use ymir::services::client::{ClientExt, ClientTrait};
 use ymir::types::http::HttpBody;
 use ymir::types::oauth::UserInfo;
-use ymir::utils::{encode_url_safe_no_pad, http_client, ResponseExt};
+use ymir::http::PathId;
+use ymir::utils::{http_client, ResponseExt};
 
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
@@ -58,7 +59,7 @@ impl GrantsRemoteFacade {
     }
 
     fn token_url(&self, route: &str, participant_id: &str, requested: bool) -> String {
-        let segment = encode_url_safe_no_pad(participant_id);
+        let segment = PathId::encode(participant_id);
         format!(
             "{}{}{}?requested={}",
             self.base_url(),

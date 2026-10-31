@@ -34,7 +34,7 @@ use ymir::types::wallet::OidcUri;
 use ymir::utils::extract_payload;
 
 use crate::entities::filters::SentGrantFilter;
-use crate::http::path_id::decode_path_id;
+use ymir::http::PathId;
 use crate::modules::PeerConnectorModule;
 use crate::types::entities::ReachProvider;
 use common::facades::grants_facade::PeerToken;
@@ -152,7 +152,7 @@ impl OnboarderRouter {
         ))
     }
 
-    /// The caller's token towards peer `id` (in base64url, see `path_id`), for the grants
+    /// The caller's token towards peer `id` (in base64url, see `ymir::http::PathId`), for the grants
     /// facade: `200` with the token, or `202` while the grant obtained for it completes.
     async fn peer_token(
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
@@ -160,7 +160,7 @@ impl OnboarderRouter {
         Path(id): Path<String>,
         Query(query): Query<TokenQuery>,
     ) -> AppResult<Response> {
-        let id = decode_path_id(&id)?;
+        let id = PathId::decode(&id)?;
         let token = peer_connector
             .peer_token(&user, &id, query.requested)
             .await?;
@@ -173,7 +173,7 @@ impl OnboarderRouter {
         Path(id): Path<String>,
         Query(query): Query<TokenQuery>,
     ) -> AppResult<Response> {
-        let id = decode_path_id(&id)?;
+        let id = PathId::decode(&id)?;
         let token = peer_connector
             .refresh_peer_token(&user, &id, query.requested)
             .await?;

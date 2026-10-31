@@ -18,7 +18,6 @@
 use std::sync::Arc;
 
 use crate::entities::filters::ParticipantFilter;
-use crate::http::path_id::decode_path_id;
 use crate::modules::ParticipantModule;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
@@ -30,6 +29,7 @@ use ymir::batch_requests::BatchRequestsAsString;
 use ymir::data::entities::shared::participant::{Model, Plan};
 use ymir::data::entities::shared::participant_relation;
 use ymir::errors::AppResult;
+use ymir::http::PathId;
 use ymir::paginated_spec::Paginated;
 use ymir::query::{QueryFilter, QuerySpec};
 use ymir::types::oauth::UserInfo;
@@ -81,13 +81,13 @@ impl ParticipantRouter {
         ))
     }
 
-    /// `id` comes in base64url (see `path_id`).
+    /// `id` comes in base64url (see `ymir::http::PathId`).
     async fn get_by_id(
         State(manager): State<Arc<dyn ParticipantModule>>,
         user: UserInfo,
         Path(id): Path<String>,
     ) -> AppResult<Json<Model>> {
-        let id = decode_path_id(&id)?;
+        let id = PathId::decode(&id)?;
         Ok(Json(manager.get_by_id(&user, &id).await?))
     }
 
@@ -96,7 +96,7 @@ impl ParticipantRouter {
         user: UserInfo,
         Path(id): Path<String>,
     ) -> AppResult<Json<Vec<participant_relation::Model>>> {
-        let id = decode_path_id(&id)?;
+        let id = PathId::decode(&id)?;
         Ok(Json(manager.get_relations(&user, &id).await?))
     }
 
@@ -120,14 +120,14 @@ impl ParticipantRouter {
     // Internal requests: users, behind the OAuth guard (actions)
     // ==========================================================================================
 
-    /// `id` comes in base64url (see `path_id`).
+    /// `id` comes in base64url (see `ymir::http::PathId`).
     async fn update_by_id(
         State(manager): State<Arc<dyn ParticipantModule>>,
         user: UserInfo,
         Path(id): Path<String>,
         payload: Result<Json<serde_json::Value>, JsonRejection>,
     ) -> AppResult<Json<Model>> {
-        let id = decode_path_id(&id)?;
+        let id = PathId::decode(&id)?;
         let payload = extract_payload(payload)?;
         Ok(Json(
             manager

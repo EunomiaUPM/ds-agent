@@ -7072,7 +7072,7 @@ checksum = "cfe53a6657fd280eaa890a3bc59152892ffa3e30101319d168b781ed6529b049"
 [[package]]
 name = "ymir"
 version = "0.8.0"
-source = "git+https://github.com/EunomiaUPM/ymir.git?rev=4dc42001c631bac3934a528c7a790a0802933029#4dc42001c631bac3934a528c7a790a0802933029"
+source = "git+https://github.com/EunomiaUPM/ymir.git?rev=997e65ee0884e5066ecf3f22fdceb2fc8d33704c#997e65ee0884e5066ecf3f22fdceb2fc8d33704c"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -7126,7 +7126,7 @@ dependencies = [
 [[package]]
 name = "ymir-events"
 version = "0.8.0"
-source = "git+https://github.com/EunomiaUPM/ymir.git?rev=4dc42001c631bac3934a528c7a790a0802933029#4dc42001c631bac3934a528c7a790a0802933029"
+source = "git+https://github.com/EunomiaUPM/ymir.git?rev=997e65ee0884e5066ecf3f22fdceb2fc8d33704c#997e65ee0884e5066ecf3f22fdceb2fc8d33704c"
 dependencies = [
  "async-trait",
  "axum",

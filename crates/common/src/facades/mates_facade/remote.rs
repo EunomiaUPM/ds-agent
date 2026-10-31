@@ -23,9 +23,10 @@ use async_trait::async_trait;
 use ymir::config::types::HostType;
 use ymir::errors::Outcome;
 use ymir::http::routes::fill;
+use ymir::http::PathId;
 use ymir::services::client::ClientExt;
 use ymir::types::oauth::UserInfo;
-use ymir::utils::{encode_url_safe_no_pad, http_client};
+use ymir::utils::http_client;
 
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
@@ -64,7 +65,7 @@ impl MatesFacadeTrait for MatesRemoteFacade {
     /// path.
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth"))]
     async fn get_mate_by_id(&self, _user: &UserInfo, mate_id: String) -> Outcome<Mates> {
-        let segment = encode_url_safe_no_pad(&mate_id);
+        let segment = PathId::encode(&mate_id);
         let url = format!("{}{}", self.base_url(), fill(mates::BY_ID, &segment));
         http_client().get_json(&url, None).await
     }

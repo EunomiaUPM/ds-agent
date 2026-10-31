@@ -14,7 +14,7 @@ path = "src/main.rs"
 [dependencies]
 common = { version = "0.4.0", path = "../common", default-features = false }
 events = { workspace = true }
-# oauth = { version = "0.4.0", path = "../oauth" }  # disabled, see the workspace Cargo.toml
+# oauth = { package = "ymir-oauth", git = "https://github.com/EunomiaUPM/ymir.git" }  # not built yet, see the workspace Cargo.toml
 
 serde = { workspace = true }
 serde_json = { workspace = true }

@@ -10,6 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@eunomia/ui": "https://github.com/EunomiaUPM/ymir/releases/download/ui-v0.1.0/eunomia-ui-0.1.0.tgz"
+    "@eunomia/ui": "https://github.com/EunomiaUPM/ymir/releases/download/ui-v0.2.0/eunomia-ui-0.2.0.tgz"
   }
 }

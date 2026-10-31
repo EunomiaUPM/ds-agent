@@ -1,4 +1,10 @@
-import { EventEnvelope } from "../data/orval/model";
+import type {
+  EventEnvelope,
+  EventLink,
+  EventTopicCatalog,
+  LiveInvalidations,
+} from "@eunomia/ui/events";
+import { getApiGatewayBase } from "../data/orval-mutator";
 
 const AREAS: Record<string, string> = {
   transfers: "Transfer",
@@ -13,15 +19,15 @@ const ACTIONS: Record<string, string> = { create: "created", edit: "updated", de
 const GENERIC_ENTITIES = new Set(["process", "message"]);
 const ACRONYMS: Record<string, string> = { vc: "VC", vp: "VP", did: "DID", dlq: "DLQ", odrl: "ODRL" };
 
-export interface EventLink {
+/** A page of the GUI with the params of its `$segments`. */
+interface Route {
   to: string;
   params: Record<string, string>;
 }
 
 /** Readable labels and in-app links for bus topics shaped `<area>:<entity>:<action>`. */
-export const EventTopics = {
-  /** Areas offered as feed filters, by topic prefix. */
-  areas: Object.entries(AREAS).map(([prefix, label]) => ({ prefix, label })),
+export const EventTopics: EventTopicCatalog & { route(event: EventEnvelope): Route | undefined } = {
+  areas: Object.entries(AREAS).map(([prefix, label]) => ({ pattern: `${prefix}:**`, label })),
 
   /** `catalog:policy_template:create` → `Policy template created`, `transfers:process:edit` → `Transfer process updated`. */
   describe(topic: string): string {
@@ -37,8 +43,13 @@ export const EventTopics = {
     return AREAS[topic.split(":")[0]] ?? topic.split(":")[0];
   },
 
-  /** The record the event is about, when the GUI has a page for it. */
+  /** The record the event is about, labelled by its id, when the GUI has a page for it. */
   link(event: EventEnvelope): EventLink | undefined {
+    const route = EventTopics.route(event);
+    return route && { ...route, label: Object.values(route.params)[0] };
+  },
+
+  route(event: EventEnvelope): Route | undefined {
     const p = (event.payload ?? {}) as Record<string, unknown>;
     const id = typeof p.id === "string" ? p.id : undefined;
     const ref = (v: unknown) => (typeof v === "string" ? v : undefined);
@@ -67,4 +78,34 @@ export const EventTopics = {
       return { to: "/contract-negotiation/$cnProcess", params: { cnProcess: negotiation } };
     return undefined;
   },
+};
+
+/** Query key prefixes (orval keys are request paths) refreshed by each topic prefix. */
+export const EVENT_INVALIDATIONS: LiveInvalidations = [
+  ["transfers:", ["/transfers/"]],
+  ["negotiations:", ["/negotiations/"]],
+  [
+    "catalog:",
+    [
+      "/catalogs",
+      "/datasets",
+      "/distributions",
+      "/data-services",
+      "/odrl-policies",
+      "/policy-templates",
+    ],
+  ],
+  ["connector:", ["/connector"]],
+  [
+    "auth:",
+    ["/peer-connection", "/gate", "/mates", "/vc-request", "peer-connection-sent", "gate-received"],
+  ],
+  ["keystore:", ["/keystore"]],
+];
+
+/** `ws(s)://…/admin/api/live` from the configured gateway, or this page's origin. */
+export const liveEventsUrl = (): string => {
+  const base = (getApiGatewayBase() || `${window.location.origin}/admin/api`).replace(/\/$/, "");
+  const api = base.endsWith("/admin/api") ? base : `${base}/admin/api`;
+  return `${api.replace(/^http/, "ws")}/live`;
 };

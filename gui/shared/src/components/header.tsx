@@ -10,7 +10,8 @@ import { Link } from "@tanstack/react-router";
 import { ExternalLink, Radio } from "lucide-react";
 import { AppShellHeader, type SessionUser } from "@eunomia/ui";
 import { AuthContext, AuthContextType } from "shared/src/context/AuthContext";
-import { NotificationBell } from "shared/src/components/NotificationBell";
+import { NotificationBell } from "@eunomia/ui/events";
+import { EventTopics } from "shared/src/lib/eventTopics";
 
 export const Header = ({
   user,
@@ -27,7 +28,7 @@ export const Header = ({
     <AppShellHeader
       user={user}
       onSignOut={handleSignOut}
-      rightActionsSlot={<NotificationBell />}
+      rightActionsSlot={<NotificationBell topics={EventTopics} feedTo="/events/feed" />}
       quickLinksSlot={
         <Link
           to="/events/feed"

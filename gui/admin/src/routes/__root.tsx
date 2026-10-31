@@ -18,7 +18,8 @@ import {
 } from "@eunomia/ui";
 import { AppSidebar } from "shared/src/components/AppSidebar";
 import { Header } from "shared/src/components/header";
-import { LiveContextProvider } from "shared/src/context/LiveContext";
+import { LiveProvider } from "@eunomia/ui/events";
+import { EVENT_INVALIDATIONS, liveEventsUrl } from "shared/src/lib/eventTopics";
 import { useParticipantDirectory } from "shared/src/data/useParticipantDirectory";
 
 export const Route = createRootRouteWithContext<{
@@ -76,7 +77,7 @@ function RootComponent() {
 
   return (
     <AuthenticatedDirectoryBridge>
-      <LiveContextProvider>
+      <LiveProvider transport="websocket" url={liveEventsUrl} invalidations={EVENT_INVALIDATIONS}>
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
@@ -89,7 +90,7 @@ function RootComponent() {
         <Toaster />
         <GlobalLoadingIndicator />
         <TanStackRouterDevtools />
-      </LiveContextProvider>
+      </LiveProvider>
     </AuthenticatedDirectoryBridge>
   );
 }

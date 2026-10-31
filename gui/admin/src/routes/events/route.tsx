@@ -16,31 +16,15 @@
  */
 
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { RouteTabs } from "@eunomia/ui";
-import { PageLayout } from "@eunomia/ui";
-import { PageHeader } from "@eunomia/ui";
-
-const EventsLayout = () => {
-  const tabs = [
-    { label: "Feed", to: "/events/feed" },
-    { label: "Webhook subscriptions", to: "/events/subscriptions" },
-    { label: "Dead letters", to: "/events/dlq" },
-  ];
-
-  return (
-    <PageLayout>
-      <PageHeader
-        title="Events"
-        description="Domain events published on the bus by every agent of this connector."
-      />
-
-      <RouteTabs tabs={tabs} />
-
-      <Outlet />
-    </PageLayout>
-  );
-};
+import { EventsLayout } from "@eunomia/ui/events";
 
 export const Route = createFileRoute("/events")({
-  component: EventsLayout,
+  component: () => (
+    <EventsLayout
+      basePath="/events"
+      description="Domain events published on the bus by every agent of this connector."
+    >
+      <Outlet />
+    </EventsLayout>
+  ),
 });

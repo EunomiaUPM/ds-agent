@@ -1,21 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  useRpcSetupCatalogRequest,
-  useRpcSetupDatasetRequest,
-} from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
+import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
 import { PageLayout } from "@eunomia/ui";
 import { PageHeader } from "@eunomia/ui";
-import { InfoGrid } from "@eunomia/ui";
-import { PageSection } from "@eunomia/ui";
+
 import { InfoList } from "@eunomia/ui";
-import { Badge } from "@eunomia/ui";
+
 import { FormatDate } from "@eunomia/ui";
-import { formatUrn, pathIdParams } from "@eunomia/ui";
-import { DataTable } from "@eunomia/ui";
+import { pathIdParams } from "@eunomia/ui";
+
 import { useEffect, useMemo } from "react";
 import { Skeleton } from "@eunomia/ui";
 import { PolicyWrapperShow } from "shared/src/components/PolicyWrapperShow.tsx";
-import { OdrlOffer } from "shared/src/data/orval/model/odrlOffer";
+
 import { CatalogRpc, DspViews, dspDescription, dspIssued, dspTitle, type DspNode } from "shared/src/data/catalog";
 import { Heading } from "@eunomia/ui";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";

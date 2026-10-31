@@ -3,10 +3,9 @@ import { formatUrn } from "@eunomia/ui";
 import { encodePathId } from "@eunomia/ui";
 import { PageLayout } from "@eunomia/ui";
 import { PageHeader } from "@eunomia/ui";
-import { PageSection } from "@eunomia/ui";
 
 // Components
-import { Heading } from "@eunomia/ui";
+
 import { Badge, BadgeRole } from "@eunomia/ui";
 import { InfoList } from "@eunomia/ui";
 import { DataTable } from "@eunomia/ui";
@@ -61,8 +60,6 @@ function RouteComponent() {
   const {
     data: agreements,
     isLoading: isAgreementsLoading,
-    isError: isAgreementsError,
-    error: agreementsError,
   } = useGetAgreementsByParticipantId(participantId);
   const baseUrl = participant?.status === 200 ? participant.data.base_url : undefined;
   const { data: didDoc } = useGetDidFromUrl(encodeURIComponent(baseUrl ?? ""), {
@@ -222,7 +219,6 @@ function RouteComponent() {
                     id: "state",
                     label: "Status",
                     options: [
-                      { label: "All Statuses", value: "all" },
                       { label: "Finalized", value: "FINALIZED" },
                       { label: "Active", value: "ACTIVE" },
                       { label: "Terminated", value: "TERMINATED" },
@@ -363,9 +359,3 @@ function RouteComponent() {
   );
 }
 
-const DataTypeSkeleton = () => (
-  <div className="space-y-4">
-    <Skeleton className="h-8 w-48" />
-    <Skeleton className="h-24 w-full" />
-  </div>
-);

@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowLeft, CheckCircle2, Loader2, Search } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { formatIdentifier } from "@eunomia/ui";
@@ -36,7 +36,7 @@ import { DiscoveredPeer, discoverPeer } from "shared/src/data/peerConnection";
 import * as z from "zod";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 import { WizardDialog } from "@eunomia/ui";
 
@@ -157,20 +157,11 @@ function NewSentConnection() {
     }
   };
 
-  let highlightButtonClasses = !onboardedWithKnownProvider
-    ? " animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400"
-    : "";
+  // The tutorial marks the next step with a ring; the button keeps the primary colour.
+  const highlightButtonClasses = !onboardedWithKnownProvider ? "ring-2 ring-offset-2 ring-offset-background ring-brand-sky/60" : "";
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <Link to="/connections/sent">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Sent
-          </Button>
-        </Link>
-      </div>
       {!onboardedWithKnownProvider && (
         <WizardDialog
           open={wizardURLOpen}
@@ -325,7 +316,7 @@ function NewSentConnection() {
 
                     <Button
                       type="submit"
-                      className={`w-full   ${highlightButtonClasses}`}
+                      className={`w-full ${highlightButtonClasses}`}
                       disabled={!discoveredInfo || isSubmitting}
                     >
                       {isSubmitting ? (
@@ -393,7 +384,7 @@ function NewSentConnection() {
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground italic text-sm">
-                    Enter a URL and click Discover to see provider details.
+                    Enter a URL and click Find provider to see its details.
                   </div>
                 )}
               </CardContent>

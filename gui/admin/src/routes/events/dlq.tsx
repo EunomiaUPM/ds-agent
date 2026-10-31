@@ -149,7 +149,6 @@ const DlqComponent = () => {
       {/* Filter Chips */}
       <div className="flex items-center gap-2">
         {[
-          { label: "All", value: "all" },
           { label: "Unresolved", value: "Unresolved" },
           { label: "Replayed", value: "Replayed" },
           { label: "Purged", value: "Purged" },
@@ -197,7 +196,6 @@ const DlqComponent = () => {
                 label: "Status",
                 value: queryParams.filters.status ?? "all",
                 options: [
-                  { label: "All Statuses", value: "all" },
                   { label: "Unresolved", value: "Unresolved" },
                   { label: "Replayed", value: "Replayed" },
                   { label: "Purged", value: "Purged" },

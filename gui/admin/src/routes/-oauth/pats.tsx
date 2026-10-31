@@ -287,7 +287,6 @@ const PatsComponent = () => {
                 label: "Status",
                 value: queryParams.filters.status ?? "all",
                 options: [
-                  { label: "All Statuses", value: "all" },
                   { label: "Active", value: "active" },
                   { label: "Revoked", value: "revoked" },
                 ],

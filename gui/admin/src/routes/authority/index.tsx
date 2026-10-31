@@ -1,5 +1,5 @@
 import { ArrowRight, Plus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { DataTable } from "@eunomia/ui";
 import { PageHeader } from "@eunomia/ui";
 import { PageLayout } from "@eunomia/ui";
@@ -126,7 +126,6 @@ function AuthorityRequestsPage() {
               id: "status",
               label: "Status",
               options: [
-                { label: "All Statuses", value: "all" },
                 { label: "Processing", value: "Processing" },
                 { label: "Pending", value: "Pending" },
                 { label: "Approved", value: "Approved" },

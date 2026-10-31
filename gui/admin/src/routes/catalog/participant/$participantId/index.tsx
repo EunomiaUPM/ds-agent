@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { getGetMyselfQueryOptions } from "shared/src/data/orval/participants/participants";
 import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
 import { CatalogRpc, DspViews, dspIssued, dspTitle, text } from "shared/src/data/catalog";
@@ -24,26 +24,8 @@ import {
   InnerSidebarNav,
   InnerSidebarNavItem,
 } from "@eunomia/ui";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@eunomia/ui";
-import {
-  Database,
-  Server,
-  ArrowLeft,
-  Calendar,
-  Layers,
-  ArrowRight,
-  CheckCircle2,
-  Loader2,
-  ShieldCheck,
-  Search,
-} from "lucide-react";
+import { Card, CardTitle, CardDescription } from "@eunomia/ui";
+import { Database, Server, Calendar, Loader2 } from "lucide-react";
 import { useMyself } from "shared/src/data/useMyself";
 import { usePeerConnections } from "shared/src/data/peerConnection";
 import { ConnectPeerForm } from "shared/src/components/ConnectPeerForm";

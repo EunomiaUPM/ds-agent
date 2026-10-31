@@ -423,7 +423,7 @@ PolicyBuilder.Canvas = function Canvas() {
           >
             <PolicyBuilder.Zone
               zone={{ kind: "lane", list }}
-              empty={`Drop a Rule block or a ${meta.one.toLowerCase()} from the library.`}
+              empty={`Drop a Rule block or ${/^[aeiou]/i.test(meta.one) ? "an" : "a"} ${meta.one.toLowerCase()} from the library.`}
             >
               {tree[list].map((r) => (
                 <PolicyBuilder.RuleItemCard key={r.id} node={r} list={list} />

@@ -234,11 +234,11 @@ function NewTemplatePage() {
             </SelectContent>
           </Select>
         </label>
-        <label className="flex flex-col gap-1 md:col-span-3">
+        <label className="flex flex-col gap-1 md:col-span-2">
           <span className="text-xs font-medium">Description</span>
           <Input value={description} onChange={(e) => setDescription(e.target.value)} />
         </label>
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 md:col-span-2">
           <span className="text-xs font-medium">Kind</span>
           <SegmentedControl value={kind} onChange={setKind} options={KINDS} ariaLabel="Kind" />
         </div>

@@ -2,7 +2,6 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { RouteTabs } from "@eunomia/ui";
 import { PageLayout } from "@eunomia/ui";
 import { PageHeader } from "@eunomia/ui";
-import { KeyRound } from "lucide-react";
 
 const KeystoreLayout = () => {
   const tabs = [

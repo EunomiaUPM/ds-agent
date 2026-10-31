@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import { SSIAuthContext } from "shared/src/context/SSIAuthContext";
-import { AuthorityConnectorForm } from "../forms/AuthorityConnectorForm";
+
 import { VCRequestForm } from "../forms/VCRequestForm";
 import { VCAcceptForm } from "../forms/VCAcceptForm";
 import { DataTable, Column } from "@eunomia/ui";

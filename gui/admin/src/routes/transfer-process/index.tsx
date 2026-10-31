@@ -30,7 +30,7 @@ function TransfersPage() {
     defaultLimit: 10,
     defaultSort: "created_at_desc",
   });
-  const { search, ...queryParams } = apiParams;
+  const { search: _search, ...queryParams } = apiParams;
 
   const { data, isFetching } = useGetTransferProcesses(queryParams as GetTransferProcessesParams, {
     query: { placeholderData: keepPreviousData },
@@ -71,7 +71,6 @@ function TransfersPage() {
             id: "state",
             label: "State",
             options: [
-              { label: "Any state", value: "all" },
               ...STATES.map((s) => ({ label: s.charAt(0) + s.slice(1).toLowerCase(), value: s })),
             ],
           },
@@ -79,7 +78,6 @@ function TransfersPage() {
             id: "role",
             label: "My role",
             options: [
-              { label: "Any role", value: "all" },
               { label: "Provider", value: "provider" },
               { label: "Consumer", value: "consumer" },
             ],

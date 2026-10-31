@@ -1,7 +1,6 @@
 import { useContext } from "react";
 import { SSIAuthContext } from "shared/src/context/SSIAuthContext";
 import { WalletOnboardForm } from "../forms/WalletOnboardForm";
-import { Heading } from "@eunomia/ui";
 
 export function WalletStep() {
   const ssiAuthContext = useContext(SSIAuthContext);

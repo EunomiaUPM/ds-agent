@@ -1,5 +1,5 @@
 import { ArrowRight, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { WizardEndDialog } from "@eunomia/ui";
 import { DataTable } from "@eunomia/ui";
 import { PageSection } from "@eunomia/ui";
@@ -106,7 +106,6 @@ function SentConnectionsPage() {
               label: "Status",
               accessorKey: "status",
               options: [
-                { label: "All Statuses", value: "all" },
                 { label: "Processing", value: "Processing" },
                 { label: "Pending", value: "Pending" },
                 { label: "Approved", value: "Approved" },

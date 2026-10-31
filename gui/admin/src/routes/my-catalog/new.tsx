@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -73,7 +73,6 @@ interface ConstraintRow {
 }
 
 function NewDatasetOfferingPage() {
-  const navigate = useNavigate();
 
   // 1. Wizard navigation state
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);

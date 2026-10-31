@@ -59,7 +59,7 @@ function EventFeedPage() {
 
   // Table filters become the feed's query: an area is a topic prefix, a period a lower bound.
   const queryParams = useMemo<ListEventsFeedParams>(() => {
-    const { area, state, period, search, ...rest } = apiParams;
+    const { area, state, period, search: _search, ...rest } = apiParams;
     return {
       ...rest,
       ...(area && { topic: `${area}:**` }),
@@ -112,7 +112,6 @@ function EventFeedPage() {
             id: "area",
             label: "Area",
             options: [
-              { label: "All areas", value: "all" },
               ...EventTopics.areas.map((a) => ({ label: a.label, value: a.prefix })),
             ],
           },
@@ -120,7 +119,6 @@ function EventFeedPage() {
             id: "state",
             label: "State",
             options: [
-              { label: "Read and unread", value: "all" },
               { label: "Unread", value: "unread" },
               { label: "Read", value: "read" },
             ],
@@ -129,7 +127,6 @@ function EventFeedPage() {
             id: "period",
             label: "Period",
             options: [
-              { label: "Any time", value: "all" },
               { label: "Last hour", value: "hour" },
               { label: "Last 24 hours", value: "day" },
               { label: "Last 7 days", value: "week" },

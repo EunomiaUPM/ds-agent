@@ -24,6 +24,7 @@ import {
 } from "@eunomia/ui";
 import { Input } from "@eunomia/ui";
 import { Checkbox } from "@eunomia/ui";
+import { SegmentedControl } from "@eunomia/ui";
 import {
   Select,
   SelectContent,
@@ -40,7 +41,7 @@ import {
 import { WizardDialog } from "@eunomia/ui";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
-import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
+
 import { formatIdentifier, getFriendlyVCType } from "@eunomia/ui";
 import * as z from "zod";
 
@@ -129,7 +130,6 @@ function NewAuthorityRequest() {
     services: DidService[];
   } | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
-  const federated = useFederatedCatalog();
 
   // wizard state: 0 = closed, 1 = URL/Nickname, 2 = Discover, 3 = VC type
   const [wizardStep, setWizardStep] = useState<0 | 1 | 2 | 3>(1);
@@ -152,7 +152,6 @@ function NewAuthorityRequest() {
   });
 
   const url = form.watch("url");
-  const nick = form.watch("nick");
   // refs for positioning the tooltip over the "Authority URL" label
   const labelURLRef = useRef<HTMLElement | null>(null);
   const vcType = form.watch("vc_type");
@@ -238,12 +237,10 @@ function NewAuthorityRequest() {
 
   // federated presence check (kept for clarity)
 
-  let highlightRingClasses =
+  const highlightRingClasses =
     knownAuthorities.length === 0 ? "ring-2 ring-secondary-400 shadow-md animate-pulse" : "";
-  let highlightButtonClasses =
-    knownAuthorities.length === 0
-      ? "animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400"
-      : "";
+  // The tutorial marks the next step with a ring; the button keeps the primary colour.
+  const highlightButtonClasses = knownAuthorities.length === 0 ? "ring-2 ring-offset-2 ring-offset-background ring-brand-sky/60" : "";
 
   return (
     <PageLayout>
@@ -405,7 +402,7 @@ function NewAuthorityRequest() {
                         <FormItem>
                           <FormLabel>Nickname</FormLabel>
                           <FormControl>
-                            <Input placeholder="Heimdall" {...field} />
+                            <Input placeholder="e.g. Heimdall" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -481,72 +478,22 @@ function NewAuthorityRequest() {
                             later, once your wallet holds something the authority can check.
                           </LabelWithInfo>
                           <FormControl>
-                            <div className="space-y-2">
-                              <div className="relative flex p-1 bg-muted/50 border border-primary/40 rounded-lg w-full">
-                                {/* Sliding pill */}
-                                <div
-                                  className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] bg-primary rounded-md transition-transform duration-300 ease-in-out shadow-sm ${
-                                    field.value === "cert"
-                                      ? "translate-x-0"
-                                      : "translate-x-[calc(100%+0.25rem)]"
-                                  }`}
-                                />
-
-                                <button
-                                  type="button"
-                                  className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-all duration-300 rounded-md ${
-                                    field.value === "cert"
-                                      ? "text-primary-foreground"
-                                      : "text-foreground/70 hover:text-foreground"
-                                  } ${
-                                    recommendedMethod === "cert" && field.value !== "cert"
-                                      ? "ring-2 ring-secondary-400"
-                                      : ""
-                                  }`}
-                                  onClick={() => field.onChange("cert")}
-                                >
-                                  Certificate
-                                </button>
-
-                                <button
-                                  type="button"
-                                  className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-all duration-300 rounded-md ${
-                                    field.value === "oidc4vp"
-                                      ? "text-primary-foreground"
-                                      : "text-foreground/70 hover:text-foreground"
-                                  } ${
-                                    recommendedMethod === "oidc4vp" && field.value !== "oidc4vp"
-                                      ? "ring-2 ring-secondary-400"
-                                      : ""
-                                  }`}
-                                  onClick={() => field.onChange("oidc4vp")}
-                                >
-                                  Verifiable Credential
-                                </button>
-                              </div>
-
-                              {/* Recommendation hint (fades, no layout shift) */}
-                              <div className="h-5 flex items-center justify-end gap-2">
-                                <span
-                                  className={`text-xs uppercase tracking-widest text-muted-foreground transition-opacity duration-500 ${
-                                    field.value !== recommendedMethod ? "opacity-100" : "opacity-0"
-                                  }`}
-                                >
-                                  Recommended:
-                                </span>
-                                <Badge
-                                  variant="info"
-                                  className={`text-xs transition-opacity duration-500 ${
-                                    field.value !== recommendedMethod ? "opacity-100" : "opacity-0"
-                                  }`}
-                                >
-                                  {recommendedMethod === "cert"
-                                    ? "Certificate"
-                                    : "Verifiable Credential"}
-                                </Badge>
-                              </div>
-                            </div>
+                            <SegmentedControl
+                              ariaLabel="Identity proof"
+                              value={field.value}
+                              onChange={field.onChange}
+                              options={[
+                                { value: "cert", label: "Certificate" },
+                                { value: "oidc4vp", label: "Verifiable Credential" },
+                              ]}
+                            />
                           </FormControl>
+                          {field.value !== recommendedMethod && (
+                            <p className="text-xs text-ink/50">
+                              Recommended here:{" "}
+                              {recommendedMethod === "cert" ? "Certificate" : "Verifiable Credential"}
+                            </p>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -588,6 +535,11 @@ function NewAuthorityRequest() {
                         "Submit Request"
                       )}
                     </Button>
+                    {!discoveredInfo && (
+                      <p className="-mt-3 text-center text-xs text-ink/50">
+                        Find the authority first: its credential types come from it.
+                      </p>
+                    )}
                   </form>
                 </Form>
               </CardContent>
@@ -656,7 +608,7 @@ function NewAuthorityRequest() {
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground italic text-sm">
-                    Enter a URL and click Discover to see authority details.
+                    Enter a URL and click Find authority to see its details.
                   </div>
                 )}
               </CardContent>

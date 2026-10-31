@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { Circle } from "lucide-react";
 import { SSIAuthContext } from "shared/src/context/SSIAuthContext";
-import { PeerConnectorForm } from "../forms/PeerConnectorForm";
+
 import { GrantRequestForm } from "../forms/GrantRequestForm";
 import { VPPresentationForm } from "../forms/VPPresentationForm";
 import { PeerConnectorFormForDemo } from "@/components/ssi-auth/forms/PeerConnectorFormForDemo.tsx";

@@ -1,16 +1,8 @@
 import React, { useRef, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  ArrowLeft,
-  CheckCircle2,
-  FileUp,
-  Loader2,
-  ShieldCheck,
-  Upload,
-  XCircle,
-} from "lucide-react";
+import { CheckCircle2, FileUp, Loader2, ShieldCheck, Upload, XCircle } from "lucide-react";
 
 import { PageLayout } from "@eunomia/ui";
 import { PageHeader } from "@eunomia/ui";
@@ -112,14 +104,7 @@ function RouteComponent() {
     <PageLayout>
       <PageHeader
         title="Import a DCAT catalog"
-        badge={
-          <Link
-            to="/my-catalog"
-            className="inline-flex items-center gap-1 text-xs text-ink/60 hover:text-ink"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> My catalog
-          </Link>
-        }
+        description="Validate a DCAT-AP or DCAT 3 document with SHACL and write its datasets into this connector."
       />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,420px)_1fr]">

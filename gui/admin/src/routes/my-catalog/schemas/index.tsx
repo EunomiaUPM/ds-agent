@@ -97,8 +97,11 @@ function SchemasPage() {
             {
               header: "Public URL",
               cell: (g) => (
-                <span onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                  <SchemaUrl url={g.latest.url} />
+                <span
+                  className="block max-w-[420px]"
+                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                >
+                  <SchemaUrl url={g.latest.url} compact />
                 </span>
               ),
             },

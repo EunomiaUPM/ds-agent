@@ -12,22 +12,22 @@
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { FormatDate } from "@eunomia/ui";
-import { formatIdentifier, formatUrn } from "@eunomia/ui";
+
 import { DataTable } from "@eunomia/ui";
 import { Button } from "@eunomia/ui";
 import { Badge, BadgeRole } from "@eunomia/ui";
-import { buttonVariants } from "@eunomia/ui";
 
 // Icons
 import { ArrowRight } from "lucide-react";
 import { PageLayout } from "@eunomia/ui";
 import { PageHeader } from "@eunomia/ui";
 import { PageSection } from "@eunomia/ui";
+import { FieldGrid, Identifier } from "@eunomia/ui";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 import { GeneralErrorComponent } from "@eunomia/ui";
 import { ParticipantDto } from "shared/data/orval/model/participantDto";
 import { useTableQueryParams } from "@eunomia/ui";
-import { Card, CardContent, CardHeader, CardTitle } from "@eunomia/ui";
+
 import { Skeleton } from "@eunomia/ui";
 
 import { keepPreviousData } from "@tanstack/react-query";
@@ -69,11 +69,6 @@ function RouteComponent() {
   });
   const myAgent = useMyself();
 
-  const rawParticipants = (
-    Array.isArray(participants?.data) ? participants.data : (participants?.data as any)?.items || []
-  ) as Participant[];
-  const allParticipants = rawParticipants;
-
   if (isLoading && !participants) {
     return (
       <PageLayout>
@@ -100,47 +95,28 @@ function RouteComponent() {
         description="This agent and the peers and authorities it has dealt with."
       />
 
-      {/* Quick Stats / My Agent info */}
       {myAgent && (
-        <div className="mb-8">
-          <Card className="bg-background-200/15 overflow-hidden relative">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-xs font-semibold text-brand-sky uppercase tracking-wider mb-1">
-                    My Local Agent
-                  </p>
-                  <CardTitle className="text-2xl">
-                    {myAgent.participant_nick || "Unnamed Agent"}
-                  </CardTitle>
-                </div>
-                <Badge variant="status" state="active">
-                  Active
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between flex-wrap gap-8 mt-2">
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase">DID Identifier</p>
-                  <Badge variant="info">
-                    {formatIdentifier(myAgent.participant_id, 0, true, 40)}
-                  </Badge>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase">System Role</p>
+        <PageSection title="This agent">
+          <FieldGrid
+            columns={4}
+            fields={[
+              { label: "Name", value: myAgent.participant_nick || "Unnamed agent" },
+              {
+                label: "Role",
+                value: (
                   <Badge variant="role" dsrole={myAgent.participant_type as BadgeRole}>
                     {myAgent.participant_type}
                   </Badge>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase">Base URL</p>
-                  <Badge variant="info">{myAgent.base_url}</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                ),
+              },
+              { label: "DID", value: <Identifier value={myAgent.participant_id} tail={12} /> },
+              {
+                label: "Base URL",
+                value: <span className="break-all font-mono text-xs">{myAgent.base_url}</span>,
+              },
+            ]}
+          />
+        </PageSection>
       )}
 
       <PageSection title="Network Participants">
@@ -159,7 +135,6 @@ function RouteComponent() {
               label: "Type",
               accessorKey: "participant_type",
               options: [
-                { label: "All Types", value: "all" },
                 { label: "Agent", value: "Agent" },
                 { label: "Authority", value: "Authority" },
               ],
@@ -195,7 +170,7 @@ function RouteComponent() {
               header: "Participant DID",
               accessorKey: "participant_id",
               cell: (p) => (
-                <Badge variant="info">{formatIdentifier(p.participant_id, 0, true, 40)}</Badge>
+                <Identifier value={p.participant_id} tail={12} />
               ),
             },
             {

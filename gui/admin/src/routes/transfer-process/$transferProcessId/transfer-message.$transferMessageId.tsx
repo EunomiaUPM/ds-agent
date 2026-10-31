@@ -17,7 +17,7 @@ export const Route = createFileRoute(
 });
 
 function RouteComponent() {
-  const { transferMessageId, transferProcessId } = Route.useParams();
+  const { transferMessageId } = Route.useParams();
   const { data: transferMessageResponse, isLoading: isTransferMessageLoading } =
     useGetTransferMessageById(transferMessageId);
 

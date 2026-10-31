@@ -102,6 +102,8 @@ const RouteComponent = () => {
           }
         />
       )}
+      {/* The tutorial bubble sits above its anchor: leave it room instead of covering the header. */}
+      {!onboardedWithKnownProvider && wizardCatalogOpen && <div className="h-36" />}
       <div ref={(el) => (labelCatalogRef.current = el as any)} className="h-4" />
       <div className="grid grid-cols-3 gap-5">
         {agents.map((p) => {

@@ -219,15 +219,17 @@ export function SchemaPicker({ value, onChange, inherited }: SchemaPickerProps) 
 }
 
 /** A schema URL with a link to open it. */
-export function SchemaUrl({ url }: { url: string }) {
+export function SchemaUrl({ url, compact = false }: { url: string; compact?: boolean }) {
+  // In a table row the full URL wraps over two lines; compact shows its tail and keeps it in the tooltip.
   return (
     <a
       href={url}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex max-w-full items-center gap-1 break-all font-mono text-xs text-brand-sky hover:underline"
+      title={url}
+      className={`inline-flex max-w-full items-center gap-1 font-mono text-xs text-brand-sky hover:underline ${compact ? "whitespace-nowrap" : "break-all"}`}
     >
-      {url}
+      {compact && url.length > 40 ? `…${url.slice(-40)}` : url}
       <ExternalLink className="h-3 w-3 shrink-0" />
     </a>
   );

@@ -61,7 +61,6 @@ function RouteComponent() {
             id: "role",
             label: "My role",
             options: [
-              { label: "Any role", value: "all" },
               { label: "Provider", value: "Provider" },
               { label: "Consumer", value: "Consumer" },
             ],

@@ -29,30 +29,7 @@ import { Input } from "@eunomia/ui";
 import { DataTable, type Column } from "@eunomia/ui";
 import { FormatDate } from "@eunomia/ui";
 import { formatUrn } from "@eunomia/ui";
-import {
-  Database,
-  Server,
-  ShieldCheck,
-  FileCode,
-  Plus,
-  RefreshCw,
-  LayoutGrid,
-  Table as TableIcon,
-  ArrowRight,
-  ExternalLink,
-  Copy,
-  Check,
-  CheckCircle2,
-  Info,
-  Globe,
-  Calendar,
-  Layers,
-  Upload,
-  Pencil,
-  Trash2,
-  FileJson,
-  Library,
-} from "lucide-react";
+import { Database, Server, ShieldCheck, FileCode, Plus, RefreshCw, LayoutGrid, Table as TableIcon, ArrowRight, ExternalLink, Copy, Check, CheckCircle2, Info, Globe, Calendar, Layers, Upload, Pencil, Trash2 } from "lucide-react";
 
 import { useGetCatalogById, useGetMainCatalogs } from "shared/src/data/orval/catalogs/catalogs";
 import { useGetDatasetsByCatalogId } from "shared/src/data/orval/datasets/datasets";

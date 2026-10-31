@@ -323,7 +323,6 @@ const ClientsComponent = () => {
                 label: "Role",
                 value: queryParams.filters.role ?? "all",
                 options: [
-                  { label: "All Roles", value: "all" },
                   { label: "Owner", value: "owner" },
                   { label: "Reader", value: "reader" },
                   { label: "Admin", value: "admin" },

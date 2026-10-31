@@ -5,7 +5,6 @@ members = [
     "crates/dataplane",
     "crates/common",
     "crates/auth",
-    "crates/events",
     "crates/bff",
     "crates/catalog-agent",
     "crates/negotiation-agent",
@@ -97,5 +96,7 @@ oxrdf = "0.3.5"
 oxttl = "0.2.5"
 oxrdfxml = "0.2.5"
 ymir = { git = "https://github.com/EunomiaUPM/ymir.git", rev = "4dc42001c631bac3934a528c7a790a0802933029" }
+events = { package = "ymir-events", git = "https://github.com/EunomiaUPM/ymir.git", rev = "4dc42001c631bac3934a528c7a790a0802933029" }
 #ymir = {git = "https://github.com/EunomiaUPM/ymir.git", tag = "v0.8.6"}
 #ymir = { path = "../ymir/crates/ymir" }
+

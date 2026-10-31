@@ -260,7 +260,6 @@ dependencies = [
  "base64",
  "chrono",
  "common",
- "events",
  "json_value_merge",
  "mockall",
  "sea-orm",
@@ -276,6 +275,7 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "ymir",
+ "ymir-events",
 ]
 
 [[package]]
@@ -611,7 +611,6 @@ dependencies = [
  "common",
  "connector",
  "convert_case",
- "events",
  "hex",
  "log",
  "mockall",
@@ -639,6 +638,7 @@ dependencies = [
  "urn",
  "uuid",
  "ymir",
+ "ymir-events",
 ]
 
 [[package]]
@@ -872,7 +872,6 @@ dependencies = [
  "base64",
  "chrono",
  "common",
- "events",
  "futures-util",
  "jaq-interpret",
  "jaq-parse",
@@ -890,6 +889,7 @@ dependencies = [
  "urn",
  "uuid",
  "ymir",
+ "ymir-events",
 ]
 
 [[package]]
@@ -1495,37 +1495,6 @@ checksum = "8be9f3dfaaffdae2972880079a491a1a8bb7cbed0b8dd7a347f668b4150a3b93"
 dependencies = [
  "event-listener",
  "pin-project-lite",
-]
-
-[[package]]
-name = "events"
-version = "0.4.0"
-dependencies = [
- "async-trait",
- "axum",
- "bytes",
- "chrono",
- "common",
- "futures-util",
- "hmac",
- "log",
- "mockall",
- "opentelemetry",
- "rand 0.10.2",
- "regex",
- "sea-orm",
- "sea-orm-migration",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "thiserror 2.0.18",
- "tokio",
- "tokio-util",
- "tracing",
- "url",
- "urn",
- "uuid",
- "ymir",
 ]
 
 [[package]]
@@ -2665,7 +2634,6 @@ dependencies = [
  "chrono",
  "common",
  "connector",
- "events",
  "futures-util",
  "hyper",
  "mockall",
@@ -2683,6 +2651,7 @@ dependencies = [
  "urn",
  "uuid",
  "ymir",
+ "ymir-events",
 ]
 
 [[package]]
@@ -3000,7 +2969,6 @@ dependencies = [
  "common",
  "connector",
  "dataplane",
- "events",
  "keystore",
  "negotiation_agent",
  "redis",
@@ -3018,6 +2986,7 @@ dependencies = [
  "urn",
  "uuid",
  "ymir",
+ "ymir-events",
 ]
 
 [[package]]
@@ -3047,7 +3016,6 @@ dependencies = [
  "bytes",
  "chrono",
  "common",
- "events",
  "hex",
  "http",
  "log",
@@ -3073,6 +3041,7 @@ dependencies = [
  "urn",
  "uuid",
  "ymir",
+ "ymir-events",
 ]
 
 [[package]]
@@ -6387,7 +6356,6 @@ dependencies = [
  "compact_str",
  "connector",
  "dataplane",
- "events",
  "hex",
  "http",
  "mockall",
@@ -6412,6 +6380,7 @@ dependencies = [
  "urn",
  "uuid",
  "ymir",
+ "ymir-events",
 ]
 
 [[package]]
@@ -7152,6 +7121,36 @@ dependencies = [
  "uuid",
  "vaultrs",
  "x509-parser",
+]
+
+[[package]]
+name = "ymir-events"
+version = "0.8.0"
+source = "git+https://github.com/EunomiaUPM/ymir.git?rev=4dc42001c631bac3934a528c7a790a0802933029#4dc42001c631bac3934a528c7a790a0802933029"
+dependencies = [
+ "async-trait",
+ "axum",
+ "bytes",
+ "chrono",
+ "futures-util",
+ "hmac",
+ "log",
+ "mockall",
+ "opentelemetry",
+ "rand 0.10.2",
+ "sea-orm",
+ "sea-orm-migration",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "url",
+ "urn",
+ "uuid",
+ "ymir",
 ]
 
 [[package]]

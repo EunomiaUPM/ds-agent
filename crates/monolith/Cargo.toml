@@ -15,7 +15,7 @@ path = "src/main.rs"
 common = { version = "0.4.0", path = "../common", default-features = false }
 dataplane = { version = "0.4.0", path = "../dataplane", default-features = false }
 auth = { version = "0.4.0", path = "../auth", default-features = false }
-events = { version = "0.4.0", path = "../events", default-features = false }
+events = { workspace = true }
 transfer_agent = { version = "0.4.0", path = "../transfer-agent" }
 # oauth = { version = "0.4.0", path = "../oauth" }  # disabled, see the workspace Cargo.toml
 catalog_agent = { version = "0.4.0", path = "../catalog-agent", default-features = false }

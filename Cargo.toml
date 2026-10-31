@@ -10,8 +10,6 @@ members = [
     "crates/negotiation-agent",
     "crates/transfer-agent",
     "crates/connector",
-    # The built-in OAuth provider moved to ymir-oauth, not built yet: identity comes from
-    # Keycloak or the static user.
     "crates/keystore",
 ]
 exclude = [

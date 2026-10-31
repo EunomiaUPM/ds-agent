@@ -18,7 +18,7 @@
 //! Field repository.
 
 use std::sync::Arc;
-use common::oauth::{Owner, OwnerScope};
+use ymir::oauth::{Owner, OwnerScope};
 
 use crate::data::repo::dataplane_field::{DataplaneFieldRepoErrors, DataplaneFieldRepoTrait};
 use crate::data::sea_orm::orm::dataplane_field::{

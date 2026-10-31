@@ -18,7 +18,7 @@
 //! Negotiation messages.
 
 use crate::data::sea_orm::orm::negotiation_message::NewNegotiationMessageModel;
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 use ymir::types::participants::Visibility;
 use serde::{Deserialize, Serialize};
 use urn::Urn;

@@ -15,9 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::boot::cli::AgentCli;
 use transfer_agent::setup::TransferBoot;
 use transfer_agent::{SERVICE_BIG_NAME, SERVICE_NAME};
+use ymir::boot::cli::AgentCli;
 use ymir::errors::Outcome;
 
 #[tokio::main]

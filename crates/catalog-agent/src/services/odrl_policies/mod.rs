@@ -20,9 +20,9 @@
 pub mod service;
 pub mod views;
 
-use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
+use ymir::paginated_spec::{Page, Paginated, Sort};
 use ymir::types::oauth::UserInfo;
 
 use crate::entities::commands::NewOdrlOfferCommand;

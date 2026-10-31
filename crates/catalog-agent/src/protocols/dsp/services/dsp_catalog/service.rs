@@ -19,10 +19,10 @@
 
 use std::sync::Arc;
 
-use common::oauth::OwnerScope;
 use serde_json::Value;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
+use ymir::oauth::OwnerScope;
 use ymir::types::oauth::UserInfo;
 
 use crate::cache::ProjectionKey;

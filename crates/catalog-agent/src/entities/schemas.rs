@@ -42,7 +42,7 @@ pub struct DataSchema {
     pub sha256: String,
 }
 
-common::impl_owned!(DataSchema);
+ymir::impl_owned!(DataSchema);
 
 /// A new schema, stored as its version 1.
 #[derive(Debug, Clone, Serialize, Deserialize)]

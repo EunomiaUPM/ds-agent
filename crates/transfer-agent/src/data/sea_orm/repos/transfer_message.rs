@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::oauth::{OwnedTrait, Owner, OwnerScope};
+use ymir::oauth::{OwnedTrait, Owner, OwnerScope};
 use std::sync::Arc;
 
 use crate::data::repo::transfer_message::{TransferMessageRepoErrors, TransferMessageRepoTrait};
@@ -24,8 +24,8 @@ use crate::data::sea_orm::orm::transfer_message as orm;
 use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::filters::TransferMessageFilter;
 use crate::entities::transfer_message::TransferMessage;
-use common::paginated_spec::Cursor;
-use common::query::{Page, Sort};
+use ymir::paginated_spec::Cursor;
+use ymir::query::{Page, Sort};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
     QueryOrder, QuerySelect,

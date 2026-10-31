@@ -16,10 +16,10 @@
  */
 
 use crate::entities::commands::NewTransferMessageCommand;
-use common::oauth::{Owner, OwnerScope};
+use ymir::oauth::{Owner, OwnerScope};
 use crate::entities::filters::TransferMessageFilter;
 use crate::entities::transfer_message::TransferMessage;
-use common::query::{Page, Sort};
+use ymir::query::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};

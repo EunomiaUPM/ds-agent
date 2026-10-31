@@ -20,9 +20,9 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use common::grpc::{IntoStatus, PageParams, ProtoField, ProtoFieldList};
-use common::oauth::grpc::GrpcAuth;
-use common::paginated_spec::Paginated;
+use ymir::grpc::{IntoStatus, PageParams, ProtoField, ProtoFieldList};
+use ymir::oauth::grpc::GrpcAuth;
+use ymir::paginated_spec::Paginated;
 use serde_json::json;
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;

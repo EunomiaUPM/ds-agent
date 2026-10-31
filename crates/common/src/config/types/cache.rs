@@ -21,9 +21,9 @@ use std::fmt::Display;
 use std::str::FromStr;
 
 use crate::config::types::traits::CacheConfigTrait;
-use crate::secret::Secret;
 use serde::{Deserialize, Serialize};
 use ymir::errors::Errors;
+use ymir::secret::Secret;
 
 /// Where the cache lives and how to log in.
 #[derive(Serialize, Deserialize, Clone, Debug)]

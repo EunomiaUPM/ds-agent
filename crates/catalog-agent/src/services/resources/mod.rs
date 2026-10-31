@@ -19,10 +19,10 @@
 
 pub mod service;
 
-use common::paginated_spec::{Page, Paginated, Sort};
 use serde_json::Value;
 use urn::Urn;
 use ymir::errors::Outcome;
+use ymir::paginated_spec::{Page, Paginated, Sort};
 use ymir::types::oauth::UserInfo;
 use ymir::types::participants::Visibility;
 

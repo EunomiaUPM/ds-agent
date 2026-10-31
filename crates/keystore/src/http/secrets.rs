@@ -30,7 +30,7 @@ use crate::entities::key::Key;
 use crate::services::secrets::SecretStore;
 use crate::services::secrets::views::{SecretView, VersionResponse};
 use common::eunomia::document::JsonLd;
-use common::query::QuerySpec;
+use ymir::query::QuerySpec;
 use common::routes::keystore as routes;
 
 #[derive(Clone)]

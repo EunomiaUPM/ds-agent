@@ -20,8 +20,6 @@
 
 use std::sync::Arc;
 
-use common::oauth::OwnerScope;
-use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use sea_orm::sea_query::{Condition, Expr};
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
@@ -30,6 +28,8 @@ use sea_orm::{
 use serde_json::json;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome, RepoIntoErrors};
+use ymir::oauth::OwnerScope;
+use ymir::paginated_spec::{Page, SelectCursorExt, Sort};
 
 use crate::data::repo::resource::{ImportWrite, ResourceRepoErrors, ResourceRepoTrait};
 use crate::data::sea_orm::orm::resource as orm;

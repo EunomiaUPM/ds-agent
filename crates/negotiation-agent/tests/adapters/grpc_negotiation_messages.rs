@@ -19,8 +19,8 @@
 //! agreement.
 
 
-use common::errors::ResourceError;
-use common::paginated_spec::Paginated;
+use ymir::errors::ResourceError;
+use ymir::paginated_spec::Paginated;
 use common::test_utils::grpc::GrpcRequests;
 use negotiation_agent::grpc::api::negotiation_agent::negotiation_agent_messages_service_server::NegotiationAgentMessagesService;
 use negotiation_agent::grpc::api::negotiation_agent::{

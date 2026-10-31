@@ -26,7 +26,7 @@ use axum::http::HeaderMap;
 use axum::routing::get;
 use axum::{Json, Router};
 use ymir::types::oauth::UserInfo;
-use common::http_tracing::ExtractedHeaders;
+use ymir::http_tracing::ExtractedHeaders;
 use ymir::errors::AppResult;
 use ymir::utils::extract_path_urn;
 use common::routes::dataplane as routes;

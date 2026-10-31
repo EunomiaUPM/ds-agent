@@ -51,8 +51,8 @@ workers and seeders. The HTTP plane then serves:
 | `{api}/keystore` | Keystore |
 | `/admin` | Admin gateway and SPA |
 
-`{api}` is the configured API prefix, `/api/v1` by default. `common::boot` adds the well-known,
-health and fallback routes.
+`{api}` is the configured API prefix, `/api/v1` by default. `ymir::boot` adds the health and
+fallback routes; the well-known ones come from `WellKnownModule`.
 
 ## Boot
 

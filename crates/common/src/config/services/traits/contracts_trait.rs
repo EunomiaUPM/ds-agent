@@ -16,7 +16,7 @@
  */
 
 use crate::config::types::min_known_config::MinKnownConfig;
-use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
+use ymir::config::traits::{CommonConfigTrait, ConfigLoader};
 
 /// What the negotiation agent reads from its config.
 pub trait ContractsConfigTrait: ConfigLoader + CommonConfigTrait {

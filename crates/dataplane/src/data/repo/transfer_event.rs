@@ -18,10 +18,10 @@
 //! Diagnostic events.
 
 use crate::data::sea_orm::orm::transfer_event;
-use common::oauth::OwnerScope;
+use ymir::oauth::OwnerScope;
 use crate::data::sea_orm::orm::transfer_event::NewTransferEvent;
 use crate::entities::filters::TransferEventFilter;
-use common::query::{Page, Sort};
+use ymir::query::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};

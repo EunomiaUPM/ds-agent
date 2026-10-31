@@ -21,8 +21,8 @@
 use std::sync::{Arc, OnceLock};
 
 use common::config::services::CatalogConfig;
-use common::module_loader::root_context::RootContext;
 use events::EventSinkTrait;
+use ymir::module_loader::root_context::RootContext;
 use ymir::services::token_validator::OauthTokenValidatorTrait;
 
 use crate::cache::CatalogCacheTrait;

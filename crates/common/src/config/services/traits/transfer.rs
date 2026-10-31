@@ -17,7 +17,7 @@
 
 use crate::config::types::cache::CacheConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
-use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
+use ymir::config::traits::{CommonConfigTrait, ConfigLoader};
 
 /// What the transfer agent reads from its config.
 pub trait TransferConfigTrait: CommonConfigTrait + ConfigLoader {

@@ -21,8 +21,8 @@ use crate::data::sea_orm::orm::dataplane_transfers::{
     self, EditDataplaneTransferModel, NewDataplaneTransferModel,
 };
 use crate::entities::filters::DataplaneTransferFilter;
-use common::oauth::OwnerScope;
-use common::query::{Page, Sort};
+use ymir::oauth::OwnerScope;
+use ymir::query::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};

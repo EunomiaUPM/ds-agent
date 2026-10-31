@@ -17,7 +17,7 @@
 
 //! `catalog_policy_templates` rows.
 
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue::Set;
 use ymir::errors::{Outcome, RepoIntoErrors};

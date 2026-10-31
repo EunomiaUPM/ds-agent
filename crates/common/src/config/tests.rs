@@ -17,7 +17,8 @@
 
 use crate::config::services::TransferConfig;
 use crate::config::types::cache::CacheConfig;
-use crate::config::types::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader};
+use crate::config::types::traits::CacheConfigTrait;
+use ymir::config::traits::{CommonConfigTrait, ConfigLoader};
 use crate::config::ApplicationConfig;
 
 const DEV_PROVIDER: &str = "../../static/environment/config/dev/dev.provider.yaml";

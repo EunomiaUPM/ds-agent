@@ -27,7 +27,7 @@ use common::facades::catalog::CatalogFacadeTrait;
 use common::facades::catalog::remote::CatalogRemoteFacade;
 use common::facades::negotiation::NegotiationFacadeTrait;
 use common::facades::negotiation::remote::NegotiationRemoteFacade;
-use common::module_loader::root_context::RootContext;
+use ymir::module_loader::root_context::RootContext;
 use connector::{ConnectorInstanceDto, ConnectorInstanceFacadeTrait, ConnectorInstanceRemoteFacade};
 use dataplane::setup::{DataplaneModule, DataplanePorts};
 use urn::Urn;

@@ -21,13 +21,14 @@
 use std::sync::{Arc, Once};
 
 use catalog_agent::setup::{CatalogAgentModule, CatalogPorts};
-use common::boot::seeders::BootPhase;
-use common::boot::workers::WorkerSet;
-use common::config::services::{CommonConfig, ContractsConfig, TransferConfig};
+use ymir::boot::seeders::BootPhase;
+use ymir::boot::workers::WorkerSet;
+use common::config::services::{ContractsConfig, TransferConfig};
+use ymir::config::types::CommonConfig;
 use common::config::types::min_known_config::MinKnownConfig;
 use common::facades::AuthPorts;
-use common::module_loader::root_context::RootContext;
-use common::module_loader::service_composer::ServiceComposer;
+use ymir::module_loader::root_context::RootContext;
+use ymir::module_loader::service_composer::ServiceComposer;
 use common::well_known::WellKnownRoot;
 use events::setup::EventsModule;
 use negotiation_agent::setup::{NegotiationAgentModule, NegotiationPorts};

@@ -19,8 +19,8 @@
 
 use std::sync::Arc;
 
-use common::grpc::{IntoStatus, PageParams};
-use common::oauth::grpc::GrpcAuth;
+use ymir::grpc::{IntoStatus, PageParams};
+use ymir::oauth::grpc::GrpcAuth;
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 

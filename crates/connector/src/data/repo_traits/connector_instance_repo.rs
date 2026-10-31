@@ -17,7 +17,7 @@
 
 use crate::data::entities::connector_instances;
 use crate::data::entities::connector_instances::NewConnectorInstanceModel;
-use common::oauth::{Owner, OwnerScope};
+use ymir::oauth::{Owner, OwnerScope};
 use ymir::errors::Outcome;
 
 /// Persistence of connector instances.

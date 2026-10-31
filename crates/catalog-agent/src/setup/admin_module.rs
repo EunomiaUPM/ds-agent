@@ -20,11 +20,11 @@
 use std::sync::Arc;
 
 use axum::Router;
-use common::config::types::traits::CommonConfigTrait;
-use common::module_loader::service_module::ServiceModuleTrait;
 use common::routes::catalog as routes;
 use tonic::service::RoutesBuilder;
 use ymir::config::traits::ApiConfigTrait;
+use ymir::config::traits::CommonConfigTrait;
+use ymir::module_loader::service_module::ServiceModuleTrait;
 
 use crate::entities::resource_kind::ResourceKind;
 use crate::grpc::api::catalog_agent::catalog_resource_service_server::CatalogResourceServiceServer;

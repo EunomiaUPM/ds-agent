@@ -19,7 +19,7 @@
 
 use serde_json::Map;
 
-use crate::oauth::Owner;
+use ymir::oauth::Owner;
 use ymir::types::oauth::{RolePath, UserInfo};
 
 /// Ready-made users for service tests.

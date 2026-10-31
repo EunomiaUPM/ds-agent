@@ -16,7 +16,7 @@
  */
 
 use crate::entities::dataplane_transfers::DataplaneTransferDto;
-use common::cache::{RedisCacheConnectorTrait, UtilsCacheTrait};
+use ymir::cache::{RedisCacheConnectorTrait, UtilsCacheTrait};
 
 pub struct DataplaneTransferCacheForRedis {
     pub redis_connection: redis::aio::MultiplexedConnection,

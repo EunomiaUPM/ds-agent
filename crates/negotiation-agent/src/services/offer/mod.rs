@@ -24,8 +24,8 @@ use crate::entities::filters::OfferFilter;
 use crate::entities::offer::NewOfferDto;
 use crate::services::offer::views::OfferView;
 use ymir::types::oauth::UserInfo;
-use common::batch_requests::BatchRequests;
-use common::paginated_spec::{Page, Paginated, Sort};
+use ymir::batch_requests::BatchRequests;
+use ymir::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 

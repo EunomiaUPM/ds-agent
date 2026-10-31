@@ -17,11 +17,11 @@
 
 //! Persistence of catalog resources and the links between them.
 
-use common::oauth::OwnerScope;
-use common::paginated_spec::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+use ymir::oauth::OwnerScope;
+use ymir::paginated_spec::{Page, Sort};
 
 use crate::entities::filters::ResourceFilter;
 use crate::entities::resource::CatalogResource;

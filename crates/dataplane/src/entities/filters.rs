@@ -18,9 +18,9 @@
 //! Listing filters.
 
 use chrono::{DateTime, Utc};
-use common::query::{validate_date_range, QueryFilter};
 use serde::{Deserialize, Serialize};
 use ymir::errors::Outcome;
+use ymir::query::{validate_date_range, QueryFilter};
 
 use crate::data::sea_orm::orm::dataplane_transfers::{
     InteractionMode, TransferRole, TransferState,

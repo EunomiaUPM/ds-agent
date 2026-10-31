@@ -16,15 +16,15 @@
  */
 
 use crate::data::entities::connector_templates;
-use common::oauth::OwnerScope;
+use ymir::oauth::OwnerScope;
 use crate::data::entities::connector_templates::NewConnectorTemplateModel;
 use crate::data::repo_traits::connector_repo_errors::{
     ConnectorAgentRepoErrors, ConnectorTemplateRepoErrors,
 };
 use crate::data::repo_traits::connector_template_repo::ConnectorTemplateRepoTrait;
 use crate::entities::filters::ConnectorTemplateFilter;
-use common::paginated_spec::{Page, SelectCursorExt, Sort};
-use common::query::FilterApplier;
+use ymir::paginated_spec::{Page, SelectCursorExt, Sort};
+use ymir::query::FilterApplier;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Select};
 use ymir::errors::{Outcome, RepoIntoErrors};
 

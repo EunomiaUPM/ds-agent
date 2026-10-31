@@ -22,8 +22,8 @@ pub mod service;
 pub use service::DataplaneTransferService;
 
 use ymir::types::oauth::UserInfo;
-use common::batch_requests::BatchRequests;
-use common::query::{Page, Paginated, Sort};
+use ymir::batch_requests::BatchRequests;
+use ymir::query::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 

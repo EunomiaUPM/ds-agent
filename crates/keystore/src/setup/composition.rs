@@ -25,9 +25,9 @@ use crate::services::secrets::SecretStore;
 use crate::setup::context::AppContext;
 use axum::Router;
 use common::config::ApplicationConfig;
-use common::config::types::traits::CommonConfigTrait;
-use common::module_loader::root_context::RootContext;
-use common::module_loader::service_module::ServiceModuleTrait;
+use ymir::config::traits::CommonConfigTrait;
+use ymir::module_loader::root_context::RootContext;
+use ymir::module_loader::service_module::ServiceModuleTrait;
 use sea_orm_migration::MigrationTrait;
 use ymir::config::traits::ApiConfigTrait;
 

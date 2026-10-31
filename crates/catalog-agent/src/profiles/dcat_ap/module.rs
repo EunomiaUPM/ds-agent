@@ -20,8 +20,8 @@
 use std::sync::Arc;
 
 use axum::Router;
-use common::config::types::traits::CommonConfigTrait;
-use common::module_loader::service_module::ServiceModuleTrait;
+use ymir::config::traits::CommonConfigTrait;
+use ymir::module_loader::service_module::ServiceModuleTrait;
 use ymir::config::traits::ApiConfigTrait;
 
 use crate::profiles::dcat_ap::DcatAp;

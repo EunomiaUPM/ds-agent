@@ -20,7 +20,7 @@
 use std::sync::{Arc, OnceLock};
 
 use common::config::services::ContractsConfig;
-use common::module_loader::root_context::RootContext;
+use ymir::module_loader::root_context::RootContext;
 use ymir::services::token_validator::OauthTokenValidatorTrait;
 use events::EventSinkTrait;
 

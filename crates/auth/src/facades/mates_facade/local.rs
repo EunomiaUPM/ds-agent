@@ -21,9 +21,9 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use common::facades::mates_facade::MatesFacadeTrait;
-use common::query::QuerySpec;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
+use ymir::query::QuerySpec;
 use ymir::types::oauth::UserInfo;
 
 use crate::entities::filters::ParticipantFilter;

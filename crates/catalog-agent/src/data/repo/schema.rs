@@ -17,10 +17,10 @@
 
 //! Persistence of hosted schemas, one row per version; rows are never updated.
 
-use common::oauth::OwnerScope;
-use common::paginated_spec::{Page, Sort};
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
+use ymir::oauth::OwnerScope;
+use ymir::paginated_spec::{Page, Sort};
 
 use crate::entities::commands::NewSchemaVersionCommand;
 use crate::entities::filters::SchemaFilter;

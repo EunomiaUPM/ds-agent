@@ -25,9 +25,9 @@ use catalog_agent::entities::resource::CatalogResource;
 use catalog_agent::entities::resource_kind::ResourceKind;
 use catalog_agent::entities::resource_set::ResourceSet;
 use catalog_agent::entities::vocab::Vocab;
-use common::oauth::Owner;
 use serde_json::json;
 use urn::Urn;
+use ymir::oauth::Owner;
 
 /// The URN of resource `n` of `kind`, e.g. `urn:dataset:000…007`.
 pub fn urn(kind: ResourceKind, n: u32) -> Urn {

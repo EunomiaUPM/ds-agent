@@ -23,7 +23,7 @@ use catalog_agent::entities::graph::ResourceGraph;
 use catalog_agent::entities::resource_kind::ResourceKind;
 use catalog_agent::entities::vocab::Vocab;
 use common::test_utils::scopes::TestUsers;
-use common::oauth::OwnerScope;
+use ymir::oauth::OwnerScope;
 
 use crate::support::builders::{agent, catalog, data_service, dataset, distribution, id, main_catalog, offer, urn};
 use crate::support::context::TestContext;

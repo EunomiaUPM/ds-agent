@@ -21,9 +21,9 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use chrono::Utc;
-use common::batch_requests::BatchRequests;
-use common::query::{Page, Sort};
-use common::oauth::OwnerScope;
+use ymir::batch_requests::BatchRequests;
+use ymir::query::{Page, Sort};
+use ymir::oauth::OwnerScope;
 use common::test_utils::scopes::TestUsers;
 use dataplane::cache::NoopCache;
 use dataplane::data::factory_trait::MockDataplaneRepoTrait;

@@ -28,9 +28,9 @@ use crate::grpc::api::negotiation_agent::{
     GetOffersByNegotiationProcessRequest, ListOffersRequest, OfferListResponse, OfferResponse,
 };
 use crate::setup::context::AppContext;
-use common::oauth::grpc::GrpcAuth;
-use common::batch_requests::BatchRequests;
-use common::grpc::{IntoStatus, ListParams, ProtoField};
+use ymir::oauth::grpc::GrpcAuth;
+use ymir::batch_requests::BatchRequests;
+use ymir::grpc::{IntoStatus, ListParams, ProtoField};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 

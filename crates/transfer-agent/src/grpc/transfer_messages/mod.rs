@@ -26,8 +26,8 @@ use crate::grpc::api::transfer_messages::{
 };
 use crate::grpc::transfer_messages::mappers::ListByProcessParams;
 use crate::setup::context::AppContext;
-use common::oauth::grpc::GrpcAuth;
-use common::grpc::{IntoStatus, ListParams, ProtoField};
+use ymir::oauth::grpc::GrpcAuth;
+use ymir::grpc::{IntoStatus, ListParams, ProtoField};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 

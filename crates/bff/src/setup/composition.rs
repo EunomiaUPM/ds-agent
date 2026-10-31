@@ -19,8 +19,8 @@ use std::sync::Arc;
 
 use axum::Router;
 use common::config::services::GatewayConfig;
-use common::module_loader::root_context::RootContext;
-use common::module_loader::service_module::ServiceModuleTrait;
+use ymir::module_loader::root_context::RootContext;
+use ymir::module_loader::service_module::ServiceModuleTrait;
 
 use crate::gateway::GatewayHttpRouter;
 use crate::setup::context::AppContext;

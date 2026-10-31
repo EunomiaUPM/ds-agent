@@ -18,10 +18,10 @@
 //! Connector template and instance filters: emptiness, date validation and query parsing.
 
 use chrono::{Duration, Utc};
-use common::query::{QueryFilter, QuerySpec, Sort};
 use connector::entities::filters::{ConnectorInstanceFilter, ConnectorTemplateFilter};
 use std::str::FromStr;
 use urn::Urn;
+use ymir::query::{QueryFilter, QuerySpec, Sort};
 
 /// A default template filter is empty, and a filled one is valid.
 #[test]

@@ -31,4 +31,3 @@ pub use gateway::GatewayConfig;
 pub use monolith::MonolithConfig;
 pub use ssi_auth::SsiAuthConfig;
 pub use transfer::TransferConfig;
-pub use ymir::config::types::CommonConfig;

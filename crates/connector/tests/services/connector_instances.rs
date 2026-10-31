@@ -18,7 +18,7 @@
 //! ConnectorInstanceService with mocked repositories and catalog facade: instantiation from a
 //! template, owner isolation and role checks.
 
-use common::oauth::{Owner, OwnerScope};
+use ymir::oauth::{Owner, OwnerScope};
 use ymir::types::oauth::{RolePath, UserInfo};
 use ymir::types::participants::Visibility;
 use common::test_utils::scopes::TestUsers;

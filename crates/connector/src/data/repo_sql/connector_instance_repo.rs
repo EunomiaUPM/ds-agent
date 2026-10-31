@@ -16,7 +16,7 @@
  */
 
 use crate::data::entities::connector_instances;
-use common::oauth::{OwnedTrait, Owner, OwnerScope};
+use ymir::oauth::{OwnedTrait, Owner, OwnerScope};
 use crate::data::entities::connector_instances::NewConnectorInstanceModel;
 use crate::data::repo_traits::connector_instance_repo::ConnectorInstanceRepoTrait;
 use crate::data::repo_traits::connector_repo_errors::{

@@ -20,7 +20,7 @@
 
 use std::sync::Arc;
 
-use common::module_loader::service_module::ServiceModuleTrait;
+use ymir::module_loader::service_module::ServiceModuleTrait;
 
 use crate::profiles::dsp::DspProfileAdapter;
 use crate::profiles::{ProfileAdapterTrait, ProfileModuleTrait};

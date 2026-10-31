@@ -21,7 +21,7 @@ use std::sync::Arc;
 
 use crate::core::AuthCore;
 use crate::modules::ParticipantModule;
-use common::boot::seeders::{BootPhase, BootSeeder};
+use ymir::boot::seeders::{BootPhase, BootSeeder};
 use ymir::errors::{Errors, Outcome};
 use ymir::modules::WalletModuleTrait;
 use ymir::types::oauth::UserInfo;

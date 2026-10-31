@@ -42,7 +42,7 @@ pub struct NegotiationMessageView {
     pub occurred_at: DateTime<Utc>,
 }
 
-common::impl_owned!(NegotiationMessageView);
+ymir::impl_owned!(NegotiationMessageView);
 
 impl NegotiationMessageView {
     pub fn assemble(msg: NegotiationMessageModel) -> Self {

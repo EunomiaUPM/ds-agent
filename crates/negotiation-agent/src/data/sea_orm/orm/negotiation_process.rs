@@ -18,7 +18,7 @@
 //! Negotiation processes table.
 
 use sea_orm::prelude::{DateTimeWithTimeZone, Json};
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::Visibility;
 use sea_orm::{
@@ -88,7 +88,7 @@ impl Related<super::agreement::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-common::impl_owned!(Model);
+ymir::impl_owned!(Model);
 
 #[derive(Clone, Debug)]
 pub struct NewNegotiationProcessModel {

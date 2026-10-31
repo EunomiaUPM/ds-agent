@@ -21,7 +21,7 @@ use crate::data::sea_orm::orm::negotiation_process::{
     EditNegotiationProcessModel, NewNegotiationProcessModel,
 };
 use serde::{Deserialize, Serialize};
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 use ymir::types::participants::Visibility;
 use std::collections::HashMap;
 use urn::Urn;

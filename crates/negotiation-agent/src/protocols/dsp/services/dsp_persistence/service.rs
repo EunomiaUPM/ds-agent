@@ -20,7 +20,7 @@
 use std::sync::Arc;
 
 use common::dsp_common::persistence::{DspPersistenceTrait, INITIAL_STATE};
-use common::oauth::OwnerScope;
+use ymir::oauth::OwnerScope;
 use ymir::types::oauth::UserInfo;
 use serde_json::json;
 use urn::Urn;

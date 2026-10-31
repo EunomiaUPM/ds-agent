@@ -38,8 +38,8 @@ use crate::http::path_id::decode_path_id;
 use crate::modules::PeerConnectorModule;
 use crate::types::entities::ReachProvider;
 use common::facades::grants_facade::PeerToken;
-use common::paginated_spec::Paginated;
-use common::query::{QueryFilter, QuerySpec};
+use ymir::paginated_spec::Paginated;
+use ymir::query::{QueryFilter, QuerySpec};
 use common::routes::auth::peer_connection;
 
 pub type PeerConnectorQuery = QuerySpec<SentGrantFilter>;

@@ -17,9 +17,9 @@
 
 use axum::Router;
 use common::config::services::TransferConfig;
-use common::module_loader::module_group::ModuleGroup;
-use common::module_loader::root_context::RootContext;
-use common::module_loader::service_module::ServiceModuleTrait;
+use ymir::module_loader::module_group::ModuleGroup;
+use ymir::module_loader::root_context::RootContext;
+use ymir::module_loader::service_module::ServiceModuleTrait;
 use dataplane::setup::DataplaneModule;
 use events::NoopEventSink;
 use sea_orm_migration::MigrationTrait;
@@ -88,7 +88,7 @@ impl ServiceModuleTrait for TransferAgentModule {
         self.modules.grpc_descriptors()
     }
 
-    fn workers(&self) -> Vec<Box<dyn common::boot::workers::BackgroundWorker>> {
+    fn workers(&self) -> Vec<Box<dyn ymir::boot::workers::BackgroundWorker>> {
         self.modules.workers()
     }
 }

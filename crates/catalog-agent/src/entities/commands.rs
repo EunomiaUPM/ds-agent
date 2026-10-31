@@ -20,10 +20,10 @@
 use chrono::{DateTime, FixedOffset};
 use common::dsp_common::odrl::OdrlPolicyInfo;
 use common::eunomia::document::JsonLd;
-use common::oauth::Owner;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urn::Urn;
+use ymir::oauth::Owner;
 use ymir::types::participants::Visibility;
 
 use crate::entities::graph::ResourceGraph;

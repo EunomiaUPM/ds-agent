@@ -27,7 +27,7 @@ use crate::entities::protocol::{TransferDirection, TransferRole};
 use crate::protocols::dsp::entities::context_common::TransferContextConnectorRole;
 use crate::protocols::dsp::entities::data_address::{DataAddressDto, EndpointPropertyDto};
 use common::dsp_common::data_address::DataAddress;
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 use dataplane::DataplaneAddress;
 use urn::Urn;
 use ymir::errors::Outcome;

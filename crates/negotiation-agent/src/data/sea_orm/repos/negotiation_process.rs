@@ -16,7 +16,7 @@
  */
 
 use crate::data::sea_orm::orm::negotiation_process;
-use common::oauth::{OwnedTrait, Owner, OwnerScope};
+use ymir::oauth::{OwnedTrait, Owner, OwnerScope};
 use crate::data::sea_orm::orm::negotiation_process::{
     EditNegotiationProcessModel, Model, NewNegotiationProcessModel,
 };
@@ -25,8 +25,8 @@ use crate::data::repo::negotiation_process::{
     NegotiationProcessRepoErrors, NegotiationProcessRepoTrait,
 };
 use crate::entities::filters::NegotiationProcessFilter;
-use common::paginated_spec::{Page, SelectCursorExt, Sort};
-use common::query::FilterApplier;
+use ymir::paginated_spec::{Page, SelectCursorExt, Sort};
+use ymir::query::FilterApplier;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, JoinType,
     PaginatorTrait, QueryFilter, QuerySelect, RelationTrait, Select,

@@ -22,10 +22,10 @@ use std::fmt::Display;
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
-use common::oauth::{OwnedTrait, Owner};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urn::Urn;
+use ymir::oauth::{OwnedTrait, Owner};
 
 use crate::entities::resource_kind::ResourceKind;
 

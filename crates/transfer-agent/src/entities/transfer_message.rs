@@ -16,7 +16,7 @@
  */
 
 use chrono::{DateTime, Utc};
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 
 use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::ids::{MessageId, TransferProcessId};

@@ -22,7 +22,7 @@ use std::sync::Arc;
 use ymir::services::token_validator::OauthTokenValidatorTrait;
 use common::config::services::TransferConfig;
 use common::config::types::traits::CacheConfigTrait;
-use common::module_loader::root_context::RootContext;
+use ymir::module_loader::root_context::RootContext;
 use keystore::KeystoreModule;
 use ymir::errors::{Errors, Outcome};
 

@@ -18,10 +18,10 @@
 //! Message repository.
 
 use crate::data::sea_orm::orm::negotiation_message;
-use common::oauth::{Owner, OwnerScope};
+use ymir::oauth::{Owner, OwnerScope};
 use crate::data::sea_orm::orm::negotiation_message::NewNegotiationMessageModel;
 use crate::entities::filters::NegotiationMessageFilter;
-use common::paginated_spec::{Page, Sort};
+use ymir::paginated_spec::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::Outcome;

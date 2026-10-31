@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::{str_id, urn_id};
+use ymir::{str_id, urn_id};
 
 urn_id!(TransferProcessId, gen = "transfer-process");
 urn_id!(MessageId, gen = "transfer-message");

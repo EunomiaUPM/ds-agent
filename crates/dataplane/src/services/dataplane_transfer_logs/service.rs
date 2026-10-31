@@ -19,7 +19,7 @@
 
 use std::sync::Arc;
 
-use common::oauth::OwnerScope;
+use ymir::oauth::OwnerScope;
 use ymir::types::oauth::UserInfo;
 use urn::Urn;
 use ymir::errors::Outcome;

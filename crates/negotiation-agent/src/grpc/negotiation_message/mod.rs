@@ -28,8 +28,8 @@ use crate::grpc::api::negotiation_agent::{
     ListNegotiationMessagesRequest, NegotiationMessageListResponse, NegotiationMessageResponse,
 };
 use crate::setup::context::AppContext;
-use common::oauth::grpc::GrpcAuth;
-use common::grpc::{IntoStatus, ListParams, ProtoField};
+use ymir::oauth::grpc::GrpcAuth;
+use ymir::grpc::{IntoStatus, ListParams, ProtoField};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 

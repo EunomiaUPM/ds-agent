@@ -16,7 +16,7 @@
  */
 
 use crate::data::entities::connector_distro_relation;
-use common::oauth::{Owner, OwnerScope};
+use ymir::oauth::{Owner, OwnerScope};
 use crate::data::repo_traits::connector_distro_relation_repo::ConnectorDistroRelationRepoTrait;
 use crate::data::repo_traits::connector_repo_errors::{
     ConnectorAgentRepoErrors, ConnectorDistroRelationRepoErrors,

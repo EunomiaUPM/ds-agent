@@ -18,10 +18,10 @@
 //! Negotiation filters: emptiness, date validation and how they are read from a query.
 
 use chrono::{Duration, Utc};
-use common::query::{QueryFilter, QuerySpec};
 use negotiation_agent::entities::filters::{
     AgreementFilter, NegotiationMessageFilter, NegotiationProcessFilter, OfferFilter,
 };
+use ymir::query::{QueryFilter, QuerySpec};
 
 /// A default process filter is empty; a filled one is valid unless its date range is
 /// reversed.

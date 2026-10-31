@@ -18,7 +18,7 @@
 //! Process fields.
 
 use crate::data::sea_orm::orm::dataplane_field;
-use common::oauth::{Owner, OwnerScope};
+use ymir::oauth::{Owner, OwnerScope};
 use crate::data::sea_orm::orm::dataplane_field::{EditDataPlaneFieldModel, NewDataPlaneFieldModel};
 use thiserror::Error;
 use urn::Urn;

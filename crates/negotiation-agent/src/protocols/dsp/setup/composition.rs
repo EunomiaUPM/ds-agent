@@ -21,10 +21,10 @@
 use std::sync::{Arc, Mutex};
 
 use axum::Router;
-use common::boot::workers::BackgroundWorker;
 use common::dsp_common::paths;
-use common::module_loader::service_module::ServiceModuleTrait;
 use common::tck::TckWorker;
+use ymir::boot::workers::BackgroundWorker;
+use ymir::module_loader::service_module::ServiceModuleTrait;
 
 use crate::protocols::dsp::entities::tck::TckMessage;
 use crate::protocols::dsp::http::bff::NegotiationBffRouter;

@@ -22,7 +22,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use axum::Router;
-use common::oauth::OwnerScope;
+use ymir::oauth::OwnerScope;
 use ymir::services::token_validator::{FixedUserValidator, OauthTokenValidatorTrait};
 use ymir::types::oauth::{RolePath, UserInfo};
 use ymir::types::participants::Visibility;

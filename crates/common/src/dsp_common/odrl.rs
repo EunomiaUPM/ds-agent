@@ -23,7 +23,7 @@ use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
 use crate::eunomia::document::JsonLdType;
-use crate::utils::get_urn;
+use ymir::utils::get_urn;
 // use sea_orm_migration::prelude::ValueType;
 
 /// Policy type of an ODRL document.

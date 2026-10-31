@@ -22,7 +22,7 @@ use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::filters::TransferMessageFilter;
 use crate::services::transfer_message::views::TransferMessageView;
 use ymir::types::oauth::UserInfo;
-use common::query::{Page, Paginated, Sort};
+use ymir::query::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 

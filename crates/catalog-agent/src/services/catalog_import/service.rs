@@ -22,11 +22,11 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use common::eunomia::EunomiaProfile;
-use common::oauth::{Owner, OwnerScope};
 use common::rdf::shacl::ShapeSet;
 use common::rdf::{RdfGraph, RdfSyntax};
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
+use ymir::oauth::{Owner, OwnerScope};
 use ymir::types::oauth::UserInfo;
 
 use crate::data::repo::resource::{ImportWrite, ResourceRepoTrait};

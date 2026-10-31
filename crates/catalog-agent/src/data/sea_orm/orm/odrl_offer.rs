@@ -18,13 +18,13 @@
 //! `catalog_offers` rows.
 
 use chrono::Utc;
-use common::oauth::Owner;
-use common::utils::parse_urn;
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue::Set;
 use ymir::errors::Outcome;
+use ymir::oauth::Owner;
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::Visibility;
+use ymir::utils::parse_urn;
 
 use crate::entities::odrl_offer::OdrlOffer;
 

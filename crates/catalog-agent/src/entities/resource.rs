@@ -19,8 +19,8 @@
 //! hangs from, version).
 
 use chrono::{DateTime, SecondsFormat, Utc};
-use common::oauth::{OwnedTrait, Owner};
 use urn::Urn;
+use ymir::oauth::{OwnedTrait, Owner};
 
 use crate::entities::graph::ResourceGraph;
 use crate::entities::resource_kind::ResourceKind;

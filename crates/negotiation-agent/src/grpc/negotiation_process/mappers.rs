@@ -25,11 +25,11 @@ use crate::grpc::api::negotiation_agent::{
     NegotiationProcessListResponse, NegotiationProcessResponse, PutNegotiationProcessRequest,
 };
 use crate::services::negotiation_process::views::NegotiationProcessView;
-use common::batch_requests::BatchRequests;
-use common::grpc::{JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoField, ProtoFieldList};
-use common::paginated_spec::Paginated;
 use std::collections::HashMap;
 use tonic::Status;
+use ymir::batch_requests::BatchRequests;
+use ymir::grpc::{JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoField, ProtoFieldList};
+use ymir::paginated_spec::Paginated;
 
 impl TryFrom<ListNegotiationProcessesRequest> for ListParams<NegotiationProcessFilter> {
     type Error = Status;

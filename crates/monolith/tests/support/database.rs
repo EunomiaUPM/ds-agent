@@ -17,10 +17,10 @@
 
 //! A throwaway database per participant on the server `DATABASE_URL` points at.
 
-use common::boot::migrations::SetupMigrator;
 use monolith::setup::CoreBoot;
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection};
 use uuid::Uuid;
+use ymir::boot::migrations::SetupMigrator;
 
 /// Database `test_<uuid>` with every monolith migration applied; dropped with the value.
 pub struct TestDatabase {

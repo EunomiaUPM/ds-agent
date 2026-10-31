@@ -25,10 +25,10 @@ use catalog_agent::entities::schemas::{
     CheckSchemaUrlDto, DataSchema, InferSchemaDto, NewSchemaDto, NewSchemaVersionDto,
     ValidateSchemaDto,
 };
-use common::oauth::OwnerScope;
 use common::test_utils::scopes::TestUsers;
 use serde_json::{json, Value};
 use ymir::errors::Errors;
+use ymir::oauth::OwnerScope;
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::Visibility;
 

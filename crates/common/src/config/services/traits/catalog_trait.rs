@@ -17,7 +17,8 @@
 
 use crate::config::types::cache::CacheConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
-use crate::config::types::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader};
+use crate::config::types::traits::CacheConfigTrait;
+use ymir::config::traits::{CommonConfigTrait, ConfigLoader};
 
 /// What the catalog agent reads from its config.
 pub trait CatalogConfigTrait: ConfigLoader + CommonConfigTrait + CacheConfigTrait {

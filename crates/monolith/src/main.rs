@@ -15,9 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::boot::cli::AgentCli;
 use monolith::setup::CoreBoot;
 use monolith::{SERVICE_BIG_NAME, SERVICE_NAME};
+use ymir::boot::cli::AgentCli;
 use ymir::errors::Outcome;
 
 #[tokio::main]

@@ -19,8 +19,8 @@
 
 use std::sync::Arc;
 
-use common::oauth::OwnerScope;
-use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use ymir::oauth::OwnerScope;
+use ymir::paginated_spec::{Page, SelectCursorExt, Sort};
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
     QuerySelect, Select, SqlErr, TransactionTrait,

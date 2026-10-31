@@ -19,4 +19,4 @@
 
 pub mod cache_redis;
 
-pub use common::cache::{EntityCacheTrait, NoopCache};
+pub use ymir::cache::{EntityCacheTrait, NoopCache};

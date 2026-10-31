@@ -16,12 +16,12 @@
  */
 
 use crate::data::sea_orm::orm::offer;
-use common::oauth::{OwnedTrait, Owner, OwnerScope};
+use ymir::oauth::{OwnedTrait, Owner, OwnerScope};
 use crate::data::sea_orm::orm::offer::{Model, NewOfferModel};
 use crate::data::repo::offer::{OfferRepoErrors, OfferRepoTrait};
 use crate::entities::filters::OfferFilter;
-use common::paginated_spec::{Page, SelectCursorExt, Sort};
-use common::query::FilterApplier;
+use ymir::paginated_spec::{Page, SelectCursorExt, Sort};
+use ymir::query::FilterApplier;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Select,
 };

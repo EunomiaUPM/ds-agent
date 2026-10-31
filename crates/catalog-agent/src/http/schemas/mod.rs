@@ -26,10 +26,10 @@ use axum::http::{header, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use common::json_schema::JSON_SCHEMA_MEDIA_TYPE;
-use common::query::QuerySpec;
 use common::routes::catalog as routes;
 use ymir::errors::{BadFormat, Errors};
+use ymir::json_schema::JSON_SCHEMA_MEDIA_TYPE;
+use ymir::query::QuerySpec;
 use ymir::types::oauth::UserInfo;
 use ymir::utils::extract_payload;
 

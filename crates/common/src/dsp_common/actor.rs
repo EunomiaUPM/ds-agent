@@ -22,7 +22,7 @@ use ymir::errors::{Errors, Outcome};
 use ymir::types::oauth::UserInfo;
 
 use crate::facades::grants_facade::VerifiedPeer;
-use crate::oauth::{Owner, OwnershipTrait};
+use ymir::oauth::{Owner, OwnershipTrait};
 
 /// Who is acting on a DSP process, as established by authentication.
 #[derive(Debug, Clone)]

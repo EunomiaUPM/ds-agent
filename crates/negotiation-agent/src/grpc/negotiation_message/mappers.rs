@@ -24,10 +24,10 @@ use crate::grpc::api::negotiation_agent::{
     NegotiationMessage as ProtoMessage, NegotiationMessageListResponse, NegotiationMessageResponse,
 };
 use crate::services::negotiation_message::views::NegotiationMessageView;
-use common::grpc::{JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoField};
-use common::paginated_spec::Paginated;
 use serde_json::Value as Json;
 use tonic::Status;
+use ymir::grpc::{JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoField};
+use ymir::paginated_spec::Paginated;
 
 impl TryFrom<ListNegotiationMessagesRequest> for ListParams<NegotiationMessageFilter> {
     type Error = Status;

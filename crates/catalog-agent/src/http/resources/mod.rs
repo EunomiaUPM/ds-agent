@@ -29,13 +29,13 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::{Json, Router};
-use common::batch_requests::BatchRequests;
-use common::query::QuerySpec;
 use common::routes::catalog as routes;
 use serde::Deserialize;
 use serde_json::Value;
 use urn::Urn;
+use ymir::batch_requests::BatchRequests;
 use ymir::errors::{BadFormat, Errors, Outcome};
+use ymir::query::QuerySpec;
 use ymir::types::oauth::UserInfo;
 use ymir::utils::extract_payload;
 

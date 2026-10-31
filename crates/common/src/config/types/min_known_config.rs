@@ -22,10 +22,12 @@ use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::{CommonHostsConfig, HostType};
 
 use crate::config::services::{
-    CatalogConfig, CommonConfig, ContractsConfig, GatewayConfig, SsiAuthConfig, TransferConfig,
+    CatalogConfig, ContractsConfig, GatewayConfig, SsiAuthConfig, TransferConfig,
 };
-use crate::config::types::traits::{CommonConfigTrait, MinKnownConfigTrait};
+use crate::config::types::traits::MinKnownConfigTrait;
 use crate::config::ApplicationConfig;
+use ymir::config::traits::CommonConfigTrait;
+use ymir::config::types::CommonConfig;
 
 /// What an agent needs to reach another one: its hosts, API version and service client.
 #[derive(Serialize, Deserialize, Clone, Debug)]

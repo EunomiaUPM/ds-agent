@@ -21,7 +21,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use chrono::Utc;
-use common::oauth::OwnerScope;
+use ymir::oauth::OwnerScope;
 use common::test_utils::scopes::TestUsers;
 use dataplane::data::factory_trait::MockDataplaneRepoTrait;
 use dataplane::data::repo::dataplane_transfer_log::{

@@ -24,8 +24,8 @@ use crate::entities::filters::NegotiationMessageFilter;
 use crate::entities::negotiation_message::NewNegotiationMessageDto;
 use crate::services::negotiation_message::views::NegotiationMessageView;
 use ymir::types::oauth::UserInfo;
-use common::batch_requests::BatchRequests;
-use common::paginated_spec::{Page, Paginated, Sort};
+use ymir::batch_requests::BatchRequests;
+use ymir::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 

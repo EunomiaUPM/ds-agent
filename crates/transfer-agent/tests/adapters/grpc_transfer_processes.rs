@@ -33,9 +33,9 @@ use chrono::Utc;
 use prost_types::Struct;
 use tonic::Code;
 
-use common::errors::ResourceError;
-use common::grpc::JsonValueExt;
-use common::query::Paginated;
+use ymir::errors::ResourceError;
+use ymir::grpc::JsonValueExt;
+use ymir::query::Paginated;
 use transfer_agent::entities::ids::{ParticipantId, TransferProcessId};
 use transfer_agent::entities::protocol::{
     ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,

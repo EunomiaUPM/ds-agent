@@ -20,9 +20,9 @@
 
 pub mod service;
 
-use common::oauth::OwnerScope;
 use urn::Urn;
 use ymir::errors::Outcome;
+use ymir::oauth::OwnerScope;
 
 use crate::entities::resource::CatalogResource;
 use crate::entities::resource_set::ResourceSet;

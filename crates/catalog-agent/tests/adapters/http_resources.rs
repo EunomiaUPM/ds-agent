@@ -27,7 +27,7 @@ use catalog_agent::services::doctor::views::DoctorReport;
 use catalog_agent::services::doctor::MockDoctorServiceTrait;
 use catalog_agent::services::resources::MockResourceServiceTrait;
 use common::eunomia::EUNOMIA_CATALOG_CONTEXT_URL;
-use common::paginated_spec::Paginated;
+use ymir::paginated_spec::Paginated;
 use common::test_utils::scopes::TestUsers;
 use serde_json::{json, Value};
 use tower::ServiceExt;

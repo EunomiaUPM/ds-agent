@@ -16,7 +16,7 @@
  */
 
 use crate::config::services::SsiAuthConfig;
-use crate::config::types::traits::CommonConfigTrait;
+use ymir::config::traits::CommonConfigTrait;
 use ymir::config::traits::{
     ApiConfigTrait, DidConfigTrait, HostsConfigTrait, VerifyReqConfigTrait, WalletConfigTrait,
 };

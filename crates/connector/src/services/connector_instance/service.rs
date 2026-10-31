@@ -95,7 +95,7 @@ impl ConnectorInstanceService {
     }
 }
 
-use common::oauth::{OwnedTrait, Owner, OwnerScope};
+use ymir::oauth::{OwnedTrait, Owner, OwnerScope};
 use ymir::types::oauth::UserInfo;
 
 #[async_trait::async_trait]

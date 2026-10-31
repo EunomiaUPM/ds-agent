@@ -18,8 +18,8 @@
 //! Domain filters for keystore queries.
 
 use crate::entities::key::KeyPrefix;
-use common::query::QueryFilter;
 use serde::{Deserialize, Serialize};
+use ymir::query::QueryFilter;
 
 /// Filter criteria for querying keystore entries by key prefix and user.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]

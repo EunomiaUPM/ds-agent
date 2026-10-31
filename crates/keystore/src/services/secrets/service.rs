@@ -19,10 +19,10 @@
 
 use std::sync::Arc;
 
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 use ymir::types::oauth::UserInfo;
-use common::errors::NotFoundExt;
-use common::query::QueryFilter;
+use ymir::errors::NotFoundExt;
+use ymir::query::QueryFilter;
 use ymir::errors::Outcome;
 
 use crate::data::repo::secrets::SecretRepoTrait;

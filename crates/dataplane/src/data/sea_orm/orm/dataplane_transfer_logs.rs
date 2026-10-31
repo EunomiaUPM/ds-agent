@@ -18,7 +18,7 @@
 //! State transition log table.
 
 use super::dataplane_transfers::TransferState;
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::Visibility;
 use sea_orm::entity::prelude::*;
@@ -64,7 +64,7 @@ impl Related<super::dataplane_transfers::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-common::impl_owned!(Model);
+ymir::impl_owned!(Model);
 
 #[derive(Clone)]
 pub struct NewTransferLog {

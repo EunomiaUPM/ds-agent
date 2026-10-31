@@ -21,10 +21,10 @@
 //! about DSP. The protocol that answers turns it into a wire error, usually through
 //! [`Violations::to_reasons`].
 
-use crate::registry::Origin;
 use std::borrow::Cow;
 use std::fmt::{self, Display, Formatter};
 use ymir::errors::{ErrorReason, Errors};
+use ymir::registry::Origin;
 
 /// Where in the subject the problem is, e.g. `dataAddress.endpointProperties[0].name`.
 /// Literal paths allocate nothing; only nested and indexed ones build a string.

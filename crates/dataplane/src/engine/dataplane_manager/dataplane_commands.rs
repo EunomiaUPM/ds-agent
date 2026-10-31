@@ -23,7 +23,7 @@ use crate::errors::DataplaneError;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use crate::DataplaneAddress;
 use common::config::services::TransferConfig;
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 use connector::{ConnectorInstanceDto, ConnectorInstanceFacadeTrait};
 use keystore::SecretStore;
 use std::str::FromStr;

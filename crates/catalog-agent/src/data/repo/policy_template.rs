@@ -18,8 +18,8 @@
 //! Persistence of policy templates, one row per template version, and of which versions each
 //! one references.
 
-use common::oauth::OwnerScope;
-use common::paginated_spec::{Page, Sort};
+use ymir::oauth::OwnerScope;
+use ymir::paginated_spec::{Page, Sort};
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 

@@ -33,7 +33,7 @@ use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use crate::DataplaneAddress;
 use ymir::types::oauth::UserInfo;
 use common::config::services::TransferConfig;
-use common::config::types::traits::CommonConfigTrait;
+use ymir::config::traits::CommonConfigTrait;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use connector::{ConnectorInstanceDto, ConnectorInstanceFacadeTrait};

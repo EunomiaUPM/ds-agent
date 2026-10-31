@@ -21,10 +21,10 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use common::errors::NotFoundExt;
-use common::oauth::{OwnedTrait, Owner, OwnerScope};
-use common::paginated_spec::{Cursor, Page, Paginated, Sort};
-use common::query::QueryFilter;
+use ymir::errors::NotFoundExt;
+use ymir::oauth::{OwnedTrait, Owner, OwnerScope};
+use ymir::paginated_spec::{Cursor, Page, Paginated, Sort};
+use ymir::query::QueryFilter;
 use ymir::errors::{Errors, Outcome};
 use ymir::types::oauth::UserInfo;
 

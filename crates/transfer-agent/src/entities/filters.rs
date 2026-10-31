@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 use urn::Urn;
 use ymir::errors::Outcome;
 
-use common::query::{QueryFilter, validate_date_range};
+use ymir::query::{QueryFilter, validate_date_range};
 
 /// Filter for `TransferProcess` related requests
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]

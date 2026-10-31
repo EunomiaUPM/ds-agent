@@ -24,12 +24,12 @@ use ymir::utils::read;
 
 use crate::config::services::traits::CatalogConfigTrait;
 use crate::config::services::{
-    CatalogConfig, CommonConfig, ContractsConfig, GatewayConfig, MonolithConfig, SsiAuthConfig,
-    TransferConfig,
+    CatalogConfig, ContractsConfig, GatewayConfig, MonolithConfig, SsiAuthConfig, TransferConfig,
 };
-use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use crate::eunomia::document::JsonLdType;
 use crate::eunomia::EUNOMIA_KEYSTORE_CONTEXT_URL;
+use ymir::config::traits::{CommonConfigTrait, ConfigLoader};
+use ymir::config::types::CommonConfig;
 
 /// The whole config file of the monolith: its own section plus one optional section per agent.
 #[derive(Serialize, Deserialize, Clone, Debug)]

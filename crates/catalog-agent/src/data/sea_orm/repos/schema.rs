@@ -19,14 +19,14 @@
 
 use std::sync::Arc;
 
-use common::oauth::OwnerScope;
-use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use sea_orm::sea_query::Expr;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
     Select,
 };
 use ymir::errors::{Errors, Outcome, RepoIntoErrors};
+use ymir::oauth::OwnerScope;
+use ymir::paginated_spec::{Page, SelectCursorExt, Sort};
 
 use crate::data::repo::schema::{SchemaRepoErrors, SchemaRepoTrait};
 use crate::data::sea_orm::orm::schema as orm;

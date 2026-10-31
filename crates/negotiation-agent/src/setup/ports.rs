@@ -25,7 +25,7 @@ use common::config::services::traits::ContractsConfigTrait;
 use common::facades::AuthPorts;
 use common::facades::catalog::CatalogFacadeTrait;
 use common::facades::catalog::remote::CatalogRemoteFacade;
-use common::module_loader::root_context::RootContext;
+use ymir::module_loader::root_context::RootContext;
 
 /// Ports the negotiation agent consumes: auth and the catalog's published contract.
 #[derive(Clone)]

@@ -46,7 +46,7 @@ pub struct NegotiationProcessView {
     pub version: u64,
 }
 
-common::impl_owned!(NegotiationProcessView);
+ymir::impl_owned!(NegotiationProcessView);
 
 impl NegotiationProcessView {
     /// View of `process` with its stored `identifiers`.

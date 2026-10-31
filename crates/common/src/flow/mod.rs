@@ -49,9 +49,9 @@ pub use idempotency::{
 pub use runner::{FlowRunner, FlowRunnerBuilder};
 pub use uow::{AutocommitUnitOfWorkFactory, UnitOfWork, UnitOfWorkFactoryTrait};
 
-use crate::registry::RegistryKey;
 use serde_json::Value;
 use ymir::errors::Outcome;
+use ymir::registry::RegistryKey;
 
 /// What a controller does for one agent and direction; the runner decides when.
 #[async_trait::async_trait]

@@ -24,9 +24,9 @@ use axum::extract::State;
 use axum::http::{header, StatusCode, Uri};
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::Json;
-use common::config::types::traits::CommonConfigTrait;
 use rust_embed::Embed;
 use serde_json::json;
+use ymir::config::traits::CommonConfigTrait;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 

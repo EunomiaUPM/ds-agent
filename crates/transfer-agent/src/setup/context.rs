@@ -29,7 +29,7 @@ use crate::setup::ports::TransferPorts;
 use ymir::services::token_validator::OauthTokenValidatorTrait;
 use events::EventSinkTrait;
 use common::config::services::TransferConfig;
-use common::module_loader::root_context::RootContext;
+use ymir::module_loader::root_context::RootContext;
 
 /// The transfer agent's context; every service, router, flow and loader keeps it whole.
 pub struct AppContext {

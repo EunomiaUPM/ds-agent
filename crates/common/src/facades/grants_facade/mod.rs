@@ -33,8 +33,8 @@ use ymir::types::oauth::{RolePath, UserInfo};
 use ymir::types::participants::Visibility;
 use ymir::utils::bearer_headers;
 
-use crate::oauth::Owner;
 use crate::tck::TckPeer;
+use ymir::oauth::Owner;
 
 pub mod remote;
 

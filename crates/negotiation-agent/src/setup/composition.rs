@@ -29,9 +29,9 @@ use crate::setup::ports::NegotiationPorts;
 use axum::Router;
 use common::config::services::ContractsConfig;
 use common::facades::negotiation::NegotiationFacadeTrait;
-use common::module_loader::module_group::ModuleGroup;
-use common::module_loader::root_context::RootContext;
-use common::module_loader::service_module::ServiceModuleTrait;
+use ymir::module_loader::module_group::ModuleGroup;
+use ymir::module_loader::root_context::RootContext;
+use ymir::module_loader::service_module::ServiceModuleTrait;
 use events::NoopEventSink;
 use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
@@ -91,7 +91,7 @@ impl ServiceModuleTrait for NegotiationAgentModule {
         self.modules.grpc_descriptors()
     }
 
-    fn workers(&self) -> Vec<Box<dyn common::boot::workers::BackgroundWorker>> {
+    fn workers(&self) -> Vec<Box<dyn ymir::boot::workers::BackgroundWorker>> {
         self.modules.workers()
     }
 }

@@ -26,13 +26,13 @@ use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use ymir::types::oauth::UserInfo;
 use common::eunomia::document::JsonLd;
-use common::query::QuerySpec;
+use ymir::query::QuerySpec;
 use std::sync::Arc;
 use ymir::errors::Errors;
 use ymir::utils::{extract_path_urn, extract_payload};
 use common::routes::connector as routes;
 
-pub use common::paginated_spec::PaginationParams;
+pub use ymir::paginated_spec::PaginationParams;
 pub type ConnectorInstanceQuery = QuerySpec<ConnectorInstanceFilter>;
 
 #[derive(Clone)]

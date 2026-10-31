@@ -18,9 +18,9 @@
 //! NegotiationAgentOfferGrpc: auth, URN parsing, content mapping and paging.
 
 
-use common::errors::ResourceError;
-use common::grpc::JsonValueExt;
-use common::paginated_spec::Paginated;
+use ymir::errors::ResourceError;
+use ymir::grpc::JsonValueExt;
+use ymir::paginated_spec::Paginated;
 use common::test_utils::grpc::GrpcRequests;
 use negotiation_agent::grpc::api::negotiation_agent::negotiation_agent_offers_service_server::NegotiationAgentOffersService;
 use negotiation_agent::grpc::api::negotiation_agent::{

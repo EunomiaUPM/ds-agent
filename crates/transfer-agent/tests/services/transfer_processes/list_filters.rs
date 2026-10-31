@@ -18,7 +18,7 @@
 //! Listing processes: filters and cursor passed through, and repository errors.
 
 use super::*;
-use common::oauth::OwnerScope;
+use ymir::oauth::OwnerScope;
 
 /// The protocol filter reaches the repository.
 #[tokio::test]

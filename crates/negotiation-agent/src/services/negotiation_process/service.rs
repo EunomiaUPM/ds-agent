@@ -21,12 +21,12 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use common::oauth::{OwnedTrait, Owner, OwnerScope};
+use ymir::oauth::{OwnedTrait, Owner, OwnerScope};
 use ymir::types::oauth::UserInfo;
-use common::batch_requests::BatchRequests;
-use common::errors::NotFoundExt;
-use common::paginated_spec::Cursor;
-use common::query::{MAX_BATCH_IDS, Page, Paginated, QueryFilter, Sort};
+use ymir::batch_requests::BatchRequests;
+use ymir::errors::NotFoundExt;
+use ymir::paginated_spec::Cursor;
+use ymir::query::{MAX_BATCH_IDS, Page, Paginated, QueryFilter, Sort};
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
@@ -327,7 +327,7 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
                 if identifier_model.is_none() {
                     self.identifiers_repo()
                         .create_identifier(&NewNegotiationIdentifierModel {
-                            id: Some(common::utils::get_urn(None)),
+                            id: Some(ymir::utils::get_urn(None)),
                             owner: updated_process.owner(),
                             negotiation_agent_process_id: process_urn.clone(),
                             id_key: key.clone(),

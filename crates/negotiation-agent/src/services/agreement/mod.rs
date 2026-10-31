@@ -24,8 +24,8 @@ use crate::entities::agreement::{EditAgreementDto, NewAgreementDto};
 use crate::entities::filters::AgreementFilter;
 use crate::services::agreement::views::AgreementView;
 use ymir::types::oauth::UserInfo;
-use common::batch_requests::BatchRequests;
-use common::paginated_spec::{Page, Paginated, Sort};
+use ymir::batch_requests::BatchRequests;
+use ymir::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 

@@ -349,7 +349,7 @@ fn validator_merge_combines_stages() {
 mod staged_registry {
     //! ValidationRegistry: global stages across origins, fail-closed keys and attribution.
 
-    use crate::registry::{Origin, PluginRef};
+    use ymir::registry::{Origin, PluginRef};
     use crate::validation::{codes, violation, Stage, ValidationRegistry, Validator};
 
     fn plugin() -> Origin {

@@ -30,9 +30,9 @@ use ymir::utils::{encode_url_safe_no_pad, http_client};
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
 use crate::facades::mates_facade::MatesFacadeTrait;
-use crate::paginated_spec::Paginated;
 use crate::routes::auth::mates;
 use ymir::data::entities::shared::participant::Model as Mates;
+use ymir::paginated_spec::Paginated;
 
 /// Participants read from the auth agent's `/mates` API ([`mates`]).
 ///

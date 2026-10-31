@@ -101,7 +101,7 @@ fn distribution_needs_format_and_service() {
     let bare = catalog_agent::entities::resource::CatalogResource::create(
         urn(ResourceKind::Distribution, 8),
         ResourceKind::Distribution,
-        common::oauth::Owner::connector(),
+        ymir::oauth::Owner::connector(),
         None,
         Some(urn(ResourceKind::Dataset, 3)),
         false,

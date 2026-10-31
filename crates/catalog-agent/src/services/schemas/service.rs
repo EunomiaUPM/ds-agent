@@ -19,18 +19,18 @@
 
 use std::sync::Arc;
 
-use common::config::types::traits::CommonConfigTrait;
-use common::errors::NotFoundExt;
-use common::json_schema::{JsonSchemaCheck, JsonSchemaInference, SchemaIssue};
-use common::oauth::{OwnedTrait, Owner, OwnerScope};
-use common::paginated_spec::{Cursor, Page, Paginated, Sort};
-use common::query::QueryFilter;
 use common::routes::catalog as routes;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
+use ymir::config::traits::CommonConfigTrait;
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
+use ymir::errors::NotFoundExt;
 use ymir::errors::{BadFormat, Errors, Outcome};
+use ymir::json_schema::{JsonSchemaCheck, JsonSchemaInference, SchemaIssue};
+use ymir::oauth::{OwnedTrait, Owner, OwnerScope};
+use ymir::paginated_spec::{Cursor, Page, Paginated, Sort};
+use ymir::query::QueryFilter;
 use ymir::services::client::ClientExt;
 use ymir::types::oauth::UserInfo;
 use ymir::utils::http_client;

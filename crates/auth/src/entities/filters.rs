@@ -18,9 +18,9 @@
 //! Domain filters for ssi-auth queries.
 
 use chrono::{DateTime, Utc};
-use common::query::{validate_date_range, QueryFilter};
 use serde::{Deserialize, Serialize};
 use ymir::errors::Outcome;
+use ymir::query::{validate_date_range, QueryFilter};
 use ymir::types::gnap::grant_request::GrantKind;
 use ymir::types::gnap::GrantStatus;
 use ymir::types::participants::ParticipantType;

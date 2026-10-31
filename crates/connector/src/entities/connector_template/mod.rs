@@ -40,11 +40,11 @@ use crate::entities::interaction::InteractionConfig;
 use crate::entities::parameters::ParameterDefinition;
 use common::eunomia::document::JsonLdType;
 use common::eunomia::EUNOMIA_CONNECTOR_CONTEXT_URL;
-use common::oauth::Owner;
 use sea_orm::prelude::DateTimeWithTimeZone;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use ymir::errors::Outcome;
+use ymir::oauth::Owner;
 
 /// Display and versioning metadata for a connector template.
 #[derive(Debug, Clone, Serialize, Deserialize)]

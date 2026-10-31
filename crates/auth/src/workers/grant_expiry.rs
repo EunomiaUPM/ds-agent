@@ -19,9 +19,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::Utc;
-use common::boot::workers::BackgroundWorker;
 use tokio_util::sync::CancellationToken;
 use tracing::info;
+use ymir::boot::workers::BackgroundWorker;
 use ymir::errors::Outcome;
 
 use crate::modules::{GateKeeperModule, PeerConnectorModule};

@@ -21,11 +21,9 @@ use ymir::config::types::{DidConfig, VerifyReqConfig, WalletConfig};
 use ymir::errors::Outcome;
 
 use crate::config::services::traits::SsiAuthConfigTrait;
-use crate::config::services::CommonConfig;
-use crate::config::types::traits::{
-    CommonConfigTrait, ConfigLoader, EntityClientTrait, GaiaConfigTrait, Oid4VpServiceTrait,
-    GlobalConfigLoader,
-};
+use ymir::config::types::CommonConfig;
+use crate::config::types::traits::{EntityClientTrait, GaiaConfigTrait, Oid4VpServiceTrait, GlobalConfigLoader};
+use ymir::config::traits::{CommonConfigTrait, ConfigLoader};
 use crate::config::types::{EntityClientConfig, GaiaConfig, Oid4VpService};
 
 /// `ssi_auth` section: wallet, DID, verification and client settings of the auth agent.

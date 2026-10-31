@@ -19,11 +19,11 @@
 
 use axum::Router;
 use common::config::services::CatalogConfig;
-use common::config::types::traits::CommonConfigTrait;
-use common::module_loader::root_context::RootContext;
-use common::module_loader::service_module::ServiceModuleTrait;
 use sea_orm_migration::MigrationTrait;
 use ymir::config::traits::ApiConfigTrait;
+use ymir::config::traits::CommonConfigTrait;
+use ymir::module_loader::root_context::RootContext;
+use ymir::module_loader::service_module::ServiceModuleTrait;
 
 use std::sync::Arc;
 

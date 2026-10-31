@@ -27,17 +27,17 @@ pub mod shared;
 use std::sync::{Arc, RwLock};
 
 use axum::Router;
-use common::boot::seeders::BootSeeder;
-use common::boot::workers::BackgroundWorker;
 use common::eunomia::EunomiaProfile;
-use common::module_loader::module_group::ModuleGroup;
-use common::module_loader::service_module::ServiceModuleTrait;
 use common::rdf::shacl::ShapeSet;
 use common::rdf::RdfEngine;
 use serde::Serialize;
 use serde_json::Value;
 use tonic::service::RoutesBuilder;
+use ymir::boot::seeders::BootSeeder;
+use ymir::boot::workers::BackgroundWorker;
 use ymir::errors::Outcome;
+use ymir::module_loader::module_group::ModuleGroup;
+use ymir::module_loader::service_module::ServiceModuleTrait;
 
 pub use crate::entities::findings::{Finding, Severity};
 use crate::entities::resource::CatalogResource;

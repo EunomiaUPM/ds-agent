@@ -18,7 +18,7 @@
 //! Listing messages: paging, cursors, filters and sorts passed through, and repository errors.
 
 use super::*;
-use common::oauth::OwnerScope;
+use ymir::oauth::OwnerScope;
 
 /// An empty repository gives an empty page without cursor.
 #[tokio::test]

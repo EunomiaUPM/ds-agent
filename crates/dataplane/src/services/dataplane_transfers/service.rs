@@ -21,12 +21,12 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use common::oauth::{OwnedTrait, Owner, OwnerScope};
+use ymir::oauth::{OwnedTrait, Owner, OwnerScope};
 use ymir::types::oauth::UserInfo;
-use common::batch_requests::BatchRequests;
-use common::errors::NotFoundExt;
-use common::paginated_spec::Cursor;
-use common::query::{Page, Paginated, QueryFilter, Sort, MAX_BATCH_IDS};
+use ymir::batch_requests::BatchRequests;
+use ymir::errors::NotFoundExt;
+use ymir::paginated_spec::Cursor;
+use ymir::query::{Page, Paginated, QueryFilter, Sort, MAX_BATCH_IDS};
 use tracing::error;
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
@@ -43,7 +43,7 @@ use crate::entities::dataplane_transfers::{
 };
 use crate::entities::filters::DataplaneTransferFilter;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
-use common::cache::EntityCacheTrait;
+use ymir::cache::EntityCacheTrait;
 
 /// Process service that writes through to the cache.
 pub struct DataplaneTransferService {

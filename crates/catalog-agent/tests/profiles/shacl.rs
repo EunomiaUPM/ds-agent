@@ -28,10 +28,10 @@ use catalog_agent::profiles::dcat3::Dcat3;
 use catalog_agent::profiles::dcat_ap::DcatAp;
 use catalog_agent::profiles::shared::dcat::DcatAdapter;
 use catalog_agent::profiles::ProfileAdapterTrait;
-use common::oauth::Owner;
 use common::rdf::RdfGraph;
 use serde_json::Value;
 use urn::Urn;
+use ymir::oauth::Owner;
 
 use crate::support::fixtures::{dcat_ap_graph, dcat_ap_json, dcat_ap_names, graph_of};
 

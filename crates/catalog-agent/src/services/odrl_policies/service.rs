@@ -19,12 +19,12 @@
 
 use std::sync::Arc;
 
-use common::errors::NotFoundExt;
-use common::oauth::{OwnedTrait, Owner, OwnerScope};
-use common::paginated_spec::{Cursor, Page, Paginated, Sort};
-use common::query::QueryFilter;
 use urn::{Urn, UrnBuilder};
+use ymir::errors::NotFoundExt;
 use ymir::errors::{ErrorReason, Errors, Outcome};
+use ymir::oauth::{OwnedTrait, Owner, OwnerScope};
+use ymir::paginated_spec::{Cursor, Page, Paginated, Sort};
+use ymir::query::QueryFilter;
 use ymir::types::oauth::UserInfo;
 
 use crate::entities::commands::NewOdrlOfferCommand;

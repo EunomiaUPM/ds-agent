@@ -20,13 +20,13 @@
 
 use std::str::FromStr;
 use std::sync::Arc;
-use common::config::types::traits::CommonConfigTrait;
+use ymir::config::traits::CommonConfigTrait;
 
 use common::dsp_common::data_address::DataAddress;
 use common::dsp_common::odrl::OdrlAgreement;
 use common::dsp_common::paths;
 use common::dsp_common::{DspActor, DspCaller};
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 use ymir::types::oauth::UserInfo;
 use common::rdf::{RdfMessage, RdfProtocolTrait};
 use serde_json::{json, Map, Value};

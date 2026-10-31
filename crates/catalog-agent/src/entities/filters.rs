@@ -18,9 +18,9 @@
 //! Query filters over resources, offers and templates; every one runs in the database.
 
 use chrono::{DateTime, Utc};
-use common::query::{DateRange, QueryFilter};
 use serde::{Deserialize, Serialize};
 use ymir::errors::Outcome;
+use ymir::query::{DateRange, QueryFilter};
 
 use crate::entities::policy_templates::{ControlPoint, PolicyTemplateKind};
 use crate::entities::resource_kind::ResourceKind;

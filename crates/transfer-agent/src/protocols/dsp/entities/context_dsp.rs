@@ -25,7 +25,7 @@ use bytes::Bytes;
 use common::dsp_common::odrl::OdrlAgreement;
 use common::facades::grants_facade::VerifiedPeer;
 use common::flow::{IdempotencyKey, IdempotentFactsTrait, IdempotentOutputTrait};
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 use common::rdf::RdfProtocolTrait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

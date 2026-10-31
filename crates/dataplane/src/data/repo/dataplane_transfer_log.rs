@@ -18,10 +18,10 @@
 //! State transition log.
 
 use crate::data::sea_orm::orm::dataplane_transfer_logs;
-use common::oauth::OwnerScope;
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+use ymir::oauth::OwnerScope;
 
 /// Persistence of the state transitions of each dataplane process.
 #[mockall::automock]

@@ -25,9 +25,9 @@ use catalog_agent::entities::import_plan::{ImportPlan, PlannedResource};
 use catalog_agent::entities::resource::CatalogResource;
 use catalog_agent::entities::resource_kind::ResourceKind;
 use catalog_agent::entities::vocab::Vocab;
-use common::oauth::Owner;
 use serde_json::json;
 use urn::Urn;
+use ymir::oauth::Owner;
 
 use crate::support::fixtures::{dcat_ap_graph, dcat_ap_names, graph_of};
 

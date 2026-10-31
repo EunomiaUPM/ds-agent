@@ -18,7 +18,7 @@
 //! Tenant isolation and role checks.
 
 use super::*;
-use common::oauth::OwnerScope;
+use ymir::oauth::OwnerScope;
 
 /// Reading a record of another tenant is not found: the lookup only searches the
 /// caller's tenant.

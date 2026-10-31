@@ -15,12 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::boot::BootstrapServiceTrait;
 use common::config::services::TransferConfig;
-use common::module_loader::root_context::RootContext;
-use common::module_loader::service_composer::ServiceComposer;
 use common::well_known::WellKnownModule;
+use ymir::boot::BootstrapServiceTrait;
 use ymir::config::traits::CommonConfigTrait;
+use ymir::module_loader::root_context::RootContext;
+use ymir::module_loader::service_composer::ServiceComposer;
 // The built-in OAuth crate is disabled (identity from Keycloak or the static user).
 // use oauth::setup::{AdminSeeder, OAuthModule};
 use sea_orm_migration::MigrationTrait;

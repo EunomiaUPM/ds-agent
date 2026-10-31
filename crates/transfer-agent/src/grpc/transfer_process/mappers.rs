@@ -32,12 +32,12 @@ use crate::grpc::api::transfer_processes::{
     TransferProcessListResponse, TransferProcessResponse, TransferRole as ProtoTransferRole,
 };
 use crate::services::transfer_process::views::TransferProcessView;
-use common::batch_requests::BatchRequests;
-use common::grpc::{
+use ymir::batch_requests::BatchRequests;
+use ymir::grpc::{
     InvalidField, JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoEnum, ProtoField,
     ProtoFieldList,
 };
-use common::query::Paginated;
+use ymir::query::Paginated;
 use tonic::Status;
 use url::Url;
 

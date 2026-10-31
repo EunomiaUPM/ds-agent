@@ -19,9 +19,10 @@ use serde::{Deserialize, Serialize};
 use ymir::errors::Outcome;
 
 use crate::config::services::traits::MonolithConfigTrait;
-use crate::config::services::CommonConfig;
+use ymir::config::types::CommonConfig;
 use crate::config::types::cache::CacheConfig;
-use crate::config::types::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader, GlobalConfigLoader};
+use crate::config::types::traits::{CacheConfigTrait, GlobalConfigLoader};
+use ymir::config::traits::{CommonConfigTrait, ConfigLoader};
 
 /// `monolith` section: drives the process when every agent runs together.
 #[derive(Serialize, Deserialize, Clone, Debug)]

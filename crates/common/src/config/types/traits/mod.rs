@@ -32,4 +32,3 @@ pub use entity_client::EntityClientTrait;
 pub use gaia::GaiaConfigTrait;
 pub use min_known::MinKnownConfigTrait;
 pub use oid4vp_service::Oid4VpServiceTrait;
-pub use ymir::config::traits::{CommonConfigTrait, ConfigLoader};

@@ -16,10 +16,10 @@
  */
 
 use crate::data::entities::connector_templates;
-use common::oauth::OwnerScope;
+use ymir::oauth::OwnerScope;
 use crate::data::entities::connector_templates::NewConnectorTemplateModel;
 use crate::entities::filters::ConnectorTemplateFilter;
-use common::paginated_spec::{Page, Sort};
+use ymir::paginated_spec::{Page, Sort};
 use ymir::errors::Outcome;
 
 #[mockall::automock]

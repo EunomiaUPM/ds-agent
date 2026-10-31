@@ -79,7 +79,7 @@ impl<'a> RuntimeSecretVault<'a> {
     }
 
     fn owner_scope(&self) -> ymir::types::oauth::UserInfo {
-        common::oauth::acting_as(self.user_id)
+        ymir::oauth::acting_as(self.user_id)
     }
 
     /// Vaults ephemeral credentials in `runtime` that are not owned by the connector config.

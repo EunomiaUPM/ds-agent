@@ -21,7 +21,7 @@
 use axum::http::{header, HeaderMap, HeaderName, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use common::paginated_spec::Paginated;
+use ymir::paginated_spec::Paginated;
 use serde_json::json;
 use ymir::errors::{BadFormat, Errors, Outcome};
 use ymir::types::participants::Visibility;

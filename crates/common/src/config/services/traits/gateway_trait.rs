@@ -16,7 +16,7 @@
  */
 
 use crate::config::types::min_known_config::MinKnownConfig;
-use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
+use ymir::config::traits::{CommonConfigTrait, ConfigLoader};
 
 /// What the gateway reads from its config: the address of every agent it proxies.
 pub trait GatewayConfigTrait: ConfigLoader + CommonConfigTrait {

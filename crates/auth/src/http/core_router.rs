@@ -28,7 +28,7 @@ use axum::http::StatusCode;
 use axum::middleware::from_fn_with_state;
 use axum::response::IntoResponse;
 use axum::Router;
-use common::config::types::traits::CommonConfigTrait;
+use ymir::config::traits::CommonConfigTrait;
 use common::routes::auth::{docs, gaia, gate, mates, peer_connection, vc_request, wallet};
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::{DefaultOnResponse, TraceLayer};

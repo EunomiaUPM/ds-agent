@@ -17,7 +17,7 @@
 
 use auth::setup::AuthBoot;
 use auth::{SERVICE_BIG_NAME, SERVICE_NAME};
-use common::boot::cli::AgentCli;
+use ymir::boot::cli::AgentCli;
 use ymir::errors::Outcome;
 
 #[tokio::main]

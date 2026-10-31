@@ -29,12 +29,12 @@ use crate::grpc::api::transfer_messages::{
     MessageEnvelope as ProtoEnvelope, TransferMessageListResponse, TransferMessageResponse,
 };
 use crate::services::transfer_message::views::TransferMessageView;
-use common::grpc::{JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoEnum, ProtoField};
-use common::query::Paginated;
 use compact_str::CompactString;
 use serde_json::Value as Json;
 use tonic::Status;
 use urn::Urn;
+use ymir::grpc::{JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoEnum, ProtoField};
+use ymir::query::Paginated;
 
 impl TryFrom<ListTransferMessagesRequest> for ListParams<TransferMessageFilter> {
     type Error = Status;

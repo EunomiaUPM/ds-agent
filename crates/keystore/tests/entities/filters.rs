@@ -17,7 +17,7 @@
 
 //! PrefixFilter: emptiness, validation and how it is read from a query.
 
-use common::query::{QueryFilter, QuerySpec, Sort};
+use ymir::query::{QueryFilter, QuerySpec, Sort};
 use keystore::KeyPrefix;
 use keystore::entities::filters::PrefixFilter;
 

@@ -22,7 +22,7 @@ pub mod service;
 use crate::entities::connector_template::ConnectorTemplateDto;
 use crate::entities::filters::ConnectorTemplateFilter;
 use ymir::types::oauth::UserInfo;
-use common::paginated_spec::{Page, Paginated, Sort};
+use ymir::paginated_spec::{Page, Paginated, Sort};
 use ymir::errors::Outcome;
 
 /// Service interface for connector template CRUD operations.

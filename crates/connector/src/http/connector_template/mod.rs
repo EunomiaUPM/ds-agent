@@ -25,9 +25,9 @@ use axum::response::IntoResponse;
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use common::eunomia::document::JsonLd;
-use common::query::QuerySpec;
 use common::routes::connector as routes;
 use std::sync::Arc;
+use ymir::query::QuerySpec;
 use ymir::types::oauth::UserInfo;
 use ymir::utils::extract_payload;
 
@@ -36,7 +36,7 @@ pub struct ConnectorTemplateRouter {
     service: Arc<dyn ConnectorTemplateServiceTrait>,
 }
 
-pub use common::paginated_spec::PaginationParams;
+pub use ymir::paginated_spec::PaginationParams;
 pub type ConnectorTemplateQuery = QuerySpec<ConnectorTemplateFilter>;
 
 impl FromRef<ConnectorTemplateRouter> for Arc<dyn ConnectorTemplateServiceTrait> {

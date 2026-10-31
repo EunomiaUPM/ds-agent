@@ -16,12 +16,12 @@
  */
 
 use crate::data::sea_orm::orm::agreement;
-use common::oauth::{OwnedTrait, Owner, OwnerScope};
+use ymir::oauth::{OwnedTrait, Owner, OwnerScope};
 use crate::data::sea_orm::orm::agreement::{EditAgreementModel, Model, NewAgreementModel};
 use crate::data::repo::agreement::{AgreementRepoErrors, AgreementRepoTrait};
 use crate::entities::filters::AgreementFilter;
-use common::paginated_spec::{Page, SelectCursorExt, Sort};
-use common::query::FilterApplier;
+use ymir::paginated_spec::{Page, SelectCursorExt, Sort};
+use ymir::query::FilterApplier;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
     QueryFilter, Select,

@@ -16,9 +16,9 @@
  */
 
 use chrono::{DateTime, Utc};
-use common::oauth::Owner;
 use serde::Serialize;
 use ymir::data::entities::{received, sent};
+use ymir::oauth::Owner;
 use ymir::types::gnap::grant_request::GrantKind;
 use ymir::types::gnap::GrantStatus;
 use ymir::types::vcs::VcType;

@@ -24,11 +24,11 @@ use crate::grpc::api::negotiation_agent::{
     GetBatchAgreementsRequest, ListAgreementsRequest, PutAgreementRequest,
 };
 use crate::services::agreement::views::AgreementView;
-use common::batch_requests::BatchRequests;
-use common::grpc::{JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoField, ProtoFieldList};
-use common::paginated_spec::Paginated;
 use serde_json::Value as Json;
 use tonic::Status;
+use ymir::batch_requests::BatchRequests;
+use ymir::grpc::{JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoField, ProtoFieldList};
+use ymir::paginated_spec::Paginated;
 
 impl TryFrom<ListAgreementsRequest> for ListParams<AgreementFilter> {
     type Error = Status;

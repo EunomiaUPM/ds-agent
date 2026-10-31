@@ -24,7 +24,7 @@ use crate::entities::filters::PolicyTemplateFilter;
 use crate::entities::policy_composition::{TemplateLibrary, TemplatePreviewDto};
 use crate::entities::policy_templates::{NewPolicyTemplateDto, PolicyTemplateDto};
 use crate::services::policy_templates::views::{PolicyPreviewView, TemplateUsagesView};
-use common::paginated_spec::{Page, Paginated, Sort};
+use ymir::paginated_spec::{Page, Paginated, Sort};
 use ymir::errors::Outcome;
 use ymir::types::oauth::UserInfo;
 

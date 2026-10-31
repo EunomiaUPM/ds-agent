@@ -17,9 +17,8 @@
 
 use ymir::config::traits::{DidConfigTrait, VerifyReqConfigTrait, WalletConfigTrait};
 
-use crate::config::types::traits::{
-    CommonConfigTrait, ConfigLoader, EntityClientTrait, GaiaConfigTrait,
-};
+use crate::config::types::traits::{EntityClientTrait, GaiaConfigTrait};
+use ymir::config::traits::{CommonConfigTrait, ConfigLoader};
 
 /// What the auth agent reads from its config.
 pub trait SsiAuthConfigTrait:

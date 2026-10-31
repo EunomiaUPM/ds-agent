@@ -17,22 +17,22 @@
 
 //! Event repository.
 
-use common::oauth::OwnerScope;
 use std::sync::Arc;
+use ymir::oauth::OwnerScope;
 
 use crate::data::repo::transfer_event::{TransferEventRepo, TransferEventRepoErrors};
 use crate::data::sea_orm::orm::transfer_event::{
     self, Column, Entity as TransferEventEntity, NewTransferEvent,
 };
 use crate::entities::filters::TransferEventFilter;
-use common::paginated_spec::Cursor;
-use common::query::{Page, Sort};
 use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
     QuerySelect,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+use ymir::paginated_spec::Cursor;
+use ymir::query::{Page, Sort};
 
 pub struct TransferEventRepoForSql {
     db: Arc<DatabaseConnection>,

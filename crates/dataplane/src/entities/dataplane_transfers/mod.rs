@@ -22,11 +22,11 @@ use crate::data::sea_orm::orm::dataplane_transfers;
 pub use crate::data::sea_orm::orm::dataplane_transfers::{
     InteractionMode, NewDataplaneTransfer, TransferRole, TransferState,
 };
-use common::oauth::Owner;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use urn::Urn;
+use ymir::oauth::Owner;
 
 /// Dataplane process as returned by the API, with its fields.
 #[derive(Debug, Serialize, Deserialize, Clone)]

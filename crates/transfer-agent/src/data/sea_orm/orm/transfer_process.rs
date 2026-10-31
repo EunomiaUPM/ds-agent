@@ -16,7 +16,7 @@
  */
 
 use chrono::Utc;
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::Visibility;
 use compact_str::CompactString;
@@ -31,7 +31,7 @@ use crate::entities::protocol::{
     ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
 };
 use crate::entities::transfer_process::TransferProcess;
-use common::utils::parse_urn;
+use ymir::utils::parse_urn;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "transfer_processes")]
@@ -154,4 +154,4 @@ pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
 
-common::impl_owned!(Model);
+ymir::impl_owned!(Model);

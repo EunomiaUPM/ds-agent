@@ -21,8 +21,8 @@ use std::sync::Arc;
 
 use common::config::services::traits::TransferConfigTrait;
 use common::config::services::TransferConfig;
-use common::module_loader::root_context::RootContext;
 use connector::{ConnectorInstanceFacadeTrait, ConnectorInstanceRemoteFacade};
+use ymir::module_loader::root_context::RootContext;
 
 /// Ports the dataplane consumes; today the connector instances.
 #[derive(Clone)]

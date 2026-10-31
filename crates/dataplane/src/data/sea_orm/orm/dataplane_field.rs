@@ -57,7 +57,7 @@ impl Related<super::dataplane_transfers::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-common::impl_owned!(Model);
+ymir::impl_owned!(Model);
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NewDataPlaneFieldModel {

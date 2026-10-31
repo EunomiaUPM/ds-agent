@@ -21,14 +21,14 @@
 use std::sync::Arc;
 
 use axum::Router;
-use common::boot::seeders::BootSeeder;
-use common::boot::workers::BackgroundWorker;
+use ymir::boot::seeders::BootSeeder;
+use ymir::boot::workers::BackgroundWorker;
 use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CatalogConfig;
 use common::facades::catalog::CatalogFacadeTrait;
-use common::module_loader::module_group::ModuleGroup;
-use common::module_loader::root_context::RootContext;
-use common::module_loader::service_module::ServiceModuleTrait;
+use ymir::module_loader::module_group::ModuleGroup;
+use ymir::module_loader::root_context::RootContext;
+use ymir::module_loader::service_module::ServiceModuleTrait;
 use connector::{ConnectorInstanceFacadeTrait, ConnectorModule, ConnectorPorts};
 use events::NoopEventSink;
 use sea_orm_migration::MigrationTrait;

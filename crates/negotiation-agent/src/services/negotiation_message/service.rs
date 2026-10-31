@@ -19,12 +19,12 @@
 
 use std::sync::Arc;
 
-use common::oauth::{OwnedTrait, Owner, OwnerScope};
+use ymir::oauth::{OwnedTrait, Owner, OwnerScope};
 use ymir::types::oauth::UserInfo;
-use common::batch_requests::BatchRequests;
-use common::errors::NotFoundExt;
-use common::paginated_spec::Cursor;
-use common::query::{MAX_BATCH_IDS, Page, Paginated, QueryFilter, Sort};
+use ymir::batch_requests::BatchRequests;
+use ymir::errors::NotFoundExt;
+use ymir::paginated_spec::Cursor;
+use ymir::query::{MAX_BATCH_IDS, Page, Paginated, QueryFilter, Sort};
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
 

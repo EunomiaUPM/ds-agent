@@ -16,10 +16,10 @@
  */
 
 use common::rdf::{RdfMessage, RdfProtocolTrait};
-use common::serde_utils::serialize_opt_hash_hex;
 use sea_orm::prelude::Json;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use ymir::serde_utils::serialize_opt_hash_hex;
 
 // Message envelope
 

@@ -32,8 +32,8 @@ use crate::entities::filters::SentGrantFilter;
 use crate::modules::VcRequesterModule;
 use crate::types::entities::ReachAuthority;
 use ymir::types::oauth::UserInfo;
-use common::paginated_spec::Paginated;
-use common::query::{QueryFilter, QuerySpec};
+use ymir::paginated_spec::Paginated;
+use ymir::query::{QueryFilter, QuerySpec};
 use common::routes::auth::vc_request;
 
 pub type VcRequesterQuery = QuerySpec<SentGrantFilter>;

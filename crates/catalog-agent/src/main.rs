@@ -17,7 +17,7 @@
 
 use catalog_agent::setup::CatalogAgentBoot;
 use catalog_agent::{SERVICE_BIG_NAME, SERVICE_NAME};
-use common::boot::cli::AgentCli;
+use ymir::boot::cli::AgentCli;
 use ymir::errors::Outcome;
 
 #[tokio::main]

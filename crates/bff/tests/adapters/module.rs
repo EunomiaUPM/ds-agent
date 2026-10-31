@@ -21,7 +21,7 @@ use std::sync::Arc;
 
 use axum::http::StatusCode;
 use bff::{AppContext, BffModule};
-use common::module_loader::service_module::ServiceModuleTrait;
+use ymir::module_loader::service_module::ServiceModuleTrait;
 use ymir::services::client::ClientTrait;
 use ymir::utils::http_client;
 

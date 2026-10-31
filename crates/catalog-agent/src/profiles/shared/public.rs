@@ -26,11 +26,11 @@ use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::{Json, Router};
-use common::oauth::OwnerScope;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
+use ymir::oauth::OwnerScope;
 use ymir::types::oauth::RolePath;
 
 use crate::cache::ProjectionKey;

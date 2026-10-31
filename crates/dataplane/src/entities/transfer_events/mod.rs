@@ -19,10 +19,10 @@
 
 use crate::data::sea_orm::orm::transfer_event;
 use crate::data::sea_orm::orm::transfer_event::{LogLevel, NewTransferEvent};
-use common::oauth::Owner;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urn::Urn;
+use ymir::oauth::Owner;
 
 /// Diagnostic event as returned by the API.
 #[derive(Debug, Serialize, Deserialize)]

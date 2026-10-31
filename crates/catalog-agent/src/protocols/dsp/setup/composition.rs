@@ -20,7 +20,7 @@
 use std::sync::Arc;
 
 use axum::Router;
-use common::module_loader::service_module::ServiceModuleTrait;
+use ymir::module_loader::service_module::ServiceModuleTrait;
 
 use crate::protocols::dsp::http::dsp::DspRouter;
 use crate::protocols::dsp::http::rpc::RpcRouter;

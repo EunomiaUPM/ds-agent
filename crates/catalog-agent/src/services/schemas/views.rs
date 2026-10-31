@@ -18,9 +18,9 @@
 //! What the schema API answers.
 
 use chrono::{DateTime, FixedOffset};
-use common::json_schema::{SampleReport, SchemaIssue};
 use serde::Serialize;
 use serde_json::Value;
+use ymir::json_schema::{SampleReport, SchemaIssue};
 use ymir::types::participants::Visibility;
 
 use crate::entities::schemas::DataSchema;

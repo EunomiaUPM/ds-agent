@@ -33,8 +33,8 @@ use crate::entities::filters::RecvGrantFilter;
 use crate::modules::GateKeeperModule;
 use common::facades::grants_facade::VerifiedPeer;
 use common::facades::VerifyTokenRequest;
-use common::paginated_spec::Paginated;
-use common::query::{QueryFilter, QuerySpec};
+use ymir::paginated_spec::Paginated;
+use ymir::query::{QueryFilter, QuerySpec};
 use common::routes::auth::gate;
 
 pub type GateKeeperQuery = QuerySpec<RecvGrantFilter>;

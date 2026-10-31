@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use ymir::config::types::HostConfig;
 
 use crate::config::types::traits::DatahubConfigTrait;
-use crate::secret::Secret;
+use ymir::secret::Secret;
 
 /// Datahub the catalog reads from when `is_datahub` is set.
 #[derive(Serialize, Deserialize, Clone, Debug)]

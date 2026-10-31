@@ -20,7 +20,7 @@
 use std::sync::Arc;
 
 use common::config::services::SsiAuthConfig;
-use common::config::types::traits::ConfigLoader;
+use ymir::config::traits::ConfigLoader;
 
 /// The `ssi_auth` section of `static/environment/config/dev/dev.provider.yaml`.
 pub fn config() -> Arc<SsiAuthConfig> {

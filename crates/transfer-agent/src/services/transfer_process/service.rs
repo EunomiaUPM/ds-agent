@@ -15,12 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::oauth::{Owner, OwnerScope};
+use ymir::oauth::{Owner, OwnerScope};
 use ymir::types::oauth::UserInfo;
-use common::batch_requests::BatchRequests;
-use common::errors::NotFoundExt;
-use common::paginated_spec::Cursor;
-use common::query::{MAX_BATCH_IDS, Page, Paginated, QueryFilter, Sort};
+use ymir::batch_requests::BatchRequests;
+use ymir::errors::NotFoundExt;
+use ymir::paginated_spec::Cursor;
+use ymir::query::{MAX_BATCH_IDS, Page, Paginated, QueryFilter, Sort};
 use std::collections::HashMap;
 use std::sync::Arc;
 use urn::Urn;

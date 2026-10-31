@@ -18,10 +18,10 @@
 //! Offer repository.
 
 use crate::data::sea_orm::orm::offer;
-use common::oauth::{Owner, OwnerScope};
+use ymir::oauth::{Owner, OwnerScope};
 use crate::data::sea_orm::orm::offer::NewOfferModel;
 use crate::entities::filters::OfferFilter;
-use common::paginated_spec::{Page, Sort};
+use ymir::paginated_spec::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::Outcome;

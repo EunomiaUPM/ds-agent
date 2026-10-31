@@ -19,11 +19,11 @@
 
 use std::sync::Arc;
 
-use common::oauth::OwnerScope;
 use common::rdf::{RdfGraph, RdfSyntax};
 use serde_json::{json, Value};
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
+use ymir::oauth::OwnerScope;
 use ymir::types::oauth::UserInfo;
 
 use crate::cache::ProjectionKey;

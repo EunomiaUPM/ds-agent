@@ -16,7 +16,7 @@
  */
 
 use urn::Urn;
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::Visibility;
 

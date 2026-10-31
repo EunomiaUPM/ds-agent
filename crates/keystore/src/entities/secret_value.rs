@@ -17,5 +17,5 @@
 
 //! Secret values that never print or serialize in clear.
 
-/// Secret JSON value; see [`Secret`](common::secret::Secret).
-pub type SecretValue = common::secret::Secret<serde_json::Value>;
+/// Secret JSON value; see [`Secret`](ymir::secret::Secret).
+pub type SecretValue = ymir::secret::Secret<serde_json::Value>;

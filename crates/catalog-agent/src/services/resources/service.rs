@@ -21,13 +21,13 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use common::errors::NotFoundExt;
-use common::oauth::{Owner, OwnerScope};
-use common::paginated_spec::{Cursor, Page, Paginated, Sort};
-use common::query::QueryFilter;
 use serde_json::{json, Value};
 use urn::Urn;
+use ymir::errors::NotFoundExt;
 use ymir::errors::{BadFormat, ErrorReason, Errors, Outcome};
+use ymir::oauth::{Owner, OwnerScope};
+use ymir::paginated_spec::{Cursor, Page, Paginated, Sort};
+use ymir::query::QueryFilter;
 use ymir::types::oauth::{RoleTrait, UserInfo};
 use ymir::types::participants::Visibility;
 

@@ -29,9 +29,9 @@ use transfer_agent::grpc::api::transfer_messages::{
 use chrono::Utc;
 use tonic::Code;
 
-use common::errors::ResourceError;
-use common::grpc::JsonValueExt;
-use common::query::Paginated;
+use ymir::errors::ResourceError;
+use ymir::grpc::JsonValueExt;
+use ymir::query::Paginated;
 use transfer_agent::entities::ids::{MessageId, TransferProcessId};
 use transfer_agent::entities::message_envelope::MessageEnvelope;
 use transfer_agent::entities::protocol::{ProtocolId, ProtocolMessageType};

@@ -26,11 +26,11 @@ use catalog_agent::entities::graph::ResourceGraph;
 use catalog_agent::entities::resource::CatalogResource;
 use catalog_agent::entities::resource_kind::ResourceKind;
 use catalog_agent::services::catalog_import::views::ImportAction;
-use common::oauth::Owner;
 use common::rdf::RdfSyntax;
 use common::test_utils::scopes::TestUsers;
 use serde_json::json;
 use urn::Urn;
+use ymir::oauth::Owner;
 
 use crate::support::builders::main_catalog;
 use crate::support::context::TestContext;

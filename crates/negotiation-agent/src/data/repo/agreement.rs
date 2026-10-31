@@ -18,10 +18,10 @@
 //! Agreement repository.
 
 use crate::data::sea_orm::orm::agreement;
-use common::oauth::{Owner, OwnerScope};
+use ymir::oauth::{Owner, OwnerScope};
 use crate::data::sea_orm::orm::agreement::{EditAgreementModel, NewAgreementModel};
 use crate::entities::filters::AgreementFilter;
-use common::paginated_spec::{Page, Sort};
+use ymir::paginated_spec::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::Outcome;

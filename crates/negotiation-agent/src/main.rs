@@ -15,9 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::boot::cli::AgentCli;
 use negotiation_agent::setup::NegotiationAgentBoot;
 use negotiation_agent::{SERVICE_BIG_NAME, SERVICE_NAME};
+use ymir::boot::cli::AgentCli;
 use ymir::errors::Outcome;
 
 #[tokio::main]

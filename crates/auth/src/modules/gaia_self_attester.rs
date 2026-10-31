@@ -18,9 +18,9 @@
 use crate::services::{HasGaiaSelfAttester, MayHaveEventBus};
 use crate::types::events::GaiaIssuedEvent;
 use async_trait::async_trait;
-use common::oauth::Owner;
 use ymir::data::entities::wallet::vc;
 use ymir::errors::Outcome;
+use ymir::oauth::Owner;
 use ymir::services::{HasIssuer, HasWallet};
 use ymir::types::issuance::VcBody;
 use ymir::types::oauth::{RoleTrait, UserInfo};

@@ -17,8 +17,8 @@
 
 //! Transition log repository.
 
-use common::oauth::OwnerScope;
 use std::sync::Arc;
+use ymir::oauth::OwnerScope;
 
 use crate::data::repo::dataplane_transfer_log::{
     DataplaneTransferLogsRepo, DataplaneTransferLogsRepoErrors,

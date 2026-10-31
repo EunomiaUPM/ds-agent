@@ -21,9 +21,9 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use common::oauth::OwnerScope;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
+use ymir::oauth::OwnerScope;
 
 use crate::entities::filters::ResourceFilter;
 use crate::entities::resource::CatalogResource;

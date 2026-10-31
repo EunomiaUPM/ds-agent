@@ -16,7 +16,7 @@
  */
 
 use crate::data::entities::connector_distro_relation;
-use common::oauth::{Owner, OwnerScope};
+use ymir::oauth::{Owner, OwnerScope};
 use ymir::errors::Outcome;
 
 #[mockall::automock]

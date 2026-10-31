@@ -29,7 +29,7 @@ use ymir::errors::{Errors, Outcome};
 use crate::flow::{FlowCx, FlowError, FlowGuardTrait, FlowTrait, GuardVerdict};
 use crate::validation::{codes, violation};
 
-crate::str_id!(IdempotencyKey, String);
+ymir::str_id!(IdempotencyKey, String);
 
 /// What the store knows about a key it has seen before.
 #[derive(Debug, Clone)]

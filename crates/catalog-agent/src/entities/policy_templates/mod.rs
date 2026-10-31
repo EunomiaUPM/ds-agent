@@ -26,7 +26,7 @@ use std::fmt::Display;
 
 use common::dsp_common::odrl::OdrlPolicyInfo;
 use common::eunomia::document::JsonLd;
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use ymir::errors::{Errors, Outcome};
@@ -176,7 +176,7 @@ pub struct NewPolicyTemplateDto {
     pub parameters: HashMap<String, ParameterDefinition>,
 }
 
-common::impl_owned!(PolicyTemplateDto);
+ymir::impl_owned!(PolicyTemplateDto);
 
 impl PolicyTemplateDto {
     /// `id@version`, the way references name it.

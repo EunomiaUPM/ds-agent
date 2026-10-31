@@ -17,12 +17,12 @@
 
 use crate::entities::commands::EditTransferProcessCommand;
 use crate::entities::ids::TransferProcessId;
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 use crate::entities::protocol::{
     ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
 };
 use chrono::{DateTime, Utc};
-use common::utils::json_merge;
+use ymir::utils::json_merge;
 
 /// TransferProcess domain entity
 #[derive(Debug, Clone)]

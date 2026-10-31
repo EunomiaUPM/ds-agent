@@ -21,8 +21,8 @@
 
 use std::time::Duration;
 
-use common::telemetry::Telemetry;
 use ymir::services::client::ClientExt;
+use ymir::telemetry::Telemetry;
 use ymir::utils::http_client;
 
 const SERVICE: &str = "otlp-export-smoke";

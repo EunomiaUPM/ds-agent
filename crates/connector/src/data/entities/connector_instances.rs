@@ -16,7 +16,7 @@
  */
 
 use sea_orm::entity::prelude::*;
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::Visibility;
 use sea_orm::ActiveValue;
@@ -62,7 +62,7 @@ impl Related<super::connector_templates::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-common::impl_owned!(Model);
+ymir::impl_owned!(Model);
 
 #[derive(Clone)]
 pub struct NewConnectorInstanceModel {

@@ -19,7 +19,7 @@
 //! (RDF) and read (typed), then everything resolved to send it (domain), and what it produced.
 
 use axum::extract::Request;
-use common::oauth::Owner;
+use ymir::oauth::Owner;
 use common::rdf::{RdfMessage, RdfProtocolTrait};
 use serde::Serialize;
 use serde_json::{json, Value};

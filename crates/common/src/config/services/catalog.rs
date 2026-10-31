@@ -21,10 +21,11 @@ use ymir::config::types::ConnectionConfig;
 use ymir::errors::Outcome;
 
 use crate::config::services::traits::CatalogConfigTrait;
-use crate::config::services::CommonConfig;
+use ymir::config::types::CommonConfig;
 use crate::config::types::cache::CacheConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
-use crate::config::types::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader, GlobalConfigLoader};
+use crate::config::types::traits::{CacheConfigTrait, GlobalConfigLoader};
+use ymir::config::traits::{CommonConfigTrait, ConfigLoader};
 use crate::config::types::DatahubConfig;
 
 /// `catalog` section: catalog agent config.

@@ -25,8 +25,8 @@ mod isolation;
 mod list_filters;
 mod list_paging;
 
-use common::batch_requests::BatchRequests;
-use common::query::{Page, Sort};
+use ymir::batch_requests::BatchRequests;
+use ymir::query::{Page, Sort};
 use common::test_utils::scopes::TestUsers;
 use transfer_agent::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
 use transfer_agent::entities::filters::TransferProcessFilter;

@@ -20,11 +20,11 @@
 //! Within a stage every rule runs and failures accumulate, whoever registered them; the next
 //! stage runs only if this one passed, so no rule sees a subject an earlier stage rejected.
 
-use crate::registry::{MultiRegistry, Origin, RegistrationId, RegistryKey};
 use crate::validation::stage::Stage;
 use crate::validation::validator::Validator;
 use crate::validation::violation::{codes, violation, Violations};
 use std::sync::Arc;
+use ymir::registry::{MultiRegistry, Origin, RegistrationId, RegistryKey};
 
 /// A validator and the stage it belongs to.
 pub struct StagedValidator<S> {

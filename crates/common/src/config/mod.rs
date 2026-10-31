@@ -62,7 +62,7 @@
 //!
 //! ```rust,ignore
 //! use common::config::services::TransferConfig;
-//! use common::config::types::traits::ConfigLoader;
+//! use ymir::config::traits::ConfigLoader;
 //!
 //! let config = TransferConfig::load("../../static/environment/config/dev/dev.provider.yaml")?;
 //! ```
@@ -78,7 +78,7 @@
 //! with the sections it needs.
 //!
 //! ```rust,ignore
-//! use common::config::types::traits::CommonConfigTrait;
+//! use ymir::config::traits::CommonConfigTrait;
 //! use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 //! use ymir::config::types::HostType;
 //!

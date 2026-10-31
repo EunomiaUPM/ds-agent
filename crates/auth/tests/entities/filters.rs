@@ -19,7 +19,7 @@
 
 use auth::entities::filters::{ParticipantFilter, RecvGrantFilter, SentGrantFilter};
 use chrono::{Duration, Utc};
-use common::query::{QueryFilter, QuerySpec, Sort};
+use ymir::query::{QueryFilter, QuerySpec, Sort};
 use ymir::types::gnap::grant_request::GrantKind;
 use ymir::types::gnap::GrantStatus;
 use ymir::types::participants::ParticipantType;

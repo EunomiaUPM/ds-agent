@@ -20,9 +20,9 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use common::oauth::{OwnedTrait, Owner};
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
+use ymir::oauth::{OwnedTrait, Owner};
 
 use crate::data::sea_orm::orm::negotiation_process::Model;
 use crate::entities::negotiation_process::NegotiationCorrelation;

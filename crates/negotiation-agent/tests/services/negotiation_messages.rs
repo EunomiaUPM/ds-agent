@@ -19,9 +19,9 @@
 
 use crate::support::context::TestContext;
 use chrono::Utc;
-use common::batch_requests::BatchRequests;
-use common::query::{Page, Sort};
-use common::oauth::OwnerScope;
+use ymir::batch_requests::BatchRequests;
+use ymir::query::{Page, Sort};
+use ymir::oauth::OwnerScope;
 use common::test_utils::scopes::TestUsers;
 use negotiation_agent::data::sea_orm::orm::negotiation_message::Model as NegotiationMessageModel;
 use negotiation_agent::data::repo::agreement::MockAgreementRepoTrait;

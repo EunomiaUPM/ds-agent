@@ -20,7 +20,7 @@
 use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CatalogConfig;
 use common::facades::AuthPorts;
-use common::module_loader::root_context::RootContext;
+use ymir::module_loader::root_context::RootContext;
 
 /// Ports the catalog agent consumes; today auth.
 #[derive(Clone)]

@@ -21,9 +21,9 @@
 use std::sync::{Arc, Mutex};
 
 use axum::Router;
-use common::boot::workers::BackgroundWorker;
+use ymir::boot::workers::BackgroundWorker;
 use common::dsp_common::paths;
-use common::module_loader::service_module::ServiceModuleTrait;
+use ymir::module_loader::service_module::ServiceModuleTrait;
 use crate::protocols::dsp::http::bff::TransferBffRouter;
 use crate::protocols::dsp::http::dsp::DspRouter;
 use crate::protocols::dsp::http::rpc::TransferRpcRouter;

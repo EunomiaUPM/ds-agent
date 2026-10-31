@@ -22,7 +22,7 @@ mod isolation;
 mod list;
 mod single;
 
-use common::query::{Page, Sort};
+use ymir::query::{Page, Sort};
 use common::test_utils::scopes::TestUsers;
 use transfer_agent::entities::commands::NewTransferMessageCommand;
 use transfer_agent::entities::filters::TransferMessageFilter;

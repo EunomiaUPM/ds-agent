@@ -18,7 +18,7 @@
 //! Domain filters for negotiation processes, messages, agreements, and offers.
 
 use chrono::{DateTime, Utc};
-use common::query::{QueryFilter, validate_date_range};
+use ymir::query::{QueryFilter, validate_date_range};
 use serde::{Deserialize, Serialize};
 use ymir::errors::Outcome;
 

@@ -20,9 +20,9 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
-use common::errors::ResourceError;
-use common::grpc::JsonValueExt;
-use common::paginated_spec::Paginated;
+use ymir::errors::ResourceError;
+use ymir::grpc::JsonValueExt;
+use ymir::paginated_spec::Paginated;
 use common::test_utils::grpc::{GrpcRequests, TENANT};
 use negotiation_agent::data::sea_orm::orm::negotiation_process;
 use negotiation_agent::grpc::api::negotiation_agent::negotiation_agent_processes_service_server::NegotiationAgentProcessesService;

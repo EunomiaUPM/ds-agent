@@ -24,7 +24,7 @@ use axum::body::Bytes;
 use axum::http::HeaderMap;
 use chrono::{DateTime, Duration, Utc};
 use common::facades::grants_facade::VerifiedPeer;
-use common::paginated_spec::{Cursor, Page, Paginated, Sort};
+use ymir::paginated_spec::{Cursor, Page, Paginated, Sort};
 use serde_json::{json, Value};
 use ymir::data::entities::received::grant;
 use ymir::errors::Errors;

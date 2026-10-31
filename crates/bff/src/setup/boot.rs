@@ -15,14 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::boot::BootstrapServiceTrait;
 use common::config::services::GatewayConfig;
-use common::module_loader::root_context::RootContext;
-use common::module_loader::service_composer::ServiceComposer;
 use common::well_known::WellKnownModule;
 use sea_orm_migration::MigrationTrait;
+use ymir::boot::BootstrapServiceTrait;
 use ymir::config::traits::CommonConfigTrait;
 use ymir::errors::Outcome;
+use ymir::module_loader::root_context::RootContext;
+use ymir::module_loader::service_composer::ServiceComposer;
 
 use crate::setup::composition::BffModule;
 

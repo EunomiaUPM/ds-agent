@@ -8,7 +8,6 @@ export default {
     "./src/**/*.{ts,tsx,js,jsx}",
     "./../shared/src/**/*.{ts,tsx,js,jsx}",
     "./../shared/index.css",
-    "./../../../ymir/ui/src/**/*.{ts,tsx}",
-    "./../../../ymir/ui/dist/**/*.js",
+    "./../node_modules/@eunomia/ui/dist/**/*.js",
   ],
 };

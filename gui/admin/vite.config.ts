@@ -11,7 +11,7 @@ export default defineConfig(() => {
     base: "/admin/",
     plugins: [react(), tsconfigPaths(), TanStackRouterVite({ autoCodeSplitting: true })],
     publicDir: path.resolve(__dirname, "../shared/public"),
-    // @eunomia/ui is linked from ../../ymir/ui, which has its own node_modules: one copy of each.
+    // One copy of React and TanStack whichever package imports them.
     resolve: {
       dedupe: [
         "react",

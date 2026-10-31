@@ -8,7 +8,7 @@ export default {
     "./src/**/*.{ts,tsx,js,jsx}",
     "./../shared/src/**/*.{ts,tsx,js,jsx}",
     "./../shared/index.css",
-    "./../packages/ui/src/**/*.{ts,tsx}",
-    "./../packages/ui/dist/**/*.js",
+    "./../../../ymir/ui/src/**/*.{ts,tsx}",
+    "./../../../ymir/ui/dist/**/*.js",
   ],
 };

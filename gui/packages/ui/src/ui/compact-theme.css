@@ -1,6 +1,0 @@
-/* Technical Compact overrides */
-@layer components {
-  .gridColsLayout {
-    @apply grid grid-cols-1 md:grid-cols-2 gap-3;
-  }
-}

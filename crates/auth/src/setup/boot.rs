@@ -20,7 +20,9 @@ use common::boot::BootstrapServiceTrait;
 use common::config::services::SsiAuthConfig;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
+use common::well_known::WellKnownModule;
 use sea_orm_migration::MigrationTrait;
+use ymir::config::traits::CommonConfigTrait;
 use ymir::errors::Outcome;
 
 /// Standalone SSI auth agent: wallet, GNAP gatekeeper, verifier and issuer.
@@ -30,6 +32,10 @@ pub struct AuthBoot;
 impl BootstrapServiceTrait for AuthBoot {
     type Config = SsiAuthConfig;
 
+    fn banner(big_name: &str) -> String {
+        common::info_banner::banner(big_name)
+    }
+
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         AuthModule::migrations()
     }
@@ -37,6 +43,11 @@ impl BootstrapServiceTrait for AuthBoot {
     async fn compose(config: &SsiAuthConfig, root: &RootContext) -> Outcome<ServiceComposer> {
         let auth = AuthModule::compose(config, root, None).await?;
         let ports = auth.local_ports();
-        Ok(ServiceComposer::new().register(auth).with_auth_ports(ports))
+        Ok(ServiceComposer::new()
+            .register(auth)
+            .register(WellKnownModule::new(
+                config.common(),
+                Some(ports.mates.clone()),
+            )?))
     }
 }

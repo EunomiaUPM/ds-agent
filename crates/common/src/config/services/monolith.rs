@@ -21,7 +21,7 @@ use ymir::errors::Outcome;
 use crate::config::services::traits::MonolithConfigTrait;
 use crate::config::services::CommonConfig;
 use crate::config::types::cache::CacheConfig;
-use crate::config::types::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader};
+use crate::config::types::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader, GlobalConfigLoader};
 
 /// `monolith` section: drives the process when every agent runs together.
 #[derive(Serialize, Deserialize, Clone, Debug)]

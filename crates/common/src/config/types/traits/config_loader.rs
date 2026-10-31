@@ -15,28 +15,16 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::path::PathBuf;
-
-use serde::de::DeserializeOwned;
+use ymir::config::traits::ConfigLoader;
 use ymir::errors::Outcome;
-use ymir::utils::read;
 
 use crate::config::ApplicationConfig;
-use crate::utils::parse_yaml;
 
-/// Loading an agent config from a YAML file.
-pub trait ConfigLoader: Sized + DeserializeOwned {
-    /// Reads the agent's section of the whole file, or the file as that section alone.
-    fn load(env_file: &str) -> Outcome<Self>;
-    /// Reads the file as a full `ApplicationConfig`.
+/// Reads the whole ds-agent file, from which each agent takes its own section.
+pub trait GlobalConfigLoader: ConfigLoader {
     fn global_load(env_file: &str) -> Outcome<ApplicationConfig> {
         ApplicationConfig::load(env_file)
     }
-
-    /// Reads the file as this config alone; a relative path is resolved from the `common` crate.
-    fn local_load(env_file: &str) -> Outcome<Self> {
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(env_file);
-        let data = read(path)?;
-        parse_yaml(&data)
-    }
 }
+
+impl<T: ConfigLoader> GlobalConfigLoader for T {}

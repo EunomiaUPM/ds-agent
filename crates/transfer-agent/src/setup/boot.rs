@@ -19,6 +19,8 @@ use common::boot::BootstrapServiceTrait;
 use common::config::services::TransferConfig;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
+use common::well_known::WellKnownModule;
+use ymir::config::traits::CommonConfigTrait;
 // The built-in OAuth crate is disabled (identity from Keycloak or the static user).
 // use oauth::setup::{AdminSeeder, OAuthModule};
 use sea_orm_migration::MigrationTrait;
@@ -33,6 +35,10 @@ pub struct TransferBoot;
 impl BootstrapServiceTrait for TransferBoot {
     type Config = TransferConfig;
 
+    fn banner(big_name: &str) -> String {
+        common::info_banner::banner(big_name)
+    }
+
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         // [OAuthModule::migrations(), TransferAgentModule::migrations()]
         //     .into_iter()
@@ -46,7 +52,10 @@ impl BootstrapServiceTrait for TransferBoot {
         Ok(ServiceComposer::new()
             // .register(OAuthModule::compose(config.common(), root, None))
             .register(TransferAgentModule::compose(config, root, None, &ports))
-            .with_auth_ports(ports.auth.clone()))
+            .register(WellKnownModule::new(
+                config.common(),
+                Some(ports.auth.mates.clone()),
+            )?))
     }
 
     // The OAuth admin seeder went with the built-in OAuth crate.

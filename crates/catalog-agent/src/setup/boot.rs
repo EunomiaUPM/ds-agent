@@ -19,7 +19,9 @@ use common::boot::BootstrapServiceTrait;
 use common::config::services::CatalogConfig;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
+use common::well_known::WellKnownModule;
 use sea_orm_migration::MigrationTrait;
+use ymir::config::traits::CommonConfigTrait;
 use ymir::errors::Outcome;
 
 use crate::setup::{CatalogAgentModule, CatalogPorts};
@@ -31,6 +33,10 @@ pub struct CatalogAgentBoot;
 impl BootstrapServiceTrait for CatalogAgentBoot {
     type Config = CatalogConfig;
 
+    fn banner(big_name: &str) -> String {
+        common::info_banner::banner(big_name)
+    }
+
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         CatalogAgentModule::migrations()
     }
@@ -39,6 +45,9 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
         let ports = CatalogPorts::remote(config, root);
         Ok(ServiceComposer::new()
             .register(CatalogAgentModule::compose(config, root, None, &ports).await?)
-            .with_auth_ports(ports.auth.clone()))
+            .register(WellKnownModule::new(
+                config.common(),
+                Some(ports.auth.mates.clone()),
+            )?))
     }
 }

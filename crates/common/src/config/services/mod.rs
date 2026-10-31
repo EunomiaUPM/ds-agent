@@ -18,7 +18,6 @@
 //! One config type per agent, with its accessor trait.
 
 mod catalog;
-mod common;
 mod contracts;
 mod gateway;
 mod monolith;
@@ -27,9 +26,9 @@ pub mod traits;
 mod transfer;
 
 pub use catalog::CatalogConfig;
-pub use common::CommonConfig;
 pub use contracts::ContractsConfig;
 pub use gateway::GatewayConfig;
 pub use monolith::MonolithConfig;
 pub use ssi_auth::SsiAuthConfig;
 pub use transfer::TransferConfig;
+pub use ymir::config::types::CommonConfig;

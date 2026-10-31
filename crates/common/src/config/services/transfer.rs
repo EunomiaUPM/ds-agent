@@ -24,7 +24,7 @@ use crate::config::services::traits::TransferConfigTrait;
 use crate::config::services::CommonConfig;
 use crate::config::types::cache::CacheConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
-use crate::config::types::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader};
+use crate::config::types::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader, GlobalConfigLoader};
 
 /// `transfer` section: transfer agent config.
 #[derive(Serialize, Deserialize, Clone, Debug)]

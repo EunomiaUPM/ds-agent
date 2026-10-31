@@ -24,13 +24,12 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
-use ymir::types::oauth::UserInfo;
-use common::errors::CommonErrors;
 use common::eunomia::document::JsonLd;
 use common::query::QuerySpec;
-use std::sync::Arc;
-use ymir::utils::extract_payload;
 use common::routes::connector as routes;
+use std::sync::Arc;
+use ymir::types::oauth::UserInfo;
+use ymir::utils::extract_payload;
 
 #[derive(Clone)]
 pub struct ConnectorTemplateRouter {
@@ -55,7 +54,10 @@ impl ConnectorTemplateRouter {
         Router::new()
             .route(routes::templates::ROOT, get(Self::handle_get_all_templates))
             .route(routes::templates::ROOT, post(Self::handle_create_template))
-            .route(routes::templates::BY_ID, get(Self::handle_get_templates_by_id))
+            .route(
+                routes::templates::BY_ID,
+                get(Self::handle_get_templates_by_id),
+            )
             .route(
                 routes::templates::BY_NAME_AND_VERSION,
                 get(Self::handle_get_template_by_name_and_version),
@@ -123,7 +125,8 @@ impl ConnectorTemplateRouter {
         {
             Ok(Some(template)) => (StatusCode::OK, Json(JsonLd(template))).into_response(),
             Ok(None) => {
-                let err = CommonErrors::missing_resource_new("template", "Template not found");
+                let err =
+                    ymir::errors::Errors::missing_resource("template", "Template not found", None);
                 err.into_response()
             }
             Err(err) => err.into_response(),

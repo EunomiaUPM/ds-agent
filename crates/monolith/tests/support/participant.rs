@@ -140,8 +140,7 @@ impl Participant {
         let composer = match transfer {
             Some(transfer) => composer.register(transfer),
             None => composer,
-        }
-        .with_auth_ports(auth.clone());
+        };
 
         let (before, after): (Vec<_>, Vec<_>) = composer
             .seeders()

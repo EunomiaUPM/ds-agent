@@ -18,7 +18,6 @@
 //! Accessor traits shared by the agent configs.
 
 mod cache_trait;
-mod common_trait;
 mod config_loader;
 mod datahub;
 mod entity_client;
@@ -27,10 +26,10 @@ mod min_known;
 mod oid4vp_service;
 
 pub use cache_trait::CacheConfigTrait;
-pub use common_trait::*;
-pub use config_loader::ConfigLoader;
+pub use config_loader::GlobalConfigLoader;
 pub use datahub::DatahubConfigTrait;
 pub use entity_client::EntityClientTrait;
 pub use gaia::GaiaConfigTrait;
 pub use min_known::MinKnownConfigTrait;
 pub use oid4vp_service::Oid4VpServiceTrait;
+pub use ymir::config::traits::{CommonConfigTrait, ConfigLoader};

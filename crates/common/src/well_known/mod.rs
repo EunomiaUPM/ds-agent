@@ -17,9 +17,8 @@
 
 //! The `.well-known/dspace-version` surface and the RPC that reads it from a peer.
 //!
-//! Every agent process serves the version document at its root: the boot merges
-//! [`WellKnownRoot::get_well_known_router`] into the HTTP plane, so modules never mount it
-//! themselves. The same router exposes two RPC endpoints the local side uses to discover where
+//! Every agent process serves the version document at its root: each agent's `compose`
+//! registers a [`WellKnownModule`], which mounts [`WellKnownRoot::get_well_known_router`]. The same router exposes two RPC endpoints the local side uses to discover where
 //! a known peer serves DSP 2025-1, by fetching that peer's own version document.
 //!
 //! ## 1. What it serves
@@ -45,18 +44,15 @@
 //!
 //! ## 2. Mounting it
 //!
-//! The boot does this already. `mates` is the process's resolved participant port; without it
-//! the router reads participants from the auth agent over HTTP.
+//! `mates` is the process's resolved participant port; without it the router reads
+//! participants from the auth agent over HTTP.
 //!
 //! ```rust,ignore
-//! use common::well_known::WellKnownRoot;
+//! use common::well_known::WellKnownModule;
 //!
-//! let router = composer
-//!     .http_router()
-//!     .merge(WellKnownRoot::get_well_known_router(
-//!         &MinKnownConfig::from(common),
-//!         composer.auth_ports().map(|p| p.mates.clone()),
-//!     )?);
+//! ServiceComposer::new()
+//!     .register(agent)
+//!     .register(WellKnownModule::new(config.common(), Some(ports.auth.mates.clone()))?)
 //! ```
 //!
 //! ## 3. Finding a peer's DSP endpoint
@@ -87,8 +83,11 @@ use crate::well_known::router::WellKnownRouter;
 use crate::well_known::rpc::rpc::WellKnownRPCService;
 
 pub mod dspace_version;
+mod module;
 pub mod router;
 pub mod rpc;
+
+pub use module::WellKnownModule;
 
 /// Entry point the boot uses to build the well-known router.
 pub struct WellKnownRoot;

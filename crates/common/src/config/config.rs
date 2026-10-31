@@ -15,8 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::path::PathBuf;
-
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 use ymir::config::traits::ConnectionConfigTrait;
@@ -121,12 +119,10 @@ impl ApplicationConfig {
             .ok_or_else(|| Errors::parse(format!("config file lacks the `{name}` section"), None))
     }
 
-    /// Reads and parses the YAML file; a relative path is resolved from the `common` crate.
+    /// Reads and parses the YAML file; a relative path is resolved from the working directory.
     pub fn load(env_file: &str) -> Outcome<Self> {
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(env_file);
-        debug!("Config file path: {}", path.display());
-
-        let data = read(path)?;
+        debug!("Config file path: {}", env_file);
+        let data = read(env_file)?;
         serde_norway::from_str(&data)
             .map_err(|e| Errors::parse("Unable to parse config file", Some(Box::new(e))))
     }

@@ -23,7 +23,7 @@ use ymir::errors::Outcome;
 use crate::config::services::traits::ContractsConfigTrait;
 use crate::config::services::CommonConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
-use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
+use crate::config::types::traits::{CommonConfigTrait, ConfigLoader, GlobalConfigLoader};
 
 /// `contracts` section: negotiation agent config.
 #[derive(Serialize, Deserialize, Clone, Debug)]

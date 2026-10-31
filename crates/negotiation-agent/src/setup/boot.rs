@@ -19,7 +19,9 @@ use common::boot::BootstrapServiceTrait;
 use common::config::services::ContractsConfig;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
+use common::well_known::WellKnownModule;
 use sea_orm_migration::MigrationTrait;
+use ymir::config::traits::CommonConfigTrait;
 use ymir::errors::Outcome;
 
 use crate::setup::{NegotiationAgentModule, NegotiationPorts};
@@ -31,15 +33,21 @@ pub struct NegotiationAgentBoot;
 impl BootstrapServiceTrait for NegotiationAgentBoot {
     type Config = ContractsConfig;
 
+    fn banner(big_name: &str) -> String {
+        common::info_banner::banner(big_name)
+    }
+
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         NegotiationAgentModule::migrations()
     }
-
 
     async fn compose(config: &ContractsConfig, root: &RootContext) -> Outcome<ServiceComposer> {
         let ports = NegotiationPorts::remote(config, root);
         Ok(ServiceComposer::new()
             .register(NegotiationAgentModule::compose(config, root, None, &ports).await?)
-            .with_auth_ports(ports.auth.clone()))
+            .register(WellKnownModule::new(
+                config.common(),
+                Some(ports.auth.mates.clone()),
+            )?))
     }
 }

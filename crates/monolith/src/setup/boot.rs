@@ -22,7 +22,9 @@ use common::config::types::traits::CacheConfigTrait;
 use common::config::ApplicationConfig;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
+use common::well_known::WellKnownModule;
 use sea_orm_migration::MigrationTrait;
+use ymir::config::traits::CommonConfigTrait;
 use ymir::errors::Outcome;
 
 use crate::setup::composition::MonolithModule;
@@ -33,6 +35,10 @@ pub struct CoreBoot;
 #[async_trait::async_trait]
 impl BootstrapServiceTrait for CoreBoot {
     type Config = ApplicationConfig;
+
+    fn banner(big_name: &str) -> String {
+        common::info_banner::banner(big_name)
+    }
 
     const MIGRATION_TABLE: &'static str = "seaql_ds_agent_migrations";
 
@@ -45,7 +51,10 @@ impl BootstrapServiceTrait for CoreBoot {
         let ports = monolith.auth_ports();
         Ok(ServiceComposer::new()
             .register(monolith)
-            .with_auth_ports(ports))
+            .register(WellKnownModule::new(
+                config.common(),
+                Some(ports.mates.clone()),
+            )?))
     }
 
     /// Infrastructure only, straight to the DB; module seeders come from the composed graph.

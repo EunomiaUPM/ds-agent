@@ -120,9 +120,12 @@ impl TransferPorts {
         self.connectors
             .get_instance_by_distribution(&distribution_id)
             .await?
+            // A distribution nobody bound a connector to cannot be transferred: the peer gets a
+            // reason it can act on, not an internal error.
             .ok_or_else(|| {
-                Errors::crazy(
-                    format!("No connector instance found for distribution {distribution_id}"),
+                Errors::missing_resource(
+                    distribution_id.to_string(),
+                    format!("distribution {distribution_id} has no connector to serve it"),
                     None,
                 )
             })

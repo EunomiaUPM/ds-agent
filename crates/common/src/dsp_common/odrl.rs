@@ -278,7 +278,10 @@ pub enum OdrlConstraint {
 }
 
 /// Logical combination of constraints; exactly one operator must be set.
+/// Unknown fields are refused, so an atomic constraint that fails to parse is an error
+/// instead of an empty `{}` here.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct OdrlLogicalConstraint {
     #[serde(rename = "and")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -356,11 +359,13 @@ pub enum Operator {
     Neq,
 }
 
-/// Right operand of a constraint: a string, an object or a list.
+/// Right operand of a constraint: a string, a number, a boolean, an object or a list.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum OdrlRightOperand {
     Str(String),
+    Number(serde_json::Number),
+    Bool(bool),
     Object(serde_json::Map<String, Value>),
     Array(Vec<Value>),
 }

@@ -165,6 +165,27 @@ fn stored_agreement_reads_rules_leniently() {
     assert_eq!(ruled.permission.map(|p| p.len()), Some(1));
 }
 
+/// A numeric right operand (`odrl:count lteq 10`) stays a comparison instead of an empty `{}`.
+#[test]
+fn numeric_right_operand_keeps_the_constraint() {
+    use crate::dsp_common::odrl::{OdrlConstraint, OdrlRightOperand};
+    let constraint: OdrlConstraint =
+        serde_json::from_value(json!({"leftOperand": "odrl:count", "operator": "lteq", "rightOperand": 10}))
+            .unwrap();
+    let OdrlConstraint::Atomic(atomic) = &constraint else { panic!("parsed as {constraint:?}") };
+    assert_eq!(atomic.right_operand, OdrlRightOperand::Number(10.into()));
+    assert_eq!(serde_json::to_value(&constraint).unwrap()["rightOperand"], json!(10));
+}
+
+/// A malformed constraint is refused rather than read as an empty logical one.
+#[test]
+fn malformed_constraint_is_an_error() {
+    let parsed = serde_json::from_value::<crate::dsp_common::odrl::OdrlConstraint>(json!({
+        "leftOperand": "odrl:count", "operator": "approximately", "rightOperand": "10"
+    }));
+    assert!(parsed.is_err());
+}
+
 /// A message's pids must be the stored ones on both sides, absent ones included.
 #[test]
 fn process_pids_must_match_the_stored_ones() {

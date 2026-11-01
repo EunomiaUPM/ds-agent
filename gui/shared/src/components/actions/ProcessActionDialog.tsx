@@ -85,13 +85,13 @@ export const ProcessActionDialog: FC<ProcessActionDialogProps> = ({
     <Dialog open={open} onOpenChange={setOpen}>
       {/* Trigger button */}
       <DialogTrigger asChild>
-        <Button variant={variant} size={tiny ? "sm" : undefined}>
+        <Button variant={variant} size={tiny ? "xs" : undefined}>
           {label}
         </Button>
       </DialogTrigger>
 
-      {/* Dialog content - receives process data */}
-      <DialogComponent process={process} onClose={() => setOpen(false)} />
+      {/* Mounted only while open: its queries would otherwise run once per table row. */}
+      {open && <DialogComponent process={process} onClose={() => setOpen(false)} />}
     </Dialog>
   );
 };

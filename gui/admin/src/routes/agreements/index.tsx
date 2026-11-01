@@ -11,6 +11,7 @@ import { ParticipantLabel } from "@eunomia/ui";
 import { DatasetLabel } from "shared/src/components/identity/DatasetLabel";
 import { Identifier } from "@eunomia/ui";
 import { useParticipantDirectory } from "shared/src/data/useParticipantDirectory";
+import { useDatasetDirectory } from "shared/src/data/useDatasetDirectory";
 import { useTableQueryParams } from "@eunomia/ui";
 
 export const Route = createFileRoute("/agreements/")({
@@ -37,6 +38,7 @@ function RouteComponent() {
     query: { placeholderData: keepPreviousData },
   });
   const page = response?.status === 200 ? response.data : undefined;
+  const datasets = useDatasetDirectory(page?.items.map((a) => a.target) ?? []);
 
   return (
     <PageLayout>
@@ -46,6 +48,7 @@ function RouteComponent() {
       />
       <DataTable<AgreementDto>
         data={page}
+        className="table-fixed [&_td]:overflow-hidden"
         serverSide
         loading={isFetching}
         queryParams={params}
@@ -69,7 +72,7 @@ function RouteComponent() {
         columns={[
           {
             header: "Dataset",
-            cell: (a) => <DatasetLabel id={a.target} />,
+            cell: (a) => <DatasetLabel id={a.target} directory={datasets} />,
           },
           {
             header: "Counterparty",
@@ -86,6 +89,7 @@ function RouteComponent() {
           },
           {
             header: "My role",
+            className: "w-28",
             cell: (a) => {
               const r = isSelf(a.providerParticipantId) ? "Provider" : "Consumer";
               return (
@@ -97,6 +101,7 @@ function RouteComponent() {
           },
           {
             header: "State",
+            className: "w-32",
             cell: (a) => (
               <Badge variant="status" state={a.state} size="sm">
                 {a.state}
@@ -109,6 +114,7 @@ function RouteComponent() {
           },
           {
             header: "Agreed",
+            className: "w-36 whitespace-nowrap",
             accessorKey: "createdAt",
             sortKey: "created_at",
             cell: (a) => <FormatDate date={a.createdAt} />,

@@ -132,11 +132,11 @@ export const ContractNegotiationBusinessActions = ({
           ))}
           {isTerminalState() && !showGoToAgreement() && <NoFurtherActions />}
           {showGoToAgreement() && (
-            <Link to="/agreements/$agreementId" params={{ agreementId: agreementId! }}>
-              <Button variant="link" className="gap-1.5">
+            <Button asChild variant="link" size={tiny ? "xs" : undefined} className="gap-1.5">
+              <Link to="/agreements/$agreementId" params={{ agreementId: agreementId! }}>
                 See agreement <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           )}
           {showSwitchToStandard() && (
             <span className="text-xs text-ink/40">Next step in Standard mode</span>

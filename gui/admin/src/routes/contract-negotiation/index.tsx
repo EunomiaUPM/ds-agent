@@ -63,6 +63,7 @@ function NegotiationsPage() {
       />
       <DataTable<NegotiationProcessDto>
         data={page}
+        className="table-fixed [&_td]:overflow-hidden"
         serverSide
         loading={isFetching}
         queryParams={params}
@@ -97,6 +98,7 @@ function NegotiationsPage() {
           },
           {
             header: "My role",
+            className: "w-28",
             cell: (p) => (
               <Badge variant="role" dsrole={p.role} size="sm">
                 {p.role}
@@ -105,6 +107,7 @@ function NegotiationsPage() {
           },
           {
             header: "State",
+            className: "w-32",
             cell: (p) => (
               <Badge variant="status" state={p.state} size="sm">
                 {p.state}
@@ -114,21 +117,23 @@ function NegotiationsPage() {
           { header: "Negotiation", cell: (p) => <Identifier value={p.id} /> },
           {
             header: "Last change",
+            className: "w-28",
             cell: (p) => <RelativeTime date={p.updatedAt} className="whitespace-nowrap text-ink/70" />,
           },
           {
             header: "Started",
+            className: "w-36 whitespace-nowrap",
             accessorKey: "createdAt",
             sortKey: "created_at",
             cell: (p) => <FormatDate date={p.createdAt} />,
           },
           {
             header: "",
-            className: "text-right",
+            className: "w-64 text-right",
             cell: (p) => (
               <span
                 onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                className="inline-flex justify-end"
+                className="inline-flex h-7 items-center justify-end"
               >
                 {mode === "business" ? (
                   <ContractNegotiationBusinessActions process={p} tiny={true} />

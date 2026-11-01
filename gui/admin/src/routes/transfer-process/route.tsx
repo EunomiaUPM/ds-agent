@@ -1,6 +1,5 @@
 import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
 import { Heading } from "@eunomia/ui";
-import { getGetTransferProcessesQueryOptions } from "shared/src/data/orval/transfers/transfers";
 
 const NotFound = () => {
   return <div>not found</div>;
@@ -30,7 +29,4 @@ const RouteComponent = () => {
 export const Route = createFileRoute("/transfer-process")({
   component: RouteComponent,
   notFoundComponent: NotFound,
-  loader: ({ context: { queryClient } }) => {
-    return queryClient.ensureQueryData(getGetTransferProcessesQueryOptions());
-  },
 });

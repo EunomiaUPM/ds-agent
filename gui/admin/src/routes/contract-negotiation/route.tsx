@@ -1,6 +1,5 @@
 import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
 import { Heading } from "@eunomia/ui";
-import { getGetNegotiationProcessesQueryOptions } from "shared/src/data/orval/negotiations/negotiations";
 
 const NotFound = () => {
   return <div>not found</div>;
@@ -28,7 +27,4 @@ const RouteComponent = () => {
 export const Route = createFileRoute("/contract-negotiation")({
   component: RouteComponent,
   notFoundComponent: NotFound,
-  loader: async ({ context: { queryClient } }) => {
-    return queryClient.ensureQueryData(getGetNegotiationProcessesQueryOptions());
-  },
 });

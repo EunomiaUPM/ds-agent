@@ -11,7 +11,9 @@ import { FormatDate, RelativeTime } from "@eunomia/ui";
 import { SegmentedControl } from "@eunomia/ui";
 import { ParticipantLabel } from "@eunomia/ui";
 import { Identifier } from "@eunomia/ui";
-import { AgreementDatasetLabel } from "shared/src/components/identity/AgreementDatasetLabel";
+import { DatasetLabel } from "shared/src/components/identity/DatasetLabel";
+import { useAgreementDirectory } from "shared/src/data/useAgreementDirectory";
+import { useDatasetDirectory } from "shared/src/data/useDatasetDirectory";
 import { TransferProcessActions } from "shared/src/components/actions/TransferProcessActions";
 import { TransferProcessBusinessActions } from "shared/src/components/actions/TransferProcessBusinessActions";
 import { ACTIONS_MODE_OPTIONS, useActionsMode } from "shared/src/hooks/useActionsMode";
@@ -36,6 +38,9 @@ function TransfersPage() {
     query: { placeholderData: keepPreviousData },
   });
   const page = data?.status === 200 ? data.data : undefined;
+  // Transfers carry only the agreement id: agreements then datasets, one batch call each.
+  const agreements = useAgreementDirectory(page?.items.map((tp) => tp.correlation.agreementId) ?? []);
+  const datasets = useDatasetDirectory([...agreements.byId.values()].map((a) => a.target));
 
   return (
     <PageLayout>
@@ -53,6 +58,7 @@ function TransfersPage() {
       />
       <DataTable<TransferProcessDto>
         data={page}
+        className="table-fixed [&_td]:overflow-hidden"
         serverSide
         loading={isFetching}
         queryParams={params}
@@ -86,9 +92,20 @@ function TransfersPage() {
         columns={[
           {
             header: "Dataset",
-            cell: (tp) => (
-              <AgreementDatasetLabel agreementId={tp.correlation.agreementId} compact />
-            ),
+            cell: (tp) => {
+              const agreement = agreements.byId.get(tp.correlation.agreementId ?? "");
+              if (!agreements.isLoading && !agreement) {
+                return <Identifier value={tp.correlation.agreementId} />;
+              }
+              return (
+                <DatasetLabel
+                  id={agreement?.target}
+                  loading={agreements.isLoading}
+                  directory={datasets}
+                  compact
+                />
+              );
+            },
           },
           {
             header: "Counterparty",
@@ -96,6 +113,7 @@ function TransfersPage() {
           },
           {
             header: "My role",
+            className: "w-28",
             cell: (tp) => {
               const role = tp.role === "provider" ? "Provider" : "Consumer";
               return (
@@ -107,6 +125,7 @@ function TransfersPage() {
           },
           {
             header: "State",
+            className: "w-32",
             cell: (tp) => (
               <Badge variant="status" state={tp.state} size="sm">
                 {tp.state}
@@ -116,21 +135,23 @@ function TransfersPage() {
           { header: "Transfer", cell: (tp) => <Identifier value={tp.id} /> },
           {
             header: "Last change",
+            className: "w-28",
             cell: (tp) => <RelativeTime date={tp.updatedAt} className="whitespace-nowrap text-ink/70" />,
           },
           {
             header: "Requested",
+            className: "w-36 whitespace-nowrap",
             accessorKey: "createdAt",
             sortKey: "created_at",
             cell: (tp) => <FormatDate date={tp.createdAt} />,
           },
           {
             header: "",
-            className: "text-right",
+            className: "w-64 text-right",
             cell: (tp) => (
               <span
                 onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                className="inline-flex justify-end"
+                className="inline-flex h-7 items-center justify-end"
               >
                 {mode === "business" ? (
                   <TransferProcessBusinessActions process={tp} tiny={true} />

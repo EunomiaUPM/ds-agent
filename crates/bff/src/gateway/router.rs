@@ -53,10 +53,12 @@ impl GatewayHttpRouter {
 
     /// The API answers under both `/admin/api` and `/api`; any other path serves the SPA.
     pub fn router(self) -> Router {
+        // Exposed headers too: the dev console reads ETag, Eunomia-* and paging across origins.
         let cors = CorsLayer::new()
             .allow_methods(Any)
             .allow_origin(Any)
-            .allow_headers(Any);
+            .allow_headers(Any)
+            .expose_headers(Any);
         let api = self.api_router();
         Router::new()
             .nest(routes::CONSOLE_API, api.clone())

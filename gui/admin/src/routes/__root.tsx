@@ -1,7 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { Loader2 } from "lucide-react";
 import {
   GeneralErrorComponent,
@@ -21,6 +20,13 @@ import { Header } from "shared/src/components/header";
 import { LiveProvider } from "@eunomia/ui/events";
 import { EVENT_INVALIDATIONS, liveEventsUrl } from "shared/src/lib/eventTopics";
 import { useParticipantDirectory } from "shared/src/data/useParticipantDirectory";
+
+// Dev only: a production build neither renders nor bundles the router devtools.
+const TanStackRouterDevtools = import.meta.env.PROD
+  ? () => null
+  : lazy(() =>
+      import("@tanstack/router-devtools").then((m) => ({ default: m.TanStackRouterDevtools })),
+    );
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
@@ -89,7 +95,9 @@ function RootComponent() {
         </SidebarProvider>
         <Toaster />
         <GlobalLoadingIndicator />
-        <TanStackRouterDevtools />
+        <Suspense>
+          <TanStackRouterDevtools />
+        </Suspense>
       </LiveProvider>
     </AuthenticatedDirectoryBridge>
   );

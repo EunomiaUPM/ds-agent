@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { dspTitle } from "../../data/catalog";
 import { DcatVocabularies } from "../../data/dcat";
-import { Heading } from "@eunomia/ui";
+import { encodePathId, Heading } from "@eunomia/ui";
 import { Badge } from "@eunomia/ui";
 import { FormatDate } from "@eunomia/ui";
 import { Link } from "@tanstack/react-router";
@@ -64,7 +64,7 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
 
   const datasetUrl = ownDataset
     ? `/catalog/${prevRoute}/dataset/${datasetId}`
-    : `/catalog/participant/${prevRoute}/dataset/${datasetId}`;
+    : `/catalog/participant/${encodePathId(prevRoute)}/dataset/${datasetId}`;
 
   return (
     <Card

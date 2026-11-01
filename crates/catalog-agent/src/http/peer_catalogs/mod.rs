@@ -19,13 +19,14 @@
 
 use std::sync::Arc;
 
-use axum::extract::{Path, State};
+use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::{Json, Router};
 use common::routes::catalog as routes;
 use ymir::errors::Errors;
+use ymir::http::PathId;
 use ymir::types::oauth::UserInfo;
 
 use crate::setup::context::AppContext;
@@ -55,7 +56,8 @@ impl PeerCatalogRouter {
         }
     }
 
-    async fn handle_get(State(state): State<Self>, user: UserInfo, Path(peer_id): Path<String>) -> Response {
+    /// The peer's DID comes in base64url ([`PathId`]).
+    async fn handle_get(State(state): State<Self>, user: UserInfo, PathId(peer_id): PathId) -> Response {
         match state.ctx.peer_catalogs().get(&user, &peer_id).await {
             Ok(Some(catalog)) => (StatusCode::OK, Json(catalog)).into_response(),
             Ok(None) => Errors::missing_resource(peer_id, "peer catalog not found", None).into_response(),

@@ -3345,7 +3345,7 @@ paths:
       - name: peerId
         in: path
         required: true
-        description: Participant id (DID) of the peer.
+        description: Participant id (DID) of the peer, in base64url without padding, so `:` and `%3A` survive every proxy.
         schema:
           type: string
       responses:

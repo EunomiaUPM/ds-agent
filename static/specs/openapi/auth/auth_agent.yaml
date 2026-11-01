@@ -460,7 +460,7 @@ paths:
     - name: id
       in: path
       required: true
-      description: Participant id (DID).
+      description: Participant id (DID), in base64url without padding, so `:` and `%3A` survive every proxy.
       schema:
         type: string
     get:
@@ -508,7 +508,7 @@ paths:
     - name: id
       in: path
       required: true
-      description: Participant id (DID).
+      description: Participant id (DID), in base64url without padding, so `:` and `%3A` survive every proxy.
       schema:
         type: string
     get:
@@ -1174,7 +1174,7 @@ paths:
       tags: *id001
       operationId: getPeerToken
       summary: Caller's token towards a peer
-      description: '`id` is the peer participant id. Used by the grants facade.'
+      description: '`id` is the peer participant id (DID) in base64url without padding. Used by the grants facade.'
       parameters:
       - *id002
       - &id005
@@ -1207,7 +1207,7 @@ paths:
       tags: *id001
       operationId: refreshPeerToken
       summary: Rotate the token towards a peer
-      description: Asks the peer for a new access token with the managing token.
+      description: Asks the peer for a new access token with the managing token. `id` is the peer participant id (DID) in base64url without padding.
       parameters:
       - *id002
       - *id005

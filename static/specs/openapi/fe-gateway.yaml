@@ -4400,7 +4400,7 @@ paths:
     - name: id
       in: path
       required: true
-      description: Participant id (DID).
+      description: Participant id (DID), in base64url without padding, so `:` and `%3A` survive every proxy.
       schema:
         type: string
     get:
@@ -4448,7 +4448,7 @@ paths:
     - name: id
       in: path
       required: true
-      description: Participant id (DID).
+      description: Participant id (DID), in base64url without padding, so `:` and `%3A` survive every proxy.
       schema:
         type: string
     get:
@@ -4608,7 +4608,7 @@ paths:
       - name: assignee
         in: path
         required: true
-        description: Consumer participant id.
+        description: Consumer participant id (DID), in base64url without padding, so `:` and `%3A` survive every proxy.
         schema:
           type: string
       - $ref: '#/components/parameters/Limit'
@@ -4637,7 +4637,7 @@ paths:
       - name: assigner
         in: path
         required: true
-        description: Provider participant id.
+        description: Provider participant id (DID), in base64url without padding, so `:` and `%3A` survive every proxy.
         schema:
           type: string
       - $ref: '#/components/parameters/Limit'
@@ -6213,7 +6213,7 @@ paths:
       - name: peerId
         in: path
         required: true
-        description: Participant id (DID) of the peer.
+        description: Participant id (DID) of the peer, in base64url without padding, so `:` and `%3A` survive every proxy.
         schema:
           type: string
       responses:

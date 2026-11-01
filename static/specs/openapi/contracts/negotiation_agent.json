@@ -1274,7 +1274,7 @@
             "name": "assignee",
             "in": "path",
             "required": true,
-            "description": "Consumer participant id.",
+            "description": "Consumer participant id (DID), in base64url without padding, so `:` and `%3A` survive every proxy.",
             "schema": {
               "type": "string"
             }
@@ -1326,7 +1326,7 @@
             "name": "assigner",
             "in": "path",
             "required": true,
-            "description": "Provider participant id.",
+            "description": "Provider participant id (DID), in base64url without padding, so `:` and `%3A` survive every proxy.",
             "schema": {
               "type": "string"
             }

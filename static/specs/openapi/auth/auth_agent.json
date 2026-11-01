@@ -741,7 +741,7 @@
           "name": "id",
           "in": "path",
           "required": true,
-          "description": "Participant id (DID).",
+          "description": "Participant id (DID), in base64url without padding, so `:` and `%3A` survive every proxy.",
           "schema": {
             "type": "string"
           }
@@ -817,7 +817,7 @@
           "name": "id",
           "in": "path",
           "required": true,
-          "description": "Participant id (DID).",
+          "description": "Participant id (DID), in base64url without padding, so `:` and `%3A` survive every proxy.",
           "schema": {
             "type": "string"
           }
@@ -1932,7 +1932,7 @@
         ],
         "operationId": "getPeerToken",
         "summary": "Caller's token towards a peer",
-        "description": "`id` is the peer participant id. Used by the grants facade.",
+        "description": "`id` is the peer participant id (DID) in base64url without padding. Used by the grants facade.",
         "parameters": [
           {
             "$ref": "#/components/parameters/StringPathId"
@@ -1985,7 +1985,7 @@
         ],
         "operationId": "refreshPeerToken",
         "summary": "Rotate the token towards a peer",
-        "description": "Asks the peer for a new access token with the managing token.",
+        "description": "Asks the peer for a new access token with the managing token. `id` is the peer participant id (DID) in base64url without padding.",
         "parameters": [
           {
             "$ref": "#/components/parameters/StringPathId"

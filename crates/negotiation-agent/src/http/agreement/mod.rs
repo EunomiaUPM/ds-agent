@@ -28,6 +28,7 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use ymir::types::oauth::UserInfo;
+use ymir::http::PathId;
 use ymir::http_tracing::ExtractedHeaders;
 use ymir::batch_requests::BatchRequests;
 use ymir::query::{Paginated, QuerySpec, Sort};
@@ -97,11 +98,12 @@ impl NegotiationAgentAgreementsRouter {
         Ok((response_headers, Json(result)))
     }
 
+    /// The assignee's and assigner's DIDs come in base64url ([`PathId`]).
     async fn handle_get_by_assignee(
         State(state): State<Self>,
         user: UserInfo,
         headers: ExtractedHeaders,
-        Path(assignee): Path<String>,
+        PathId(assignee): PathId,
         Query(q): Query<AgreementQuery>,
     ) -> AppResult<(HeaderMap, Json<Paginated<AgreementView>>)> {
         let (mut filter, page, sort) = q.into_domain();
@@ -115,7 +117,7 @@ impl NegotiationAgentAgreementsRouter {
         State(state): State<Self>,
         user: UserInfo,
         headers: ExtractedHeaders,
-        Path(assigner): Path<String>,
+        PathId(assigner): PathId,
         Query(q): Query<AgreementQuery>,
     ) -> AppResult<(HeaderMap, Json<Paginated<AgreementView>>)> {
         let (mut filter, page, sort) = q.into_domain();

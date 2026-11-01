@@ -3590,7 +3590,7 @@
           "name": "id",
           "in": "path",
           "required": true,
-          "description": "Participant id (DID).",
+          "description": "Participant id (DID), in base64url without padding, so `:` and `%3A` survive every proxy.",
           "schema": {
             "type": "string"
           }
@@ -3676,7 +3676,7 @@
           "name": "id",
           "in": "path",
           "required": true,
-          "description": "Participant id (DID).",
+          "description": "Participant id (DID), in base64url without padding, so `:` and `%3A` survive every proxy.",
           "schema": {
             "type": "string"
           }
@@ -4886,7 +4886,7 @@
         ],
         "operationId": "getPeerToken",
         "summary": "Caller's token towards a peer",
-        "description": "`id` is the peer participant id. Used by the grants facade.",
+        "description": "`id` is the peer participant id (DID) in base64url without padding. Used by the grants facade.",
         "parameters": [
           {
             "$ref": "#/components/parameters/StringPathId"
@@ -4944,7 +4944,7 @@
         ],
         "operationId": "refreshPeerToken",
         "summary": "Rotate the token towards a peer",
-        "description": "Asks the peer for a new access token with the managing token.",
+        "description": "Asks the peer for a new access token with the managing token. `id` is the peer participant id (DID) in base64url without padding.",
         "parameters": [
           {
             "$ref": "#/components/parameters/StringPathId"
@@ -10789,7 +10789,7 @@
             "name": "peerId",
             "in": "path",
             "required": true,
-            "description": "Participant id (DID) of the peer.",
+            "description": "Participant id (DID) of the peer, in base64url without padding, so `:` and `%3A` survive every proxy.",
             "schema": {
               "type": "string"
             }
@@ -13032,7 +13032,7 @@
             "name": "assignee",
             "in": "path",
             "required": true,
-            "description": "Consumer participant id.",
+            "description": "Consumer participant id (DID), in base64url without padding, so `:` and `%3A` survive every proxy.",
             "schema": {
               "type": "string"
             }
@@ -13089,7 +13089,7 @@
             "name": "assigner",
             "in": "path",
             "required": true,
-            "description": "Provider participant id.",
+            "description": "Provider participant id (DID), in base64url without padding, so `:` and `%3A` survive every proxy.",
             "schema": {
               "type": "string"
             }

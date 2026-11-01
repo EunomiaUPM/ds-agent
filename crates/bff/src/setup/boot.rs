@@ -15,8 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use std::sync::Arc;
+
+use common::config::services::traits::GatewayConfigTrait;
 use common::config::services::GatewayConfig;
+use common::config::types::traits::MinKnownConfigTrait;
+use common::public_refs::{PublicRefsModule, RemotePublicResolver};
 use common::well_known::WellKnownModule;
+use ymir::config::types::HostType;
 use sea_orm_migration::MigrationTrait;
 use ymir::boot::BootstrapServiceTrait;
 use ymir::config::traits::CommonConfigTrait;
@@ -42,8 +48,17 @@ impl BootstrapServiceTrait for GatewayBoot {
     }
 
     async fn compose(config: &GatewayConfig, root: &RootContext) -> Outcome<ServiceComposer> {
+        // Agreements first, as in the monolith; the gateway holds no URNs of its own.
+        let public_refs = PublicRefsModule::new(
+            config.common(),
+            vec![
+                Arc::new(RemotePublicResolver::new(config.contracts().get_host(HostType::Http))),
+                Arc::new(RemotePublicResolver::new(config.catalog().get_host(HostType::Http))),
+            ],
+        );
         Ok(ServiceComposer::new()
             .register(BffModule::compose(config, root))
+            .register(public_refs)
             .register(WellKnownModule::new(config.common(), None)?))
     }
 }

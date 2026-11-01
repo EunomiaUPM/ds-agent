@@ -18,6 +18,7 @@
 use common::config::types::cache::CacheType;
 use common::config::types::traits::CacheConfigTrait;
 use common::config::ApplicationConfig;
+use common::public_refs::PublicRefsModule;
 use common::well_known::WellKnownModule;
 use sea_orm_migration::MigrationTrait;
 use ymir::boot::seeders::{BootSeeder, RedisCacheFlush};
@@ -49,8 +50,10 @@ impl BootstrapServiceTrait for CoreBoot {
     async fn compose(config: &ApplicationConfig, root: &RootContext) -> Outcome<ServiceComposer> {
         let monolith = MonolithModule::compose(config, root).await?;
         let ports = monolith.auth_ports();
+        let public_refs = PublicRefsModule::new(config.common(), monolith.public_resolvers());
         Ok(ServiceComposer::new()
             .register(monolith)
+            .register(public_refs)
             .register(WellKnownModule::new(
                 config.common(),
                 Some(ports.mates.clone()),

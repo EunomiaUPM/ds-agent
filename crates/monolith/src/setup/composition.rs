@@ -17,12 +17,15 @@
 
 //! Every agent as one module group, sharing the root context and a single event bus.
 
+use std::sync::Arc;
+
 use auth::setup::{AuthModule, SelfParticipantOnboarder};
 use axum::Router;
 use bff::BffModule;
 use catalog_agent::setup::{CatalogAgentModule, CatalogPorts};
 use common::config::ApplicationConfig;
 use common::facades::AuthPorts;
+use common::public_refs::PublicResolverTrait;
 use events::setup::EventsModule;
 use keystore::KeystoreModule;
 use negotiation_agent::setup::{NegotiationAgentModule, NegotiationPorts};
@@ -42,6 +45,7 @@ use ymir::errors::Outcome;
 pub struct MonolithModule {
     modules: ModuleGroup,
     auth_ports: AuthPorts,
+    public_resolvers: Vec<Arc<dyn PublicResolverTrait>>,
     self_participant: SelfParticipantOnboarder,
 }
 
@@ -67,6 +71,8 @@ impl MonolithModule {
             &negotiation_ports,
         )
         .await?;
+        // Agreements first: their URNs are typed, the catalog's may be any.
+        let public_resolvers = vec![negotiation.public_resolver(), catalog.public_resolver()];
         let transfer_ports = TransferPorts::local(
             config.transfer()?,
             root,
@@ -93,6 +99,7 @@ impl MonolithModule {
         Ok(Self {
             modules,
             auth_ports,
+            public_resolvers,
             self_participant,
         })
     }
@@ -100,6 +107,11 @@ impl MonolithModule {
     /// Auth ports resolved in-process, reused by the process-wide surfaces.
     pub fn auth_ports(&self) -> AuthPorts {
         self.auth_ports.clone()
+    }
+
+    /// The public references of every agent in the process.
+    pub fn public_resolvers(&self) -> Vec<Arc<dyn PublicResolverTrait>> {
+        self.public_resolvers.clone()
     }
 
     /// Static aggregation in cross-crate FK order; `MigratorTrait` cannot drive `compose`.

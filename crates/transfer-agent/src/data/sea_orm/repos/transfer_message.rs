@@ -94,6 +94,8 @@ impl SeaOrmTransferMessageRepo {
                 Sort::CreatedAtAsc => q.filter(orm::Column::OccurredAt.gt(dt)),
                 _ => q.filter(orm::Column::OccurredAt.lt(dt)),
             };
+        } else if let Some(p) = page.page.filter(|p| *p > 1) {
+            q = q.offset(u64::from(p - 1) * u64::from(page.limit));
         }
         Ok(match sort {
             Sort::CreatedAtAsc => q

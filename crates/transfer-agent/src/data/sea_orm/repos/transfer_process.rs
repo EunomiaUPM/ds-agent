@@ -116,6 +116,8 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
                 Sort::UpdatedAtDesc => q.filter(orm::Column::UpdatedAt.lt(cursor_dt)),
                 _ => q.filter(orm::Column::CreatedAt.lt(cursor_dt)),
             };
+        } else if let Some(p) = page.page.filter(|p| *p > 1) {
+            q = q.offset(u64::from(p - 1) * u64::from(page.limit));
         }
 
         q = match sort {

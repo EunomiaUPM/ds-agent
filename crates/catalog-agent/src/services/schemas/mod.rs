@@ -65,6 +65,8 @@ pub trait SchemaServiceTrait: Send + Sync {
     async fn check_url(&self, input: &CheckSchemaUrlDto) -> Outcome<SchemaUrlCheckView>;
     /// A version as anyone dereferences it: not private, `$id` set to its URL.
     async fn published(&self, id: &str, version: i32) -> Outcome<Value>;
+    /// Like `published`, the newest version when none is given, with its URL; none when unseen.
+    async fn public(&self, id: &str, version: Option<i32>) -> Outcome<Option<(Value, String)>>;
     /// The public URL of a version.
     fn url(&self, id: &str, version: i32) -> String;
     /// Fails when `url` names a version hosted here that `user` cannot see; others pass.

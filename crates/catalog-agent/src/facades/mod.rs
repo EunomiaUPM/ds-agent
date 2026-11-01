@@ -15,8 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! The catalog's published contract (`common::facades::catalog`) served in-process.
+//! The catalog's published contract (`common::facades::catalog`) and its public references,
+//! served in-process.
 
 pub mod catalog_facade;
+pub mod public_refs;
 
 pub use catalog_facade::local::CatalogLocalFacade;
+pub use public_refs::local::CatalogPublicResolver;

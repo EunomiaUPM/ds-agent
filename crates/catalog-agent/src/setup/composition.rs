@@ -26,6 +26,7 @@ use ymir::boot::workers::BackgroundWorker;
 use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CatalogConfig;
 use common::facades::catalog::CatalogFacadeTrait;
+use common::public_refs::PublicResolverTrait;
 use ymir::module_loader::module_group::ModuleGroup;
 use ymir::module_loader::root_context::RootContext;
 use ymir::module_loader::service_module::ServiceModuleTrait;
@@ -37,7 +38,7 @@ use ymir::errors::Outcome;
 
 use crate::cache::CatalogCacheFactory;
 use crate::data::sea_orm::migrations::CatalogMigrations;
-use crate::facades::CatalogLocalFacade;
+use crate::facades::{CatalogLocalFacade, CatalogPublicResolver};
 use crate::profiles::dcat3::Dcat3ProfileModule;
 use crate::profiles::dcat_ap::DcatApProfileModule;
 use crate::profiles::dsp::DspProfileModule;
@@ -92,6 +93,11 @@ impl CatalogAgentModule {
             catalog_facade,
             connector_instances,
         })
+    }
+
+    /// The catalog's public references, for the process's `PublicRefsModule`.
+    pub fn public_resolver(&self) -> Arc<dyn PublicResolverTrait> {
+        Arc::new(CatalogPublicResolver::new(self.ctx.clone()))
     }
 
     /// Connector instances served in-process, for agents sharing this process.

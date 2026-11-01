@@ -211,6 +211,15 @@ impl DspProfileAdapter {
         serde_json::to_value(offer).ok()
     }
 
+    /// One offer alone, as anyone dereferences it: with its `target` and the DSP context.
+    pub fn offer_document(stored: &StoredOffer) -> Option<Value> {
+        let mut node = Self::offer(stored)?;
+        let object = node.as_object_mut()?;
+        object.insert("@context".into(), Self::context_field());
+        object.insert("target".into(), Value::String(stored.entity.to_string()));
+        Some(node)
+    }
+
     fn insert_non_empty(node: &mut Map<String, Value>, key: &str, values: Vec<Value>) {
         if !values.is_empty() {
             node.insert(key.into(), Value::Array(values));

@@ -16,6 +16,7 @@
  */
 
 use common::config::services::CatalogConfig;
+use common::public_refs::PublicRefsModule;
 use common::well_known::WellKnownModule;
 use sea_orm_migration::MigrationTrait;
 use ymir::boot::BootstrapServiceTrait;
@@ -43,8 +44,11 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
 
     async fn compose(config: &CatalogConfig, root: &RootContext) -> Outcome<ServiceComposer> {
         let ports = CatalogPorts::remote(config, root);
+        let agent = CatalogAgentModule::compose(config, root, None, &ports).await?;
+        let public_refs = PublicRefsModule::new(config.common(), vec![agent.public_resolver()]);
         Ok(ServiceComposer::new()
-            .register(CatalogAgentModule::compose(config, root, None, &ports).await?)
+            .register(agent)
+            .register(public_refs)
             .register(WellKnownModule::new(
                 config.common(),
                 Some(ports.auth.mates.clone()),

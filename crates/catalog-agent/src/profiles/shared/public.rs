@@ -22,12 +22,12 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use axum::extract::{Path, State};
-use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
+use axum::http::{header, HeaderMap, HeaderValue};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::{Json, Router};
+use common::public_refs::PublicDocument;
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 use ymir::oauth::OwnerScope;
@@ -121,23 +121,11 @@ impl PublicProfileRouter {
     }
 
     async fn resource(&self, id: &Urn) -> Outcome<Value> {
-        let key = self.key(id.as_ref()).await;
-        if let Some(cached) = self.ctx.cache.get_projection(&key).await {
-            return Ok(cached);
-        }
-        let (root, set) = self
-            .ctx
-            .closures()
-            .resource(&PublicReader::scope(), id)
+        self.ctx
+            .projections()
+            .public(self.adapter.key(), id)
             .await?
-            .ok_or_else(|| Errors::missing_resource(id.to_string(), "resource not found", None))?;
-        // A draft is not shared: to the public it does not exist.
-        let set = set
-            .shared_from(&root)
-            .ok_or_else(|| Errors::missing_resource(id.to_string(), "resource not found", None))?;
-        let body = self.adapter.project(&set, &root)?;
-        self.ctx.cache.put_projection(&key, &body).await;
-        Ok(body)
+            .ok_or_else(|| Errors::missing_resource(id.to_string(), "resource not found", None))
     }
 
     async fn key(&self, root: &str) -> String {
@@ -147,31 +135,9 @@ impl PublicProfileRouter {
 
     /// JSON-LD with the profile link, a strong tag over the body and `304` when it matches.
     fn respond(&self, headers: &HeaderMap, body: Value) -> Response {
-        let etag = format!(
-            "\"{}\"",
-            hex::encode(&Sha256::digest(body.to_string().as_bytes())[..12])
-        );
-        if headers
-            .get(header::IF_NONE_MATCH)
-            .and_then(|v| v.to_str().ok())
-            .is_some_and(|tags| tags.split(',').any(|t| t.trim() == etag))
-        {
-            return StatusCode::NOT_MODIFIED.into_response();
-        }
-        let mut response = Json(body).into_response();
-        Self::json_ld(&mut response);
-        let headers = response.headers_mut();
-        if let Ok(link) = HeaderValue::from_str(&format!(
-            "<{}>; rel=\"profile\"",
-            self.adapter.profile_iri()
-        )) {
-            headers.insert(header::LINK, link);
-        }
-        if let Ok(tag) = HeaderValue::from_str(&etag) {
-            headers.insert(header::ETAG, tag);
-        }
-        headers.insert(header::VARY, HeaderValue::from_static("Accept"));
-        response
+        PublicDocument::json_ld(body)
+            .with_profile(self.adapter.profile_iri())
+            .respond(headers)
     }
 
     fn json_ld(response: &mut Response) {

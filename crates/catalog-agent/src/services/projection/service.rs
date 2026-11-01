@@ -30,6 +30,7 @@ use crate::cache::ProjectionKey;
 use crate::entities::resource_kind::ResourceKind;
 use crate::entities::resource_set::Truncation;
 use crate::entities::vocab::Vocab;
+use crate::profiles::shared::public::PublicReader;
 use crate::profiles::ProfileAdapterTrait;
 use crate::services::projection::views::{Projection, ProjectionBody};
 use crate::services::projection::{ProjectionRequest, ProjectionServiceTrait};
@@ -174,5 +175,26 @@ impl ProjectionServiceTrait for ProjectionService {
             .put_projection(&key, &Self::to_cache(&projection))
             .await;
         Ok(projection)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all, err, fields(profile = %profile, id = %id))]
+    async fn public(&self, profile: &str, id: &Urn) -> Outcome<Option<Value>> {
+        let adapter = self.adapter(profile)?;
+        let generation = self.ctx.cache.generation().await;
+        let key = ProjectionKey::of(adapter.key(), id.as_ref(), "public", generation);
+        if let Some(cached) = self.ctx.cache.get_projection(&key).await {
+            return Ok(Some(cached));
+        }
+        let Some((root, set)) = self.ctx.closures().resource(&PublicReader::scope(), id).await?
+        else {
+            return Ok(None);
+        };
+        // A draft is not shared: to the public it does not exist.
+        let Some(set) = set.shared_from(&root) else {
+            return Ok(None);
+        };
+        let body = adapter.project(&set, &root)?;
+        self.ctx.cache.put_projection(&key, &body).await;
+        Ok(Some(body))
     }
 }

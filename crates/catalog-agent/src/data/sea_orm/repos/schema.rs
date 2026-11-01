@@ -139,6 +139,17 @@ impl SchemaRepoTrait for SeaOrmSchemaRepo {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn get_latest(&self, scope: &OwnerScope, id: &str) -> Outcome<Option<DataSchema>> {
+        Ok(Self::scoped(scope)
+            .filter(orm::Column::Id.eq(id))
+            .order_by_desc(orm::Column::Version)
+            .one(self.db.as_ref())
+            .await
+            .map_err(Self::fetch_err)?
+            .map(orm::Model::into_domain))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn insert(&self, command: &NewSchemaVersionCommand) -> Outcome<DataSchema> {
         Ok(orm::Entity::insert(orm::ActiveModel::from_command(command))
             .exec_with_returning(self.db.as_ref())

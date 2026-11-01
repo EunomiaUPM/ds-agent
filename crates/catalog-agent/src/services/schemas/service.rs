@@ -415,6 +415,19 @@ impl SchemaServiceTrait for SchemaService {
         Ok(Self::served(&schema, &self.url(id, version)))
     }
 
+    async fn public(&self, id: &str, version: Option<i32>) -> Outcome<Option<(Value, String)>> {
+        let repo = self.ctx.repos.schema_repo();
+        let scope = PublicReader::scope();
+        let schema = match version {
+            Some(version) => repo.get_version(&scope, id, version).await?,
+            None => repo.get_latest(&scope, id).await?,
+        };
+        Ok(schema.map(|schema| {
+            let url = self.url(id, schema.version);
+            (Self::served(&schema, &url), url)
+        }))
+    }
+
     fn url(&self, id: &str, version: i32) -> String {
         let path = routes::public::SCHEMA
             .replace("{id}", id)

@@ -46,6 +46,8 @@ pub trait SchemaRepoTrait: Send + Sync {
         id: &str,
         version: i32,
     ) -> Outcome<Option<DataSchema>>;
+    /// The newest version of the schema.
+    async fn get_latest(&self, scope: &OwnerScope, id: &str) -> Outcome<Option<DataSchema>>;
     async fn insert(&self, command: &NewSchemaVersionCommand) -> Outcome<DataSchema>;
     /// Deletes one version, or every version when `version` is `None`.
     async fn delete(&self, scope: &OwnerScope, id: &str, version: Option<i32>) -> Outcome<()>;

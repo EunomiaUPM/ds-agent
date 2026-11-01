@@ -22,7 +22,8 @@
 //! Each module explains how to use it in its own docs.
 //!
 //! - Config and start-up: [`config`], [`info_banner`].
-//! - Agents and DSP: [`facades`], [`well_known`], [`routes`], [`dsp_common`], [`tck`].
+//! - Agents and DSP: [`facades`], [`well_known`], [`public_refs`], [`routes`], [`dsp_common`],
+//!   [`tck`].
 //! - Linked data and validation: [`rdf`], [`eunomia`], [`validation`], [`flow`].
 //! - HTTP and tests: [`middleware`], [`test_utils`].
 
@@ -33,6 +34,7 @@ pub mod facades;
 pub mod flow;
 pub mod info_banner;
 pub mod middleware;
+pub mod public_refs;
 pub mod rdf;
 pub mod routes;
 pub mod tck;

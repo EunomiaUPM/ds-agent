@@ -29,6 +29,10 @@
       "description": "Lookups of a peer's version metadata"
     },
     {
+      "name": "Public References",
+      "description": "URNs held by this agent, dereferenced without authentication"
+    },
+    {
       "name": "Health",
       "description": "Liveness and readiness probes"
     },
@@ -368,6 +372,105 @@
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": []
+      }
+    },
+    "/public/{urn}": {
+      "get": {
+        "tags": [
+          "Public References"
+        ],
+        "operationId": "getPublicReference",
+        "summary": "Dereference a URN",
+        "description": "The public document behind a URN this agent holds; the gateway asks the agents behind it. Agreements are always public, as their ODRL document with the DSP 2025-1 context. Catalog resources that are not private nor drafts come projected in a profile (`dcat3` by default), and their ODRL offers as DSP offers with their `target`. Hosted schemas come as JSON Schema, newest version by default. An unknown URN and one that is not public get the same 404. The URN stays the `@id`: `Link: <url>; rel=\"canonical\"` gives the absolute URL that dereferences it, and `Content-Location` the owning agent's own route when there is one. `If-None-Match` with the `ETag` gives a 304.\n",
+        "parameters": [
+          {
+            "name": "urn",
+            "in": "path",
+            "required": true,
+            "description": "The URN, raw (it may contain `:` and `/`).",
+            "schema": {
+              "type": "string",
+              "examples": [
+                "urn:agreement:7f1c2b4e-1111-4222-8333-944444444444"
+              ]
+            }
+          },
+          {
+            "name": "profile",
+            "in": "query",
+            "required": false,
+            "description": "Catalog profile of a catalog resource (`dcat3`, `dcat-ap`, `dsp`).",
+            "schema": {
+              "type": "string",
+              "default": "dcat3"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "description": "Version of a versioned resource (schemas); the newest when absent.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The public document",
+            "headers": {
+              "ETag": {
+                "description": "Strong tag over the body",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Link": {
+                "description": "`<url>; rel=\"canonical\"`, plus `<iri>; rel=\"profile\"` for a catalog resource",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Location": {
+                "description": "Where the owning agent serves the same document",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/ld+json": {
+                "schema": {
+                  "type": "object"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              },
+              "application/schema+json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified"
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"

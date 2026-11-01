@@ -399,6 +399,13 @@ pub mod connector {
     }
 }
 
+/// Public references (external: anyone), at the process root.
+pub mod public_refs {
+    pub const PREFIX: &str = "/public";
+    /// Any URN the process holds (`?profile=`, `?version=`).
+    pub const BY_URN: &str = "/{*urn}";
+}
+
 /// Gateway (BFF) of the console (internal: users).
 pub mod bff {
     /// The host's root, which redirects to the console.

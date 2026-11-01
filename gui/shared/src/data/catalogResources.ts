@@ -26,6 +26,7 @@ import {
 } from "./orval/data-services/data-services";
 import { deleteOdrlPolicyById } from "./orval/odrl-policies/odrl-policies";
 import type { DcatDocument } from "./dcat";
+import { Visibility } from "./orval/model/visibility";
 
 /** The catalog resources the GUI edits. */
 export type CatalogResourceKind = "dataset" | "distribution" | "dataService";
@@ -37,6 +38,8 @@ export interface LoadedDocument {
 }
 
 type Answer = { status: number; data: unknown; headers?: Headers };
+
+const VISIBILITY_HEADER = "Eunomia-Visibility";
 
 const API = {
   dataset: {
@@ -106,6 +109,25 @@ export const CatalogResources = {
   async remove(kind: CatalogResourceKind, id: string): Promise<void> {
     const answer = (await API[kind].remove(id)) as Answer;
     CatalogResources.check(answer, `delete the ${CatalogResources.noun[kind]}`);
+  },
+
+  /** Who else sees a resource, from the `Eunomia-Visibility` header the agent answers with. */
+  visibilityOf(headers?: Headers): Visibility {
+    const value = headers?.get?.(VISIBILITY_HEADER);
+    return value && value in Visibility ? (value as Visibility) : Visibility.Private;
+  },
+
+  /** Saves the stored document again under `visibility`; not private, `/public` serves it. */
+  async setVisibility(
+    kind: CatalogResourceKind,
+    id: string,
+    visibility: Visibility,
+  ): Promise<void> {
+    const { doc, etag } = await CatalogResources.load(kind, id);
+    const headers: Record<string, string> = { [VISIBILITY_HEADER]: visibility };
+    if (etag) headers["If-Match"] = etag;
+    const answer = (await API[kind].update(id, doc as never, { headers })) as Answer;
+    CatalogResources.check(answer, `change who sees the ${CatalogResources.noun[kind]}`);
   },
 
   /** Publishes a dataset or distribution, or keeps it as a draft, out of DSP and DCAT. */

@@ -59,6 +59,8 @@ import {
 } from "shared/src/components/catalog/DeleteResourceDialog";
 import { DatasetDcatSummary } from "shared/src/components/catalog/DcatSummary";
 import { PublicationBadge, PublicationToggle } from "shared/src/components/catalog/Publication";
+import { PublicReferenceLink, VisibilitySelect } from "shared/src/components/catalog/Visibility";
+import { CatalogResources } from "shared/src/data/catalogResources";
 import { useParticipantDirectory } from "shared/src/data/useParticipantDirectory";
 
 export const Route = createFileRoute("/catalog/$catalogId/dataset/$datasetId")({
@@ -95,6 +97,7 @@ function DatasetPage() {
   const doctor = doctorData?.status === 200 ? doctorData.data : undefined;
 
   if (!dataset) return null;
+  const visibility = CatalogResources.visibilityOf(datasetData?.headers);
 
   return (
     <PageLayout>
@@ -105,6 +108,8 @@ function DatasetPage() {
         description={dataset.description || "No description."}
         actions={
           <>
+            <VisibilitySelect kind="dataset" id={datasetId} visibility={visibility} />
+            <PublicReferenceLink id={datasetId} visibility={visibility} draft={dataset.draft} />
             <PublicationToggle
               kind="dataset"
               id={datasetId}

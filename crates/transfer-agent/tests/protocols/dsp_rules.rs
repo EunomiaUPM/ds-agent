@@ -81,6 +81,15 @@ fn transfer_rules_role_gating() {
     assert!(TransferRules::role_for_message(&Relay, &TransferStartMessage, "role").is_err());
 }
 
+/// A provider receives a start only to resume a suspension; a consumer receives the first one
+#[test]
+fn provider_receives_start_only_to_resume() {
+    assert!(TransferRules::start_received_in(&Provider, Some(&REQUESTED), "state").is_err());
+    assert!(TransferRules::start_received_in(&Provider, Some(&SUSPENDED), "state").is_ok());
+    assert!(TransferRules::start_received_in(&Consumer, Some(&REQUESTED), "state").is_ok());
+    assert!(TransferRules::start_received_in(&Relay, Some(&SUSPENDED), "state").is_err());
+}
+
 /// A role cannot resume a transfer it suspended itself
 #[test]
 fn transfer_rules_suspension_semaphore() {

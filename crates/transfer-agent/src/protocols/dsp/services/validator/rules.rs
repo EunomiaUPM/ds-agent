@@ -116,6 +116,23 @@ impl TransferRules {
         }
     }
 
+    /// DSP 9.1: the first start is the provider's; a consumer only sends one to resume.
+    pub fn start_received_in(
+        role: &TransferRole,
+        current: Option<&TransferDSPState>,
+        path: impl Into<Path>,
+    ) -> Result<(), Violations> {
+        let refuse = |why: &'static str| Err(violation(path.into(), codes::NOT_ALLOWED, why));
+        match (role, current) {
+            (TransferRole::Provider, Some(TransferDSPState::SUSPENDED)) => Ok(()),
+            (TransferRole::Provider, _) => {
+                refuse("a Consumer only sends a TransferStartMessage to resume a suspension")
+            }
+            (TransferRole::Consumer, _) => Ok(()),
+            (TransferRole::Relay, _) => refuse("Relay is not a transfer peer"),
+        }
+    }
+
     /// Enforce suspension semaphore: a role cannot resume what it suspended itself.
     pub fn semaphore(
         attribute: &TransferDSPStateAttribute,

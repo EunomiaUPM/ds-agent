@@ -71,6 +71,7 @@ impl TransferDspRules {
                 Stage::Domain,
                 correlated()
                     .rule(Self::role)
+                    .rule(Self::resume_only)
                     .rule(Self::semaphore)
                     .rule(Self::data_address)
                     .rule(Self::path_matches_pid),
@@ -127,6 +128,14 @@ impl TransferDspRules {
 
     fn role(facts: &TransferDspDomain) -> Result<(), Violations> {
         TransferRules::role_for_message(&facts.role, &facts.typed.message, "role")
+    }
+
+    fn resume_only(facts: &TransferDspDomain) -> Result<(), Violations> {
+        TransferRules::start_received_in(
+            &facts.role,
+            TransferRules::current_state(&facts.process).as_ref(),
+            "state",
+        )
     }
 
     fn semaphore(facts: &TransferDspDomain) -> Result<(), Violations> {

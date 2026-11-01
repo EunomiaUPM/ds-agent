@@ -24,7 +24,7 @@ use ymir::paginated_spec::{Page, SelectCursorExt, Sort};
 use sea_orm::sea_query::Expr;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, Select, TransactionTrait,
+    QueryOrder, Select, SqlErr, TransactionTrait,
 };
 use ymir::errors::{Errors, Outcome, RepoIntoErrors};
 
@@ -32,6 +32,7 @@ use crate::data::repo::policy_template::{PolicyTemplateRepoErrors, PolicyTemplat
 use crate::data::sea_orm::orm::policy_template as orm;
 use crate::data::sea_orm::orm::policy_template_ref as refs;
 use crate::entities::commands::NewPolicyTemplateCommand;
+use crate::entities::errors::CatalogErrors;
 use crate::entities::filters::PolicyTemplateFilter;
 use crate::entities::policy_templates::PolicyTemplateDto;
 
@@ -186,7 +187,14 @@ impl PolicyTemplateRepoTrait for SeaOrmPolicyTemplateRepo {
 
     #[tracing::instrument(level = "debug", skip_all, err)]
     async fn insert(&self, command: &NewPolicyTemplateCommand) -> Outcome<PolicyTemplateDto> {
-        let create_err = |e: DbErr| PolicyTemplateRepoErrors::Creating(Box::new(e)).into_errors();
+        let create_err = |e: DbErr| match e.sql_err() {
+            Some(SqlErr::UniqueConstraintViolation(_)) => CatalogErrors::conflict(format!(
+                "policy template {}@{} exists already",
+                command.id.as_deref().unwrap_or_default(),
+                command.version.as_deref().unwrap_or_default()
+            )),
+            _ => PolicyTemplateRepoErrors::Creating(Box::new(e)).into_errors(),
+        };
         let txn = self.db.begin().await.map_err(create_err)?;
         let stored = orm::Entity::insert(orm::ActiveModel::from_command(command))
             .exec_with_returning(&txn)

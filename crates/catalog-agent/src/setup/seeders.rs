@@ -27,6 +27,7 @@ use tokio::fs;
 use ymir::errors::{Errors, Outcome};
 use ymir::types::oauth::UserInfo;
 
+use crate::entities::errors::CatalogErrors;
 use crate::entities::policy_templates::NewPolicyTemplateDto;
 use crate::setup::context::AppContext;
 
@@ -115,7 +116,7 @@ impl PolicyTemplateLoader {
 
     /// A duplicate key means the template is already registered.
     fn is_duplicate(err: &Errors) -> bool {
-        matches!(err, Errors::DatabaseError { reason, .. } if reason.contains("duplicate key"))
+        CatalogErrors::is_conflict(err)
     }
 }
 

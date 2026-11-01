@@ -32,6 +32,11 @@ impl CatalogErrors {
         Self::with_status(StatusCode::CONFLICT, 4090, "Conflict with the stored catalog", reason)
     }
 
+    /// Whether `err` is a 409 (e.g. a version that exists already).
+    pub fn is_conflict(err: &Errors) -> bool {
+        err.info().status_code == StatusCode::CONFLICT
+    }
+
     /// 412: `If-Match` names a version that is no longer the stored one.
     pub fn stale(reason: impl Into<String>) -> Errors {
         Self::with_status(

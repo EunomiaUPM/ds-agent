@@ -18,6 +18,7 @@
 //! The policy template API: templates and their versions, who uses them, previews, and offers
 //! instantiated from one.
 
+use crate::entities::errors::CatalogErrors;
 use crate::entities::filters::PolicyTemplateFilter;
 use crate::entities::policy_composition::TemplatePreviewDto;
 use crate::entities::policy_instantiation::NewPolicyInstantiationDto;
@@ -36,7 +37,6 @@ use ymir::query::QuerySpec;
 use common::routes::catalog as routes;
 use serde::Deserialize;
 use std::sync::Arc;
-use ymir::errors::Errors;
 use ymir::utils::extract_payload;
 
 #[derive(Clone)]
@@ -157,9 +157,7 @@ impl PolicyTemplateEntityRouter {
         };
         match state.ctx.templates().create_policy_template(&user, &input).await {
             Ok(template) => (StatusCode::OK, Json(ToCamelCase(template))).into_response(),
-            Err(Errors::DatabaseError { reason, .. })
-                if silent && reason.contains("duplicate key") =>
-            {
+            Err(e) if silent && CatalogErrors::is_conflict(&e) => {
                 tracing::warn!(
                     "Policy template '{}' v{} already exists, skipping (silent mode)",
                     input.id.as_deref().unwrap_or("unknown"),

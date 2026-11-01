@@ -22,13 +22,14 @@ use std::sync::Arc;
 
 use crate::SERVICE_NAME;
 use crate::protocols::dsp::setup::DspModule;
-use crate::facades::NegotiationLocalFacade;
+use crate::facades::{NegotiationLocalFacade, NegotiationPublicResolver};
 use crate::setup::admin_module::NegotiationAdminModule;
 use crate::setup::context::AppContext;
 use crate::setup::ports::NegotiationPorts;
 use axum::Router;
 use common::config::services::ContractsConfig;
 use common::facades::negotiation::NegotiationFacadeTrait;
+use common::public_refs::PublicResolverTrait;
 use ymir::module_loader::module_group::ModuleGroup;
 use ymir::module_loader::root_context::RootContext;
 use ymir::module_loader::service_module::ServiceModuleTrait;
@@ -62,6 +63,11 @@ impl NegotiationAgentModule {
     /// The negotiation agent's published contract, for agents that read it in-process.
     pub fn negotiation_facade(&self) -> Arc<dyn NegotiationFacadeTrait> {
         Arc::new(NegotiationLocalFacade::new(self.ctx.agreements().clone()))
+    }
+
+    /// The agreements' public references, for the process's `PublicRefsModule`.
+    pub fn public_resolver(&self) -> Arc<dyn PublicResolverTrait> {
+        Arc::new(NegotiationPublicResolver::new(self.ctx.agreements().clone()))
     }
 
     /// Static, so the hosting agent's migrator can list them.

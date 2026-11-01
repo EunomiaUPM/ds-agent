@@ -16,8 +16,11 @@
  */
 
 //! The negotiation agent's published contract (`common::facades::negotiation`) served
-//! in-process; the catalog it consumes is the contract in `common::facades::catalog`.
+//! in-process, and its public references; the catalog it consumes is the contract in
+//! `common::facades::catalog`.
 
 pub mod negotiation_facade;
+pub mod public_refs;
 
 pub use negotiation_facade::local::NegotiationLocalFacade;
+pub use public_refs::local::NegotiationPublicResolver;

@@ -25,6 +25,8 @@ use ymir::batch_requests::BatchRequests;
 use ymir::errors::NotFoundExt;
 use ymir::paginated_spec::Cursor;
 use ymir::query::{MAX_BATCH_IDS, Page, Paginated, QueryFilter, Sort};
+use common::dsp_common::context_field::CONTEXT;
+use serde_json::{Map, Value};
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
@@ -44,6 +46,20 @@ pub struct AgreementService {
 impl AgreementService {
     pub fn new(ctx: Arc<AppContext>) -> Self {
         Self { ctx }
+    }
+
+    /// Stored content is compacted against the DSP context but does not carry it.
+    fn with_context(content: Value) -> Value {
+        let Value::Object(members) = content else {
+            return content;
+        };
+        if members.contains_key("@context") {
+            return Value::Object(members);
+        }
+        let mut document = Map::new();
+        document.insert("@context".into(), Value::String(CONTEXT.into()));
+        document.extend(members);
+        Value::Object(document)
     }
 
     fn agreement_repo(&self) -> Arc<dyn AgreementRepoTrait> {
@@ -93,6 +109,15 @@ impl AgreementServiceTrait for AgreementService {
             .or_not_found(id, "agreement")?;
 
         Ok(AgreementView::assemble(agreement))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all, err, fields(id = %id))]
+    async fn public(&self, id: &Urn) -> Outcome<Option<Value>> {
+        let agreement = self
+            .agreement_repo()
+            .get_agreement_by_id(&OwnerScope::All, id)
+            .await?;
+        Ok(agreement.map(|a| Self::with_context(a.agreement_content)))
     }
 
     #[tracing::instrument(

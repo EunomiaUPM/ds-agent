@@ -16,6 +16,7 @@
  */
 
 use common::config::services::ContractsConfig;
+use common::public_refs::PublicRefsModule;
 use common::well_known::WellKnownModule;
 use sea_orm_migration::MigrationTrait;
 use ymir::boot::BootstrapServiceTrait;
@@ -43,8 +44,11 @@ impl BootstrapServiceTrait for NegotiationAgentBoot {
 
     async fn compose(config: &ContractsConfig, root: &RootContext) -> Outcome<ServiceComposer> {
         let ports = NegotiationPorts::remote(config, root);
+        let agent = NegotiationAgentModule::compose(config, root, None, &ports).await?;
+        let public_refs = PublicRefsModule::new(config.common(), vec![agent.public_resolver()]);
         Ok(ServiceComposer::new()
-            .register(NegotiationAgentModule::compose(config, root, None, &ports).await?)
+            .register(agent)
+            .register(public_refs)
             .register(WellKnownModule::new(
                 config.common(),
                 Some(ports.auth.mates.clone()),

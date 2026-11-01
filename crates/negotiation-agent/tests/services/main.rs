@@ -25,4 +25,5 @@ mod dsp_persistence;
 mod negotiation_messages;
 mod negotiation_processes;
 mod offers;
+mod public_refs;
 mod tck_scenarios;

@@ -26,6 +26,7 @@ use crate::services::agreement::views::AgreementView;
 use ymir::types::oauth::UserInfo;
 use ymir::batch_requests::BatchRequests;
 use ymir::paginated_spec::{Page, Paginated, Sort};
+use serde_json::Value;
 use urn::Urn;
 use ymir::errors::Outcome;
 
@@ -44,6 +45,8 @@ pub trait AgreementServiceTrait: Send + Sync + 'static {
 
     /// 404 when the agreement is not visible to the caller.
     async fn get_one(&self, user: &UserInfo, id: &Urn) -> Outcome<AgreementView>;
+    /// The agreement's ODRL document with its `@context`, to anyone: agreements are always public.
+    async fn public(&self, id: &Urn) -> Outcome<Option<Value>>;
 
     /// Agreement reached in the process.
     async fn get_by_process(&self, user: &UserInfo, process_id: &Urn)

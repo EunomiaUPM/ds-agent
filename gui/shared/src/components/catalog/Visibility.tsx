@@ -60,10 +60,10 @@ export function VisibilitySelect({ kind, id, visibility }: SelectProps) {
   );
 }
 
-/** The resource's `/public` URL, served by the same host as the API. */
+/** The resource's `/public` URL: at the root of the API's host, not under its `/admin/api` base. */
 export function publicReferenceUrl(id: string): string {
-  const base = (getApiGatewayBase() || "").replace(/\/$/, "");
-  return `${base}/public/${id}`;
+  const origin = new URL(getApiGatewayBase() || "/", window.location.href).origin;
+  return `${origin}/public/${id}`;
 }
 
 /** Opens the public document; only offered when anyone can read it. */

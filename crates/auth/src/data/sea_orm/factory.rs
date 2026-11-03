@@ -27,7 +27,8 @@ use ymir::services::repo::postgres::sent::{
     SentGrantPostgresRepo, SentInteractionPostgresRepo, SentVerificationPostgresRepo,
 };
 use ymir::services::repo::postgres::shared::{
-    ParticipantPostgresRepo, ParticipantRelationPostgresRepo, ResourceReqPostgresRepo,
+    ParticipantPostgresRepo, ParticipantRelationPostgresRepo, RegisteredDatasetPostgresRepo,
+    ResourceReqPostgresRepo,
 };
 use ymir::services::repo::traits::received::{
     RecvGrantRepoTrait, RecvInteractionRepoTrait, RecvVerificationRepoTrait,
@@ -36,7 +37,8 @@ use ymir::services::repo::traits::sent::{
     SentGrantRepoTrait, SentInteractionRepoTrait, SentVerificationRepoTrait,
 };
 use ymir::services::repo::traits::shared::{
-    ParticipantRelationRepoTrait, ParticipantRepoTrait, ResourceReqRepoTrait,
+    ParticipantRelationRepoTrait, ParticipantRepoTrait, RegisteredDatasetRepoTrait,
+    ResourceReqRepoTrait,
 };
 
 use crate::data::factory::AuthRepoTrait;
@@ -52,6 +54,7 @@ pub struct AuthRepoForSql {
     recv_grant_repo: Arc<dyn RecvGrantRepoTrait>,
     recv_interaction_repo: Arc<dyn RecvInteractionRepoTrait>,
     recv_verification_repo: Arc<dyn RecvVerificationRepoTrait>,
+    registered_dataset_repo: Arc<dyn RegisteredDatasetRepoTrait>,
 }
 
 impl AuthRepoForSql {
@@ -74,6 +77,9 @@ impl AuthRepoForSql {
                 db_connection.clone(),
             )),
             recv_interaction_repo: Arc::new(RecvInteractionPostgresRepo::new(
+                db_connection.clone(),
+            )),
+            registered_dataset_repo: Arc::new(RegisteredDatasetPostgresRepo::new(
                 db_connection.clone(),
             )),
         }
@@ -115,5 +121,9 @@ impl AuthRepoTrait for AuthRepoForSql {
 
     fn recv_verification(&self) -> Arc<dyn RecvVerificationRepoTrait> {
         self.recv_verification_repo.clone()
+    }
+
+    fn registered_dataset(&self) -> Arc<dyn RegisteredDatasetRepoTrait> {
+        self.registered_dataset_repo.clone()
     }
 }

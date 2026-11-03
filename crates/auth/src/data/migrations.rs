@@ -29,6 +29,8 @@ pub fn get_auth_migrations() -> Vec<Box<dyn MigrationTrait>> {
         Box::new(shared::participant::Migration) as Box<dyn MigrationTrait>,
         Box::new(shared::participant_relation::Migration),
         Box::new(shared::resource_req::Migration),
+        Box::new(shared::resource_req_access::Migration),
+        Box::new(shared::registered_dataset::Migration),
     ];
     // Received y sent: bloques enteros
     m.extend(received::get_recv_migrations());

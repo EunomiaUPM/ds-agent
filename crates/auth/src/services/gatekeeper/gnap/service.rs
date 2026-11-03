@@ -38,17 +38,18 @@ use ymir::services::client::ClientTrait;
 use ymir::types::gnap::access_token::{BoundToken, TokenManagement};
 use ymir::types::gnap::grant_request::client::{Client, KeyMaterial, KeyProof};
 use ymir::types::gnap::grant_request::interact::{
-    FinishMethod, HashMethod, InteractAction, InteractRequest, InteractStart,
+    FinishMethod, HashMethod, InteractRequest, InteractStart,
 };
 use ymir::types::gnap::grant_request::{GrantKind, GrantRequest, GrantRequestKind};
 use ymir::types::gnap::{
     ApprovedCallbackBody, CallbackBody, ContinueRequest, InteractionFinishResponse,
-    RejectedCallbackBody,
+    ModifyRequest, RejectedCallbackBody,
 };
 use ymir::types::http::HttpBody;
 use ymir::types::keys::{Certificate, DbKeySource, KeySource, PublicKey};
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::{ParticipantType, Visibility};
+use ymir::types::vcs::VcType;
 use ymir::utils::{
     create_opaque_token, extract_gnap_token, hash_token, http_client, json_headers, trim_4_base,
 };
@@ -80,115 +81,13 @@ impl GnapGateKeeperService {
         )
     }
 
-    fn seconds_until(at: DateTime<Utc>, now: DateTime<Utc>) -> u64 {
-        (at - now).num_seconds().max(0) as u64
-    }
-
-    fn new_tokens(
+    fn interaction_plan(
         &self,
-        managing_id: &str,
-        managing_expires_at: DateTime<Utc>,
-        now: DateTime<Utc>,
-    ) -> (FinalRotation, IssuedToken) {
-        let final_token = create_opaque_token();
-        let managing_token = create_opaque_token();
-        let final_expires_at =
-            (now + Duration::seconds(FINAL_TOKEN_TTL_SECS)).min(managing_expires_at);
-
-        let rotation = FinalRotation {
-            final_token_hash: hash_token(&final_token),
-            final_expires_at,
-            managing_token_hash: hash_token(&managing_token),
-        };
-        let managing = BoundToken::new(managing_token)
-            .with_expires_in(Self::seconds_until(managing_expires_at, now));
-        let issued = IssuedToken {
-            final_token,
-            final_expires_in: Self::seconds_until(final_expires_at, now),
-            manage: TokenManagement::new(self.managing_uri(managing_id), managing),
-        };
-        (rotation, issued)
-    }
-}
-
-#[async_trait]
-impl GateKeeperTrait for GnapGateKeeperService {
-    fn build_grant_plan(
-        &self,
-        role: Option<RolePath>,
-        visibility: Option<Visibility>,
-        class_id: Option<String>,
-    ) -> Outcome<grant::Plan> {
-        let class_id = class_id.ok_or_else(|| {
-            Errors::format(
-                BadFormat::Received,
-                "Missing field class_id (used for nick) in the petition",
-                None,
-            )
-        })?;
-
-        let id = uuid::Uuid::new_v4().to_string();
-
-        Ok(grant::Plan {
-            id: id.clone(),
-            role: role.unwrap_or_else(RolePath::root),
-            visibility: visibility.unwrap_or(Visibility::Private),
-            participant_nick: class_id,
-            vc_type_config: None,
-            kind: GrantKind::AccessToken,
-        })
-    }
-    fn build_resource_req_plan(
-        &self,
-        id: &str,
-        grant_request_kind: GrantRequestKind,
-    ) -> Outcome<resource_req::Model> {
-        let access_req = match grant_request_kind {
-            GrantRequestKind::AccessToken { access_token } => access_token,
-            GrantRequestKind::CredentialRequest { .. } => {
-                return Err(Errors::format(
-                    BadFormat::Received,
-                    "Unable to issue credentials, just tokens",
-                    None,
-                ))
-            }
-        };
-
-        let mut actions: Vec<InteractAction> = access_req
-            .access
-            .actions
-            .clone()
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|a| !matches!(a, InteractAction::Other(_) | InteractAction::RequestVc))
-            .collect();
-        if actions.is_empty() {
-            actions.push(InteractAction::Talk);
-        }
-
-        let resource_req = resource_req::Model {
-            id: id.to_string(),
-            r#type: access_req.access.r#type,
-            actions,
-            locations: access_req.access.locations,
-            datatypes: access_req.access.datatypes,
-            identifier: access_req.access.identifier,
-            privileges: access_req.access.privileges,
-            label: access_req.label,
-            flags: access_req.flags,
-        };
-
-        Ok(resource_req)
-    }
-
-    fn build_interaction_plan(
-        &self,
-        id: &str,
-        client: Client,
+        grant_id: &str,
+        key_source: DbKeySource,
         interact: Option<InteractRequest>,
+        continuation_id: Option<String>,
     ) -> Outcome<interaction::Plan> {
-        info!("Managing Grant Request");
-
         let interact = interact.ok_or_else(|| {
             Errors::format(
                 BadFormat::Received,
@@ -238,11 +137,6 @@ impl GateKeeperTrait for GnapGateKeeperService {
             ));
         }
 
-        let key_source = match &client.key.material {
-            KeyMaterial::Jwk { jwk } => DbKeySource::PublicKey(jwk.clone()),
-            KeyMaterial::Cert { cert } => DbKeySource::Cert(cert.clone()),
-        };
-
         let host = format!(
             "{}{}{}",
             self.config.hosts().get_host(HostType::Http),
@@ -253,8 +147,8 @@ impl GateKeeperTrait for GnapGateKeeperService {
         let continuation_endpoint = format!("{host}{}", base(gate::CONTINUE));
         let continuation_token = create_opaque_token();
 
-        let interaction = interaction::Plan {
-            id: id.to_string(),
+        Ok(interaction::Plan {
+            grant_id: grant_id.to_string(),
             start: interact.start,
             method,
             callback_uri,
@@ -264,11 +158,133 @@ impl GateKeeperTrait for GnapGateKeeperService {
             hints: interact.hints,
             grant_endpoint,
             continuation_endpoint,
+            continuation_id,
             continuation_token,
             continuation_wait: None,
-        };
+        })
+    }
 
-        Ok(interaction)
+    fn seconds_until(at: DateTime<Utc>, now: DateTime<Utc>) -> u64 {
+        (at - now).num_seconds().max(0) as u64
+    }
+
+    fn new_tokens(
+        &self,
+        managing_id: &str,
+        managing_expires_at: DateTime<Utc>,
+        now: DateTime<Utc>,
+    ) -> (FinalRotation, IssuedToken) {
+        let final_token = create_opaque_token();
+        let managing_token = create_opaque_token();
+        let final_expires_at =
+            (now + Duration::seconds(FINAL_TOKEN_TTL_SECS)).min(managing_expires_at);
+
+        let rotation = FinalRotation {
+            final_token_hash: hash_token(&final_token),
+            final_expires_at,
+            managing_token_hash: hash_token(&managing_token),
+        };
+        let managing = BoundToken::new(managing_token)
+            .with_expires_in(Self::seconds_until(managing_expires_at, now));
+        let issued = IssuedToken {
+            final_token,
+            final_expires_in: Self::seconds_until(final_expires_at, now),
+            manage: TokenManagement::new(self.managing_uri(managing_id), managing),
+        };
+        (rotation, issued)
+    }
+}
+
+#[async_trait]
+impl GateKeeperTrait for GnapGateKeeperService {
+    fn required_vcs(&self, extras: &[VcType]) -> Vec<VcType> {
+        let mut vcs = self.config.base_vcs().to_vec();
+        for extra in extras {
+            if !vcs.contains(extra) {
+                vcs.push(extra.clone());
+            }
+        }
+        vcs
+    }
+
+    fn build_grant_plan(
+        &self,
+        role: Option<RolePath>,
+        visibility: Option<Visibility>,
+        class_id: Option<String>,
+    ) -> Outcome<grant::Plan> {
+        let class_id = class_id.ok_or_else(|| {
+            Errors::format(
+                BadFormat::Received,
+                "Missing field class_id (used for nick) in the petition",
+                None,
+            )
+        })?;
+
+        let id = uuid::Uuid::new_v4().to_string();
+
+        Ok(grant::Plan {
+            id: id.clone(),
+            role: role.unwrap_or_else(RolePath::root),
+            visibility: visibility.unwrap_or(Visibility::Private),
+            participant_nick: class_id,
+            vc_type_config: None,
+            kind: GrantKind::AccessToken,
+        })
+    }
+    fn build_resource_req_plan(
+        &self,
+        id: &str,
+        grant_request_kind: GrantRequestKind,
+    ) -> Outcome<resource_req::Model> {
+        let access_req = match grant_request_kind {
+            GrantRequestKind::AccessToken { access_token } => access_token,
+            GrantRequestKind::CredentialRequest { .. } => {
+                return Err(Errors::format(
+                    BadFormat::Received,
+                    "Unable to issue credentials, just tokens",
+                    None,
+                ))
+            }
+        };
+        if access_req.access.is_empty() {
+            return Err(Errors::format(BadFormat::Received, "Empty access", None));
+        }
+
+        Ok(resource_req::Model {
+            id: id.to_string(),
+            access: access_req.access,
+            granted: None,
+            label: access_req.label,
+            flags: access_req.flags,
+        })
+    }
+
+    fn build_interaction_plan(
+        &self,
+        id: &str,
+        client: Client,
+        interact: Option<InteractRequest>,
+    ) -> Outcome<interaction::Plan> {
+        info!("Managing Grant Request");
+        let key_source = match &client.key.material {
+            KeyMaterial::Jwk { jwk } => DbKeySource::PublicKey(jwk.clone()),
+            KeyMaterial::Cert { cert } => DbKeySource::Cert(cert.clone()),
+        };
+        self.interaction_plan(id, key_source, interact, None)
+    }
+
+    fn build_round_plan(
+        &self,
+        previous: &interaction::Model,
+        interact: Option<InteractRequest>,
+    ) -> Outcome<interaction::Plan> {
+        self.interaction_plan(
+            &previous.grant_id,
+            previous.key_source.clone(),
+            interact,
+            Some(previous.continuation_id.clone()),
+        )
     }
 
     fn build_mate_plan(&self, holder: &str, nick: &str, base_url: &str) -> participant::Plan {
@@ -371,6 +387,33 @@ impl GateKeeperTrait for GnapGateKeeperService {
             ));
         }
         Ok(())
+    }
+
+    fn validate_modify_req(
+        &self,
+        interaction: &interaction::Model,
+        payload: &Bytes,
+        headers: &HeaderMap,
+    ) -> Outcome<ModifyRequest> {
+        info!("Validating grant modification");
+        let key_source = Self::key_source(interaction)?;
+        HttpSig::verify(
+            headers,
+            &key_source,
+            "PATCH",
+            &interaction.continuation_endpoint,
+            payload,
+        )?;
+
+        if extract_gnap_token(headers)? != interaction.continuation_token {
+            return Err(Errors::security("Continuation token does not match", None));
+        }
+
+        let modify: ModifyRequest = serde_json::from_slice(payload)?;
+        if modify.access_token.access.is_empty() {
+            return Err(Errors::format(BadFormat::Received, "Empty access", None));
+        }
+        Ok(modify)
     }
 
     #[tracing::instrument(level = "info", skip_all, err)]

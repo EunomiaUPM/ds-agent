@@ -25,6 +25,7 @@ use ymir::config::types::HostType;
 use ymir::errors::Outcome;
 use ymir::http::routes::fill;
 use ymir::services::client::{ClientExt, ClientTrait};
+use ymir::types::gnap::grant_request::access::AccessNeed;
 use ymir::types::http::HttpBody;
 use ymir::types::oauth::UserInfo;
 use ymir::http::PathId;
@@ -33,7 +34,7 @@ use ymir::utils::{http_client, ResponseExt};
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
 use crate::facades::grants_facade::{GrantsFacadeTrait, PeerToken, VerifiedPeer};
-use crate::facades::VerifyTokenRequest;
+use crate::facades::{AuthorizeTokenRequest, PeerTokenRequest, VerifyTokenRequest};
 use crate::routes::auth::{gate, peer_connection};
 
 /// Grant tokens through the auth agent's API.
@@ -58,15 +59,34 @@ impl GrantsRemoteFacade {
         )
     }
 
-    fn token_url(&self, route: &str, participant_id: &str, requested: bool) -> String {
+    fn token_url(&self, route: &str, participant_id: &str) -> String {
         let segment = PathId::encode(participant_id);
         format!(
-            "{}{}{}?requested={}",
+            "{}{}{}",
             self.base_url(),
             peer_connection::PREFIX,
             fill(route, &segment),
-            requested
         )
+    }
+
+    async fn post_token(
+        &self,
+        route: &str,
+        participant_id: &str,
+        need: AccessNeed,
+        requested: bool,
+    ) -> Outcome<PeerToken> {
+        let url = self.token_url(route, participant_id);
+        let body = HttpBody::json(&PeerTokenRequest { need, requested })?;
+        let response = http_client()
+            .post(&url, None, body)
+            .await?
+            .ensure_success()
+            .await?;
+        if response.status() == StatusCode::ACCEPTED {
+            return Ok(PeerToken::Pending);
+        }
+        Ok(PeerToken::Ready(response.parse_json().await?))
     }
 }
 
@@ -80,6 +100,15 @@ impl GrantsFacadeTrait for GrantsRemoteFacade {
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth"))]
+    async fn authorize(&self, token: String, need: AccessNeed) -> Outcome<VerifiedPeer> {
+        let url = format!("{}{}{}", self.base_url(), gate::PREFIX, gate::TOKEN_AUTHORIZE);
+        let body = AuthorizeTokenRequest { token, need };
+        http_client()
+            .post_json::<AuthorizeTokenRequest, VerifiedPeer>(&url, None, &body)
+            .await
+    }
+
     /// `participant_id` is the plain DID; it travels in base64url, as the auth agent expects it
     /// in the path. `user` does not travel yet (see the type's doc): the auth agent answers for
     /// its own caller. `200` carries the token and `202` means it is still pending.
@@ -88,18 +117,11 @@ impl GrantsFacadeTrait for GrantsRemoteFacade {
         &self,
         _user: &UserInfo,
         participant_id: String,
+        need: AccessNeed,
         requested: bool,
     ) -> Outcome<PeerToken> {
-        let url = self.token_url(peer_connection::TOKEN, &participant_id, requested);
-        let response = http_client()
-            .get(&url, None)
-            .await?
-            .ensure_success()
-            .await?;
-        if response.status() == StatusCode::ACCEPTED {
-            return Ok(PeerToken::Pending);
-        }
-        Ok(PeerToken::Ready(response.parse_json().await?))
+        self.post_token(peer_connection::TOKEN, &participant_id, need, requested)
+            .await
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth"))]
@@ -107,17 +129,10 @@ impl GrantsFacadeTrait for GrantsRemoteFacade {
         &self,
         _user: &UserInfo,
         participant_id: String,
+        need: AccessNeed,
         requested: bool,
     ) -> Outcome<PeerToken> {
-        let url = self.token_url(peer_connection::TOKEN_REFRESH, &participant_id, requested);
-        let response = http_client()
-            .post(&url, None, HttpBody::None)
-            .await?
-            .ensure_success()
-            .await?;
-        if response.status() == StatusCode::ACCEPTED {
-            return Ok(PeerToken::Pending);
-        }
-        Ok(PeerToken::Ready(response.parse_json().await?))
+        self.post_token(peer_connection::TOKEN_REFRESH, &participant_id, need, requested)
+            .await
     }
 }

@@ -42,7 +42,7 @@ fn opened(d: &mut Doubles) {
         .returning(|_| Ok(recv_verification("g-1", None)));
     d.repos
         .recv_interaction
-        .expect_get_by_id()
+        .expect_get_latest_by_grant()
         .withf(|id| id == "g-1")
         .returning(|id| Ok(recv_interaction(id)));
 }
@@ -128,7 +128,7 @@ async fn wallet_refusal_fails_the_verification_and_finishes_the_grant() {
     d.repos
         .recv_verification
         .expect_update()
-        .withf(|v| v.status == VerificationStatus::Failed && v.ended_at.is_some())
+        .withf(|v| v.status == VerificationStatus::Refused && v.ended_at.is_some())
         .times(1)
         .returning(Ok);
     d.repos

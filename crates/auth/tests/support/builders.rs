@@ -18,8 +18,8 @@
 //! Records of the auth flows as the repositories would return them.
 //!
 //! Sent grants belong to a user (`user_id` + `role`); received grants only have the role that
-//! handles them. Interactions, verifications and resource requests hang 1:1 from their grant
-//! by id, so they carry neither.
+//! handles them. Resource requests hang 1:1 from their grant by id; interactions and
+//! verifications by `grant_id` (here, the same id).
 
 use chrono::Utc;
 use serde_json::json;
@@ -28,10 +28,10 @@ use ymir::data::entities::sent;
 use ymir::data::entities::shared::{participant, participant_relation, resource_req};
 use ymir::data::entities::wallet::vc;
 use ymir::types::gnap::access_token::{BoundToken, TokenManagement};
-use ymir::types::gnap::grant_request::access::AccessType;
+use ymir::types::gnap::grant_request::access::ResourceAccess;
 use ymir::types::gnap::grant_request::client::{Client, ClientKey, KeyProof};
 use ymir::types::gnap::grant_request::interact::{
-    FinishMethod, HashMethod, InteractAction, InteractStart,
+    FinishMethod, HashMethod, InteractStart,
 };
 use ymir::types::gnap::grant_request::{GrantKind, GrantRequest};
 use ymir::types::gnap::grant_response::GrantResponse;
@@ -119,6 +119,7 @@ pub fn sent_grant_plan(user_id: &str, role_path: &str, id: &str) -> sent::grant:
 pub fn sent_interaction(id: &str) -> sent::interaction::Model {
     sent::interaction::Model {
         id: id.to_string(),
+        grant_id: id.to_string(),
         start: vec![InteractStart::Oid4VP],
         method: FinishMethod::Push,
         callback_uri: "http://me/callback".to_string(),
@@ -132,12 +133,13 @@ pub fn sent_interaction(id: &str) -> sent::interaction::Model {
         oidc_vp_uri: None,
         interact_ref: None,
         hash: None,
+        created_at: Utc::now(),
     }
 }
 
 pub fn sent_interaction_plan(id: &str) -> sent::interaction::Plan {
     sent::interaction::Plan {
-        id: id.to_string(),
+        grant_id: id.to_string(),
         start: vec![InteractStart::Oid4VP],
         method: FinishMethod::Push,
         callback_uri: "http://me/callback".to_string(),
@@ -149,6 +151,7 @@ pub fn sent_interaction_plan(id: &str) -> sent::interaction::Plan {
 pub fn sent_verification(id: &str) -> sent::verification::Model {
     sent::verification::Model {
         id: id.to_string(),
+        grant_id: id.to_string(),
         uri: "openid4vp://peer".to_string(),
         scheme: "openid4vp".to_string(),
         response_type: "vp_token".to_string(),
@@ -166,7 +169,7 @@ pub fn sent_verification(id: &str) -> sent::verification::Model {
 
 pub fn sent_verification_plan(id: &str) -> sent::verification::Plan {
     sent::verification::Plan {
-        id: id.to_string(),
+        grant_id: id.to_string(),
         uri: "openid4vp://peer".to_string(),
         scheme: "openid4vp".to_string(),
         response_type: "vp_token".to_string(),
@@ -181,18 +184,14 @@ pub fn sent_verification_plan(id: &str) -> sent::verification::Plan {
 
 pub fn issued_token_response(token: &str, req: &resource_req::Model) -> GrantResponse {
     let managing = TokenManagement::new("http://peer/gate/token/m-1", BoundToken::new("managing"));
-    GrantResponse::token_issued(token, req, 3600, managing)
+    GrantResponse::token_issued(token, req, 3600, managing, None)
 }
 
 pub fn resource_req(id: &str) -> resource_req::Model {
     resource_req::Model {
         id: id.to_string(),
-        r#type: AccessType::ApiAccess,
-        actions: vec![InteractAction::Talk],
-        locations: None,
-        datatypes: None,
-        identifier: None,
-        privileges: None,
+        access: vec![ResourceAccess::datasets_of("http://peer/dsp/current/catalog/datasets")],
+        granted: None,
         label: None,
         flags: None,
     }
@@ -237,6 +236,7 @@ pub fn recv_grant_plan(role_path: &str, id: &str) -> received::grant::Plan {
 pub fn recv_interaction(id: &str) -> received::interaction::Model {
     received::interaction::Model {
         id: id.to_string(),
+        grant_id: id.to_string(),
         start: vec![InteractStart::Oid4VP],
         method: FinishMethod::Push,
         callback_uri: "http://peer/callback".to_string(),
@@ -251,12 +251,13 @@ pub fn recv_interaction(id: &str) -> received::interaction::Model {
         as_nonce: "as-nonce".to_string(),
         interact_ref: "interact-ref".to_string(),
         hash: "hash".to_string(),
+        created_at: Utc::now(),
     }
 }
 
 pub fn recv_interaction_plan(id: &str) -> received::interaction::Plan {
     received::interaction::Plan {
-        id: id.to_string(),
+        grant_id: id.to_string(),
         start: vec![InteractStart::Oid4VP],
         method: FinishMethod::Push,
         callback_uri: "http://peer/callback".to_string(),
@@ -266,6 +267,7 @@ pub fn recv_interaction_plan(id: &str) -> received::interaction::Plan {
         hints: None,
         grant_endpoint: "http://me/gnap/grant".to_string(),
         continuation_endpoint: "http://me/gnap/continue/cont-1".to_string(),
+        continuation_id: None,
         continuation_token: "cont-token".to_string(),
         continuation_wait: None,
     }
@@ -275,6 +277,7 @@ pub fn recv_interaction_plan(id: &str) -> received::interaction::Plan {
 pub fn recv_verification(id: &str, holder: Option<&str>) -> received::verification::Model {
     received::verification::Model {
         id: id.to_string(),
+        grant_id: id.to_string(),
         state: "state-1".to_string(),
         nonce: "nonce".to_string(),
         vc_type: vec![VcType::LegalPerson],
@@ -290,7 +293,7 @@ pub fn recv_verification(id: &str, holder: Option<&str>) -> received::verificati
 
 pub fn recv_verification_plan(id: &str) -> received::verification::Plan {
     received::verification::Plan {
-        id: id.to_string(),
+        grant_id: id.to_string(),
         audience: "http://me/verify".to_string(),
         vc_type: vec![VcType::LegalPerson],
     }
@@ -343,7 +346,7 @@ pub fn reach_provider() -> ReachProvider {
         id: "did:web:peer".to_string(),
         nick: "peer".to_string(),
         url: "http://peer".to_string(),
-        actions: vec![InteractAction::Talk],
+        access: vec![ResourceAccess::datasets_of("http://peer/dsp/current/catalog/datasets")],
         visibility: Visibility::Private,
         auto: Some(true),
         requested: None,
@@ -370,7 +373,7 @@ pub fn grant_request() -> GrantRequest {
     };
     GrantRequest::new_token(
         client,
-        vec![InteractAction::Talk],
+        vec![ResourceAccess::datasets_of("http://me/dsp/current/catalog/datasets")],
         &sent_interaction("g-1"),
     )
 }

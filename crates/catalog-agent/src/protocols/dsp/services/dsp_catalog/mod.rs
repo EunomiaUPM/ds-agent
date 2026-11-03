@@ -15,23 +15,23 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Answering peers: the catalog they may see and any dataset of it (DSP 6.2).
+//! Answering peers: what the connector publishes, the same for every peer; owners and
+//! visibility only rule inside (DSP 6.2).
 
 pub mod service;
 
 use serde_json::Value;
 use urn::Urn;
 use ymir::errors::Outcome;
-use ymir::types::oauth::UserInfo;
 
 use crate::protocols::dsp::entities::protocol_fields::CatalogProtocolFields;
 
-/// The provider side of the catalog protocol.
+/// The provider side of the catalog protocol; `peer` is the participant asking, for the logs.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DspCatalogServiceTrait: Send + Sync {
-    /// The main catalog with every catalog, dataset and offer `peer` sees (DSP 6.2.1).
-    async fn catalog(&self, peer: &UserInfo, request: &CatalogProtocolFields) -> Outcome<Value>;
-    /// One dataset `peer` sees, with its offers and distributions (DSP 6.2.2).
-    async fn dataset(&self, peer: &UserInfo, id: &Urn) -> Outcome<Value>;
+    /// The main catalog with every published catalog, dataset and offer (DSP 6.2.1).
+    async fn catalog(&self, peer: &str, request: &CatalogProtocolFields) -> Outcome<Value>;
+    /// One published dataset, with its offers and distributions (DSP 6.2.2).
+    async fn dataset(&self, peer: &str, id: &Urn) -> Outcome<Value>;
 }

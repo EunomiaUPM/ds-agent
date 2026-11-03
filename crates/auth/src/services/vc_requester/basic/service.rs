@@ -94,7 +94,7 @@ impl VcRequesterTrait for VCReqService {
         };
 
         interaction::Plan {
-            id: id.to_string(),
+            grant_id: id.to_string(),
             start: vec![start],
             method: FinishMethod::Push,
             callback_uri,
@@ -216,7 +216,7 @@ impl VcRequesterTrait for VCReqService {
                 Ok(VcWhatResponse::Wait)
             }
             GrantResponse::Error(error) => {
-                grant.status = GrantStatus::Rejected;
+                grant.status = GrantStatus::Finalized;
                 grant.ended_at = Some(chrono::Utc::now());
                 Err(Errors::authority_grant(format!(
                     "Authority said {}",

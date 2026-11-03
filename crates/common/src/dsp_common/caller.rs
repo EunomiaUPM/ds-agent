@@ -19,13 +19,16 @@
 
 use std::sync::Arc;
 
-use axum::extract::{Request, State};
+use axum::body::{to_bytes, Body};
+use axum::extract::{OriginalUri, Request, State};
 use axum::http::{Extensions, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
+use serde_json::Value;
 use ymir::data::entities::shared::participant::Model as Mates;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::{BadFormat, Errors, Outcome};
 use ymir::http::OauthHttpMiddleware;
+use ymir::types::gnap::grant_request::access::AccessNeed;
 use ymir::types::oauth::UserInfo;
 
 use crate::dsp_common::DspActor;
@@ -115,16 +118,26 @@ impl PeerAuth {
     }
 
     /// Puts the `DspCaller` and its `VerifiedPeer` in the request; an unknown mate is no error.
-    pub async fn run(State(auth): State<Self>, mut request: Request, next: Next) -> Response {
+    pub async fn run(State(auth): State<Self>, request: Request, next: Next) -> Response {
         let Ok(token) = OauthHttpMiddleware::bearer(request.headers()).map(str::to_owned) else {
             return auth.rejection.into_response();
         };
+        let (mut request, need) = match Self::need(request).await {
+            Ok(read) => read,
+            Err(_) => return auth.rejection.into_response(),
+        };
         let peer = match TckPeer::verify(auth.tck, &token) {
             Some(tck) => tck,
-            None => match auth.grants.verify_token(token).await {
-                Ok(peer) => peer,
-                Err(_) => return auth.rejection.into_response(),
-            },
+            None => {
+                let verified = match need {
+                    Some(need) => auth.grants.authorize(token, need).await,
+                    None => auth.grants.verify_token(token).await,
+                };
+                match verified {
+                    Ok(peer) => peer,
+                    Err(_) => return auth.rejection.into_response(),
+                }
+            }
         };
         let mate = auth
             .mates
@@ -138,4 +151,33 @@ impl PeerAuth {
             .insert(DspCaller::Peer { peer, mate });
         next.run(request).await
     }
+
+    /// What the endpoint gives access to, from its path (and the offer target of N1).
+    async fn need(request: Request) -> Outcome<(Request, Option<AccessNeed>)> {
+        let path = request
+            .extensions()
+            .get::<OriginalUri>()
+            .map_or_else(|| request.uri().path(), |uri| uri.path())
+            .to_string();
+        if let Some((_, id)) = path.split_once("/catalog/datasets/") {
+            return Ok((request, Some(AccessNeed::of_call(&path, Some(id), false))));
+        }
+        if path.ends_with("/catalog/request") || path.ends_with("/negotiations/offers") {
+            return Ok((request, Some(AccessNeed::of_call(&path, None, false))));
+        }
+        if !path.ends_with("/negotiations/request") {
+            return Ok((request, None));
+        }
+        let (parts, body) = request.into_parts();
+        let bytes = to_bytes(body, OPENING_BODY_LIMIT)
+            .await
+            .map_err(|e| Errors::format(BadFormat::Received, e.to_string(), None))?;
+        let target = serde_json::from_slice::<Value>(&bytes)
+            .ok()
+            .and_then(|body| body["offer"]["target"].as_str().map(str::to_string));
+        let need = target.map(|target| AccessNeed::of_call(&path, Some(&target), false));
+        Ok((Request::from_parts(parts, Body::from(bytes)), need))
+    }
 }
+
+const OPENING_BODY_LIMIT: usize = 1024 * 1024;

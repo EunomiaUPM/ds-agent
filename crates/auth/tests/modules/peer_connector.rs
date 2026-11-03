@@ -23,7 +23,7 @@ use auth::types::response::TokenWhatResponse;
 use common::facades::grants_facade::PeerToken;
 use common::test_utils::scopes::TestUsers;
 use ymir::errors::Errors;
-use ymir::types::gnap::grant_request::interact::InteractAction;
+use ymir::types::gnap::grant_request::access::AccessNeed;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody, GrantStatus, RejectedCallbackBody};
 use ymir::types::verification::VerificationStatus;
 use ymir::types::wallet::OidcUri;
@@ -46,7 +46,7 @@ fn connection(d: &mut Doubles, auto: bool, what: TokenWhatResponse) {
         .returning(sent_interaction_plan);
     d.peer_connector
         .expect_build_resource_req_plan()
-        .withf(|_, actions| actions == &[InteractAction::Talk])
+        .withf(|_, access| !access.is_empty())
         .returning(|id, _| resource_req(id));
     d.repos.sent_grant.expect_create().returning(move |plan| {
         Ok(sent_grant(&plan.user_id, plan.role.as_str(), &plan.id, auto))
@@ -54,7 +54,7 @@ fn connection(d: &mut Doubles, auto: bool, what: TokenWhatResponse) {
     d.repos
         .sent_interaction
         .expect_create()
-        .returning(|plan| Ok(sent_interaction(&plan.id)));
+        .returning(|plan| Ok(sent_interaction(&plan.grant_id)));
     d.repos.resource_req.expect_create().returning(Ok);
     d.peer_connector
         .expect_send_grant_req()
@@ -76,11 +76,17 @@ fn presentation_requested(d: &mut Doubles) {
         .sent_verification
         .expect_create()
         .times(1)
-        .returning(|plan| Ok(sent_verification(&plan.id)));
+        .returning(|plan| Ok(sent_verification(&plan.grant_id)));
 }
 
 fn ana() -> ymir::types::oauth::UserInfo {
     TestUsers::user("ana", "/admin/upm")
+}
+
+fn catalog() -> AccessNeed {
+    AccessNeed::Catalog {
+        base: "http://peer/dsp/current".to_string(),
+    }
 }
 
 // ==========================================================================================
@@ -91,7 +97,12 @@ fn ana() -> ymir::types::oauth::UserInfo {
 #[tokio::test]
 async fn completed_grant_stores_the_peer_and_the_users_relation() {
     let mut d = Doubles::default();
-    connection(&mut d, true, TokenWhatResponse::Completed);
+    connection(&mut d, true, TokenWhatResponse::Completed(vec![]));
+    d.repos
+        .resource_req
+        .expect_get_by_id()
+        .returning(|id| Ok(resource_req(id)));
+    d.repos.resource_req.expect_update().returning(Ok);
     d.peer_connector
         .expect_build_mate_plan()
         .returning(|grant| participant_plan(&grant.participant_id));
@@ -172,7 +183,7 @@ async fn wallet_failure_marks_the_presentation_failed() {
         .returning(|id| Ok(sent_grant("ana", "/admin/upm", id, true)));
     d.repos
         .sent_verification
-        .expect_get_by_id()
+        .expect_get_latest_by_grant()
         .returning(|id| Ok(sent_verification(id)));
     d.wallet
         .expect_process_oid4vp()
@@ -223,9 +234,9 @@ async fn presentation_of_a_colleagues_grant_is_refused() {
 // Callbacks (the peer)
 // ==========================================================================================
 
-/// A rejection callback closes the grant as rejected.
+/// A rejection callback finalizes the grant.
 #[tokio::test]
-async fn rejection_callback_rejects_the_grant() {
+async fn rejection_callback_finalizes_the_grant() {
     let mut d = Doubles::default();
     d.repos
         .sent_grant
@@ -234,7 +245,7 @@ async fn rejection_callback_rejects_the_grant() {
     d.repos
         .sent_grant
         .expect_update()
-        .withf(|g| g.status == GrantStatus::Rejected && g.ended_at.is_some())
+        .withf(|g| g.status == GrantStatus::Finalized && g.ended_at.is_some())
         .times(1)
         .returning(Ok);
 
@@ -255,7 +266,7 @@ async fn forged_callback_is_not_continued() {
     let mut d = Doubles::default();
     d.repos
         .sent_interaction
-        .expect_get_by_id()
+        .expect_get_latest_by_grant()
         .returning(|id| Ok(sent_interaction(id)));
     d.repos
         .sent_grant
@@ -307,10 +318,15 @@ async fn peer_token_is_the_one_of_the_users_own_grant() {
             grant.final_token = Some("peer-token".to_string());
             Ok(Some(grant))
         });
+    d.repos.resource_req.expect_get_by_id().returning(|id| {
+        let mut req = resource_req(id);
+        req.granted = Some(req.access.clone());
+        Ok(req)
+    });
 
     let token = d
         .core()
-        .peer_token(&ana(), "did:web:peer", true)
+        .peer_token(&ana(), "did:web:peer", &catalog(), true)
         .await
         .unwrap();
 
@@ -332,7 +348,7 @@ async fn no_own_grant_waits_for_the_one_in_progress() {
 
     let token = d
         .core()
-        .peer_token(&ana(), "did:web:peer", true)
+        .peer_token(&ana(), "did:web:peer", &catalog(), true)
         .await
         .unwrap();
 

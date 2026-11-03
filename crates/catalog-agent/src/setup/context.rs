@@ -49,6 +49,8 @@ use crate::services::policy_templates::service::PolicyTemplateService;
 use crate::services::policy_templates::PolicyTemplateServiceTrait;
 use crate::services::projection::service::ProjectionService;
 use crate::services::projection::ProjectionServiceTrait;
+use crate::services::registry::service::RegistryService;
+use crate::services::registry::RegistryServiceTrait;
 use crate::services::resources::service::ResourceService;
 use crate::services::resources::ResourceServiceTrait;
 use crate::services::schemas::service::SchemaService;
@@ -83,6 +85,7 @@ pub struct CatalogServices {
     pub projections: Arc<dyn ProjectionServiceTrait>,
     pub imports: Arc<dyn CatalogImportServiceTrait>,
     pub schemas: Arc<dyn SchemaServiceTrait>,
+    pub registry: Arc<dyn RegistryServiceTrait>,
 }
 
 impl CatalogServices {
@@ -101,6 +104,7 @@ impl CatalogServices {
             projections: Arc::new(ProjectionService::new(ctx.clone())),
             imports: Arc::new(CatalogImportService::new(ctx.clone())),
             schemas: Arc::new(SchemaService::new(ctx.clone())),
+            registry: Arc::new(RegistryService::new(ctx.clone())),
         }
     }
 }
@@ -158,6 +162,10 @@ impl AppContext {
 
     pub fn closures(&self) -> &Arc<dyn ClosureServiceTrait> {
         &self.services().closures
+    }
+
+    pub fn registry(&self) -> &Arc<dyn RegistryServiceTrait> {
+        &self.services().registry
     }
 
     pub fn offers(&self) -> &Arc<dyn OdrlPolicyServiceTrait> {

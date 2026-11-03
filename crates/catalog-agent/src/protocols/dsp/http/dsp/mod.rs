@@ -75,7 +75,7 @@ impl DspRouter {
             Ok(message) => message,
             Err(e) => return Self::failure(e),
         };
-        match state.ctx.catalog.catalog(&peer.to_user(), &message.fields).await {
+        match state.ctx.catalog.catalog(&peer.participant_id, &message.fields).await {
             Ok(catalog) => (StatusCode::OK, Json(catalog)).into_response(),
             Err(e) => Self::failure(e),
         }
@@ -89,7 +89,7 @@ impl DspRouter {
         let Ok(id) = Urn::from_str(&id) else {
             return Self::catalog_error(StatusCode::BAD_REQUEST, vec![format!("{id} is not a dataset id")]);
         };
-        match state.ctx.catalog.dataset(&peer.to_user(), &id).await {
+        match state.ctx.catalog.dataset(&peer.participant_id, &id).await {
             Ok(dataset) => (StatusCode::OK, Json(dataset)).into_response(),
             Err(e) => Self::failure(e),
         }

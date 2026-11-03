@@ -20,6 +20,5 @@ export const GrantStatusQueryParameter = {
   Processing: 'Processing',
   Pending: 'Pending',
   Approved: 'Approved',
-  Rejected: 'Rejected',
   Finalized: 'Finalized',
 } as const;

@@ -106,12 +106,14 @@
 //! ```
 
 use serde::{Deserialize, Serialize};
+use ymir::types::gnap::grant_request::access::AccessNeed;
 
 pub mod catalog;
 pub mod grants_facade;
 pub mod mates_facade;
 pub mod negotiation;
 pub mod ports;
+pub mod registry_facade;
 // Thin wrapper over ymir's `http_client()`, left over from the client-credentials service
 // token; remote facades call `http_client()` directly. Kept as it was, out of the module tree.
 // pub mod service_client;
@@ -127,6 +129,25 @@ pub use ports::AuthPorts;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VerifyTokenRequest {
     pub token: String,
+}
+
+/// Body of the auth agent's call checking that a token covers what a DSP call needs.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AuthorizeTokenRequest {
+    pub token: String,
+    pub need: AccessNeed,
+}
+
+/// Body of the auth agent's calls for a token towards a peer.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PeerTokenRequest {
+    pub need: AccessNeed,
+    #[serde(default = "requested_by_default")]
+    pub requested: bool,
+}
+
+fn requested_by_default() -> bool {
+    true
 }
 
 #[cfg(test)]

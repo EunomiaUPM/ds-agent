@@ -58,11 +58,9 @@ pub trait VerifierModule:
                 .verify_all(&mut verification, vp_token)
                 .await
                 .map(|_| ()),
-            // The wallet refused to present (it lacks the credentials, the user declined): a
-            // failed verification, like an invalid presentation.
             (None, refusal) => {
                 verification.ended_at = Some(Utc::now());
-                verification.status = VerificationStatus::Failed;
+                verification.status = VerificationStatus::Refused;
                 Err(refusal.unwrap_or_else(|| Errors::forbidden("no presentation", None)))
             }
         };
@@ -70,7 +68,7 @@ pub trait VerifierModule:
         let interaction = self
             .repo()
             .recv_interaction()
-            .get_by_id(&verification.id)
+            .get_latest_by_grant(&verification.grant_id)
             .await?;
 
         let action = match verification_result {
@@ -80,7 +78,7 @@ pub trait VerifierModule:
         let verification = self.repo().recv_verification().update(verification).await?;
         self.verifier_event(&verification, action).await;
         if verification_result.is_err() {
-            self.finalize_denied(&verification.id).await?;
+            self.finalize_denied(&verification.grant_id).await?;
         }
 
         self.gatekeeper()
@@ -113,7 +111,7 @@ pub trait VerifierModule:
         if self.event_bus().is_none() {
             return;
         }
-        let grant = match self.repo().recv_grant().get_by_id(&verification.id).await {
+        let grant = match self.repo().recv_grant().get_by_id(&verification.grant_id).await {
             Ok(grant) => grant,
             Err(e) => {
                 tracing::warn!("No grant for verification {}: {e}", verification.id);

@@ -27,14 +27,17 @@ use ymir::errors::Outcome;
 use ymir::types::gnap::grant_request::client::Client;
 use ymir::types::gnap::grant_request::interact::InteractRequest;
 use ymir::types::gnap::grant_request::{GrantRequest, GrantRequestKind};
-use ymir::types::gnap::InteractionFinishResponse;
+use ymir::types::gnap::{InteractionFinishResponse, ModifyRequest};
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::Visibility;
+use ymir::types::vcs::VcType;
 
 /// Gatekeeper side of GNAP: building and checking what peers send.
 #[mockall::automock]
 #[async_trait]
 pub trait GateKeeperTrait: Send + Sync + 'static {
+    /// The credentials asked of every peer (the base), followed by `extras` not already in it.
+    fn required_vcs(&self, extras: &[VcType]) -> Vec<VcType>;
     /// New received grant; `class_id` is the class the peer claims (its nick). Without a `role`
     /// the root handles it, and without a `visibility` it is public: once stored, a grant always
     /// has both.
@@ -55,6 +58,12 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
         client: Client,
         interact: Option<InteractRequest>,
     ) -> Outcome<interaction::Plan>;
+    /// New interaction of a grant being modified, with its key and continuation URI.
+    fn build_round_plan(
+        &self,
+        previous: &interaction::Model,
+        interact: Option<InteractRequest>,
+    ) -> Outcome<interaction::Plan>;
     /// Participant record of the peer once verified.
     fn build_mate_plan(&self, holder: &str, nick: &str, base_url: &str) -> participant::Plan;
     /// Private relation of the verification with the verified peer, under `role`.
@@ -69,6 +78,13 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
         payload: &Bytes,
         headers: &HeaderMap,
     ) -> Outcome<()>;
+    /// Checks a grant modification (`PATCH` on the continuation URI) and parses it.
+    fn validate_modify_req(
+        &self,
+        model: &interaction::Model,
+        payload: &Bytes,
+        headers: &HeaderMap,
+    ) -> Outcome<ModifyRequest>;
     /// Answer that closes the interaction, sent to the peer's callback.
     async fn finish_interaction(
         &self,

@@ -20,6 +20,5 @@ export const SentGrantStatus = {
   Processing: 'Processing',
   Pending: 'Pending',
   Approved: 'Approved',
-  Rejected: 'Rejected',
   Finalized: 'Finalized',
 } as const;

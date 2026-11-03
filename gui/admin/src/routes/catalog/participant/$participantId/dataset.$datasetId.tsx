@@ -17,11 +17,14 @@ import { Heading } from "@eunomia/ui";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 import DistributionItem from "shared/components/ui/distribution-item";
 import { Avatar } from "@eunomia/ui";
+import { usePeerConnections } from "shared/src/data/peerConnection";
 
 function RouteComponent() {
   const { participantId, datasetId } = Route.useParams();
   const { data: participants } = useGetAllParticipants();
   const { mutate, data, isPending, error } = useRpcSetupCatalogRequest();
+  const connections = usePeerConnections();
+  const connection = connections.statusOf(participantId);
   const currentDataset = useMemo(() => {
     if (!data) return null;
     const response = CatalogRpc.response(data?.data);
@@ -34,13 +37,34 @@ function RouteComponent() {
   const otherParticipantSlug =
     otherParticipant?.participant_nick?.toString() || "Unknown Participant";
 
+  // Only with a grant of this user; without one, the connection form comes first.
   useEffect(() => {
+    if (connection !== "approved") return;
     mutate({
       data: CatalogRpc.catalog(participantId),
     });
-  }, [participantId, datasetId, mutate]);
+  }, [participantId, datasetId, connection, mutate]);
 
-  if (isPending) {
+  if (!connections.isLoading && connection !== "approved") {
+    return (
+      <PageLayout>
+        <PageHeader title="Participant Dataset" />
+        <p className="text-sm">
+          You are not connected to this participant.{" "}
+          <Link
+            to="/catalog/participant/$participantId"
+            params={{ participantId }}
+            className="underline"
+          >
+            Connect first
+          </Link>
+          .
+        </p>
+      </PageLayout>
+    );
+  }
+
+  if (connections.isLoading || isPending) {
     return (
       <PageLayout>
         <PageHeader title="Participant Dataset" badge={<Skeleton className="h-8 w-48" />} />

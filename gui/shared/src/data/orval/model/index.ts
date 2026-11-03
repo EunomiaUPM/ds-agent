@@ -393,6 +393,7 @@ export * from './pushLifecycle';
 export * from './pushLifecycleMode';
 export * from './rdfFormatQueryParameter';
 export * from './reachAuthority';
+export * from './accessItem';
 export * from './reachProvider';
 export * from './receivedGrant';
 export * from './receivedGrantKind';

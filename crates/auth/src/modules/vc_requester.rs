@@ -105,8 +105,8 @@ pub trait VcRequesterModule:
         user.ensure_sees(&grant.user_id, &grant.role, &grant.visibility, id)?;
         let (interaction, verification) = if user.reaches(&grant.user_id, &grant.role) {
             (
-                self.repo().sent_interaction().get_by_id(id).await.ok(),
-                self.repo().sent_verification().get_by_id(id).await.ok(),
+                self.repo().sent_interaction().get_latest_by_grant(id).await.ok(),
+                self.repo().sent_verification().get_latest_by_grant(id).await.ok(),
             )
         } else {
             (None, None)
@@ -168,7 +168,7 @@ pub trait VcRequesterModule:
     async fn process_oid4vp(&self, user: &UserInfo, id: &str, payload: OidcUri) -> Outcome<()> {
         let grant = self.get_vc_request(id).await?;
         user.ensure_reaches(&grant.user_id, &grant.role, id)?;
-        let verification = self.repo().sent_verification().get_by_id(id).await?;
+        let verification = self.repo().sent_verification().get_latest_by_grant(id).await?;
         self.manage_oid4vp(verification, &payload.uri).await
     }
 
@@ -190,7 +190,7 @@ pub trait VcRequesterModule:
     /// Checks the callback, sends the GNAP continuation and follows its answer.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn req_vc_continuation(&self, id: &str, payload: ApprovedCallbackBody) -> Outcome<()> {
-        let mut interaction = self.repo().sent_interaction().get_by_id(id).await?;
+        let mut interaction = self.repo().sent_interaction().get_latest_by_grant(id).await?;
         let grant = self.repo().sent_grant().get_by_id(id).await?;
         self.callback().apply_callback(&mut interaction, &payload);
 
@@ -218,7 +218,7 @@ pub trait VcRequesterModule:
                 .manage_grant_resp(grant_resp, &mut grant, &mut interaction);
         let grant = self.repo().sent_grant().update(grant).await?;
         let _interaction = self.repo().sent_interaction().update(interaction).await?;
-        if grant.status == GrantStatus::Rejected {
+        if grant.status == GrantStatus::Finalized {
             self.vc_event(&grant, "rejected").await;
         }
 
@@ -291,11 +291,11 @@ pub trait VcRequesterModule:
         Ok(())
     }
 
-    /// Marks request `id` rejected, as the authority answered.
+    /// Finalizes request `id`, as the authority rejected it.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_rejection(&self, id: &str) -> Outcome<()> {
         let mut grant = self.repo().sent_grant().get_by_id(id).await?;
-        grant.status = GrantStatus::Rejected;
+        grant.status = GrantStatus::Finalized;
         grant.ended_at = Some(Utc::now());
         let grant = self.repo().sent_grant().update(grant).await?;
         self.vc_event(&grant, "rejected").await;
@@ -319,7 +319,7 @@ pub trait VcRequesterModule:
         if self.event_bus().is_none() {
             return;
         }
-        let grant = match self.repo().sent_grant().get_by_id(&verification.id).await {
+        let grant = match self.repo().sent_grant().get_by_id(&verification.grant_id).await {
             Ok(grant) => grant,
             Err(e) => {
                 tracing::warn!("No request for presentation {}: {e}", verification.id);

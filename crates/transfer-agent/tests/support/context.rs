@@ -22,6 +22,7 @@ use std::sync::Arc;
 use common::facades::catalog::{CatalogFacadeTrait, MockCatalogFacadeTrait};
 use common::facades::grants_facade::{GrantsFacadeTrait, MockGrantsFacadeTrait};
 use common::facades::mates_facade::{MatesFacadeTrait, MockMatesFacadeTrait};
+use common::facades::registry_facade::MockRegistryFacadeTrait;
 use common::facades::negotiation::{MockNegotiationFacadeTrait, NegotiationFacadeTrait};
 use common::facades::AuthPorts;
 use common::test_utils::config_fixtures::transfer_config_fixture;
@@ -161,6 +162,7 @@ impl TestContext {
             AuthPorts {
                 mates: self.mates,
                 grants: self.grants,
+                registry: Arc::new(MockRegistryFacadeTrait::new()),
             },
             self.negotiation,
             self.catalog,

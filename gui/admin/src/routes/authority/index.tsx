@@ -11,6 +11,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { formatIdentifier, getFriendlyVCType } from "@eunomia/ui";
 import { useTableQueryParams } from "@eunomia/ui";
+import { grantBadgeState } from "shared/src/lib/grants";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
@@ -129,7 +130,6 @@ function AuthorityRequestsPage() {
                 { label: "Processing", value: "Processing" },
                 { label: "Pending", value: "Pending" },
                 { label: "Approved", value: "Approved" },
-                { label: "Rejected", value: "Rejected" },
                 { label: "Finalized", value: "Finalized" },
               ],
             },
@@ -179,7 +179,7 @@ function AuthorityRequestsPage() {
               header: "Status",
               accessorKey: "status",
               cell: (a) => (
-                <Badge variant="status" state={a.status}>
+                <Badge variant="status" state={grantBadgeState(a.status, !!a.vc_uri)}>
                   {a.status || "-"}
                 </Badge>
               ),

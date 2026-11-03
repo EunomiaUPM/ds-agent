@@ -24,12 +24,15 @@ use crate::facades::grants_facade::remote::GrantsRemoteFacade;
 use crate::facades::grants_facade::GrantsFacadeTrait;
 use crate::facades::mates_facade::remote::MatesRemoteFacade;
 use crate::facades::mates_facade::MatesFacadeTrait;
+use crate::facades::registry_facade::remote::RegistryRemoteFacade;
+use crate::facades::registry_facade::RegistryFacadeTrait;
 
 /// Auth agent ports an agent depends on, local or remote.
 #[derive(Clone)]
 pub struct AuthPorts {
     pub mates: Arc<dyn MatesFacadeTrait>,
     pub grants: Arc<dyn GrantsFacadeTrait>,
+    pub registry: Arc<dyn RegistryFacadeTrait>,
     // Replaced by `grants` (its `verify_token`); kept until the agents move over.
     // pub ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
 }
@@ -40,7 +43,8 @@ impl AuthPorts {
         let auth = Arc::new(auth.clone());
         Self {
             mates: Arc::new(MatesRemoteFacade::new(auth.clone())),
-            grants: Arc::new(GrantsRemoteFacade::new(auth)),
+            grants: Arc::new(GrantsRemoteFacade::new(auth.clone())),
+            registry: Arc::new(RegistryRemoteFacade::new(auth)),
         }
     }
 }

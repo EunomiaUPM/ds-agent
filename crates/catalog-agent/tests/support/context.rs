@@ -38,12 +38,14 @@ use catalog_agent::services::odrl_policies::OdrlPolicyServiceTrait;
 use catalog_agent::services::policy_composition::PolicyCompositionServiceTrait;
 use catalog_agent::services::policy_templates::PolicyTemplateServiceTrait;
 use catalog_agent::services::projection::ProjectionServiceTrait;
+use catalog_agent::services::registry::MockRegistryServiceTrait;
 use catalog_agent::services::resources::ResourceServiceTrait;
 use catalog_agent::services::schemas::SchemaServiceTrait;
 use catalog_agent::setup::context::{AppContext, CatalogServices};
 use catalog_agent::setup::CatalogPorts;
 use common::facades::grants_facade::{GrantsFacadeTrait, MockGrantsFacadeTrait};
 use common::facades::mates_facade::{MatesFacadeTrait, MockMatesFacadeTrait};
+use common::facades::registry_facade::MockRegistryFacadeTrait;
 use common::facades::AuthPorts;
 use common::test_utils::config_fixtures::catalog_config_fixture;
 use common::test_utils::grpc::StubTokenValidator;
@@ -201,6 +203,7 @@ impl TestContext {
         let ports = CatalogPorts::local(AuthPorts {
             mates: self.mates,
             grants: self.grants,
+            registry: Arc::new(MockRegistryFacadeTrait::new()),
         });
         let ctx = AppContext::bare(
             catalog_config_fixture(),
@@ -211,6 +214,10 @@ impl TestContext {
             Arc::new(StubTokenValidator),
         );
         let mut services = CatalogServices::own(&ctx);
+        // Writes resync auth's registry; the tests here do not look at it.
+        let mut registry = MockRegistryServiceTrait::new();
+        registry.expect_resync().return_const(());
+        services.registry = Arc::new(registry);
         if let Some(resources) = self.resources {
             services.resources = resources;
         }

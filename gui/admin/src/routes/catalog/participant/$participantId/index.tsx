@@ -25,9 +25,13 @@ import {
   InnerSidebarNavItem,
 } from "@eunomia/ui";
 import { Card, CardTitle, CardDescription } from "@eunomia/ui";
-import { Database, Server, Calendar, Loader2 } from "lucide-react";
+import { Database, Server, Calendar, Loader2, ShieldCheck } from "lucide-react";
 import { useMyself } from "shared/src/data/useMyself";
-import { usePeerConnections } from "shared/src/data/peerConnection";
+import {
+  coversDataset,
+  useGrantedAccess,
+  usePeerConnections,
+} from "shared/src/data/peerConnection";
 import { ConnectPeerForm } from "shared/src/components/ConnectPeerForm";
 
 function RouteComponent() {
@@ -41,6 +45,10 @@ function RouteComponent() {
   const navigate = useNavigate();
   const connections = usePeerConnections();
   const connection = connections.statusOf(participantId);
+  const grant = connections.approvedGrantOf(participantId);
+  const pendingGrant = connections.pendingGrantOf(participantId);
+  const granted = useGrantedAccess(grant?.id);
+  const [widening, setWidening] = useState<{ id: string; title: string } | null>(null);
 
   const participant =
     federated.state === "ok"
@@ -136,23 +144,23 @@ function RouteComponent() {
         <PageHeader title={`${participant?.participant_nick || "Participant"}'s Catalog`} />
         <Card className="p-6 max-w-lg">
           <CardTitle className="mb-4">Connect with {nick}</CardTitle>
-          {connection === "pending" ? (
+          {connection === "pending" && participant && pendingGrant ? (
+            <ConnectPeerForm
+              key={pendingGrant.id}
+              participant={participant}
+              pending={pendingGrant.id}
+              onCancel={() => navigate({ to: "/catalog" })}
+            />
+          ) : connection === "pending" ? (
             <CardDescription className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
               Waiting for {nick} to accept your request; the catalog opens once it does.
             </CardDescription>
           ) : participant ? (
-            <>
-              {connection === "rejected" && (
-                <p className="mb-4 text-sm text-destructive">
-                  {nick} rejected your last request. You can ask again.
-                </p>
-              )}
-              <ConnectPeerForm
-                participant={participant}
-                onCancel={() => navigate({ to: "/catalog" })}
-              />
-            </>
+            <ConnectPeerForm
+              participant={participant}
+              onCancel={() => navigate({ to: "/catalog" })}
+            />
           ) : (
             <CardDescription>
               This participant is not in the federated catalog of your authority.
@@ -297,19 +305,42 @@ function RouteComponent() {
                 />
               </div>
 
+              {widening && participant && grant && (
+                <Card className="p-4">
+                  <ConnectPeerForm
+                    participant={participant}
+                    widen={{ grantId: grant.id, datasetId: widening.id, title: widening.title }}
+                    onSent={() => setWidening(null)}
+                    onCancel={() => setWidening(null)}
+                  />
+                </Card>
+              )}
+
               {filteredDatasets.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {filteredDatasets.map((dataset) => (
-                    <DatasetItem
-                      key={dataset.id}
-                      title={dataset.title}
-                      description={dataset.description}
-                      date={dataset.issued}
-                      prevRoute={participantId}
-                      datasetId={dataset.id}
-                      ownDataset={false}
-                      dataset={dataset.node}
-                    />
+                    <div key={dataset.id} className="flex flex-col gap-2">
+                      <DatasetItem
+                        title={dataset.title}
+                        description={dataset.description}
+                        date={dataset.issued}
+                        prevRoute={participantId}
+                        datasetId={dataset.id}
+                        ownDataset={false}
+                        dataset={dataset.node}
+                      />
+                      {granted && !coversDataset(granted, dataset.id) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="self-start text-xs"
+                          onClick={() => setWidening({ id: dataset.id, title: dataset.title })}
+                        >
+                          <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                          Request access
+                        </Button>
+                      )}
+                    </div>
                   ))}
                 </div>
               ) : (

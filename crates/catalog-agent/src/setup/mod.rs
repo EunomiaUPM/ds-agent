@@ -27,4 +27,4 @@ mod seeders;
 pub use boot::CatalogAgentBoot;
 pub use composition::CatalogAgentModule;
 pub use ports::CatalogPorts;
-pub use seeders::{MainCatalogProvisioner, PolicyTemplateLoader};
+pub use seeders::{MainCatalogProvisioner, PolicyTemplateLoader, RegistrySync};

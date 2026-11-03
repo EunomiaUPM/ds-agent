@@ -78,7 +78,7 @@ pub struct VerificationEvent {
 impl From<&received::verification::Model> for VerificationEvent {
     fn from(verification: &received::verification::Model) -> Self {
         Self {
-            grant_id: verification.id.clone(),
+            grant_id: verification.grant_id.clone(),
             holder: verification.holder.clone(),
             vc_types: verification.vc_type.clone(),
             status: verification.status.clone(),
@@ -89,7 +89,7 @@ impl From<&received::verification::Model> for VerificationEvent {
 impl From<&sent::verification::Model> for VerificationEvent {
     fn from(verification: &sent::verification::Model) -> Self {
         Self {
-            grant_id: verification.id.clone(),
+            grant_id: verification.grant_id.clone(),
             holder: None,
             vc_types: Vec::new(),
             status: verification.status.clone(),

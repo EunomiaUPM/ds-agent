@@ -19,9 +19,11 @@
 
 pub mod grants_facade;
 pub mod mates_facade;
+pub mod registry_facade;
 // Replaced by `grants_facade`; kept as it was, out of the module tree.
 // pub mod ssi_auth_facade;
 
 pub use grants_facade::local::GrantsLocalFacade;
 pub use mates_facade::local::MatesLocalFacade;
+pub use registry_facade::local::RegistryLocalFacade;
 // pub use ssi_auth_facade::local::SSIAuthLocalFacade;

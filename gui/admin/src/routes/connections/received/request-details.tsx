@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { GrantAccess, GrantAccessCard } from "shared/src/components/GrantAccessCard";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { PageSection } from "@eunomia/ui";
@@ -24,9 +25,9 @@ import {
   FileJson,
   Inbox,
   Key,
-  Layers,
 } from "lucide-react";
-import { getFriendlyVCType, grantBadgeState } from "@eunomia/ui";
+import { getFriendlyVCType } from "@eunomia/ui";
+import { grantBadgeState, verificationBadgeState } from "shared/src/lib/grants";
 
 interface RecvGrant {
   id: string;
@@ -62,18 +63,6 @@ interface RecvInteraction {
   hash: string;
 }
 
-interface ResourceReq {
-  id: string;
-  type: any;
-  actions: any[];
-  locations?: string[] | null;
-  datatypes?: string[] | null;
-  identifier?: string | null;
-  privileges?: string[] | null;
-  label?: string | null;
-  flags?: any[] | null;
-}
-
 interface RecvVerification {
   id: string;
   state: string;
@@ -92,9 +81,9 @@ interface DetailsResponse {
   status: number;
   data: {
     grant: RecvGrant;
-    resource_req: ResourceReq | null;
+    resource_req: GrantAccess | null;
     interaction: RecvInteraction | null;
-    verification: RecvVerification | null;
+    verifications: RecvVerification[];
   };
 }
 
@@ -127,7 +116,8 @@ function ReceivedRequestDetails() {
   const grant = details?.grant ?? null;
   const resourceReq = details?.resource_req ?? null;
   const interaction = details?.interaction ?? null;
-  const verification = details?.verification ?? null;
+  const verifications = details?.verifications ?? [];
+  const verification = verifications[verifications.length - 1] ?? null;
   const timelineData = grant ? getTimelineData(grant) : null;
 
   const handleDisconnect = async () => {
@@ -312,7 +302,7 @@ function ReceivedRequestDetails() {
         </div>
 
         {/* ===== Resource Request =================================================== */}
-        <ResourceReqCard resourceReq={resourceReq} />
+        <GrantAccessCard resourceReq={resourceReq} />
 
         {/* ===== Interaction ========================================================= */}
         {interaction ? (
@@ -341,9 +331,7 @@ function ReceivedRequestDetails() {
                   </div>
                 </DetailItem>
                 <DetailItem label="Callback URI">
-                  <span className="font-mono text-xs break-all">
-                    {interaction.callback_uri}
-                  </span>
+                  <span className="font-mono text-xs break-all">{interaction.callback_uri}</span>
                 </DetailItem>
                 <DetailItem label="Continuation Endpoint">
                   <span className="font-mono text-xs break-all">
@@ -398,7 +386,7 @@ function ReceivedRequestDetails() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
                 <DetailItem label="Status">
-                  <Badge variant={"status"} state={verification.status}>
+                  <Badge variant={"status"} state={verificationBadgeState(verification.status)}>
                     {verification.status}
                   </Badge>
                 </DetailItem>
@@ -465,6 +453,8 @@ function ReceivedRequestDetails() {
 
 function getTimelineData(req: RecvGrant) {
   const status = req.status?.toLowerCase() || "";
+  // A finalized grant that never got a token ended without being approved.
+  const wasApproved = !!req.final_expires_at;
   const pastEvents: { id: string; title: string; date?: string | null }[] = [
     { id: "received", title: "Request Received", date: req.created_at },
   ];
@@ -477,10 +467,7 @@ function getTimelineData(req: RecvGrant) {
   } else if (status === "finalized") {
     pastEvents.push({ id: "processing", title: "Processing" });
     pastEvents.push({ id: "pending", title: "Pending" });
-    pastEvents.push({ id: "approved", title: "Approved" });
-  } else if (status === "rejected") {
-    pastEvents.push({ id: "processing", title: "Processing" });
-    pastEvents.push({ id: "pending", title: "Pending" });
+    if (wasApproved) pastEvents.push({ id: "approved", title: "Approved" });
   }
 
   let instruction = "";
@@ -495,10 +482,9 @@ function getTimelineData(req: RecvGrant) {
       instruction = "We approved the request. The peer has the access token.";
       break;
     case "finalized":
-      instruction = "The connection lifecycle has ended (token expired or session closed).";
-      break;
-    case "rejected":
-      instruction = "We rejected the request. No further action will be taken.";
+      instruction = wasApproved
+        ? "The connection lifecycle has ended (token expired or session closed)."
+        : "The request ended without being approved. No further action will be taken.";
       break;
     default:
       instruction = "Unknown state.";
@@ -506,133 +492,6 @@ function getTimelineData(req: RecvGrant) {
   }
 
   return { pastEvents, instruction };
-}
-
-function enumLabel(v: any): string {
-  if (v === null || v === undefined) return "?";
-  if (typeof v === "string") return v;
-  if (typeof v === "object") {
-    const key = Object.keys(v)[0];
-    if (!key) return "?";
-    const inner = v[key];
-    return typeof inner === "string" ? `${key}(${inner})` : key;
-  }
-  return String(v);
-}
-
-function ResourceReqCard({ resourceReq }: { resourceReq: ResourceReq | null }) {
-  if (!resourceReq) {
-    return (
-      <Card className="mt-6 opacity-50 border-dashed">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-muted-foreground">
-            <Layers className="h-5 w-5" />
-            Resource Request
-          </CardTitle>
-          <CardDescription>No resource access bound to this grant.</CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-  return (
-    <Card className="mt-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Layers className="h-5 w-5 text-primary" />
-          Resource Request
-        </CardTitle>
-        <CardDescription>The resource access the peer is asking for.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
-          <DetailItem label="Type">
-            <Badge variant="info" className="font-mono">
-              {enumLabel(resourceReq.type)}
-            </Badge>
-          </DetailItem>
-          <DetailItem label="Identifier">
-            {resourceReq.identifier ? (
-              <span className="font-mono text-xs break-all">{resourceReq.identifier}</span>
-            ) : (
-              <span className="text-xs text-muted-foreground">—</span>
-            )}
-          </DetailItem>
-          <DetailItem label="Label">
-            {resourceReq.label ? (
-              <span className="text-sm">{resourceReq.label}</span>
-            ) : (
-              <span className="text-xs text-muted-foreground">—</span>
-            )}
-          </DetailItem>
-          <DetailItem label="Actions">
-            {(resourceReq.actions ?? []).length === 0 ? (
-              <span className="text-xs text-muted-foreground">—</span>
-            ) : (
-              <div className="flex flex-wrap gap-1">
-                {resourceReq.actions.map((a, idx) => (
-                  <Badge key={idx} variant="role">
-                    {enumLabel(a)}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </DetailItem>
-          <DetailItem label="Locations">
-            {(resourceReq.locations ?? []).length === 0 ? (
-              <span className="text-xs text-muted-foreground">—</span>
-            ) : (
-              <div className="flex flex-col gap-1">
-                {resourceReq.locations!.map((loc, idx) => (
-                  <span key={idx} className="font-mono text-xs break-all">
-                    {loc}
-                  </span>
-                ))}
-              </div>
-            )}
-          </DetailItem>
-          <DetailItem label="Datatypes">
-            {(resourceReq.datatypes ?? []).length === 0 ? (
-              <span className="text-xs text-muted-foreground">—</span>
-            ) : (
-              <div className="flex flex-wrap gap-1">
-                {resourceReq.datatypes!.map((d, idx) => (
-                  <Badge key={idx} variant="info">
-                    {d}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </DetailItem>
-          <DetailItem label="Privileges">
-            {(resourceReq.privileges ?? []).length === 0 ? (
-              <span className="text-xs text-muted-foreground">—</span>
-            ) : (
-              <div className="flex flex-wrap gap-1">
-                {resourceReq.privileges!.map((p, idx) => (
-                  <Badge key={idx} variant="info">
-                    {p}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </DetailItem>
-          <DetailItem label="Flags">
-            {(resourceReq.flags ?? []).length === 0 ? (
-              <span className="text-xs text-muted-foreground">—</span>
-            ) : (
-              <div className="flex flex-wrap gap-1">
-                {resourceReq.flags!.map((f, idx) => (
-                  <Badge key={idx} variant="info" className="font-mono">
-                    {enumLabel(f)}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </DetailItem>
-        </div>
-      </CardContent>
-    </Card>
-  );
 }
 
 function SecretField({ value }: { value?: string | null }) {

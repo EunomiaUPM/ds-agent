@@ -35,7 +35,8 @@ use ymir::services::repo::traits::sent::{
     MockSentGrantRepoTrait, MockSentInteractionRepoTrait, MockSentVerificationRepoTrait,
 };
 use ymir::services::repo::traits::shared::{
-    MockParticipantRelationRepoTrait, MockParticipantRepoTrait, MockResourceReqRepoTrait,
+    MockParticipantRelationRepoTrait, MockParticipantRepoTrait, MockRegisteredDatasetRepoTrait,
+    MockResourceReqRepoTrait,
 };
 use ymir::services::verifier::MockVerifierTrait;
 use ymir::services::wallet::MockWalletTrait;
@@ -53,6 +54,7 @@ pub struct Repos {
     pub recv_grant: MockRecvGrantRepoTrait,
     pub recv_interaction: MockRecvInteractionRepoTrait,
     pub recv_verification: MockRecvVerificationRepoTrait,
+    pub registered_dataset: MockRegisteredDatasetRepoTrait,
 }
 
 #[derive(Default)]
@@ -101,6 +103,10 @@ impl Repos {
         let repo = Arc::new(self.recv_verification);
         factory
             .expect_recv_verification()
+            .returning(move || repo.clone());
+        let repo = Arc::new(self.registered_dataset);
+        factory
+            .expect_registered_dataset()
             .returning(move || repo.clone());
         factory
     }

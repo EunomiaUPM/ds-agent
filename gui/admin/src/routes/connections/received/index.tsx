@@ -4,7 +4,8 @@ import { PageSection } from "@eunomia/ui";
 import { Badge } from "@eunomia/ui";
 import { Button } from "@eunomia/ui";
 import { FormatDate } from "@eunomia/ui";
-import { formatUrn, grantBadgeState } from "@eunomia/ui";
+import { formatUrn } from "@eunomia/ui";
+import { grantBadgeState } from "shared/src/lib/grants";
 import { customInstance } from "shared/src/data/orval-mutator";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";

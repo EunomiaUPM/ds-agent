@@ -23,8 +23,11 @@ use std::sync::Arc;
 use chrono::Utc;
 use common::facades::grants_facade::{GrantsFacadeTrait, PeerToken, VerifiedPeer};
 use common::facades::mates_facade::MatesFacadeTrait;
+use common::facades::registry_facade::RegistryFacadeTrait;
 use common::facades::AuthPorts;
+use ymir::data::entities::shared::registered_dataset::Model as RegisteredDataset;
 use ymir::services::token_validator::OauthTokenValidatorTrait;
+use ymir::types::gnap::grant_request::access::AccessNeed;
 use ymir::types::oauth::{RolePath, UserInfo};
 use ymir::types::participants::Visibility;
 use ymir::data::entities::shared::participant::Model as Mates;
@@ -59,7 +62,8 @@ impl StubAuth {
         });
         AuthPorts {
             mates: stub.clone(),
-            grants: stub,
+            grants: stub.clone(),
+            registry: stub,
         }
     }
 
@@ -102,6 +106,14 @@ impl MatesFacadeTrait for StubAuth {
 }
 
 #[async_trait::async_trait]
+impl RegistryFacadeTrait for StubAuth {
+    /// Nothing to register: the stub grants every dataset.
+    async fn sync_datasets(&self, _datasets: Vec<RegisteredDataset>) -> Outcome<()> {
+        Ok(())
+    }
+}
+
+#[async_trait::async_trait]
 impl GrantsFacadeTrait for StubAuth {
     async fn verify_token(&self, token: String) -> Outcome<VerifiedPeer> {
         if token == self.inbound_token {
@@ -115,10 +127,15 @@ impl GrantsFacadeTrait for StubAuth {
         }
     }
 
+    async fn authorize(&self, token: String, _need: AccessNeed) -> Outcome<VerifiedPeer> {
+        self.verify_token(token).await
+    }
+
     async fn peer_token(
         &self,
         _user: &UserInfo,
         participant_id: String,
+        _need: AccessNeed,
         _requested: bool,
     ) -> Outcome<PeerToken> {
         if participant_id == self.peer.participant_id {
@@ -136,9 +153,10 @@ impl GrantsFacadeTrait for StubAuth {
         &self,
         user: &UserInfo,
         participant_id: String,
+        need: AccessNeed,
         requested: bool,
     ) -> Outcome<PeerToken> {
-        self.peer_token(user, participant_id, requested).await
+        self.peer_token(user, participant_id, need, requested).await
     }
 }
 

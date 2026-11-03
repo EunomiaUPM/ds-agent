@@ -42,7 +42,6 @@ use crate::entities::schemas::{
     CheckSchemaUrlDto, DataSchema, InferSchemaDto, NewSchemaDto, NewSchemaVersionDto,
     ValidateSchemaDto,
 };
-use crate::profiles::shared::public::PublicReader;
 use crate::services::schemas::views::{
     SchemaUrlCheckView, SchemaUsageView, SchemaValidationView, SchemaVersionView, SchemaView,
 };
@@ -142,6 +141,28 @@ impl SchemaService {
         Ok(())
     }
 
+    /// Whether a published dataset or distribution (none hanging from a draft) uses `version`.
+    async fn in_published_use(&self, id: &str, version: i32) -> Outcome<bool> {
+        let filter = ResourceFilter {
+            schema: Some(self.url(id, version)),
+            ..Default::default()
+        };
+        let resources = self.ctx.repos.resource_repo();
+        for resource in resources.get_all(&OwnerScope::All, &filter).await? {
+            if resource.is_draft() {
+                continue;
+            }
+            let parent = match resource.dataset_id() {
+                Some(dataset) => resources.get_by_id(&OwnerScope::All, dataset).await?,
+                None => None,
+            };
+            if !parent.is_some_and(|dataset| dataset.is_draft()) {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
     async fn store(&self, command: NewSchemaVersionCommand) -> Outcome<SchemaView> {
         let stored = self.ctx.repos.schema_repo().insert(&command).await?;
         events::emit_action!(
@@ -155,7 +176,7 @@ impl SchemaService {
         Ok(self.view(stored))
     }
 
-    /// `{host}{api}/catalog-agent/public`, where hosted versions are served.
+    /// `{host}{api}/catalog-agent/open`, where hosted versions are served.
     fn public_base(&self) -> String {
         let common = self.ctx.config.common();
         format!(
@@ -409,23 +430,26 @@ impl SchemaServiceTrait for SchemaService {
             .ctx
             .repos
             .schema_repo()
-            .get_version(&PublicReader::scope(), id, version)
+            .get_version(&OwnerScope::All, id, version)
             .await?
             .or_not_found(format!("{id}/{version}"), "schema")?;
+        if !self.in_published_use(id, version).await? {
+            return Err(Errors::missing_resource(format!("{id}/{version}"), "schema not found", None));
+        }
         Ok(Self::served(&schema, &self.url(id, version)))
     }
 
     async fn public(&self, id: &str, version: Option<i32>) -> Outcome<Option<(Value, String)>> {
-        let repo = self.ctx.repos.schema_repo();
-        let scope = PublicReader::scope();
-        let schema = match version {
-            Some(version) => repo.get_version(&scope, id, version).await?,
-            None => repo.get_latest(&scope, id).await?,
-        };
-        Ok(schema.map(|schema| {
-            let url = self.url(id, schema.version);
-            (Self::served(&schema, &url), url)
-        }))
+        let mut versions = self.ctx.repos.schema_repo().get_versions(&OwnerScope::All, id).await?;
+        versions.retain(|schema| version.is_none_or(|v| schema.version == v));
+        versions.sort_by_key(|schema| std::cmp::Reverse(schema.version));
+        for schema in versions {
+            if self.in_published_use(id, schema.version).await? {
+                let url = self.url(id, schema.version);
+                return Ok(Some((Self::served(&schema, &url), url)));
+            }
+        }
+        Ok(None)
     }
 
     fn url(&self, id: &str, version: i32) -> String {

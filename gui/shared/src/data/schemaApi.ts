@@ -32,7 +32,7 @@ export interface SchemaGroup {
   versions: SchemaView[];
 }
 
-const HOSTED = /\/public\/schemas\/([^/]+)\/v?(\d+)$/;
+const HOSTED = /\/open\/schemas\/([^/]+)\/v?(\d+)$/;
 
 export const SchemaApi = {
   async infer(samples: unknown[]): Promise<JsonSchema> {

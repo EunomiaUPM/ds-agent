@@ -95,7 +95,7 @@ function SchemasPage() {
               cell: (g) => <span className="text-sm text-ink/70">{g.latest.visibility}</span>,
             },
             {
-              header: "Public URL",
+              header: "Open URL",
               cell: (g) => (
                 <span
                   className="block max-w-[420px]"

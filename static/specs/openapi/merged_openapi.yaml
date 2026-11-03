@@ -217,14 +217,14 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
       security: []
-  /public/{urn}:
+  /open/{urn}:
     get:
       tags:
       - Public References
       operationId: getPublicReference
       summary: Dereference a URN
       description: |
-        The public document behind a URN this agent holds; the gateway asks the agents behind it. Agreements are always public, as their ODRL document with the DSP 2025-1 context. Catalog resources that are not private nor drafts come projected in a profile (`dcat3` by default), and their ODRL offers as DSP offers with their `target`. Hosted schemas come as JSON Schema, newest version by default. An unknown URN and one that is not public get the same 404. The URN stays the `@id`: `Link: <url>; rel="canonical"` gives the absolute URL that dereferences it, and `Content-Location` the owning agent's own route when there is one. `If-None-Match` with the `ETag` gives a 304.
+        The public document behind a URN this agent holds; the gateway asks the agents behind it. Agreements are always open, as their ODRL document with the DSP 2025-1 context. Hosted schemas come as JSON Schema when a published dataset or distribution uses them, the newest such version by default. Catalog resources and their offers are not here: peers read them through DSP. An unknown URN and one that is not public get the same 404. The URN stays the `@id`: `Link: <url>; rel="canonical"` gives the absolute URL that dereferences it, and `Content-Location` the owning agent's own route when there is one. `If-None-Match` with the `ETag` gives a 304.
       parameters:
       - name: urn
         in: path
@@ -6472,7 +6472,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
       security:
       - bearerAuth: []
-  /api/v1/catalog-agent/public/schemas/{id}/{version}:
+  /api/v1/catalog-agent/open/schemas/{id}/{version}:
     parameters:
     - $ref: '#/components/parameters/StringPathId'
     - name: version
@@ -6580,132 +6580,6 @@ paths:
           $ref: '#/components/responses/Conflict'
       security:
       - bearerAuth: []
-  /api/v1/catalog-agent/public/dcat3/catalog:
-    get:
-      tags:
-      - Public Profiles
-      operationId: publicDcat3Catalog
-      summary: Main catalog in DCAT 3 (W3C), nearly everything optional
-      security: []
-      description: 'Public: only what is not private. `If-None-Match` answers 304.'
-      responses:
-        '200':
-          description: The main catalog and what it holds, as one @graph
-          content:
-            application/ld+json:
-              schema:
-                $ref: '#/components/schemas/ProfileDocument'
-          headers:
-            ETag:
-              $ref: '#/components/headers/ETag'
-            Link:
-              $ref: '#/components/headers/Link'
-        '304':
-          description: Not modified
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /api/v1/catalog-agent/public/dcat3/resources/{id}:
-    parameters:
-    - $ref: '#/components/parameters/UrnPathId'
-    get:
-      tags:
-      - Public Profiles
-      operationId: publicDcat3Resource
-      summary: One resource in DCAT 3 (W3C), nearly everything optional
-      security: []
-      responses:
-        '200':
-          description: The resource and its closure
-          content:
-            application/ld+json:
-              schema:
-                $ref: '#/components/schemas/ProfileDocument'
-          headers:
-            ETag:
-              $ref: '#/components/headers/ETag'
-            Link:
-              $ref: '#/components/headers/Link'
-        '304':
-          description: Not modified
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /api/v1/catalog-agent/public/dcat3/context.jsonld:
-    get:
-      tags:
-      - Public Profiles
-      operationId: publicDcat3Context
-      summary: The profile's JSON-LD context
-      security: []
-      responses:
-        '200':
-          description: Context document
-          content:
-            application/ld+json:
-              schema:
-                type: object
-  /api/v1/catalog-agent/public/dcat-ap/catalog:
-    get:
-      tags:
-      - Public Profiles
-      operationId: publicDcatApCatalog
-      summary: Main catalog in DCAT-AP 3.0.1, with mandatory properties and EU controlled vocabularies
-      security: []
-      description: 'Public: only what is not private. `If-None-Match` answers 304.'
-      responses:
-        '200':
-          description: The main catalog and what it holds, as one @graph
-          content:
-            application/ld+json:
-              schema:
-                $ref: '#/components/schemas/ProfileDocument'
-          headers:
-            ETag:
-              $ref: '#/components/headers/ETag'
-            Link:
-              $ref: '#/components/headers/Link'
-        '304':
-          description: Not modified
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /api/v1/catalog-agent/public/dcat-ap/resources/{id}:
-    parameters:
-    - $ref: '#/components/parameters/UrnPathId'
-    get:
-      tags:
-      - Public Profiles
-      operationId: publicDcatApResource
-      summary: One resource in DCAT-AP 3.0.1, with mandatory properties and EU controlled vocabularies
-      security: []
-      responses:
-        '200':
-          description: The resource and its closure
-          content:
-            application/ld+json:
-              schema:
-                $ref: '#/components/schemas/ProfileDocument'
-          headers:
-            ETag:
-              $ref: '#/components/headers/ETag'
-            Link:
-              $ref: '#/components/headers/Link'
-        '304':
-          description: Not modified
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /api/v1/catalog-agent/public/dcat-ap/context.jsonld:
-    get:
-      tags:
-      - Public Profiles
-      operationId: publicDcatApContext
-      summary: The profile's JSON-LD context
-      security: []
-      responses:
-        '200':
-          description: Context document
-          content:
-            application/ld+json:
-              schema:
-                type: object
   /dsp/current/catalog/request:
     post:
       tags:

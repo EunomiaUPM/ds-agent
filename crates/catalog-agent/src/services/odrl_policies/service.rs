@@ -19,7 +19,6 @@
 
 use std::sync::Arc;
 
-use serde_json::Value;
 use urn::{Urn, UrnBuilder};
 use ymir::errors::NotFoundExt;
 use ymir::errors::{ErrorReason, Errors, Outcome};
@@ -31,8 +30,6 @@ use ymir::types::oauth::UserInfo;
 use crate::entities::commands::NewOdrlOfferCommand;
 use crate::entities::filters::OdrlPolicyFilter;
 use crate::entities::odrl_offer::OdrlOffer;
-use crate::profiles::dsp::DspProfileAdapter;
-use crate::profiles::shared::public::PublicReader;
 use crate::services::odrl_policies::views::OdrlPolicyView;
 use crate::services::odrl_policies::OdrlPolicyServiceTrait;
 use crate::setup::context::AppContext;
@@ -190,21 +187,5 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
             self.emit_deleted(offer).await;
         }
         Ok(())
-    }
-
-    #[tracing::instrument(level = "debug", skip_all, err, fields(id = %id))]
-    async fn public(&self, id: &Urn) -> Outcome<Option<Value>> {
-        let scope = PublicReader::scope();
-        let Some(offer) = self.ctx.repos.odrl_offer_repo().get_by_id(&scope, id).await? else {
-            return Ok(None);
-        };
-        // An offer is as public as what it applies to: not private and not a draft.
-        let Some((root, set)) = self.ctx.closures().resource(&scope, &offer.entity).await? else {
-            return Ok(None);
-        };
-        if set.shared_from(&root).is_none() {
-            return Ok(None);
-        }
-        Ok(DspProfileAdapter::offer_document(&offer))
     }
 }

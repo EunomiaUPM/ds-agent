@@ -117,7 +117,7 @@ export const CatalogResources = {
     return value && value in Visibility ? (value as Visibility) : Visibility.Private;
   },
 
-  /** Saves the stored document again under `visibility`; not private, `/public` serves it. */
+  /** Saves the stored document again under `visibility`. */
   async setVisibility(
     kind: CatalogResourceKind,
     id: string,

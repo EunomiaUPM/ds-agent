@@ -20,5 +20,4 @@
 
 pub mod dcat;
 pub mod effective;
-pub mod public;
 pub mod rules;

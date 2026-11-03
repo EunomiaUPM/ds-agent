@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! `GET /public/{urn}`: any URN the process holds, dereferenced as its public JSON-LD document.
+//! `GET /open/{urn}`: any URN the process holds, dereferenced as its public JSON-LD document.
 //! Each agent contributes a resolver, the gateway remote ones; the first that knows it answers.
 
 pub mod document;

@@ -120,7 +120,7 @@ function SchemaPage() {
             columns={3}
             fields={[
               {
-                label: "Public URL (what conformsTo points to)",
+                label: "Open URL (what conformsTo points to)",
                 span: 3,
                 value: (
                   <span className="flex items-center gap-2">

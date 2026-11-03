@@ -174,14 +174,17 @@ export function SchemaBuilder({ base, onSaved, onCancel }: SchemaBuilderProps) {
               </p>
             </FormField>
           ) : (
-            <FormField label="Who can read it" hint="Consumers dereference public schemas.">
+            <FormField
+              label="Who else sees it here"
+              hint="Consumers read it at its URL once a published dataset or distribution uses it."
+            >
               <Select value={visibility} onValueChange={(v) => setVisibility(v as Visibility)}>
                 <SelectTrigger className="text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={Visibility.Public}>Public, at its URL</SelectItem>
-                  <SelectItem value={Visibility.Private}>Private, only here</SelectItem>
+                  <SelectItem value={Visibility.Public}>Everyone in the connector</SelectItem>
+                  <SelectItem value={Visibility.Private}>Only you and the roles above</SelectItem>
                 </SelectContent>
               </Select>
             </FormField>

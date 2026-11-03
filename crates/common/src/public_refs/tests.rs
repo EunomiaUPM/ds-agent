@@ -97,7 +97,7 @@ async fn first_resolver_holding_the_urn_answers() {
         resolver("dataset", json!({ "@id": "wrong" })),
         resolver("agreement", json!({ "@id": "urn:agreement:1" })),
     ]);
-    let response = get(app, "/public/urn:agreement:1", &[]).await;
+    let response = get(app, "/open/urn:agreement:1", &[]).await;
     assert_eq!(response.status(), StatusCode::OK);
     let headers = response.headers();
     assert_eq!(headers[header::CONTENT_TYPE], "application/ld+json");
@@ -105,7 +105,7 @@ async fn first_resolver_holding_the_urn_answers() {
     assert_eq!(links[0], "<http://www.w3.org/ns/dcat3>; rel=\"profile\"");
     assert_eq!(
         links[1],
-        "<http://agent.example:1200/public/urn:agreement:1>; rel=\"canonical\""
+        "<http://agent.example:1200/open/urn:agreement:1>; rel=\"canonical\""
     );
     assert_eq!(
         headers[header::CONTENT_LOCATION],
@@ -120,7 +120,7 @@ async fn first_resolver_holding_the_urn_answers() {
 async fn unknown_urn_is_not_found() {
     let response = get(
         app(vec![resolver("dataset", json!({}))]),
-        "/public/urn:agreement:1",
+        "/open/urn:agreement:1",
         &[],
     )
     .await;
@@ -132,7 +132,7 @@ async fn unknown_urn_is_not_found() {
 async fn non_urn_is_bad_request() {
     let response = get(
         app(vec![Arc::new(MockPublicResolverTrait::new())]),
-        "/public/not-a-urn",
+        "/open/not-a-urn",
         &[],
     )
     .await;
@@ -146,7 +146,7 @@ async fn urn_with_slashes_is_taken_whole() {
     mock.expect_resolve()
         .withf(|urn, _| urn.as_str() == "urn:schema:a/b")
         .returning(|_, _| Ok(Some(PublicDocument::json_ld(json!({})))));
-    let response = get(app(vec![Arc::new(mock)]), "/public/urn:schema:a/b", &[]).await;
+    let response = get(app(vec![Arc::new(mock)]), "/open/urn:schema:a/b", &[]).await;
     assert_eq!(response.status(), StatusCode::OK);
 }
 
@@ -159,7 +159,7 @@ async fn query_reaches_the_resolver() {
         .returning(|_, _| Ok(Some(PublicDocument::json_ld(json!({})))));
     let response = get(
         app(vec![Arc::new(mock)]),
-        "/public/urn:dataset:1?profile=dcat-ap&version=2",
+        "/open/urn:dataset:1?profile=dcat-ap&version=2",
         &[],
     )
     .await;
@@ -176,7 +176,7 @@ async fn matching_etag_is_not_modified() {
     )]);
     let response = get(
         app,
-        "/public/urn:agreement:1",
+        "/open/urn:agreement:1",
         &[(header::IF_NONE_MATCH, &tag)],
     )
     .await;
@@ -189,7 +189,7 @@ async fn json_only_client_gets_plain_json() {
     let app = app(vec![resolver("agreement", json!({}))]);
     let response = get(
         app,
-        "/public/urn:agreement:1",
+        "/open/urn:agreement:1",
         &[(header::ACCEPT, "application/json")],
     )
     .await;
@@ -205,7 +205,7 @@ async fn absolute_location_is_kept() {
             PublicDocument::json_ld(json!({})).with_location("http://catalog:1201/x"),
         ))
     });
-    let response = get(app(vec![Arc::new(mock)]), "/public/urn:dataset:1", &[]).await;
+    let response = get(app(vec![Arc::new(mock)]), "/open/urn:dataset:1", &[]).await;
     assert_eq!(
         response.headers()[header::CONTENT_LOCATION],
         "http://catalog:1201/x"

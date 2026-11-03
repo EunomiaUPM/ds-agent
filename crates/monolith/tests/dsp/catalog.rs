@@ -85,7 +85,7 @@ async fn published_dataset_is_seen_by_every_profile() {
     let open_id = open["@id"].as_str().unwrap();
     let public = ds
         .provider
-        .get_unauthenticated(&format!("/api/v1/catalog-agent/public/dcat-ap/resources/{open_id}"))
+        .get_unauthenticated(&format!("/api/v1/catalog-agent/open/dcat-ap/resources/{open_id}"))
         .await;
     assert_eq!(public["@graph"][0]["@id"], open_id, "{public}");
 

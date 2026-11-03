@@ -1,14 +1,9 @@
-// Who else sees a catalog resource; one that is not private and not a draft is dereferenceable
-// by anyone at `/public/{urn}`.
+// Who else inside the connector sees a catalog resource.
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ExternalLink } from "lucide-react";
 import {
-  Button,
-  cn,
-  getApiGatewayBase,
   Select,
   SelectContent,
   SelectItem,
@@ -57,33 +52,5 @@ export function VisibilitySelect({ kind, id, visibility }: SelectProps) {
         ))}
       </SelectContent>
     </Select>
-  );
-}
-
-/** The resource's `/public` URL: at the root of the API's host, not under its `/admin/api` base. */
-export function publicReferenceUrl(id: string): string {
-  const origin = new URL(getApiGatewayBase() || "/", window.location.href).origin;
-  return `${origin}/public/${id}`;
-}
-
-/** Opens the public document; only offered when anyone can read it. */
-export function PublicReferenceLink({
-  id,
-  visibility,
-  draft,
-  className,
-}: {
-  id: string;
-  visibility: Visibility;
-  draft: boolean;
-  className?: string;
-}) {
-  if (visibility === Visibility.Private || draft) return null;
-  return (
-    <Button variant="outline" className={cn(className)} asChild>
-      <a href={publicReferenceUrl(id)} target="_blank" rel="noreferrer">
-        <ExternalLink /> Public
-      </a>
-    </Button>
   );
 }

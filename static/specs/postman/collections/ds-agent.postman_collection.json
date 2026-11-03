@@ -297,59 +297,14 @@
           ]
         },
         {
-          "name": "Public references",
+          "name": "Open references",
           "item": [
-            {
-              "name": "Dataset (DCAT 3)",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": "{{provider}}/public/{{datasetId}}?profile=dcat3",
-                "auth": {
-                  "type": "noauth"
-                },
-                "description": "Any URN the process holds; `profile` picks the catalog profile (default `dcat3`)."
-              },
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "pm.test(\"answers 200\", () => pm.expect(pm.response.code).to.be.oneOf([200]));"
-                    ]
-                  }
-                }
-              ]
-            },
-            {
-              "name": "Dataset (DCAT-AP)",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": "{{provider}}/public/{{datasetId}}?profile=dcat-ap",
-                "auth": {
-                  "type": "noauth"
-                }
-              }
-            },
-            {
-              "name": "ODRL offer",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": "{{provider}}/public/{{policyId}}",
-                "auth": {
-                  "type": "noauth"
-                }
-              }
-            },
             {
               "name": "Schema version",
               "request": {
                 "method": "GET",
                 "header": [],
-                "url": "{{provider}}/public/{{schemaId}}?version={{schemaVersion}}",
+                "url": "{{provider}}/open/{{schemaId}}?version={{schemaVersion}}",
                 "auth": {
                   "type": "noauth"
                 }
@@ -360,7 +315,7 @@
               "request": {
                 "method": "GET",
                 "header": [],
-                "url": "{{provider}}/public/{{agreementId}}",
+                "url": "{{provider}}/open/{{agreementId}}",
                 "auth": {
                   "type": "noauth"
                 },
@@ -368,7 +323,7 @@
               }
             }
           ],
-          "description": "`GET /public/{urn}` at the process root, no token. The URN stays the `@id`; the URL goes in `Link rel=canonical`."
+          "description": "`GET /open/{urn}` at the process root, no token. The URN stays the `@id`; the URL goes in `Link rel=canonical`."
         }
       ],
       "description": "Health, well-known documents, API docs and public references. None needs a user token."
@@ -3109,7 +3064,7 @@
               "request": {
                 "method": "GET",
                 "header": [],
-                "url": "{{provider}}/api/v1/catalog-agent/public/schemas/{{schemaId}}/{{schemaVersion}}"
+                "url": "{{provider}}/api/v1/catalog-agent/open/schemas/{{schemaId}}/{{schemaVersion}}"
               },
               "event": [
                 {
@@ -3518,56 +3473,7 @@
         },
         {
           "name": "Public profiles",
-          "item": [
-            {
-              "name": "DCAT 3 catalog",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": "{{provider}}/api/v1/catalog-agent/public/dcat3/catalog"
-              }
-            },
-            {
-              "name": "DCAT 3 resource",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": "{{provider}}/api/v1/catalog-agent/public/dcat3/resources/{{datasetId}}"
-              }
-            },
-            {
-              "name": "DCAT 3 context",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": "{{provider}}/api/v1/catalog-agent/public/dcat3/context.jsonld"
-              }
-            },
-            {
-              "name": "DCAT-AP catalog",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": "{{provider}}/api/v1/catalog-agent/public/dcat-ap/catalog"
-              }
-            },
-            {
-              "name": "DCAT-AP resource",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": "{{provider}}/api/v1/catalog-agent/public/dcat-ap/resources/{{datasetId}}"
-              }
-            },
-            {
-              "name": "DCAT-AP context",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": "{{provider}}/api/v1/catalog-agent/public/dcat-ap/context.jsonld"
-              }
-            }
-          ],
+          "item": [],
           "description": "Read-only, no token."
         },
         {
@@ -10142,25 +10048,6 @@
               ]
             },
             {
-              "name": "Distribution in DCAT-AP inherits it",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": "{{provider}}/api/v1/catalog-agent/public/dcat-ap/resources/{{distributionId}}"
-              },
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "pm.test(\"conformsTo is the schema URL\", () => pm.expect(pm.response.text()).to.include(pm.collectionVariables.get(\"schemaUrl\")));"
-                    ]
-                  }
-                }
-              ]
-            },
-            {
               "name": "Version 1 is in use",
               "request": {
                 "method": "DELETE",
@@ -10301,7 +10188,7 @@
               "request": {
                 "method": "GET",
                 "header": [],
-                "url": "{{provider}}/api/v1/catalog-agent/public/schemas/{{schemaId}}/{{schemaVersion}}"
+                "url": "{{provider}}/api/v1/catalog-agent/open/schemas/{{schemaId}}/{{schemaVersion}}"
               },
               "event": [
                 {
@@ -10425,25 +10312,6 @@
               ]
             },
             {
-              "name": "Not in the public DCAT-AP route",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": "{{provider}}/api/v1/catalog-agent/public/dcat-ap/resources/{{datasetId}}"
-              },
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "pm.test(\"404\", () => pm.response.to.have.status(404));"
-                    ]
-                  }
-                }
-              ]
-            },
-            {
               "name": "Not in the DCAT-AP export",
               "request": {
                 "method": "GET",
@@ -10476,26 +10344,6 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test(\"published\", () => pm.expect(pm.response.json().publicationState).to.eql(\"published\"));"
-                    ]
-                  }
-                }
-              ]
-            },
-            {
-              "name": "In the public DCAT-AP route",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": "{{provider}}/api/v1/catalog-agent/public/dcat-ap/resources/{{datasetId}}"
-              },
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "pm.test(\"200\", () => pm.response.to.have.status(200));",
-                      "pm.test(\"no internal state\", () => pm.expect(pm.response.text()).to.not.include(\"publicationState\"));"
                     ]
                   }
                 }

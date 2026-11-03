@@ -39,7 +39,7 @@ import { DatasetLabel } from "shared/src/components/identity/DatasetLabel";
 import { JsonTable } from "@eunomia/ui";
 import { SchemaUrl } from "shared/src/components/schemas/SchemaPicker";
 import { PublicationBadge, PublicationToggle } from "shared/src/components/catalog/Publication";
-import { PublicReferenceLink, VisibilitySelect } from "shared/src/components/catalog/Visibility";
+import { VisibilitySelect } from "shared/src/components/catalog/Visibility";
 import { CatalogResources } from "shared/src/data/catalogResources";
 import { useGetDatasetById } from "shared/src/data/orval/datasets/datasets";
 import { text } from "shared/src/data/catalog";
@@ -146,12 +146,6 @@ function DistributionConnectorPage() {
         actions={
           <>
             <VisibilitySelect kind="distribution" id={distributionId} visibility={visibility} />
-            <PublicReferenceLink
-              id={distributionId}
-              visibility={visibility}
-              draft={distribution.draft || datasetDraft}
-              className="h-8"
-            />
             <PublicationToggle
               kind="distribution"
               id={distributionId}

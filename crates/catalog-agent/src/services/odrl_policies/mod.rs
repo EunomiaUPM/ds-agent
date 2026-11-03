@@ -20,7 +20,6 @@
 pub mod service;
 pub mod views;
 
-use serde_json::Value;
 use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::paginated_spec::{Page, Paginated, Sort};
@@ -52,6 +51,4 @@ pub trait OdrlPolicyServiceTrait: Sync + Send {
     async fn delete(&self, user: &UserInfo, id: &Urn) -> Outcome<()>;
     /// Deletes every offer attached to the entity.
     async fn delete_by_entity(&self, user: &UserInfo, entity: &Urn) -> Outcome<()>;
-    /// The offer's DSP document to anyone; none unless it and its resource are public, not drafts.
-    async fn public(&self, id: &Urn) -> Outcome<Option<Value>>;
 }

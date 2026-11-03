@@ -80,8 +80,8 @@ impl CatalogAgentModule {
         // A new profile is one more module here: its routes mount and the doctor sees it.
         let profiles = ProfileModules::new(ctx.clone())
             .register(DspProfileModule::default())
-            .register(Dcat3ProfileModule::new(ctx.clone()))
-            .register(DcatApProfileModule::new(ctx.clone()));
+            .register(Dcat3ProfileModule::default())
+            .register(DcatApProfileModule::default());
         let modules = ModuleGroup::new(SERVICE_NAME)
             .register(DspModule::new(ctx.clone()))
             .register(CatalogAdminModule::new(ctx.clone()))

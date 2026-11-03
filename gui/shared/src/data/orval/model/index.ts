@@ -384,8 +384,6 @@ export * from './profileDocumentGraphItem';
 export * from './profileQueryParameter';
 export * from './protocolBadRequestResponse';
 export * from './protocolSpec';
-export * from './publicDcat3Context200';
-export * from './publicDcatApContext200';
 export * from './publishEventCommand';
 export * from './pullLifecycle';
 export * from './pullLifecycleMode';

@@ -198,9 +198,9 @@ pub mod catalog {
         pub const BY_ID_AND_VERSION: &str = "/{id}/versions/{version}";
     }
 
-    /// Read-only routes of each profile (public), relative to `{api}/catalog-agent`.
+    /// Read-only routes of each profile (open), relative to `{api}/catalog-agent`.
     pub mod public {
-        pub const PREFIX: &str = "/public";
+        pub const PREFIX: &str = "/open";
         pub const CATALOG: &str = "/catalog";
         pub const RESOURCE: &str = "/resources/{id}";
         pub const CONTEXT: &str = "/context.jsonld";
@@ -406,9 +406,9 @@ pub mod connector {
     }
 }
 
-/// Public references (external: anyone), at the process root.
+/// Open references (external: anyone), at the process root.
 pub mod public_refs {
-    pub const PREFIX: &str = "/public";
+    pub const PREFIX: &str = "/open";
     /// Any URN the process holds (`?profile=`, `?version=`).
     pub const BY_URN: &str = "/{*urn}";
 }

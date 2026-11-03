@@ -22,7 +22,6 @@ pub mod service;
 pub mod views;
 
 use common::rdf::RdfSyntax;
-use serde_json::Value;
 use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::types::oauth::UserInfo;
@@ -51,6 +50,4 @@ pub trait ProjectionServiceTrait: Send + Sync {
         id: &Urn,
         request: &ProjectionRequest,
     ) -> Outcome<Projection>;
-    /// `id` in `profile` as anyone sees it; none when it is private, a draft or absent.
-    async fn public(&self, profile: &str, id: &Urn) -> Outcome<Option<Value>>;
 }

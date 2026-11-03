@@ -31,7 +31,7 @@ use ymir::errors::{BadFormat, Errors, Outcome};
 use crate::public_refs::{PublicDocument, PublicQuery, PublicResolverTrait};
 use crate::routes;
 
-/// Routes `/{urn}` under `/public`, with no authentication.
+/// Routes `/{urn}` under `/open`, with no authentication.
 #[derive(Clone)]
 pub struct PublicRefsRouter {
     /// The process's exterior HTTP host, which canonical URLs and locations hang from.

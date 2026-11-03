@@ -32,7 +32,7 @@ use ymir::oauth::OwnerScope;
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::Visibility;
 
-use crate::support::builders::dataset;
+use crate::support::builders::{dataset, provider_set, urn};
 use crate::support::context::TestContext;
 
 const ID: &str = "urn:schema:readings";
@@ -96,7 +96,7 @@ async fn create_stores_version_one() {
     assert_eq!(view.version, 1);
     assert!(view
         .url
-        .ends_with(&format!("/catalog-agent/public/schemas/{}/1", view.id)));
+        .ends_with(&format!("/catalog-agent/open/schemas/{}/1", view.id)));
 }
 
 /// An invalid schema or a blank title is refused before anything is stored.
@@ -271,14 +271,25 @@ async fn version_shows_content_and_usage() {
     assert_eq!(view.used_by[0].kind, ResourceKind::Dataset.as_str());
 }
 
-/// The public view reads as nobody in particular and names its own URL.
+/// A version a published dataset uses is served whole and names its own URL.
 #[tokio::test]
 async fn published_is_read_as_the_public() {
     let mut repo = MockSchemaRepoTrait::new();
     repo.expect_get_version()
-        .withf(|scope, _, _| matches!(scope, OwnerScope::Seeing { user_id, .. } if user_id == "urn:eunomia:public-reader"))
+        .withf(|scope, _, _| matches!(scope, OwnerScope::All))
         .returning(|_, _, v| Ok(Some(stored(v, Visibility::Public))));
-    let ctx = TestContext::new().schema_repo(repo).build();
+    let mut resources = MockResourceRepoTrait::new();
+    resources
+        .expect_get_all()
+        .withf(|scope, f| matches!(scope, OwnerScope::All) && f.schema.is_some())
+        .returning(|_, _| {
+            let (_, set) = provider_set();
+            Ok(set.get(urn(ResourceKind::Dataset, 3).as_ref()).cloned().into_iter().collect())
+        });
+    let ctx = TestContext::new()
+        .schema_repo(repo)
+        .resource_repo(resources)
+        .build();
 
     let schema = ctx.schemas().published(ID, 1).await.unwrap();
 

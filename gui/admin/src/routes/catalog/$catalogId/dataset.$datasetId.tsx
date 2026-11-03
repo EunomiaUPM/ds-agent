@@ -59,7 +59,7 @@ import {
 } from "shared/src/components/catalog/DeleteResourceDialog";
 import { DatasetDcatSummary } from "shared/src/components/catalog/DcatSummary";
 import { PublicationBadge, PublicationToggle } from "shared/src/components/catalog/Publication";
-import { PublicReferenceLink, VisibilitySelect } from "shared/src/components/catalog/Visibility";
+import { VisibilitySelect } from "shared/src/components/catalog/Visibility";
 import { CatalogResources } from "shared/src/data/catalogResources";
 import { useParticipantDirectory } from "shared/src/data/useParticipantDirectory";
 
@@ -109,7 +109,6 @@ function DatasetPage() {
         actions={
           <>
             <VisibilitySelect kind="dataset" id={datasetId} visibility={visibility} />
-            <PublicReferenceLink id={datasetId} visibility={visibility} draft={dataset.draft} />
             <PublicationToggle
               kind="dataset"
               id={datasetId}

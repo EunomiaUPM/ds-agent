@@ -15,31 +15,24 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! DCAT 3 as a module: its public read routes and its adapter.
+//! DCAT 3 as a profile module: no routes of its own, only the adapter the registry, the
+//! exports and the projections use.
 
 use std::sync::Arc;
 
-use axum::Router;
-use ymir::config::traits::CommonConfigTrait;
 use ymir::module_loader::service_module::ServiceModuleTrait;
-use ymir::config::traits::ApiConfigTrait;
 
 use crate::profiles::dcat3::Dcat3;
-use crate::profiles::shared::dcat::{DcatAdapter, DcatProfileSpec};
-use crate::profiles::shared::public::PublicProfileRouter;
+use crate::profiles::shared::dcat::DcatAdapter;
 use crate::profiles::{ProfileAdapterTrait, ProfileModuleTrait};
-use crate::setup::context::AppContext;
-use crate::SERVICE_NAME;
 
 pub struct Dcat3ProfileModule {
-    ctx: Arc<AppContext>,
     adapter: Arc<DcatAdapter<Dcat3>>,
 }
 
-impl Dcat3ProfileModule {
-    pub fn new(ctx: Arc<AppContext>) -> Self {
+impl Default for Dcat3ProfileModule {
+    fn default() -> Self {
         Self {
-            ctx,
             adapter: Arc::new(DcatAdapter::default()),
         }
     }
@@ -48,15 +41,6 @@ impl Dcat3ProfileModule {
 impl ServiceModuleTrait for Dcat3ProfileModule {
     fn name(&self) -> &'static str {
         "catalog-profile-dcat3"
-    }
-
-    fn http(&self) -> Option<(String, Router)> {
-        let base = format!(
-            "{}/{SERVICE_NAME}/public/{}",
-            self.ctx.config.common().get_api_version(),
-            Dcat3::KEY
-        );
-        Some((base, PublicProfileRouter::new(self.ctx.clone(), self.adapter()).router()))
     }
 }
 

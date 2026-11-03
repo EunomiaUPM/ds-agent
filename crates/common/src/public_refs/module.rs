@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! The public references as a module, mounted at `/public` of every agent process.
+//! The public references as a module, mounted at `/open` of every agent process.
 
 use std::sync::Arc;
 

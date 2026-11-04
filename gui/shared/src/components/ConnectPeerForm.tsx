@@ -205,10 +205,10 @@ const VerifierStatus = ({ verifier, nick }: { verifier: VerifierCheck; nick: str
 };
 
 
-/** An approved grant to widen to a dataset it does not cover yet. */
+/** An approved grant to widen to a dataset it does not cover yet, or to the catalog without one. */
 export interface WidenAccess {
   grantId: string;
-  datasetId: string;
+  datasetId?: string;
   title?: string;
 }
 
@@ -281,7 +281,7 @@ export const ConnectPeerForm = ({
     run(async () => {
       const answer = await customInstance<{ status: number; data: { pending?: boolean } }>(
         `/peer-connection/request/${encodeURIComponent(target.grantId)}/access`,
-        { method: "POST", data: { dataset: target.datasetId } },
+        { method: "POST", data: target.datasetId ? { dataset: target.datasetId } : {} },
       );
       await refresh();
       if (answer.status === 200 && answer.data.pending) {
@@ -334,7 +334,7 @@ export const ConnectPeerForm = ({
       {/* Both lines share one cell, so one fades into the other. */}
       <div className="grid">
         <p aria-hidden={!!resolved} className={`[grid-area:1/1] ${fade(!resolved)}`}>
-          {widen ? (
+          {widen?.datasetId ? (
             <>
               <strong>{nick}</strong> needs more access for{" "}
               <strong>{widen.title || widen.datasetId}</strong>. Do you want to continue?
@@ -510,12 +510,12 @@ export const ConnectPeerForm = ({
               {sending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {widen ? "Requesting…" : "Connecting…"}
+                  Requesting…
                 </>
               ) : widen ? (
                 "Continue"
               ) : (
-                "Connect"
+                "Request access"
               )}
             </Button>
           </>

@@ -1,5 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
+import {
+  useRpcSetupCatalogRequest,
+  useRpcSetupDatasetRequest,
+} from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
 import { PageLayout } from "@eunomia/ui";
 import { PageHeader } from "@eunomia/ui";
 
@@ -17,19 +20,25 @@ import { Heading } from "@eunomia/ui";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 import DistributionItem from "shared/components/ui/distribution-item";
 import { Avatar } from "@eunomia/ui";
-import { usePeerConnections } from "shared/src/data/peerConnection";
+import { grantedDatasets, usePeerConnections } from "shared/src/data/peerConnection";
 
 function RouteComponent() {
   const { participantId, datasetId } = Route.useParams();
   const { data: participants } = useGetAllParticipants();
-  const { mutate, data, isPending, error } = useRpcSetupCatalogRequest();
   const connections = usePeerConnections();
   const connection = connections.statusOf(participantId);
+  const granted = connections.approvedGrantOf(participantId)?.granted ?? [];
+  // Granted by id it is asked for alone; otherwise it is read from the catalog, if that is covered.
+  const byId = grantedDatasets(granted).includes(datasetId);
+  const catalogRequest = useRpcSetupCatalogRequest();
+  const datasetRequest = useRpcSetupDatasetRequest();
+  const { data, isPending, error } = byId ? datasetRequest : catalogRequest;
   const currentDataset = useMemo(() => {
     if (!data) return null;
     const response = CatalogRpc.response(data?.data);
+    if (byId) return response;
     return DspViews.datasets(response).find((d) => d["@id"] === datasetId) as DspNode | undefined;
-  }, [data]);
+  }, [data, byId]);
 
   const otherParticipant = Array.isArray(participants?.data)
     ? participants.data.find((p) => p.participant_type === "Agent")
@@ -37,26 +46,26 @@ function RouteComponent() {
   const otherParticipantSlug =
     otherParticipant?.participant_nick?.toString() || "Unknown Participant";
 
-  // Only with a grant of this user; without one, the connection form comes first.
+  // Only with a grant of this user that covers it; reading never asks for more access.
+  const readDataset = datasetRequest.mutate;
+  const readCatalog = catalogRequest.mutate;
   useEffect(() => {
-    if (connection !== "approved") return;
-    mutate({
-      data: CatalogRpc.catalog(participantId),
-    });
-  }, [participantId, datasetId, connection, mutate]);
+    if (byId) readDataset({ data: CatalogRpc.dataset(participantId, datasetId) });
+    else if (connection === "catalog") readCatalog({ data: CatalogRpc.catalog(participantId) });
+  }, [participantId, datasetId, byId, connection, readDataset, readCatalog]);
 
-  if (!connections.isLoading && connection !== "approved") {
+  if (!connections.isLoading && !byId && connection !== "catalog") {
     return (
       <PageLayout>
         <PageHeader title="Participant Dataset" />
         <p className="text-sm">
-          You are not connected to this participant.{" "}
+          You have no access to this dataset.{" "}
           <Link
             to="/catalog/participant/$participantId"
             params={{ participantId }}
             className="underline"
           >
-            Connect first
+            Request access
           </Link>
           .
         </p>

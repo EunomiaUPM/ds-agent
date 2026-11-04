@@ -36,9 +36,9 @@ use crate::entities::filters::SentGrantFilter;
 use ymir::http::PathId;
 use crate::modules::PeerConnectorModule;
 use crate::types::entities::ReachProvider;
-use crate::types::response::ResolvedPresentation;
+use crate::types::response::{ResolvedPresentation, SentGrantView};
 use common::facades::grants_facade::PeerToken;
-use common::facades::PeerTokenRequest;
+use common::facades::{HeldTokenRequest, PeerTokenRequest};
 use ymir::paginated_spec::Paginated;
 use ymir::query::{QueryFilter, QuerySpec};
 use common::routes::auth::peer_connection;
@@ -79,7 +79,7 @@ impl OnboarderRouter {
                 get(Self::get_one).delete(Self::disconnect),
             )
             .route(peer_connection::REQUEST_DETAILS, get(Self::get_one_with_details))
-            .route(peer_connection::REQUEST_ACCESS, post(Self::request_dataset))
+            .route(peer_connection::REQUEST_ACCESS, post(Self::request_access))
             .route(peer_connection::OID4VP, post(Self::manage_oid4vp))
             .route(peer_connection::OID4VP_RESOLVE, post(Self::resolve_oid4vp))
             .route(peer_connection::OID4VP_PRESENT, post(Self::present_oid4vp))
@@ -89,6 +89,7 @@ impl OnboarderRouter {
                 peer_connection::TOKEN_REFRESH,
                 post(Self::refresh_peer_token),
             )
+            .route(peer_connection::TOKEN_HELD, post(Self::held_peer_token))
             .with_state(self.peer_connector.clone())
     }
 
@@ -121,7 +122,7 @@ impl OnboarderRouter {
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
         user: UserInfo,
         Query(query): Query<PeerConnectorQuery>,
-    ) -> AppResult<Json<Paginated<grant::Model>>> {
+    ) -> AppResult<Json<Paginated<SentGrantView>>> {
         query.filter.validate()?;
         Ok(Json(
             peer_connector
@@ -187,6 +188,19 @@ impl OnboarderRouter {
         Ok(token_response(token))
     }
 
+    /// The token the caller already holds towards peer `id`, or `null` if none covers the need.
+    async fn held_peer_token(
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        user: UserInfo,
+        Path(id): Path<String>,
+        payload: Result<Json<HeldTokenRequest>, JsonRejection>,
+    ) -> AppResult<Json<Option<String>>> {
+        let id = PathId::decode(&id)?;
+        let payload = extract_payload(payload)?;
+        let token = peer_connector.held_peer_token(&user, &id, &payload.need).await?;
+        Ok(Json(token))
+    }
+
     // ==========================================================================================
     // Internal requests: users, behind the OAuth guard (actions)
     // ==========================================================================================
@@ -211,15 +225,15 @@ impl OnboarderRouter {
         peer_connector.process_oid4vp(&user, &id, payload).await
     }
 
-    async fn request_dataset(
+    async fn request_access(
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
         user: UserInfo,
         Path(id): Path<String>,
         payload: Result<Json<Value>, JsonRejection>,
     ) -> AppResult<Json<Value>> {
         let payload = extract_payload(payload)?;
-        let dataset = payload["dataset"].as_str().unwrap_or_default();
-        let pending = peer_connector.request_dataset(&user, &id, dataset).await?;
+        let dataset = payload["dataset"].as_str();
+        let pending = peer_connector.request_access(&user, &id, dataset).await?;
         Ok(Json(serde_json::json!({ "pending": pending })))
     }
 

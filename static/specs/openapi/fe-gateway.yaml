@@ -6256,7 +6256,7 @@ paths:
       tags:
       - Onboard
       operationId: requestPeerDatasetAccess
-      summary: Widen an approved grant to a dataset it does not cover yet
+      summary: Widen an approved grant to a dataset, or to the catalog without one
       parameters:
       - $ref: '#/components/parameters/StringPathId'
       requestBody:
@@ -6265,8 +6265,6 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-              - dataset
               properties:
                 dataset:
                   type: string
@@ -14124,6 +14122,13 @@ components:
           - Pending
           - Approved
           - Finalized
+        granted:
+          type:
+          - array
+          - 'null'
+          description: What the peer granted; only on an approved grant in the lists.
+          items:
+            $ref: '#/components/schemas/AccessItem'
         final_token:
           type:
           - string

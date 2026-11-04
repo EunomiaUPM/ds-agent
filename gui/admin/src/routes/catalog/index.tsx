@@ -69,10 +69,9 @@ const RouteComponent = () => {
   const { agents } = federated;
 
   const isOwn = (participantId: string) => participantId === myAgent?.participant_id;
-  // Whether this user is connected to any peer yet; if not, the first one to connect with is
-  // highlighted.
+  // Whether this user can read any peer's catalog yet; if not, the first one to ask is highlighted.
   const onboardedWithKnownProvider = agents.some(
-    (prov) => connections.statusOf(prov.participant_id) === "approved",
+    (prov) => connections.statusOf(prov.participant_id) === "catalog",
   );
   const firstPeer = onboardedWithKnownProvider
     ? undefined
@@ -84,10 +83,10 @@ const RouteComponent = () => {
     <PageLayout>
       <PageHeader
         title="Catalog Browser"
-        description="Public catalogs of the dataspace and the catalogs of the participants you are connected to."
+        description="Public catalogs of the dataspace and the catalogs of the participants you have access to."
       />
       <p className="h-4 my-2 text-sm text-muted-foreground">
-        {firstPeer && "Pick a participant to connect with and browse its catalog."}
+        {firstPeer && "Pick a participant to request access and browse its catalog."}
       </p>
       <div className="grid grid-cols-3 gap-5">
         {agents.map((p) => {
@@ -105,6 +104,7 @@ const RouteComponent = () => {
                 organizationName={p.participant_nick ?? "Unknown"}
                 id={p.participant_id ?? null}
                 connection={connections.statusOf(p.participant_id)}
+                approvedGrant={connections.approvedGrantOf(p.participant_id)}
                 participant={p}
                 pendingGrantId={connections.pendingGrantOf(p.participant_id)?.id}
                 ownCatalog={isOwn(p.participant_id)}

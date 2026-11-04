@@ -20,7 +20,7 @@ use crate::services::{HasCallback, HasPeerConnector, HasRepo, MayHaveEventBus};
 use crate::types::entities::ReachProvider;
 use crate::types::events::{sent_owner, GrantEvent, VerificationEvent};
 use crate::types::response::{
-    ResolvedPresentation, RotationOutcome, TokenWhatResponse, VerifierCheck,
+    ResolvedPresentation, RotationOutcome, SentGrantView, TokenWhatResponse, VerifierCheck,
 };
 use crate::types::token_lifetimes::{EXPIRY_MARGIN_SECS, PENDING_GRANT_TTL_SECS};
 use async_trait::async_trait;
@@ -59,7 +59,7 @@ pub trait PeerConnectorModule:
         filter: &SentGrantFilter,
         page: &Page,
         sort: &Sort,
-    ) -> Outcome<Paginated<grant::Model>> {
+    ) -> Outcome<Paginated<SentGrantView>> {
         let list_page = page.list_page(sort, GrantSort::Created, GrantSort::Updated)?;
         let list_filter = SentGrantListFilter {
             tenant: user.clone(),
@@ -74,13 +74,17 @@ pub trait PeerConnectorModule:
             .sent_grant()
             .find_page(&list_filter, &list_page)
             .await?;
-        let items = listed.items.into_iter().map(|g| g.seen_by(user)).collect();
+        let mut items = Vec::with_capacity(listed.items.len());
+        for grant in listed.items {
+            items.push(self.sent_grant_view(grant.seen_by(user)).await);
+        }
         let sort_field = list_page.sort;
         Ok(Paginated::from_page(
             items,
             &page.clamped(),
             Some(listed.total),
             |last| {
+                let last = &last.grant;
                 let ts = match sort_field {
                     GrantSort::Created => last.created_at,
                     GrantSort::Updated => last.ended_at.unwrap_or(last.created_at),
@@ -155,6 +159,27 @@ pub trait PeerConnectorModule:
         match self.current_token(user, participant_id).await? {
             Some(token) => Ok(PeerToken::Ready(token)),
             None => self.obtain_access(user, participant_id, need, requested).await,
+        }
+    }
+
+    /// The token `user` holds towards `participant_id`, if its grant already covers `need`.
+    #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
+    async fn held_peer_token(
+        &self,
+        user: &UserInfo,
+        participant_id: &str,
+        need: &AccessNeed,
+    ) -> Outcome<Option<String>> {
+        let active = self
+            .repo()
+            .sent_grant()
+            .get_active_access(user.id(), participant_id)
+            .await?;
+        match active {
+            Some(grant) if self.covers(&grant.id, need).await? => {
+                self.current_token(user, participant_id).await
+            }
+            _ => Ok(None),
         }
     }
 
@@ -325,9 +350,15 @@ pub trait PeerConnectorModule:
         Ok(())
     }
 
-    /// Asks the peer of approved grant `id` for `dataset`; whether a presentation is now pending.
+    /// Asks the peer of approved grant `id` for `dataset`, or for its catalog without one; whether
+    /// a presentation is now pending.
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn request_dataset(&self, user: &UserInfo, id: &str, dataset: &str) -> Outcome<bool> {
+    async fn request_access(
+        &self,
+        user: &UserInfo,
+        id: &str,
+        dataset: Option<&str>,
+    ) -> Outcome<bool> {
         let grant = self.get_access_grant(id).await?;
         user.ensure_reaches(&grant.user_id, &grant.role, id)?;
         if grant.status != GrantStatus::Approved {
@@ -338,7 +369,10 @@ pub trait PeerConnectorModule:
             Some(base) => base,
             None => self.peer_connector().discover_dsp_base(&grant.grant_endpoint).await,
         };
-        let need = AccessNeed::Dataset { base, id: dataset.to_string() };
+        let need = match dataset {
+            Some(id) => AccessNeed::Dataset { base, id: id.to_string() },
+            None => AccessNeed::Catalog { base },
+        };
         if self.covers(id, &need).await? {
             return Ok(false);
         }
@@ -655,6 +689,21 @@ pub trait PeerConnectorModule:
         let grant = self.repo().sent_grant().update(grant).await?;
         self.peer_event(&grant, "rejected").await;
         Ok(())
+    }
+
+    /// `grant` with what the peer granted; only an approved grant has anything to show.
+    async fn sent_grant_view(&self, grant: grant::Model) -> SentGrantView {
+        let granted = match grant.status {
+            GrantStatus::Approved => self
+                .repo()
+                .resource_req()
+                .get_by_id(&grant.id)
+                .await
+                .ok()
+                .and_then(|req| req.granted),
+            _ => None,
+        };
+        SentGrantView { grant, granted }
     }
 
     /// Whether what grant `id` was granted covers `need`.

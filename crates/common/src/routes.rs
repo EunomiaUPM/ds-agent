@@ -74,6 +74,8 @@ pub mod auth {
         /// The caller's token towards a peer, by the peer's participant id (grants facade).
         pub const TOKEN: &str = "/token/{id}";
         pub const TOKEN_REFRESH: &str = "/token/{id}/refresh";
+        /// The token the caller already holds towards a peer, if it covers what is read.
+        pub const TOKEN_HELD: &str = "/token/{id}/held";
     }
 
     /// GNAP gatekeeper (grants received). Its `PREFIX` is the authorization server advertised in

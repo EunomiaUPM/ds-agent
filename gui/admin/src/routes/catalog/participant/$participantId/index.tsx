@@ -1,11 +1,11 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { getGetMyselfQueryOptions } from "shared/src/data/orval/participants/participants";
 import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
 import { CatalogRpc, DspViews, dspIssued, dspTitle, text } from "shared/src/data/catalog";
 import { PageLayout } from "@eunomia/ui";
 import { PageHeader } from "@eunomia/ui";
 import { FormatDate } from "@eunomia/ui";
-import { formatUrn, pathIdParams } from "@eunomia/ui";
+import { encodePathId, formatUrn, pathIdParams } from "@eunomia/ui";
 import React, { useEffect, useState, useMemo } from "react";
 import { Skeleton } from "@eunomia/ui";
 import { Heading } from "@eunomia/ui";
@@ -29,7 +29,7 @@ import { Database, Server, Calendar, Loader2, ShieldCheck } from "lucide-react";
 import { useMyself } from "shared/src/data/useMyself";
 import {
   coversDataset,
-  useGrantedAccess,
+  grantedDatasets,
   usePeerConnections,
 } from "shared/src/data/peerConnection";
 import { ConnectPeerForm } from "shared/src/components/ConnectPeerForm";
@@ -47,7 +47,7 @@ function RouteComponent() {
   const connection = connections.statusOf(participantId);
   const grant = connections.approvedGrantOf(participantId);
   const pendingGrant = connections.pendingGrantOf(participantId);
-  const granted = useGrantedAccess(grant?.id);
+  const granted = grant?.granted ?? [];
   const [widening, setWidening] = useState<{ id: string; title: string } | null>(null);
 
   const participant =
@@ -55,9 +55,9 @@ function RouteComponent() {
       ? federated.agents.find((p: any) => p.participant_id === participantId)
       : undefined;
 
-  // Only with a grant of this user; without one, the connection form comes first.
+  // Only with a grant of this user that covers the catalog; reading never asks for more access.
   useEffect(() => {
-    if (connection !== "approved") return;
+    if (connection !== "catalog") return;
     mutate({
       data: CatalogRpc.catalog(participantId),
     });
@@ -137,13 +137,29 @@ function RouteComponent() {
     );
   }
 
-  if (connection !== "approved") {
+  if (connection !== "catalog") {
     const nick = participant?.participant_nick || "this participant";
     return (
       <PageLayout>
         <PageHeader title={`${participant?.participant_nick || "Participant"}'s Catalog`} />
         <Card className="p-6 max-w-lg">
-          <CardTitle className="mb-4">Connect with {nick}</CardTitle>
+          <CardTitle className="mb-4">Request access to {nick}</CardTitle>
+          {connection === "datasets" && (
+            <div className="mb-4 space-y-1">
+              <CardDescription>
+                You can open these datasets. Ask below to browse the whole catalog.
+              </CardDescription>
+              {grantedDatasets(granted).map((id) => (
+                <Link
+                  key={id}
+                  to={`/catalog/participant/${encodePathId(participantId)}/dataset/${id}`}
+                  className="block font-mono text-xs underline"
+                >
+                  {formatUrn(id)}
+                </Link>
+              ))}
+            </div>
+          )}
           {connection === "pending" && participant && pendingGrant ? (
             <ConnectPeerForm
               key={pendingGrant.id}
@@ -159,6 +175,7 @@ function RouteComponent() {
           ) : participant ? (
             <ConnectPeerForm
               participant={participant}
+              widen={grant ? { grantId: grant.id } : undefined}
               onCancel={() => navigate({ to: "/catalog" })}
             />
           ) : (
@@ -329,7 +346,7 @@ function RouteComponent() {
                         ownDataset={false}
                         dataset={dataset.node}
                       />
-                      {granted && !coversDataset(granted, dataset.id) && (
+                      {!coversDataset(granted, dataset.id) && (
                         <Button
                           size="sm"
                           variant="outline"

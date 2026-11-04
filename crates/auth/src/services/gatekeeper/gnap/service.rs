@@ -17,6 +17,7 @@
 
 use super::super::GateKeeperTrait;
 use super::config::GnapGateKeeperConfig;
+use crate::types::token::WATCHER_PREFIX;
 use crate::types::token::IssuedToken;
 use crate::types::token_lifetimes::{FINAL_TOKEN_TTL_SECS, MANAGING_TOKEN_TTL_SECS};
 use async_trait::async_trait;
@@ -205,6 +206,11 @@ impl GateKeeperTrait for GnapGateKeeperService {
             }
         }
         vcs
+    }
+
+    fn watcher_id(&self, interaction: &interaction::Model) -> Outcome<String> {
+        let thumbprint = Self::key_source(interaction)?.thumbprint()?;
+        Ok(format!("{WATCHER_PREFIX}{thumbprint}"))
     }
 
     fn build_grant_plan(

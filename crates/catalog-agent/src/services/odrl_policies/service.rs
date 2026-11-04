@@ -150,6 +150,7 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
             .insert(&offer, &command.references)
             .await?;
         self.ctx.cache.invalidate().await;
+        self.ctx.registry().resync().await;
         events::emit_action!(
             self.ctx.events,
             &stored.owner(),
@@ -170,6 +171,7 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
             .delete(&OwnerScope::acting(user), id)
             .await?;
         self.ctx.cache.invalidate().await;
+        self.ctx.registry().resync().await;
         self.emit_deleted(&deleted).await;
         Ok(())
     }
@@ -183,6 +185,7 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
             .delete_by_entity(&OwnerScope::acting(user), entity)
             .await?;
         self.ctx.cache.invalidate().await;
+        self.ctx.registry().resync().await;
         for offer in &deleted {
             self.emit_deleted(offer).await;
         }

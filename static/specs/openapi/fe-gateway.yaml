@@ -6256,7 +6256,7 @@ paths:
       tags:
       - Onboard
       operationId: requestPeerDatasetAccess
-      summary: Widen an approved grant to a dataset it does not cover yet
+      summary: Widen an approved grant to a dataset, or to the catalog without one
       parameters:
       - $ref: '#/components/parameters/StringPathId'
       requestBody:
@@ -6265,8 +6265,6 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-              - dataset
               properties:
                 dataset:
                   type: string
@@ -6286,6 +6284,45 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /peer-connection/access/{id}:
+    post:
+      tags:
+      - Onboard
+      operationId: preparePeerAccess
+      summary: Get ready an action at a peer
+      description: Gets ready what the caller is about to do at a peer, asking it for what is missing with nothing presented on its own. `id` is the peer participant id (DID) in base64url.
+      parameters:
+      - $ref: '#/components/parameters/StringPathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - need
+              properties:
+                need:
+                  type: object
+                requested:
+                  type: boolean
+      responses:
+        '200':
+          description: The grant, and whether a presentation is pending
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - grantId
+                - pending
+                properties:
+                  grantId:
+                    type: string
+                  pending:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /peer-connection/oid4vp/{id}/resolve:
     post:
       tags:
@@ -14124,6 +14161,13 @@ components:
           - Pending
           - Approved
           - Finalized
+        granted:
+          type:
+          - array
+          - 'null'
+          description: What the peer granted; only on an approved grant in the lists.
+          items:
+            $ref: '#/components/schemas/AccessItem'
         final_token:
           type:
           - string

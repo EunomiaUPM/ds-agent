@@ -24,7 +24,9 @@ use common::config::services::traits::CatalogConfigTrait;
 use common::config::types::traits::MinKnownConfigTrait;
 use ymir::oauth::OwnerScope;
 use ymir::config::types::HostType;
-use ymir::data::entities::shared::registered_dataset::Model as RegisteredDataset;
+use ymir::data::entities::shared::registered_dataset::{
+    Model as RegisteredDataset, RegisteredOffer,
+};
 use ymir::errors::Outcome;
 
 use crate::entities::resource_kind::ResourceKind;
@@ -57,17 +59,44 @@ impl RegistryServiceTrait for RegistryService {
         let location = self.location();
         let (_, set) = self.ctx.closures().main_catalog(&OwnerScope::All).await?;
         let now = Utc::now();
-        let datasets = set
-            .published()
+        let published = set.published();
+        let resources: Vec<_> = published
             .iter()
             .filter(|resource| resource.kind() == ResourceKind::Dataset)
+            .collect();
+        let entities: Vec<_> = resources
+            .iter()
+            .flat_map(|resource| [Some(resource.id()), resource.catalog_id()])
+            .flatten()
+            .cloned()
+            .collect();
+        let offers = self
+            .ctx
+            .repos
+            .odrl_offer_repo()
+            .get_by_entities(&OwnerScope::All, &entities)
+            .await?;
+        let offers_of = |entity: &str| -> Vec<RegisteredOffer> {
+            offers
+                .iter()
+                .filter(|offer| offer.entity.to_string() == entity)
+                .map(|offer| RegisteredOffer {
+                    id: offer.id.to_string(),
+                    odrl: offer.odrl_offer.clone(),
+                })
+                .collect()
+        };
+        let datasets = resources
+            .into_iter()
             .filter_map(|resource| {
                 let owner = resource.owner();
+                let catalog_id = resource.catalog_id()?.to_string();
+                let own = offers_of(&resource.id().to_string());
                 Some(RegisteredDataset {
                     id: resource.id().to_string(),
-                    catalog_id: resource.catalog_id()?.to_string(),
+                    offers: if own.is_empty() { offers_of(&catalog_id) } else { own },
+                    catalog_id,
                     location: location.clone(),
-                    requirements: Vec::new(),
                     owner_user_id: owner.user_id.clone(),
                     owner_role: owner.role.clone(),
                     owner_visibility: owner.visibility.clone(),

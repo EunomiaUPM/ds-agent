@@ -23,6 +23,7 @@ import { EUNOMIA_CONTEXT } from "../../data/eunomia";
 import { useNavigate } from "@tanstack/react-router";
 import { OdrlOffer } from "../../data/orval/model";
 import { useMyWellKnownDSPPath, useParticipantDSPPath } from "../../hooks/useWellKnownUrl";
+import { useAccessStep } from "../../hooks/useAccessStep";
 
 // =============================================================================
 // TYPES
@@ -67,6 +68,7 @@ export const ContractNegotiationNewRequestDialog = ({
   const { mutateAsync: requestAsync } = useRpcSetupRequestInit();
   const myDspPath = useMyWellKnownDSPPath();
   const { path: providerDspPath } = useParticipantDSPPath(participantId);
+  const access = useAccessStep();
 
   // ---------------------------------------------------------------------------
   // Info Items
@@ -87,6 +89,17 @@ export const ContractNegotiationNewRequestDialog = ({
       return;
     }
 
+    const need = {
+      kind: "dataset",
+      base: providerDspPath,
+      id: datasetId,
+      action: "use",
+    } as const;
+    await access.withAccess(participantId, need, true, send);
+  };
+
+  const send = async () => {
+    if (!myDspPath || !providerDspPath) return;
     const res = await requestAsync({
       data: {
         "@context": EUNOMIA_CONTEXT,
@@ -135,6 +148,8 @@ export const ContractNegotiationNewRequestDialog = ({
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
+
+  if (access.form) return access.form;
 
   return (
     <BaseProcessDialog

@@ -12,6 +12,7 @@ are calls the GUI still makes to routes the backend no longer serves.
 
  * OpenAPI spec version: 1.0.0
  */
+import type { AccessItem } from './accessItem';
 import type { SentGrantKind } from './sentGrantKind';
 import type { SentGrantStatus } from './sentGrantStatus';
 import type { VcTypeConfig } from './vcTypeConfig';
@@ -33,6 +34,11 @@ export interface SentGrant {
   grant_endpoint: string;
   kind: SentGrantKind;
   status: SentGrantStatus;
+  /**
+   * What the peer granted; only on an approved grant in the lists.
+   * @nullable
+   */
+  granted?: AccessItem[] | null;
   /**
    * Access token towards the peer.
    * @nullable

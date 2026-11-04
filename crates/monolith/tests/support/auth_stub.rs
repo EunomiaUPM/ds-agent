@@ -158,6 +158,15 @@ impl GrantsFacadeTrait for StubAuth {
     ) -> Outcome<PeerToken> {
         self.peer_token(user, participant_id, need, requested).await
     }
+
+    async fn held_peer_token(
+        &self,
+        _user: &UserInfo,
+        participant_id: String,
+        _need: AccessNeed,
+    ) -> Outcome<Option<String>> {
+        Ok((participant_id == self.peer.participant_id).then(|| self.outbound_token.clone()))
+    }
 }
 
 /// Management API validator: the token `owner` is the root of the participant, acting with the

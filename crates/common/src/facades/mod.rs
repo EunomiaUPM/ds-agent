@@ -138,6 +138,12 @@ pub struct AuthorizeTokenRequest {
     pub need: AccessNeed,
 }
 
+/// Body of the auth agent's call for the token a user already holds towards a peer.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct HeldTokenRequest {
+    pub need: AccessNeed,
+}
+
 /// Body of the auth agent's calls for a token towards a peer.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PeerTokenRequest {

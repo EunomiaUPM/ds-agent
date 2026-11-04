@@ -10,20 +10,23 @@ import { Popover, PopoverContent, PopoverTrigger } from "@eunomia/ui";
 import { Badge } from "@eunomia/ui";
 import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
 import { ConnectPeerForm } from "shared/src/components/ConnectPeerForm";
-import type { PeerConnection } from "shared/src/data/peerConnection";
+import { accessLabel, type PeerConnection } from "shared/src/data/peerConnection";
+import type { SentGrant } from "shared/src/data/orval/model/sentGrant";
 import type { FederatedParticipant } from "shared/src/data/useFederatedCatalog";
 import { Card, CardHeader, CardFooter } from "@eunomia/ui";
 
 interface CatalogItemProps {
   date?: string | undefined;
-  /** Known only once connected; `?` until then. */
+  /** Known only with access to the catalog; `?` until then. */
   datasetNumber?: number;
   organizationName: string;
   id: string | null;
   title?: string;
-  /** This user's connection with the peer. */
+  /** What this user can read of the peer. */
   connection?: PeerConnection;
-  /** The peer as the federated catalog lists it; needed to connect. */
+  /** This user's latest approved grant with the peer, widened instead of asking for a new one. */
+  approvedGrant?: SentGrant;
+  /** The peer as the federated catalog lists it; needed to ask for access. */
   participant?: FederatedParticipant;
   /** This user's grant with the peer still on its way, resumed from the card. */
   pendingGrantId?: string;
@@ -37,12 +40,13 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   id,
   title,
   connection = "none",
+  approvedGrant,
   participant,
   pendingGrantId,
   ownCatalog = false,
 }) => {
   const navigate = useNavigate();
-  const connected = ownCatalog || connection === "approved";
+  const connected = ownCatalog || connection === "catalog";
   const canConnect =
     id !== null &&
     !ownCatalog &&
@@ -54,17 +58,18 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
 
   const { mutate, data } = useRpcSetupCatalogRequest();
 
-  // Only with a grant of this user: asking without one would get a grant on its own, with no
-  // visibility chosen. The own catalog is local: there is no peer to ask through DSP.
+  // Only with a grant of this user that covers the catalog: reading never asks for more access.
+  // The own catalog is local: there is no peer to ask through DSP.
   React.useEffect(() => {
-    if (id && !ownCatalog && connection === "approved") {
+    if (id && !ownCatalog && connection === "catalog") {
       mutate({
         data: CatalogRpc.catalog(id),
       });
     }
   }, [id, ownCatalog, connection, mutate]);
 
-  const liveCatalog = data?.status === 200 ? CatalogRpc.response(data.data) : undefined;
+  const liveCatalog =
+    connection === "catalog" && data?.status === 200 ? CatalogRpc.response(data.data) : undefined;
   const liveTitle = liveCatalog ? dspTitle(liveCatalog) : undefined;
   const liveDate = liveCatalog ? dspIssued(liveCatalog) : undefined;
   const liveDatasetNr = liveCatalog ? DspViews.datasets(liveCatalog).length : undefined;
@@ -112,11 +117,12 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
           <div className="flex gap-2 items-center mb-3">
             <Lock className="h-4 w-4" />
             <Heading level="h5" className="!mb-0">
-              Connect with {organizationName}
+              Request access to {organizationName}
             </Heading>
           </div>
           <ConnectPeerForm
             participant={participant!}
+            widen={approvedGrant && !resumed ? { grantId: approvedGrant.id } : undefined}
             pending={resumed}
             onCancel={() => handleOpenChange(false)}
             onSent={() => {
@@ -132,7 +138,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
     );
   } else if (ownCatalog) {
     headingLink = <Link to={"/my-catalog"}>{headingNode}</Link>;
-  } else if (id !== null && (connection === "approved" || connection === "pending")) {
+  } else if (id !== null && connection !== "none") {
     headingLink = (
       <Link to={"/catalog/participant/$participantId"} params={{ participantId: id }}>
         {headingNode}
@@ -162,9 +168,13 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
             <Badge variant="role" dsrole="Provider" className="text-xs">
               My Catalog
             </Badge>
-          ) : id === null ? null : connection === "approved" ? (
+          ) : id === null ? null : connection === "catalog" ? (
             <Badge variant="status" state="success" className="text-xs">
-              Authenticated
+              {accessLabel(approvedGrant?.granted ?? [])}
+            </Badge>
+          ) : connection === "datasets" ? (
+            <Badge variant="status" state="active" className="text-xs">
+              {accessLabel(approvedGrant?.granted ?? [])}
             </Badge>
           ) : connection === "pending" ? (
             <Badge variant="status" state="pending" className="text-xs">
@@ -172,7 +182,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
             </Badge>
           ) : (
             <Badge variant="status" state="error" className="text-xs">
-              Auth Required
+              No access
             </Badge>
           )}
         </div>

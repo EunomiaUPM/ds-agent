@@ -25,8 +25,17 @@ pub enum VcWhatResponse {
 }
 
 use serde::Serialize;
+use ymir::data::entities::sent::grant;
 use ymir::types::gnap::grant_request::access::ResourceAccess;
 use ymir::types::verification::PresentationRequest;
+
+/// A grant sent to a peer with what the peer granted, as the lists show it.
+#[derive(Serialize, Debug, Clone)]
+pub struct SentGrantView {
+    #[serde(flatten)]
+    pub grant: grant::Model,
+    pub granted: Option<Vec<ResourceAccess>>,
+}
 
 /// Peer's answer: done with what it granted, present over OID4VP, or wait.
 pub enum TokenWhatResponse {

@@ -34,7 +34,9 @@ use ymir::utils::{http_client, ResponseExt};
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
 use crate::facades::grants_facade::{GrantsFacadeTrait, PeerToken, VerifiedPeer};
-use crate::facades::{AuthorizeTokenRequest, PeerTokenRequest, VerifyTokenRequest};
+use crate::facades::{
+    AuthorizeTokenRequest, HeldTokenRequest, PeerTokenRequest, VerifyTokenRequest,
+};
 use crate::routes::auth::{gate, peer_connection};
 
 /// Grant tokens through the auth agent's API.
@@ -133,6 +135,20 @@ impl GrantsFacadeTrait for GrantsRemoteFacade {
         requested: bool,
     ) -> Outcome<PeerToken> {
         self.post_token(peer_connection::TOKEN_REFRESH, &participant_id, need, requested)
+            .await
+    }
+
+    /// `participant_id` travels as in `peer_token`, and `user` does not travel yet either.
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth"))]
+    async fn held_peer_token(
+        &self,
+        _user: &UserInfo,
+        participant_id: String,
+        need: AccessNeed,
+    ) -> Outcome<Option<String>> {
+        let url = self.token_url(peer_connection::TOKEN_HELD, &participant_id);
+        http_client()
+            .post_json::<HeldTokenRequest, Option<String>>(&url, None, &HeldTokenRequest { need })
             .await
     }
 }

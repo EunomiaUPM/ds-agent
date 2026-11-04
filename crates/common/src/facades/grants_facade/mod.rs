@@ -94,6 +94,15 @@ pub trait GrantsFacadeTrait: Send + Sync {
         need: AccessNeed,
         requested: bool,
     ) -> Outcome<PeerToken>;
+
+    /// The token `user` already holds towards `participant_id`, if its grant covers `need`; never
+    /// asks the peer for anything.
+    async fn held_peer_token(
+        &self,
+        user: &UserInfo,
+        participant_id: String,
+        need: AccessNeed,
+    ) -> Outcome<Option<String>>;
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -185,6 +194,36 @@ where
             result
         }
     }
+}
+
+/// Sends a read with the token `user` already holds: reading never widens a grant, so without one
+/// that covers `need` it fails.
+pub async fn read_with_peer_token<T, F, Fut>(
+    grants: &dyn GrantsFacadeTrait,
+    user: &UserInfo,
+    participant_id: &str,
+    need: &AccessNeed,
+    send: F,
+) -> Outcome<T>
+where
+    F: FnOnce(Option<HeaderMap>) -> Fut,
+    Fut: Future<Output = Outcome<T>>,
+{
+    let token = match TckPeer::token_for(TckPeer::enabled(), participant_id) {
+        Some(token) => Some(token),
+        None => {
+            grants
+                .held_peer_token(user, participant_id.to_string(), need.clone())
+                .await?
+        }
+    };
+    let Some(token) = token else {
+        return Err(Errors::forbidden(
+            format!("no access to this at {participant_id}"),
+            None,
+        ));
+    };
+    send(Some(bearer_headers(&token)?)).await
 }
 
 fn is_unauthorized(error: &Errors) -> bool {

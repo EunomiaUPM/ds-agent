@@ -17,6 +17,8 @@ import {
 } from "../../data/orval/negotiations/negotiations";
 import { useRouter } from "@tanstack/react-router";
 import { PolicyWrapperShow } from "../PolicyWrapperShow";
+import { useAccessStep } from "../../hooks/useAccessStep";
+import { useParticipantDSPPath } from "../../hooks/useWellKnownUrl";
 
 export const ContractNegotiationAcceptanceDialog = ({
   process,
@@ -30,6 +32,9 @@ export const ContractNegotiationAcceptanceDialog = ({
   const { refetch } = useGetNegotiationProcesses();
   const { data: lastOfferData } = useGetLastOfferByProcessId(process.id);
   const lastOffer = lastOfferData?.status === 200 ? lastOfferData.data : undefined;
+  const peerId = process.correlation.peerParticipantId;
+  const { path: providerDspPath } = useParticipantDSPPath(peerId);
+  const access = useAccessStep();
   const router = useRouter();
 
   const datasetId = process.correlation.identifiers?.datasetId;
@@ -40,6 +45,18 @@ export const ContractNegotiationAcceptanceDialog = ({
    * Sends acceptance event to the provider.
    */
   const handleSubmit = async () => {
+    const target = (lastOffer?.offerContent as { target?: string } | undefined)?.target;
+    if (!target || !providerDspPath) return send();
+    const need = {
+      kind: "dataset",
+      base: providerDspPath,
+      id: target,
+      action: "use",
+    } as const;
+    await access.withAccess(peerId, need, true, send);
+  };
+
+  const send = async () => {
     await acceptAsync({
       data: {
         "@context": EUNOMIA_CONTEXT,
@@ -53,6 +70,8 @@ export const ContractNegotiationAcceptanceDialog = ({
       onClose();
     }
   };
+
+  if (access.form) return access.form;
 
   return (
     <BaseProcessDialog

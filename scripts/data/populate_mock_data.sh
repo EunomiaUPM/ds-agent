@@ -238,16 +238,20 @@ create_connector_instance() {
     echo "$resp" | jq -r '.id // empty'
 }
 
-# 8. Create Policy
+# 8. Create Policy: an offer whose `use` asks for the credentials after the dataset
 # Returns: Policy ID (stdout)
 create_policy() {
     local entity_id="$1"
+    shift
+    local constraints=$(printf '%s
+' "$@" | jq -R 'select(length > 0)
+        | {leftOperand: "ovc:credentialSubjectType", operator: "eq", rightOperand: .}' | jq -s '.')
 
-    local body=$(jq -n --arg entityId "$entity_id" --arg ctx "$ODRL_CTX" '{
+    local body=$(jq -n --arg entityId "$entity_id" --arg ctx "$ODRL_CTX" --argjson constraints "$constraints" '{
         "odrlOffer": {
             "@context": $ctx,
             "@type": "Offer",
-            "permission": [ { "action": "use" } ]
+            "permission": [ { "action": "use" } + (if $constraints == [] then {} else {"constraint": $constraints} end) ]
         },
         "entityId": $entityId,
         "entityType": "Dataset"
@@ -318,22 +322,16 @@ main() {
 
     # 8. Create Policies (As requested)
     # The IDs will be captured in variables, and we log them to stderr
-    POLICY_ID1=$(create_policy "$DS1_ID")
+    POLICY_ID1=$(create_policy "$DS1_ID" DataSpaceParticipant)
     echo ">> Policy for DS1 (1): $POLICY_ID1" >&2
 
-    POLICY_ID11=$(create_policy "$DS1_ID")
+    POLICY_ID11=$(create_policy "$DS1_ID" DataSpaceParticipant)
     echo ">> Policy for DS1 (2): $POLICY_ID11" >&2
 
-    POLICY_ID12=$(create_policy "$DS1_ID")
-    echo ">> Policy for DS1 (3): $POLICY_ID12" >&2
-
-    POLICY_ID13=$(create_policy "$DS1_ID")
-    echo ">> Policy for DS1 (4): $POLICY_ID13" >&2
-
-    POLICY_ID2=$(create_policy "$DS2_ID")
+    POLICY_ID2=$(create_policy "$DS2_ID" DataSpaceParticipant DataSpacePremium)
     echo ">> Policy for DS2: $POLICY_ID2" >&2
 
-    POLICY_ID3=$(create_policy "$DS3_ID")
+    POLICY_ID3=$(create_policy "$DS3_ID" DataSpaceParticipant)
     echo ">> Policy for DS3: $POLICY_ID3" >&2
 
     echo "=== MOCK DATA POPULATION FINISHED ===" >&2

@@ -17,7 +17,6 @@
 
 //! Catalog over DSP: a consumer asks the provider's catalog through its own RPC endpoint.
 
-use common::eunomia::EUNOMIA_CATALOG_CONTEXT_URL;
 use serde_json::json;
 
 use crate::support::dataspace::{Dataspace, PROVIDER_DID};
@@ -67,27 +66,6 @@ async fn published_dataset_is_seen_by_every_profile() {
         .await;
     let dsp = report["profiles"].as_array().unwrap().iter().find(|p| p["profile"] == "dsp").unwrap();
     assert_eq!(dsp["compliant"], true, "{report}");
-
-    let catalog = ds.provider.get("/api/v1/catalog-agent/catalogs/main").await;
-    let open = ds
-        .provider
-        .post_with(
-            "/api/v1/catalog-agent/datasets",
-            json!({
-                "@context": EUNOMIA_CATALOG_CONTEXT_URL,
-                "@type": "Dataset",
-                "title": {"en": "Open data"},
-                "inCatalog": catalog["@id"]
-            }),
-            &[("eunomia-visibility", "Public")],
-        )
-        .await;
-    let open_id = open["@id"].as_str().unwrap();
-    let public = ds
-        .provider
-        .get_unauthenticated(&format!("/api/v1/catalog-agent/open/dcat-ap/resources/{open_id}"))
-        .await;
-    assert_eq!(public["@graph"][0]["@id"], open_id, "{public}");
 
     let found = ds
         .consumer

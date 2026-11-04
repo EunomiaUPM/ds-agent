@@ -5098,6 +5098,120 @@
         ]
       }
     },
+    "/api/v1/peer-connection/access/{id}": {
+      "post": {
+        "tags": [
+          "Peer Connection"
+        ],
+        "operationId": "preparePeerAccess",
+        "summary": "Get ready an action at a peer",
+        "description": "Gets ready what the caller is about to do at a peer, asking it for what is missing with nothing presented on its own. `id` is the peer participant id (DID) in base64url.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StringPathId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "need"
+                ],
+                "properties": {
+                  "need": {
+                    "type": "object"
+                  },
+                  "requested": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The grant, and whether a presentation is pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "grantId",
+                    "pending"
+                  ],
+                  "properties": {
+                    "grantId": {
+                      "type": "string"
+                    },
+                    "pending": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/peer-connection/token/{id}/held": {
+      "post": {
+        "tags": [
+          "Peer Connection"
+        ],
+        "operationId": "getHeldPeerToken",
+        "summary": "Token the caller already holds towards a peer",
+        "description": "The caller's token, if its grant already covers `need`; `null` otherwise. Never asks the peer for anything. `id` is the peer participant id (DID) in base64url without padding.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StringPathId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "need"
+                ],
+                "properties": {
+                  "need": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The token, or `null` if none covers the need",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
     "/api/v1/catalog-agent/catalogs": {
       "get": {
         "tags": [
@@ -24753,6 +24867,16 @@
           },
           "status": {
             "$ref": "#/components/schemas/GrantStatus"
+          },
+          "granted": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "description": "What the peer granted; only on an approved grant in the lists.",
+            "items": {
+              "type": "object"
+            }
           },
           "final_token": {
             "type": [

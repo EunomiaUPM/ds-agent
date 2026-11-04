@@ -28,6 +28,7 @@ use axum::http::HeaderMap;
 use common::test_utils::scopes::TestUsers;
 use ymir::errors::Errors;
 use ymir::types::gnap::access_token::{BoundToken, TokenManagement};
+use ymir::types::gnap::grant_request::access::ResourceAccess;
 use ymir::types::gnap::grant_response::{GrantResponse, GrantResponseKind};
 use ymir::types::gnap::GrantStatus;
 use ymir::types::participants::Visibility;
@@ -78,6 +79,7 @@ fn continuation(d: &mut Doubles, holder: Option<&'static str>) {
 #[tokio::test]
 async fn grant_request_is_stored_and_answered_with_the_verification_uri() {
     let mut d = Doubles::default();
+    let callback = ResourceAccess::callback("http://peer/dsp/current");
     d.gatekeeper
         .expect_validate_grant_req()
         .returning(|_, _| Ok(grant_request()));
@@ -92,7 +94,11 @@ async fn grant_request_is_stored_and_answered_with_the_verification_uri() {
         .returning(|id, _, _| Ok(recv_interaction_plan(id)));
     d.gatekeeper
         .expect_build_resource_req_plan()
-        .returning(|id, _| Ok(resource_req(id)));
+        .returning(move |id, _| {
+            let mut plan = resource_req(id);
+            plan.access = vec![callback.clone()];
+            Ok(plan)
+        });
     d.repos
         .recv_grant
         .expect_create()

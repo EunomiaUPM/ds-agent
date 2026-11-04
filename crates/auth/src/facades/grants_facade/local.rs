@@ -93,4 +93,21 @@ impl GrantsFacadeTrait for GrantsLocalFacade {
             .refresh_peer_token(user, &participant_id, &need, requested)
             .await
     }
+
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(peer.service = "auth", user = %user.id())
+    )]
+    async fn held_peer_token(
+        &self,
+        user: &UserInfo,
+        participant_id: String,
+        need: AccessNeed,
+    ) -> Outcome<Option<String>> {
+        self.peer_connector
+            .held_peer_token(user, &participant_id, &need)
+            .await
+    }
 }

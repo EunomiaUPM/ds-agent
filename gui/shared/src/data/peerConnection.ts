@@ -1,22 +1,23 @@
 // Connections of the session's user with the dataspace peers.
 //
-// A peer counts as connected when this user (not someone else of the organization) holds an
-// approved grant with it. The federated catalog lists the peers; the grant is asked for from the
-// catalog browser, and once it completes the peer is stored as a mate with the chosen visibility.
+// What this user (not someone else of the organization) can read of each peer, from what its
+// latest approved grant covers: a grant for offers or replies gives no access to the catalog. The
+// federated catalog lists the peers; the grant is asked for from the catalog browser, and once it
+// completes the peer is stored as a mate with the chosen visibility.
 
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { customInstance } from "./orval-mutator";
+import { encodePathId } from "@eunomia/ui";
 import type { AccessItem } from "./orval/model/accessItem";
 import { getDidFromUrl } from "./orval/did/did";
 import { useGetSessionUser } from "./orval/gateway/gateway";
 import { useGetAllPeerConnectionRequests } from "./orval/onboard/onboard";
 import type { DidService } from "./orval/model/didService";
 import type { SentGrant } from "./orval/model/sentGrant";
+import { customInstance } from "./orval-mutator";
 
-/** Where this user stands with a peer: an approved grant, one on its way, or none (a denied
- * grant is finalized, RFC 9635 §1.5). */
-export type PeerConnection = "approved" | "pending" | "none";
+/** What this user can read of a peer: its catalog, only datasets by id, nothing yet because a
+ * grant is on its way, or nothing (a denied grant is finalized, RFC 9635 §1.5). */
+export type PeerConnection = "catalog" | "datasets" | "pending" | "none";
 
 /** A peer as its DID document describes it. */
 export interface DiscoveredPeer {
@@ -36,6 +37,64 @@ export const discoverPeer = async (baseUrl: string): Promise<DiscoveredPeer> => 
     services.find((s) => s.type === "AuthorizationServer")?.serviceEndpoint ??
     `${clean}/api/v1/gate`;
   return { id: res.data.id, services, accessUrl: `${gate.replace(/\/$/, "")}/access` };
+};
+
+/** Whether `granted` covers the peer's catalog: named, or through the datasets of a location. */
+export const coversCatalog = (granted: AccessItem[]) =>
+  granted.some(
+    (access) =>
+      access.type.endsWith("/catalog") ||
+      (access.type.endsWith("/dataset") && (access.locations ?? []).length > 0),
+  );
+
+/** The datasets `granted` names by id. */
+export const grantedDatasets = (granted: AccessItem[]) => [
+  ...new Set(
+    granted.flatMap((access) =>
+      access.type.endsWith("/dataset") && access.identifier ? [access.identifier] : [],
+    ),
+  ),
+];
+
+/** What `granted` lets this user read of the peer. */
+const reachOf = (granted: AccessItem[]): PeerConnection => {
+  if (coversCatalog(granted)) return "catalog";
+  return grantedDatasets(granted).length > 0 ? "datasets" : "none";
+};
+
+/** What `granted` lets this user see, in the words of the catalog cards. */
+export const accessLabel = (granted: AccessItem[]) => {
+  const count = grantedDatasets(granted).length;
+  const datasets = `${count} dataset${count === 1 ? "" : "s"}`;
+  if (coversCatalog(granted)) return count > 0 ? `Catalog + ${datasets}` : "Catalog only";
+  return count > 0 ? datasets : "No access";
+};
+
+/** What an action at a peer needs from its AS. */
+export type AccessNeed =
+  | { kind: "dataset"; base: string; id: string; action: "view" | "use" }
+  | { kind: "offer"; base: string };
+
+/** Gets ready `need` at a peer; a pending grant has a presentation for the user to answer. */
+export const prepareAccess = async (peerId: string, need: AccessNeed, requested: boolean) => {
+  const answer = await customInstance<{
+    status: number;
+    data: { grantId: string; pending: boolean };
+  }>(`/peer-connection/access/${encodePathId(peerId)}`, {
+    method: "POST",
+    data: { need, requested },
+  });
+  if (answer.status !== 200) throw new Error("Could not get access ready with this participant.");
+  return answer.data;
+};
+
+/** Whether this user already holds a token towards the peer that covers `need`. */
+export const holdsAccess = async (peerId: string, need: AccessNeed) => {
+  const answer = await customInstance<{ status: number; data: string | null }>(
+    `/peer-connection/token/${encodePathId(peerId)}/held`,
+    { method: "POST", data: { need } },
+  );
+  return answer.status === 200 && !!answer.data;
 };
 
 const OPEN_STATUSES = ["Pending", "Processing"];
@@ -65,11 +124,15 @@ export const usePeerConnections = () => {
 
   const byPeer = useMemo(() => {
     const map = new Map<string, PeerConnection>();
-    // Newest first: the first grant seen for a peer is its latest, unless an older one is approved.
+    const decided = new Set<string>();
+    // Newest first: the first grant seen for a peer is its latest, unless an older one gives access.
     for (const grant of ownGrants(data)) {
       const known = map.get(grant.participant_id);
-      if (grant.status === "Approved") map.set(grant.participant_id, "approved");
-      else if (known) continue;
+      if (grant.status === "Approved" && !decided.has(grant.participant_id)) {
+        decided.add(grant.participant_id);
+        const reach = reachOf(grant.granted ?? []);
+        if (reach !== "none" || !known) map.set(grant.participant_id, reach);
+      } else if (known) continue;
       else if (OPEN_STATUSES.includes(grant.status)) map.set(grant.participant_id, "pending");
       else map.set(grant.participant_id, "none");
     }
@@ -91,20 +154,6 @@ export const usePeerConnections = () => {
         (g) => g.participant_id === participantId && OPEN_STATUSES.includes(g.status),
       ),
   };
-};
-
-/** What this user was granted by the peer of approved grant `grantId`. */
-export const useGrantedAccess = (grantId: string | undefined) => {
-  const { data } = useQuery({
-    queryKey: ["/peer-connection/request/details", grantId],
-    queryFn: () =>
-      customInstance<{
-        status: number;
-        data: { resource_req?: { granted?: AccessItem[] | null } };
-      }>(`/peer-connection/request/${encodeURIComponent(grantId!)}/details`, { method: "GET" }),
-    enabled: !!grantId,
-  });
-  return data?.status === 200 ? (data.data.resource_req?.granted ?? []) : undefined;
 };
 
 /** Whether `granted` covers dataset `id`: by its id or by the datasets of a catalog. */

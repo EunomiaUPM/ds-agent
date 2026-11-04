@@ -33,6 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useGetAllParticipants } from "../../data/orval/participants/participants";
 import { OdrlPolicyDto, ParticipantDto } from "../../data/orval/model";
 import { useMyWellKnownDSPPath, useParticipantDSPPath } from "../../hooks/useWellKnownUrl";
+import { useAccessStep } from "../../hooks/useAccessStep";
 
 // =============================================================================
 // TYPES
@@ -87,6 +88,7 @@ export const ContractNegotiationNewOfferDialog = ({
   const [selectedParticipant, setSelectedParticipant] = useState<ParticipantDto | null>(null);
   const myDspPath = useMyWellKnownDSPPath();
   const { resolve: resolveProviderDspPath } = useParticipantDSPPath(undefined);
+  const access = useAccessStep();
 
   // ---------------------------------------------------------------------------
   // Info Items
@@ -118,6 +120,14 @@ export const ContractNegotiationNewOfferDialog = ({
       ? await resolveProviderDspPath(selectedParticipant.participant_id)
       : null;
 
+    const peerId = selectedParticipant?.participant_id;
+    if (!peerId || !resolvedPath) return;
+    await access.withAccess(peerId, { kind: "offer", base: resolvedPath }, false, () =>
+      send(resolvedPath),
+    );
+  };
+
+  const send = async (resolvedPath: string) => {
     const res = await setupOffer({
       data: {
         "@context": EUNOMIA_CONTEXT,
@@ -207,6 +217,8 @@ export const ContractNegotiationNewOfferDialog = ({
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
+
+  if (access.form) return access.form;
 
   return (
     <BaseProcessDialog

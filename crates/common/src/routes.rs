@@ -67,6 +67,8 @@ pub mod auth {
         pub const REQUEST: &str = "/request/{id}";
         pub const REQUEST_DETAILS: &str = "/request/{id}/details";
         pub const REQUEST_ACCESS: &str = "/request/{id}/access";
+        /// Gets ready what a user is about to do at a peer, by the peer's participant id.
+        pub const ACCESS: &str = "/access/{id}";
         pub const OID4VP: &str = "/oid4vp/{id}";
         pub const OID4VP_RESOLVE: &str = "/oid4vp/{id}/resolve";
         pub const OID4VP_PRESENT: &str = "/oid4vp/{id}/present";
@@ -74,6 +76,8 @@ pub mod auth {
         /// The caller's token towards a peer, by the peer's participant id (grants facade).
         pub const TOKEN: &str = "/token/{id}";
         pub const TOKEN_REFRESH: &str = "/token/{id}/refresh";
+        /// The token the caller already holds towards a peer, if it covers what is read.
+        pub const TOKEN_HELD: &str = "/token/{id}/held";
     }
 
     /// GNAP gatekeeper (grants received). Its `PREFIX` is the authorization server advertised in

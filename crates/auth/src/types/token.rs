@@ -17,6 +17,9 @@
 
 use ymir::types::gnap::access_token::TokenManagement;
 
+/// Start of the id of a peer that only reads: its key names it, for it has presented nothing.
+pub const WATCHER_PREFIX: &str = "watcher:";
+
 pub struct IssuedToken {
     pub final_token: String,
     pub final_expires_in: u64,

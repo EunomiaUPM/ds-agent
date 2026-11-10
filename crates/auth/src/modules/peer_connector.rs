@@ -315,7 +315,7 @@ pub trait PeerConnectorModule:
     /// Answers the pending presentation request of grant `id` through the wallet, if `user`
     /// reaches the grant: acting needs more than seeing it (the verification shares its id).
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn process_oid4vp(&self, user: &UserInfo, id: &str, payload: OidcUri) -> Outcome<()> {
+    async fn process_oid4vp(&self, user: &UserInfo, id: &str, payload: OidcUri) -> Outcome<verification::Model> {
         let grant = self.get_access_grant(id).await?;
         user.ensure_reaches(&grant.user_id, &grant.role, id)?;
         let verification = self.repo().sent_verification().get_latest_by_grant(id).await?;
@@ -329,9 +329,10 @@ pub trait PeerConnectorModule:
         self.check_presentation(&grant, &verification.uri).await
     }
 
-    /// Presents to the pending request of grant `id`, unless who asks for it is not the peer.
+    /// Presents to the pending request of grant `id`, unless who asks for it is not the peer;
+    /// the verification as it ended.
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn present_oid4vp(&self, user: &UserInfo, id: &str) -> Outcome<()> {
+    async fn present_oid4vp(&self, user: &UserInfo, id: &str) -> Outcome<verification::Model> {
         let (grant, mut verification) = self.pending_presentation(user, id).await?;
         let checked = self.check_presentation(&grant, &verification.uri).await?;
         if checked.verifier.blocks() {
@@ -341,13 +342,14 @@ pub trait PeerConnectorModule:
             Ok(()) => VerificationStatus::Verified,
             Err(e) => {
                 e.log();
+                verification.reason = Some(e.reason().to_string());
                 VerificationStatus::Failed
             }
         };
         verification.ended_at = Some(Utc::now());
         let verification = self.repo().sent_verification().update(verification).await?;
         self.peer_presented_event(&verification).await;
-        Ok(())
+        Ok(verification)
     }
 
     /// Asks the peer of approved grant `id` for `dataset`, or for its catalog without one; whether
@@ -655,25 +657,30 @@ pub trait PeerConnectorModule:
         let verification = self.repo().sent_verification().create(verification).await?;
 
         if grant.auto {
-            self.manage_oid4vp(verification, uri).await
+            self.manage_oid4vp(verification, uri).await.map(|_| ())
         } else {
             Ok(())
         }
     }
 
-    /// Presents through the wallet and records whether it was verified.
+    /// Presents through the wallet and records whether it was verified, and why not.
     #[tracing::instrument(level = "info", skip_all, err)]
-    async fn manage_oid4vp(&self, mut verification: verification::Model, uri: &str) -> Outcome<()> {
+    async fn manage_oid4vp(
+        &self,
+        mut verification: verification::Model,
+        uri: &str,
+    ) -> Outcome<verification::Model> {
         match self.wallet().process_oid4vp(uri).await {
             Ok(_) => verification.status = VerificationStatus::Verified,
-            Err(_) => {
+            Err(e) => {
                 verification.status = VerificationStatus::Failed;
+                verification.reason = Some(e.reason().to_string());
             }
         }
         verification.ended_at = Some(Utc::now());
         let verification = self.repo().sent_verification().update(verification).await?;
         self.peer_presented_event(&verification).await;
-        Ok(())
+        Ok(verification)
     }
 
     /// Finalizes grant `id`, as the peer rejected it.

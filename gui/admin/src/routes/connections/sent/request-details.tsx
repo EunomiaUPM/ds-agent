@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { GrantAccess, GrantAccessCard } from "shared/src/components/GrantAccessCard";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { customInstance } from "shared/src/data/orval-mutator";
+import { reportOutcome, type AgentResponse } from "shared/src/data/agentOutcome";
 import { PageSection } from "@eunomia/ui";
 import {
   Card,
@@ -16,7 +17,11 @@ import * as z from "zod";
 import QRCode from "react-qr-code";
 import { useState } from "react";
 import { FormatDate } from "@eunomia/ui";
-import { grantBadgeState, verificationBadgeState } from "shared/src/lib/grants";
+import {
+  grantBadgeState,
+  isRequestByReference,
+  verificationBadgeState,
+} from "shared/src/lib/grants";
 import {
   AlertCircle,
   ArrowLeft,
@@ -89,6 +94,7 @@ interface SentVerification {
   status: string;
   created_at: string;
   ended_at?: string | null;
+  reason?: string | null;
 }
 
 interface DetailsResponse {
@@ -139,11 +145,12 @@ function SentRequestDetails() {
     if (!grant) return;
     setIsProcessing(true);
     try {
-      await customInstance(`/peer-connection/oid4vp/${encodeURIComponent(grant.id)}`, {
-        method: "POST",
-        data: { uri },
-      });
+      const res = await customInstance<AgentResponse>(
+        `/peer-connection/oid4vp/${encodeURIComponent(grant.id)}`,
+        { method: "POST", data: { uri } },
+      );
       await queryClient.invalidateQueries({ queryKey });
+      reportOutcome(res);
     } catch (err) {
       console.error(err);
     } finally {
@@ -392,7 +399,7 @@ function SentRequestDetails() {
                 <DetailItem label="Interact Ref">
                   <SecretField value={interaction.interact_ref} />
                 </DetailItem>
-                <DetailItem label="OIDC4VP URI">
+                <DetailItem label="OID4VP URI">
                   <span className="font-mono text-xs break-all">
                     {interaction.oidc_vp_uri || "—"}
                   </span>
@@ -434,27 +441,50 @@ function SentRequestDetails() {
                     {verification.status}
                   </Badge>
                 </DetailItem>
-                <DetailItem label="Response Type">
-                  <span className="font-mono text-xs">{verification.response_type}</span>
-                </DetailItem>
+                {verification.reason && (
+                  <div className="sm:col-span-2">
+                    <DetailItem label="Reason">
+                      <span className="text-sm text-danger-700 dark:text-danger-300">
+                        {verification.reason}
+                      </span>
+                    </DetailItem>
+                  </div>
+                )}
+                {verification.response_type && (
+                  <DetailItem label="Response Type">
+                    <span className="font-mono text-xs">{verification.response_type}</span>
+                  </DetailItem>
+                )}
                 <DetailItem label="Client ID">
                   <span className="font-mono text-xs break-all">{verification.client_id}</span>
                 </DetailItem>
-                <DetailItem label="Client ID Scheme">
-                  <span className="font-mono text-xs">{verification.client_id_scheme}</span>
-                </DetailItem>
-                <DetailItem label="Response Mode">
-                  <span className="font-mono text-xs">{verification.response_mode}</span>
-                </DetailItem>
-                <DetailItem label="Response URI">
-                  <span className="font-mono text-xs break-all">{verification.response_uri}</span>
-                </DetailItem>
-                <DetailItem label="PD URI">
-                  <span className="font-mono text-xs break-all">{verification.pd_uri}</span>
-                </DetailItem>
-                <DetailItem label="Nonce">
-                  <SecretField value={verification.nonce} />
-                </DetailItem>
+                {verification.client_id_scheme && (
+                  <DetailItem label="Client ID Prefix">
+                    <span className="font-mono text-xs">{verification.client_id_scheme}</span>
+                  </DetailItem>
+                )}
+                {verification.response_mode && (
+                  <DetailItem label="Response Mode">
+                    <span className="font-mono text-xs">{verification.response_mode}</span>
+                  </DetailItem>
+                )}
+                {verification.response_uri && (
+                  <DetailItem label="Response URI">
+                    <span className="font-mono text-xs break-all">{verification.response_uri}</span>
+                  </DetailItem>
+                )}
+                {verification.pd_uri && (
+                  <DetailItem
+                    label={isRequestByReference(verification.uri) ? "Request URI" : "PD URI"}
+                  >
+                    <span className="font-mono text-xs break-all">{verification.pd_uri}</span>
+                  </DetailItem>
+                )}
+                {verification.nonce && (
+                  <DetailItem label="Nonce">
+                    <SecretField value={verification.nonce} />
+                  </DetailItem>
+                )}
                 <DetailItem label="Created At">
                   <FormatDate date={verification.created_at} />
                 </DetailItem>

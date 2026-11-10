@@ -107,7 +107,7 @@ async fn rejected_presentation_finishes_the_interaction_with_failure() {
     d.gatekeeper
         .expect_finish_interaction()
         .withf(|_, result| result.is_err())
-        .returning(|_, _| Ok(InteractionFinishResponse::Failure(None)));
+        .returning(|_, _| Ok(InteractionFinishResponse::Failure(None, None)));
 
     let response = d
         .core()
@@ -115,7 +115,7 @@ async fn rejected_presentation_finishes_the_interaction_with_failure() {
         .await
         .unwrap();
 
-    assert!(matches!(response, InteractionFinishResponse::Failure(_)));
+    assert!(matches!(response, InteractionFinishResponse::Failure(..)));
 }
 
 /// A wallet that cannot present (OID4VP error response, e.g. it lacks the credentials) fails
@@ -144,7 +144,7 @@ async fn wallet_refusal_fails_the_verification_and_finishes_the_grant() {
     d.gatekeeper
         .expect_finish_interaction()
         .withf(|_, result| result.is_err())
-        .returning(|_, _| Ok(InteractionFinishResponse::Failure(None)));
+        .returning(|_, _| Ok(InteractionFinishResponse::Failure(None, None)));
 
     let refusal = VerifyPayload::Refusal {
         error: "access_denied".to_string(),
@@ -156,5 +156,5 @@ async fn wallet_refusal_fails_the_verification_and_finishes_the_grant() {
         .await
         .unwrap();
 
-    assert!(matches!(response, InteractionFinishResponse::Failure(_)));
+    assert!(matches!(response, InteractionFinishResponse::Failure(..)));
 }

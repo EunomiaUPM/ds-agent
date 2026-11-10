@@ -23,6 +23,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde_json::Value;
 use ymir::data::entities::sent::grant::Model;
+use ymir::data::entities::sent::verification;
 use ymir::errors::AppResult;
 use ymir::types::gnap::CallbackBody;
 use ymir::types::wallet::OidcUri;
@@ -157,8 +158,8 @@ impl VcRequesterRouter {
         user: UserInfo,
         Path(id): Path<String>,
         payload: Result<Json<OidcUri>, JsonRejection>,
-    ) -> AppResult<()> {
+    ) -> AppResult<Json<verification::Model>> {
         let payload = extract_payload(payload)?;
-        requester.process_oid4vp(&user, &id, payload).await
+        Ok(Json(requester.process_oid4vp(&user, &id, payload).await?))
     }
 }

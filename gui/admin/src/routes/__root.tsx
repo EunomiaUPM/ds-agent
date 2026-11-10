@@ -93,7 +93,7 @@ function RootComponent() {
             </div>
           </SidebarInset>
         </SidebarProvider>
-        <Toaster />
+        <Toaster richColors />
         <GlobalLoadingIndicator />
         <Suspense>
           <TanStackRouterDevtools />

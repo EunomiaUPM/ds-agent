@@ -31,6 +31,7 @@ import { FormatDid } from "shared/src/components/ui/format-did";
 import { Visibility } from "shared/src/data/orval/model/visibility";
 import { connectToPeer } from "shared/src/data/orval/onboard/onboard";
 import { customInstance } from "shared/src/data/orval-mutator";
+import { outcomeFailure, reportOutcome, type AgentResponse } from "shared/src/data/agentOutcome";
 import { discoverPeer } from "shared/src/data/peerConnection";
 
 import { useQueryClient } from "@tanstack/react-query";
@@ -313,10 +314,18 @@ export const ConnectPeerForm = ({
 
   const answer = (action: "present" | "refuse") =>
     run(async () => {
-      await customInstance(`/peer-connection/oid4vp/${encodeURIComponent(grantId!)}/${action}`, {
-        method: "POST",
-      });
+      const res = await customInstance<AgentResponse>(
+        `/peer-connection/oid4vp/${encodeURIComponent(grantId!)}/${action}`,
+        { method: "POST" },
+      );
+      // Toasted before the refresh: a failed presentation ends the grant, and the page then
+      // swaps this form for a new one, losing the inline error.
+      reportOutcome(res);
       await refresh();
+      const failure = outcomeFailure(res);
+      if (failure) {
+        throw new Error(failure);
+      }
       if (action === "present") {
         setResolved(null);
         setAwaiting(true);

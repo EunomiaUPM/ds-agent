@@ -23,6 +23,10 @@ export const grantBadgeState = (
   }
 };
 
+/** Whether an OpenID4VP request goes by reference: the rest of it is in the Request Object. */
+export const isRequestByReference = (uri: string | undefined): boolean =>
+  !!uri?.includes("request_uri=");
+
 /** Badge state of a verification status: anything but pending or verified is red. */
 export const verificationBadgeState = (status: string | undefined): string | undefined => {
   switch (status) {

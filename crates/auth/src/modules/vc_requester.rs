@@ -165,7 +165,7 @@ pub trait VcRequesterModule:
     /// Answers the pending presentation request of request `id` through the wallet, if `user`
     /// reaches the request (the verification shares its id).
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
-    async fn process_oid4vp(&self, user: &UserInfo, id: &str, payload: OidcUri) -> Outcome<()> {
+    async fn process_oid4vp(&self, user: &UserInfo, id: &str, payload: OidcUri) -> Outcome<verification::Model> {
         let grant = self.get_vc_request(id).await?;
         user.ensure_reaches(&grant.user_id, &grant.role, id)?;
         let verification = self.repo().sent_verification().get_latest_by_grant(id).await?;
@@ -270,7 +270,7 @@ pub trait VcRequesterModule:
         let verification = self.repo().sent_verification().create(verification).await?;
 
         if grant.auto {
-            self.manage_oid4vp(verification, uri).await
+            self.manage_oid4vp(verification, uri).await.map(|_| ())
         } else {
             Ok(())
         }
@@ -278,17 +278,22 @@ pub trait VcRequesterModule:
 
     /// Presents through the wallet and records whether it was verified.
     #[tracing::instrument(level = "info", skip_all, err)]
-    async fn manage_oid4vp(&self, mut verification: verification::Model, uri: &str) -> Outcome<()> {
+    async fn manage_oid4vp(
+        &self,
+        mut verification: verification::Model,
+        uri: &str,
+    ) -> Outcome<verification::Model> {
         match self.wallet().process_oid4vp(uri).await {
             Ok(_) => verification.status = VerificationStatus::Verified,
-            Err(_) => {
+            Err(e) => {
                 verification.status = VerificationStatus::Failed;
+                verification.reason = Some(e.reason().to_string());
             }
         }
         verification.ended_at = Some(Utc::now());
         let verification = self.repo().sent_verification().update(verification).await?;
         self.vc_presented_event(&verification).await;
-        Ok(())
+        Ok(verification)
     }
 
     /// Finalizes request `id`, as the authority rejected it.

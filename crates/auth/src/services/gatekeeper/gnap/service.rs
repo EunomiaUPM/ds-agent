@@ -50,6 +50,7 @@ use ymir::types::keys::{Certificate, DbKeySource, KeySource, PublicKey};
 use ymir::types::oauth::RolePath;
 use ymir::types::participants::{ParticipantType, Visibility};
 use ymir::types::vcs::VcType;
+use ymir::types::verification::Rejection;
 use ymir::utils::{
     create_opaque_token, extract_gnap_token, hash_token, http_client, json_headers, trim_4_base,
 };
@@ -423,6 +424,11 @@ impl GateKeeperTrait for GnapGateKeeperService {
         verification_result: Outcome<()>,
     ) -> Outcome<InteractionFinishResponse> {
         info!("Finishing interaction");
+        let reason = verification_result
+            .as_ref()
+            .err()
+            .and_then(Rejection::public_reason)
+            .map(str::to_string);
         match interaction.method {
             FinishMethod::Redirect => match verification_result {
                 Ok(_) => {
@@ -435,7 +441,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
                 Err(e) => {
                     e.log();
                     let uri = format!("{}?rejected={}", interaction.callback_uri, e);
-                    Ok(InteractionFinishResponse::Failure(Some(uri)))
+                    Ok(InteractionFinishResponse::Failure(Some(uri), reason))
                 }
             },
             FinishMethod::Push => {
@@ -469,7 +475,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
                 if was_approved {
                     Ok(InteractionFinishResponse::Success(None))
                 } else {
-                    Ok(InteractionFinishResponse::Failure(None))
+                    Ok(InteractionFinishResponse::Failure(None, reason))
                 }
             }
             FinishMethod::Other(_) => {

@@ -164,6 +164,7 @@ pub fn sent_verification(id: &str) -> sent::verification::Model {
         status: VerificationStatus::Pending,
         created_at: Utc::now(),
         ended_at: None,
+        reason: None,
     }
 }
 

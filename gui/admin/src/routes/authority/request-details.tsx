@@ -31,8 +31,13 @@ import {
 } from "@eunomia/ui";
 import { FormatDate } from "@eunomia/ui";
 import { customInstance } from "shared/src/data/orval-mutator";
+import { reportOutcome, type AgentResponse } from "shared/src/data/agentOutcome";
 import { formatUrn, getFriendlyVCType } from "@eunomia/ui";
-import { grantBadgeState, verificationBadgeState } from "shared/src/lib/grants";
+import {
+  grantBadgeState,
+  isRequestByReference,
+  verificationBadgeState,
+} from "shared/src/lib/grants";
 import { z } from "zod";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -93,6 +98,7 @@ interface SentVerification {
   status: string;
   created_at: string;
   ended_at?: string | null;
+  reason?: string | null;
 }
 
 interface DetailsResponse {
@@ -140,11 +146,12 @@ function RequestDetailsPage() {
     if (!grant) return;
     setIsProcessing(true);
     try {
-      await customInstance(`${path}/${encodeURIComponent(grant.id)}`, {
+      const res = await customInstance<AgentResponse>(`${path}/${encodeURIComponent(grant.id)}`, {
         method: "POST",
         data: { uri },
       });
       await queryClient.invalidateQueries({ queryKey });
+      reportOutcome(res);
     } catch (err) {
       console.error(err);
     } finally {
@@ -391,7 +398,7 @@ function RequestDetailsPage() {
                 <DetailItem label="Interact Ref">
                   <SecretField value={interaction.interact_ref} />
                 </DetailItem>
-                <DetailItem label="OIDC4VP URI">
+                <DetailItem label="OID4VP URI">
                   <span className="font-mono text-xs break-all">
                     {interaction.oidc_vp_uri || "—"}
                   </span>
@@ -419,7 +426,7 @@ function RequestDetailsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-amber-500" />
-                Verification (OIDC4VP)
+                Verification (OID4VP)
               </CardTitle>
               <CardDescription>
                 The authority requested a presentation before issuing the credential.
@@ -432,29 +439,52 @@ function RequestDetailsPage() {
                     {verification.status}
                   </Badge>
                 </DetailItem>
-                <DetailItem label="Response Type">
-                  <span className="font-mono text-xs">{verification.response_type}</span>
-                </DetailItem>
+                {verification.reason && (
+                  <div className="sm:col-span-2">
+                    <DetailItem label="Reason">
+                      <span className="text-sm text-danger-700 dark:text-danger-300">
+                        {verification.reason}
+                      </span>
+                    </DetailItem>
+                  </div>
+                )}
+                {verification.response_type && (
+                  <DetailItem label="Response Type">
+                    <span className="font-mono text-xs">{verification.response_type}</span>
+                  </DetailItem>
+                )}
                 <DetailItem label="Client ID">
                   <span className="font-mono text-xs break-all">{verification.client_id}</span>
                 </DetailItem>
-                <DetailItem label="Client ID Scheme">
-                  <span className="font-mono text-xs">{verification.client_id_scheme}</span>
-                </DetailItem>
-                <DetailItem label="Response Mode">
-                  <span className="font-mono text-xs">{verification.response_mode}</span>
-                </DetailItem>
-                <DetailItem label="Response URI">
-                  <span className="font-mono text-xs break-all">
-                    {verification.response_uri}
-                  </span>
-                </DetailItem>
-                <DetailItem label="PD URI">
-                  <span className="font-mono text-xs break-all">{verification.pd_uri}</span>
-                </DetailItem>
-                <DetailItem label="Nonce">
-                  <SecretField value={verification.nonce} />
-                </DetailItem>
+                {verification.client_id_scheme && (
+                  <DetailItem label="Client ID Prefix">
+                    <span className="font-mono text-xs">{verification.client_id_scheme}</span>
+                  </DetailItem>
+                )}
+                {verification.response_mode && (
+                  <DetailItem label="Response Mode">
+                    <span className="font-mono text-xs">{verification.response_mode}</span>
+                  </DetailItem>
+                )}
+                {verification.response_uri && (
+                  <DetailItem label="Response URI">
+                    <span className="font-mono text-xs break-all">
+                      {verification.response_uri}
+                    </span>
+                  </DetailItem>
+                )}
+                {verification.pd_uri && (
+                  <DetailItem
+                    label={isRequestByReference(verification.uri) ? "Request URI" : "PD URI"}
+                  >
+                    <span className="font-mono text-xs break-all">{verification.pd_uri}</span>
+                  </DetailItem>
+                )}
+                {verification.nonce && (
+                  <DetailItem label="Nonce">
+                    <SecretField value={verification.nonce} />
+                  </DetailItem>
+                )}
                 <DetailItem label="Created At">
                   <FormatDate date={verification.created_at} />
                 </DetailItem>
@@ -506,7 +536,7 @@ function RequestDetailsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-muted-foreground">
                 <CheckCircle2 className="h-5 w-5" />
-                Verification (OIDC4VP)
+                Verification (OID4VP)
               </CardTitle>
               <CardDescription>
                 Not required — the authority didn't ask for a presentation.

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { WalletCredentialsView } from "@eunomia/ui";
+import { WalletCredentials } from "@/components/credentials/WalletCredentials";
 
-const WalletCredentialsPage = () => <WalletCredentialsView showGaiaCompliance={true} />;
+const WalletCredentialsPage = () => <WalletCredentials showGaiaCompliance={true} />;
 
 export const Route = createFileRoute("/wallet/credentials")({
   component: WalletCredentialsPage,

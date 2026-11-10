@@ -25,7 +25,7 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde_json::Value;
-use ymir::data::entities::sent::grant;
+use ymir::data::entities::sent::{grant, verification};
 use ymir::errors::AppResult;
 use ymir::types::gnap::CallbackBody;
 use ymir::types::oauth::UserInfo;
@@ -220,9 +220,11 @@ impl OnboarderRouter {
         user: UserInfo,
         Path(id): Path<String>,
         payload: Result<Json<OidcUri>, JsonRejection>,
-    ) -> AppResult<()> {
+    ) -> AppResult<Json<verification::Model>> {
         let payload = extract_payload(payload)?;
-        peer_connector.process_oid4vp(&user, &id, payload).await
+        Ok(Json(
+            peer_connector.process_oid4vp(&user, &id, payload).await?,
+        ))
     }
 
     async fn request_access(
@@ -249,8 +251,8 @@ impl OnboarderRouter {
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
         user: UserInfo,
         Path(id): Path<String>,
-    ) -> AppResult<()> {
-        peer_connector.present_oid4vp(&user, &id).await
+    ) -> AppResult<Json<verification::Model>> {
+        Ok(Json(peer_connector.present_oid4vp(&user, &id).await?))
     }
 
     async fn refuse_oid4vp(

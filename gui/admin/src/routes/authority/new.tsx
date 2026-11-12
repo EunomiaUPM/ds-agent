@@ -119,9 +119,11 @@ function NewAuthorityRequest() {
   const navigate = useNavigate();
   const search = Route.useSearch();
   const recommended = search.recommended ?? DEMO_VC_TYPE_ID;
-  const recommendedMethod: "cert" | "oidc4vp" = recommended.startsWith("gx_LabelCredential")
-    ? "oidc4vp"
-    : "cert";
+  const recommendedMethod: "cert" | "oidc4vp" =
+    recommended.startsWith("gx_LabelCredential") ||
+    recommended.startsWith("gx_ParticipantComplianceCredential")
+      ? "oidc4vp"
+      : "cert";
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [discoveredInfo, setDiscoveredInfo] = useState<{

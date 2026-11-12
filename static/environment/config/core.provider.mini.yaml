@@ -115,11 +115,6 @@ ssi_auth:
     legal_person:
       name: "EunomiaProvider"
       description: "Provider node for the Eunomia DataSpace"
-      registration_number:
-        kind: "gx:VatID"
-        value: "VATES-987654321"
-        country_code: "ES"
-        # subdivision_country_code: "ES-M"
       legal_address:
         country_code: "ES"
         country_name: "Spain"

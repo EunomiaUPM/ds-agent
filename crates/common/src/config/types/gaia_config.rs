@@ -16,7 +16,6 @@
  */
 
 use serde::{Deserialize, Serialize};
-use ymir::types::vcs::VcType;
 
 /// Legal person data for Gaia-X self-attestation.
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -26,22 +25,11 @@ pub struct GaiaConfig {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LegalPersonInfo {
-    pub registration_number: RegNumberInfo,
     pub legal_address: AddressInfo,
     pub headquarters_address: AddressInfo,
     pub name: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct RegNumberInfo {
-    pub kind: VcType,
-    pub value: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub country_code: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub subdivision_country_code: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

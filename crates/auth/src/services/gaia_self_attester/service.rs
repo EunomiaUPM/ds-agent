@@ -27,10 +27,10 @@ use ymir::errors::Outcome;
 use ymir::types::jwt::JwtClaims;
 use ymir::types::vcs::{VcJwtClaimsBuilder, VcPayload};
 use ymir::types::vcs::doc::VcDocumentBuilder;
+use ymir::types::vcs::vc_specs::gx_issuer::{GxIssuerCredSub, GAIA_X_TERMS_HASH};
 use ymir::types::vcs::vc_specs::legal_person::{
-    Address, LegalPersonCredentialSubject, TypedRegistrationNumber,
+    Address, LegalPersonCredentialSubject, RegistrationNumberRef,
 };
-use ymir::types::vcs::vc_specs::terms_and_conds::TermsAndConditionsCredSub;
 use ymir::types::vcs::VcType;
 use ymir::types::vcs::{VcIssuer, W3cDataModelVersion};
 use ymir::types::wallet::Identity;
@@ -53,27 +53,24 @@ impl GaiaSelfAttesterTrait for GaiaSelfAttester {
     async fn generate_terms_cons_vc(&self) -> Outcome<JwtClaims<VcPayload>> {
         let identity = self.identity.read().await;
         let holder_did = identity.did().id().to_string();
-        let cred_subj = TermsAndConditionsCredSub {
+        let cred_subj = GxIssuerCredSub {
             id: holder_did,
-            uri: "https://gaia-x.eu/.well-known/terms-and-conditions.json#cs".to_string(),
-            hash: "067dcac5efd18c1927deb1ffed3feab6d0ad044c0a9a263e6d5d8bdc43224515".to_string(),
+            gaiax_terms_and_conditions: GAIA_X_TERMS_HASH.to_string(),
         };
         let value = serde_json::to_value(cred_subj)?;
-        Ok(self.build(value, VcType::TermsAndConditions).await)
+        Ok(self.build(value, VcType::GxIssuer).await)
     }
 
     #[tracing::instrument(level = "info", skip_all, err)]
-    async fn generate_legal_person(&self) -> Outcome<JwtClaims<VcPayload>> {
+    async fn generate_legal_person(&self, registration_number: &str) -> Outcome<JwtClaims<VcPayload>> {
         let identity = self.identity.read().await;
         let holder_did = identity.did().id().to_string();
 
         let lp = &self.config.legal_person;
         let cred_subj = LegalPersonCredentialSubject {
             id: holder_did,
-            gx_registration_number: TypedRegistrationNumber {
-                id: None,
-                gx_registration_number_type: lp.registration_number.kind.to_string(),
-                gx_registration_number_value: lp.registration_number.value.clone(),
+            gx_registration_number: RegistrationNumberRef {
+                id: registration_number.to_string(),
             },
             gx_legal_address: Address {
                 id: None,

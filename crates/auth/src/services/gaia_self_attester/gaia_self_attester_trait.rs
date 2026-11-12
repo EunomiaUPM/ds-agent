@@ -24,8 +24,9 @@ use ymir::types::vcs::VcPayload;
 #[mockall::automock]
 #[async_trait]
 pub trait GaiaSelfAttesterTrait: Send + Sync + 'static {
-    /// Terms and conditions credential.
+    /// `gx:Issuer` credential: accepts the Gaia-X terms and conditions.
     async fn generate_terms_cons_vc(&self) -> Outcome<JwtClaims<VcPayload>>;
-    /// Legal person credential, from the configured company data.
-    async fn generate_legal_person(&self) -> Outcome<JwtClaims<VcPayload>>;
+    /// Legal person credential, from the configured company data, linked to the subject of its
+    /// registration number credential.
+    async fn generate_legal_person(&self, registration_number: &str) -> Outcome<JwtClaims<VcPayload>>;
 }

@@ -70,8 +70,12 @@ const REGISTRATION_TYPES = [
   "VatId",
 ];
 const LEGAL_PERSON_TYPES = ["gx:LegalPerson", "LegalPerson"];
-const TC_TYPES = ["gx:TermsAndConditions", "TermsAndConditions"];
-const LABEL_TYPES = ["gx:LabelCredential", "LabelCredential"];
+const TC_TYPES = ["gx:Issuer"];
+const LABEL_TYPES = [
+  "gx:LabelCredential",
+  "LabelCredential",
+  "gx:ParticipantComplianceCredential",
+];
 
 const RECOMMENDED_REGISTRATION_VC = "gx_VatID_jwt_vc_json";
 const RECOMMENDED_COMPLIANCE_VC = "gx_LabelCredential_jwt_vc_json";
@@ -424,7 +428,7 @@ const ComplianceStepCard = ({
       {step === 2 && !flags.hasLegalPerson && !flags.hasTermsAndConditions && (
         <Hint
           tone="primary"
-          text="The wallet will self-issue gx:LegalPerson and gx:TermsAndConditions on top of your registration credential."
+          text="The wallet will self-issue gx:LegalPerson and gx:Issuer (Gaia-X terms) on top of your registration credential."
         />
       )}
       {step === 3 && (
@@ -512,7 +516,7 @@ function stepDescription(step: 1 | 2 | 3 | 4) {
     case 1:
       return "Pick a registration credential (VatID, TaxID, LEI, EORI, ...) from a trusted authority. This anchors your legal identity.";
     case 2:
-      return "Generate self-signed gx:LegalPerson and gx:TermsAndConditions credentials linked to your registration credential.";
+      return "Generate self-signed gx:LegalPerson and gx:Issuer (Gaia-X terms) credentials linked to your registration credential.";
     case 3:
       return "Submit your credentials to a Gaia-X Clearing House to receive your LabelCredential.";
     case 4:

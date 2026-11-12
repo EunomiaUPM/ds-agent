@@ -19,7 +19,10 @@
 
 use auth::modules::GaiaSelfAttesterModule;
 use common::test_utils::scopes::TestUsers;
+use serde_json::json;
+use ymir::data::entities::wallet::vc;
 use ymir::types::issuance::VcBody;
+use ymir::types::vcs::VcType;
 
 use crate::support::builders::{signed_vc, stored_vc, vc_claims};
 use crate::support::mocks::Doubles;
@@ -28,12 +31,20 @@ use crate::support::mocks::Doubles;
 #[tokio::test]
 async fn root_signs_and_stores_both_credentials() {
     let mut d = Doubles::default();
+    d.wallet.expect_retrieve_all_vcs().returning(|| {
+        Ok(vec![vc::Model {
+            vc_type: VcType::VatId,
+            parsed_document: json!({ "credentialSubject": { "id": "did:web:me" } }),
+            ..stored_vc()
+        }])
+    });
     d.gaia
         .expect_generate_legal_person()
-        .returning(|| Ok(vc_claims("LegalPerson")));
+        .withf(|registration| registration == "did:web:me")
+        .returning(|_| Ok(vc_claims("LegalPerson")));
     d.gaia
         .expect_generate_terms_cons_vc()
-        .returning(|| Ok(vc_claims("TermsAndConditions")));
+        .returning(|| Ok(vc_claims("Issuer")));
     d.issuer
         .expect_sign_claims()
         .times(2)

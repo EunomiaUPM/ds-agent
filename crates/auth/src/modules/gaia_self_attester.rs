@@ -18,8 +18,9 @@
 use crate::services::{HasGaiaSelfAttester, MayHaveEventBus};
 use crate::types::events::GaiaIssuedEvent;
 use async_trait::async_trait;
+use serde_json::Value;
 use ymir::data::entities::wallet::vc;
-use ymir::errors::Outcome;
+use ymir::errors::{Errors, Outcome};
 use ymir::oauth::Owner;
 use ymir::services::{HasIssuer, HasWallet};
 use ymir::types::issuance::VcBody;
@@ -34,7 +35,24 @@ pub trait GaiaSelfAttesterModule:
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn generate_gaia_vcs(&self, user: &UserInfo) -> Outcome<()> {
         user.require_root()?;
-        let legal_p = self.gaia().generate_legal_person().await?;
+        // The newest registration number in the wallet, by the subject the legal person links to.
+        let registration = self
+            .wallet()
+            .retrieve_all_vcs()
+            .await?
+            .into_iter()
+            .filter(|vc| vc.vc_type.is_legal_registration_number())
+            .max_by_key(|vc| vc.added_on)
+            .and_then(|vc| {
+                vc.parsed_document
+                    .pointer("/credentialSubject/id")
+                    .and_then(Value::as_str)
+                    .map(str::to_string)
+            })
+            .ok_or_else(|| {
+                Errors::forbidden("Request a registration number credential first", None)
+            })?;
+        let legal_p = self.gaia().generate_legal_person(&registration).await?;
         let terms = self.gaia().generate_terms_cons_vc().await?;
         let legal_p = self.issuer().sign_claims(&legal_p).await?;
         let terms = self.issuer().sign_claims(&terms).await?;
@@ -49,7 +67,7 @@ pub trait GaiaSelfAttesterModule:
         self.wallet().store_vc(terms).await?;
 
         let payload = GaiaIssuedEvent {
-            credentials: vec!["LegalPerson".to_string(), "TermsAndConditions".to_string()],
+            credentials: vec!["LegalPerson".to_string(), "Issuer".to_string()],
         };
         events::emit_action!(
             self.event_bus(),

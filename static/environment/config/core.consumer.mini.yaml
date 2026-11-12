@@ -115,11 +115,6 @@ ssi_auth:
     legal_person:
       name: "EunomiaConsumer"
       description: "Consumer node for the Eunomia DataSpace"
-      registration_number:
-        kind: "gx:VatID"
-        value: "VATES-123456789"
-        country_code: "ES"
-        # subdivision_country_code: "ES-M"
       legal_address:
         country_code: "ES"
         country_name: "Spain"

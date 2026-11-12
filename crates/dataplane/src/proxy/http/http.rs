@@ -24,12 +24,14 @@ use crate::engine::dataplane_manager::dataplane_proxy::{
     DataplaneProxyEgress, DataplaneProxyIngress,
 };
 use crate::engine::dataplane_manager::dataplane_runtime::{
-    DataplaneRuntime, ResolvedAuthCredentials, RuntimeSecretVault,
+    DataplaneRuntime, DeliveryPolicy, ResolvedAuthCredentials, RuntimeSecretVault,
 };
 use crate::entities::dataplane_transfers::{
     DataplaneTransferDto, InteractionMode, TransferRole, TransferState,
 };
+use crate::proxy::tracker::{DeliveryTracker, ReserveOutcome};
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
+use crate::signals::{DataplaneSignal, DataplaneSignalSender};
 use axum::body::{to_bytes, Body, Bytes};
 use axum::extract::{FromRef, Path, Request, State};
 use axum::http::header::AUTHORIZATION;
@@ -38,11 +40,15 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::any;
 use axum::{Json, Router};
 use common::routes::dataplane as routes;
-use connector::KeystoreLookup;
+use connector::{KeystoreLookup, TransferLifetime};
+use futures_util::Stream;
 use hyper::Method;
 use serde_json::json;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::pin::Pin;
+use std::str::FromStr;
 use std::sync::Arc;
+use std::task::{Context, Poll};
 use std::time::Duration;
 use tracing::{debug, error, info};
 use url::Host;
@@ -89,6 +95,7 @@ enum ProxyError {
     ForbiddenTarget(&'static str),
     TargetResolutionFailed,
     BodyTooLarge,
+    TransferCompleted,
 }
 
 impl IntoResponse for ProxyError {
@@ -134,6 +141,10 @@ impl IntoResponse for ProxyError {
                 "unable to resolve upstream target host".to_string(),
             ),
             ProxyError::BodyTooLarge => (StatusCode::BAD_REQUEST, "body too big".to_string()),
+            ProxyError::TransferCompleted => (
+                StatusCode::GONE,
+                "finite transfer already completed".to_string(),
+            ),
         };
         (status, message).into_response()
     }
@@ -146,6 +157,137 @@ struct OutboundRequest {
     body: Bytes,
 }
 
+/// Wraps an upstream response body stream for `(Provider, Pull)` `FINITE` transfers so
+/// `DataplaneSignal::Completed` fires once the full payload has been yielded to the HTTP server.
+struct SignalOnEofStream<E> {
+    inner: Pin<Box<dyn Stream<Item = Result<Bytes, E>> + Send>>,
+    dataplane_id: String,
+    transfer_process_id: Option<Urn>,
+    max_retries: u32,
+    expected_bytes: Option<u64>,
+    delivered_bytes: u64,
+    tracker: Arc<DeliveryTracker>,
+    signals: DataplaneSignalSender,
+    finished: bool,
+}
+
+impl<E> SignalOnEofStream<E> {
+    fn complete_once(&mut self) {
+        if self.finished {
+            return;
+        }
+        self.finished = true;
+        let dp_id = self.dataplane_id.clone();
+        let tp_id = self.transfer_process_id.clone();
+        if let Some(first) = self.tracker.try_complete_finite_slot_sync(&dp_id) {
+            if first {
+                if let Some(transfer_process_id) = tp_id {
+                    self.signals.emit(DataplaneSignal::Completed {
+                        transfer_process_id,
+                    });
+                }
+            }
+        } else if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            let tracker = self.tracker.clone();
+            let signals = self.signals.clone();
+            handle.spawn(async move {
+                if tracker.complete_finite_slot(&dp_id).await {
+                    if let Some(transfer_process_id) = tp_id {
+                        signals.emit(DataplaneSignal::Completed {
+                            transfer_process_id,
+                        });
+                    }
+                }
+            });
+        }
+    }
+}
+
+impl<E> Stream for SignalOnEofStream<E> {
+    type Item = Result<Bytes, E>;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        match self.inner.as_mut().poll_next(cx) {
+            Poll::Pending => Poll::Pending,
+            Poll::Ready(Some(Ok(chunk))) => {
+                self.delivered_bytes = self.delivered_bytes.saturating_add(chunk.len() as u64);
+                // Hyper's HTTP/1.1 `Content-Length` encoder stops polling once `Content-Length`
+                // bytes have been yielded (without polling an extra time for `None`).
+                if self
+                    .expected_bytes
+                    .is_some_and(|expected| self.delivered_bytes >= expected)
+                {
+                    self.complete_once();
+                }
+                Poll::Ready(Some(Ok(chunk)))
+            }
+            Poll::Ready(Some(Err(err))) => {
+                if !self.finished {
+                    self.finished = true;
+                    let dp_id = self.dataplane_id.clone();
+                    let tp_id = self.transfer_process_id.clone();
+                    let max_retries = self.max_retries;
+                    if let Some(exceeded) =
+                        self.tracker.try_record_transient_failure_sync(&dp_id, max_retries)
+                    {
+                        if exceeded {
+                            if let Some(transfer_process_id) = tp_id {
+                                self.signals.emit(DataplaneSignal::Failed {
+                                    transfer_process_id,
+                                    code: "DATAPLANE_STREAM_FAILED".to_string(),
+                                    reason: "upstream response stream aborted before EOF"
+                                        .to_string(),
+                                });
+                            }
+                        } else {
+                            let _ = self.tracker.try_release_finite_slot_sync(&dp_id);
+                        }
+                    } else if let Ok(handle) = tokio::runtime::Handle::try_current() {
+                        let tracker = self.tracker.clone();
+                        let signals = self.signals.clone();
+                        handle.spawn(async move {
+                            if tracker.record_transient_failure(&dp_id, max_retries).await {
+                                if let Some(transfer_process_id) = tp_id {
+                                    signals.emit(DataplaneSignal::Failed {
+                                        transfer_process_id,
+                                        code: "DATAPLANE_STREAM_FAILED".to_string(),
+                                        reason: "upstream response stream aborted before EOF"
+                                            .to_string(),
+                                    });
+                                }
+                            } else {
+                                tracker.release_finite_slot(&dp_id).await;
+                            }
+                        });
+                    }
+                }
+                Poll::Ready(Some(Err(err)))
+            }
+            Poll::Ready(None) => {
+                self.complete_once();
+                Poll::Ready(None)
+            }
+        }
+    }
+}
+
+impl<E> Drop for SignalOnEofStream<E> {
+    fn drop(&mut self) {
+        if !self.finished {
+            self.finished = true;
+            let dp_id = self.dataplane_id.clone();
+            if !self.tracker.try_release_finite_slot_sync(&dp_id) {
+                if let Ok(handle) = tokio::runtime::Handle::try_current() {
+                    let tracker = self.tracker.clone();
+                    handle.spawn(async move {
+                        tracker.release_finite_slot(&dp_id).await;
+                    });
+                }
+            }
+        }
+    }
+}
+
 /// HTTP data proxy: validates per-transfer ingress capabilities, enforces anti-SSRF
 /// egress rules, resolves outbound credentials, and forwards `/{data_plane_id}/...`.
 #[derive(Clone)]
@@ -155,6 +297,8 @@ pub struct HttpDataProxy {
     repo: Arc<dyn DataplaneRepoTrait>,
     keystore: Option<Arc<dyn KeystoreLookup>>,
     allow_private_egress: bool,
+    signals: DataplaneSignalSender,
+    tracker: Arc<DeliveryTracker>,
 }
 
 impl FromRef<HttpDataProxy> for Arc<dyn DataplaneTransferServiceTrait> {
@@ -176,6 +320,8 @@ impl HttpDataProxy {
             repo,
             keystore: None,
             allow_private_egress: false,
+            signals: DataplaneSignalSender::noop(),
+            tracker: Arc::new(DeliveryTracker::in_memory()),
         }
     }
 
@@ -204,6 +350,18 @@ impl HttpDataProxy {
     /// (`false` by default; enable only for local/Docker-internal test topologies).
     pub fn with_allow_private_egress(mut self, allow: bool) -> Self {
         self.allow_private_egress = allow;
+        self
+    }
+
+    /// Attaches the control-plane signal sender (`Completed` / `Failed`).
+    pub fn with_signals(mut self, signals: DataplaneSignalSender) -> Self {
+        self.signals = signals;
+        self
+    }
+
+    /// Attaches a shared `DeliveryTracker` (e.g. Redis-backed across replicas).
+    pub fn with_tracker(mut self, tracker: Arc<DeliveryTracker>) -> Self {
+        self.tracker = tracker;
         self
     }
 
@@ -245,8 +403,8 @@ impl HttpDataProxy {
     }
 
     /// The proxy pipeline, top to bottom: validate transfer state, enforce per-transfer
-    /// ingress auth, build and validate target URL (anti-SSRF), resolve credentials,
-    /// then forward and log.
+    /// ingress auth, reserve `FINITE` single-shot quota when applicable, build and validate
+    /// target URL (anti-SSRF), resolve credentials, then forward and log.
     async fn proxy(
         &self,
         data_plane_id: &str,
@@ -263,11 +421,81 @@ impl HttpDataProxy {
         Self::verify_ingress_auth(&dataplane, req.headers(), raw_query.as_deref())?;
         let clean_query = Self::strip_ingress_token_query(raw_query.as_deref());
 
-        let egress = Self::parse_egress(&dataplane)?;
-        let outbound = Self::extract_outbound(req).await?;
+        let policy = Self::delivery_policy(&dataplane);
+        let is_provider_finite = dataplane.inner.role == TransferRole::Provider
+            && policy.lifetime == TransferLifetime::Finite;
 
-        let target = Self::build_target_url(&egress, path, clean_query.as_deref())?;
-        self.validate_target_url(&target).await?;
+        if is_provider_finite
+            && self.tracker.reserve_finite_slot(&dataplane.inner.id).await
+                == ReserveOutcome::Exhausted
+        {
+            return Err(ProxyError::TransferCompleted);
+        }
+
+        let egress = match Self::parse_egress(&dataplane) {
+            Ok(egress) => egress,
+            Err(err) => {
+                self.emit_failed(
+                    &dataplane,
+                    "DATAPLANE_CONFIG_ERROR",
+                    "invalid or missing egress_config",
+                );
+                return Err(err);
+            }
+        };
+        let outbound = match Self::extract_outbound(req).await {
+            Ok(outbound) => outbound,
+            Err(err) => {
+                // Caller payload error: never terminate the transfer, and release any finite slot.
+                if is_provider_finite {
+                    self.tracker.release_finite_slot(&dataplane.inner.id).await;
+                }
+                return Err(err);
+            }
+        };
+
+        let target = match Self::build_target_url(&egress, path, clean_query.as_deref()) {
+            Ok(target) => target,
+            Err(err) => {
+                self.emit_failed(
+                    &dataplane,
+                    "DATAPLANE_CONFIG_ERROR",
+                    "connector egress not handled by HTTP proxy",
+                );
+                return Err(err);
+            }
+        };
+        if let Err(err) = self.validate_target_url(&target).await {
+            match &err {
+                ProxyError::InvalidTargetUrl => {
+                    self.emit_failed(
+                        &dataplane,
+                        "DATAPLANE_INVALID_TARGET_URL",
+                        "invalid upstream target URL",
+                    );
+                }
+                ProxyError::ForbiddenTarget(reason) => {
+                    self.emit_failed(&dataplane, "DATAPLANE_FORBIDDEN_TARGET", *reason);
+                }
+                ProxyError::TargetResolutionFailed => {
+                    if self
+                        .tracker
+                        .record_transient_failure(&dataplane.inner.id, policy.max_retries)
+                        .await
+                    {
+                        self.emit_failed(
+                            &dataplane,
+                            "DATAPLANE_MAX_RETRIES_EXCEEDED",
+                            "unable to resolve upstream target host",
+                        );
+                    } else if is_provider_finite {
+                        self.tracker.release_finite_slot(&dataplane.inner.id).await;
+                    }
+                }
+                _ => {}
+            }
+            return Err(err);
+        }
         let credentials = self.resolve_credentials(&dataplane, &egress).await;
 
         Ok(self
@@ -279,8 +507,38 @@ impl HttpDataProxy {
                 &target,
                 outbound,
                 &credentials,
+                policy,
+                is_provider_finite,
             )
             .await)
+    }
+
+    fn delivery_policy(dataplane: &DataplaneTransferDto) -> DeliveryPolicy {
+        dataplane
+            .inner
+            .flow_control
+            .as_ref()
+            .and_then(|v| serde_json::from_value::<DataplaneRuntime>(v.clone()).ok())
+            .map(|rt| rt.delivery_policy)
+            .unwrap_or_default()
+    }
+
+    fn emit_completed(&self, dataplane: &DataplaneTransferDto) {
+        if let Ok(transfer_process_id) = Urn::from_str(&dataplane.inner.transfer_process_id) {
+            self.signals.emit(DataplaneSignal::Completed {
+                transfer_process_id,
+            });
+        }
+    }
+
+    fn emit_failed(&self, dataplane: &DataplaneTransferDto, code: &str, reason: impl Into<String>) {
+        if let Ok(transfer_process_id) = Urn::from_str(&dataplane.inner.transfer_process_id) {
+            self.signals.emit(DataplaneSignal::Failed {
+                transfer_process_id,
+                code: code.to_string(),
+                reason: reason.into(),
+            });
+        }
     }
 
     /// Parses the `{data_plane_id}` path segment into a transfer URN.
@@ -574,6 +832,8 @@ impl HttpDataProxy {
         target: &str,
         outbound: OutboundRequest,
         credentials: &ResolvedAuthCredentials,
+        policy: DeliveryPolicy,
+        is_provider_finite: bool,
     ) -> Response {
         let auth_preview = Self::preview_auth(credentials);
         let safe_target = Self::redact_url(target);
@@ -612,12 +872,14 @@ impl HttpDataProxy {
         )
         .await;
 
-        Self::map_response(
+        self.evaluate_and_map_response(
+            dataplane,
+            policy,
+            is_provider_finite,
             response,
             &outbound.method,
             &safe_target,
             &auth_preview,
-            self.keystore.is_some(),
         )
         .await
     }
@@ -671,17 +933,26 @@ impl HttpDataProxy {
         }
     }
 
-    /// Maps the upstream result to the client response, masking upstream error
-    /// bodies (still logged server-side) so internal details are not leaked.
-    async fn map_response(
+    /// Evaluates control-plane signaling (`Completed` / `Failed` with `maxRetries`) and maps
+    /// the upstream result to the client HTTP response, masking upstream error bodies.
+    #[allow(clippy::too_many_arguments)]
+    async fn evaluate_and_map_response(
+        &self,
+        dataplane: &DataplaneTransferDto,
+        policy: DeliveryPolicy,
+        is_provider_finite: bool,
         result: Outcome<UpstreamResponse>,
         method: &Method,
         safe_target: &str,
         auth_preview: &str,
-        keystore_present: bool,
     ) -> Response {
+        let dp_id = &dataplane.inner.id;
+        let role = &dataplane.inner.role;
+        let mode = &dataplane.inner.interaction_mode;
+        let keystore_present = self.keystore.is_some();
+
         match result {
-            Ok(res) if res.status().is_client_error() || res.status().is_server_error() => {
+            Ok(res) if res.status().is_client_error() => {
                 let status = res.status();
                 let body_text = res
                     .text()
@@ -691,14 +962,72 @@ impl HttpDataProxy {
                     "Upstream {} {} -> {} | sent=[{}] keystore={} | body: {}",
                     method, safe_target, status, auth_preview, keystore_present, body_text
                 );
+                self.classify_upstream_client_error(
+                    dataplane,
+                    policy,
+                    is_provider_finite,
+                    status,
+                )
+                .await;
                 (status, Json(json!({"error": "upstream error"}))).into_response()
             }
-            Ok(res) => Self::relay_response(res),
-            Err(e) => {
+            Ok(res) if res.status().is_server_error() => {
+                let status = res.status();
+                let body_text = res
+                    .text()
+                    .await
+                    .unwrap_or_else(|_| "<unreadable>".to_string());
                 error!(
-                    "Proxy forward failed {} {}: {:?}",
-                    method, safe_target, e
+                    "Upstream {} {} -> {} | sent=[{}] keystore={} | body: {}",
+                    method, safe_target, status, auth_preview, keystore_present, body_text
                 );
+                if self
+                    .tracker
+                    .record_transient_failure(dp_id, policy.max_retries)
+                    .await
+                {
+                    self.emit_failed(
+                        dataplane,
+                        "DATAPLANE_MAX_RETRIES_EXCEEDED",
+                        format!("upstream returned {status}"),
+                    );
+                } else if is_provider_finite {
+                    self.tracker.release_finite_slot(dp_id).await;
+                }
+                (status, Json(json!({"error": "upstream error"}))).into_response()
+            }
+            Ok(res) => {
+                self.tracker.record_success(dp_id).await;
+                if is_provider_finite {
+                    match (role, mode) {
+                        (TransferRole::Provider, InteractionMode::Pull) => {
+                            return self.relay_finite_pull_response(dataplane, policy, res);
+                        }
+                        (TransferRole::Provider, InteractionMode::Push) => {
+                            if self.tracker.complete_finite_slot(dp_id).await {
+                                self.emit_completed(dataplane);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                Self::relay_response(res)
+            }
+            Err(e) => {
+                error!("Proxy forward failed {} {}: {:?}", method, safe_target, e);
+                if self
+                    .tracker
+                    .record_transient_failure(dp_id, policy.max_retries)
+                    .await
+                {
+                    self.emit_failed(
+                        dataplane,
+                        "DATAPLANE_MAX_RETRIES_EXCEEDED",
+                        format!("upstream connection failed: {e}"),
+                    );
+                } else if is_provider_finite {
+                    self.tracker.release_finite_slot(dp_id).await;
+                }
                 (
                     StatusCode::BAD_GATEWAY,
                     Json(json!({"error": "proxy error"})),
@@ -706,6 +1035,128 @@ impl HttpDataProxy {
                     .into_response()
             }
         }
+    }
+
+    async fn classify_upstream_client_error(
+        &self,
+        dataplane: &DataplaneTransferDto,
+        policy: DeliveryPolicy,
+        is_provider_finite: bool,
+        status: StatusCode,
+    ) {
+        let dp_id = &dataplane.inner.id;
+        let role = &dataplane.inner.role;
+        let mode = &dataplane.inner.interaction_mode;
+
+        match (role, mode) {
+            (TransferRole::Provider, InteractionMode::Pull) => {
+                if matches!(status, StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN) {
+                    self.emit_failed(
+                        dataplane,
+                        "DATAPLANE_UPSTREAM_AUTH_REJECTED",
+                        format!("backend rejected connector credentials ({status})"),
+                    );
+                } else if is_provider_finite {
+                    if self
+                        .tracker
+                        .record_transient_failure(dp_id, policy.max_retries)
+                        .await
+                    {
+                        self.emit_failed(
+                            dataplane,
+                            "DATAPLANE_FINITE_RESOURCE_ERROR",
+                            format!("finite pull upstream returned {status}"),
+                        );
+                    } else {
+                        self.tracker.release_finite_slot(dp_id).await;
+                    }
+                }
+            }
+            (TransferRole::Provider, InteractionMode::Push)
+            | (TransferRole::Consumer, InteractionMode::Push) => {
+                if matches!(
+                    status,
+                    StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN | StatusCode::GONE
+                ) {
+                    self.emit_failed(
+                        dataplane,
+                        "DATAPLANE_SINK_REJECTED",
+                        format!("push sink permanently rejected delivery ({status})"),
+                    );
+                } else if is_provider_finite {
+                    if self
+                        .tracker
+                        .record_transient_failure(dp_id, policy.max_retries)
+                        .await
+                    {
+                        self.emit_failed(
+                            dataplane,
+                            "DATAPLANE_FINITE_PUSH_REJECTED",
+                            format!("finite push sink returned {status}"),
+                        );
+                    } else {
+                        self.tracker.release_finite_slot(dp_id).await;
+                    }
+                }
+            }
+            (TransferRole::Consumer, InteractionMode::Pull) => {
+                if status == StatusCode::UNAUTHORIZED {
+                    self.emit_failed(
+                        dataplane,
+                        "DATAPLANE_PEER_AUTH_REJECTED",
+                        "provider proxy rejected consumer capability token (401 Unauthorized)",
+                    );
+                }
+            }
+        }
+    }
+
+    /// Streams the upstream response back to the client while arming `SignalOnEofStream`
+    /// so `DataplaneSignal::Completed` fires once the payload reaches clean `EOF`.
+    fn relay_finite_pull_response(
+        &self,
+        dataplane: &DataplaneTransferDto,
+        policy: DeliveryPolicy,
+        upstream: UpstreamResponse,
+    ) -> Response {
+        let status = upstream.status();
+        let headers = upstream.headers().clone();
+        let expected_bytes = if status == StatusCode::NO_CONTENT {
+            Some(0)
+        } else {
+            headers
+                .get(axum::http::header::CONTENT_LENGTH)
+                .and_then(|v| v.to_str().ok())
+                .and_then(|s| s.trim().parse::<u64>().ok())
+        };
+        let mut wrapped = SignalOnEofStream {
+            inner: Box::pin(upstream.bytes_stream()),
+            dataplane_id: dataplane.inner.id.clone(),
+            transfer_process_id: Urn::from_str(&dataplane.inner.transfer_process_id).ok(),
+            max_retries: policy.max_retries,
+            expected_bytes,
+            delivered_bytes: 0,
+            tracker: self.tracker.clone(),
+            signals: self.signals.clone(),
+            finished: false,
+        };
+        if expected_bytes == Some(0) {
+            wrapped.complete_once();
+        }
+        let body = Body::from_stream(wrapped);
+
+        let mut response = Response::builder().status(status);
+        if let Some(out_headers) = response.headers_mut() {
+            for (key, value) in headers.iter() {
+                if HOP_BY_HOP_HEADERS.contains(&key.as_str().to_ascii_lowercase().as_str()) {
+                    continue;
+                }
+                out_headers.insert(key, value.clone());
+            }
+        }
+        response
+            .body(body)
+            .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
     }
 
     /// Streams the upstream response back to the client, dropping hop-by-hop

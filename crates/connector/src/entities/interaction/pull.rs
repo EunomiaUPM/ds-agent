@@ -17,6 +17,7 @@
 
 //! Pull lifecycle: the consumer fetches the data.
 
+use crate::entities::interaction::TransferLifetime;
 use crate::entities::resource::ProtocolSpec;
 use serde::{Deserialize, Serialize};
 
@@ -24,5 +25,19 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PullLifecycle {
+    #[serde(default)]
+    pub lifetime: TransferLifetime,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_retries: Option<u32>,
     pub data_access: ProtocolSpec,
+}
+
+impl PullLifecycle {
+    pub fn new(data_access: ProtocolSpec) -> Self {
+        Self {
+            lifetime: TransferLifetime::Infinite,
+            max_retries: None,
+            data_access,
+        }
+    }
 }

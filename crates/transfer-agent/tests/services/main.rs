@@ -20,6 +20,7 @@
 #[path = "../support/mod.rs"]
 mod support;
 
+mod dataplane_signals;
 mod tck_scenarios;
 mod transfer_messages;
 mod transfer_processes;

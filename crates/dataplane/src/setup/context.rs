@@ -32,10 +32,12 @@ use crate::data::sea_orm::SeaOrmDataFactory;
 use crate::engine::dataplane_drivers::keystore_lookup::KeystoreClientImpl;
 use crate::engine::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactory;
 use crate::engine::dataplane_manager::dataplane_manager::DataplaneManager;
+use crate::proxy::DeliveryTracker;
 use crate::services::dataplane_transfer_logs::service::DataplaneTransferLogsService;
 use crate::services::dataplane_transfers::service::DataplaneTransferService;
 use crate::services::transfer_events::service::TransferEventsService;
 use crate::setup::ports::DataplanePorts;
+use crate::signals::DataplaneSignalSender;
 
 #[derive(Clone)]
 pub struct AppContext {
@@ -46,6 +48,8 @@ pub struct AppContext {
     pub keystore_lookup: Arc<KeystoreClientImpl>,
     pub manager: Arc<DataplaneManager>,
     pub oauth_validator: Arc<dyn OauthTokenValidatorTrait>,
+    pub signals: DataplaneSignalSender,
+    pub tracker: Arc<DeliveryTracker>,
 }
 
 impl AppContext {
@@ -56,9 +60,9 @@ impl AppContext {
     ) -> Outcome<Self> {
         let repo: Arc<dyn DataplaneRepoTrait> =
             Arc::new(SeaOrmDataFactory::create_repo(root.db.clone()));
-        let cache = Arc::new(DataplaneTransferCacheForRedis::new(
-            Self::redis_connection(config).await?,
-        ));
+        let redis_conn = Self::redis_connection(config).await?;
+        let tracker = Arc::new(DeliveryTracker::with_redis(redis_conn.clone()));
+        let cache = Arc::new(DataplaneTransferCacheForRedis::new(redis_conn));
         let transfer_svc = Arc::new(DataplaneTransferService::new(repo.clone(), cache));
 
         // The lookup feeds drivers and proxy; the secret store also goes to the manager.
@@ -75,7 +79,8 @@ impl AppContext {
         .with_driver_factory(Arc::new(
             DataplaneDriverFactory::new().with_keystore(keystore_lookup.clone()),
         ))
-        .with_secret_store(secret_store);
+        .with_secret_store(secret_store)
+        .with_signals(ports.signals.clone());
 
         Ok(Self {
             logs_svc: Arc::new(DataplaneTransferLogsService::new(repo.clone())),
@@ -85,6 +90,8 @@ impl AppContext {
             keystore_lookup,
             manager: Arc::new(manager),
             oauth_validator: root.validator.clone(),
+            signals: ports.signals.clone(),
+            tracker,
         })
     }
 

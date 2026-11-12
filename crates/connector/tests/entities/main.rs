@@ -21,6 +21,7 @@ mod filters;
 mod instance_parameters_map;
 mod instance_parameters_resolver;
 mod instance_parameters_validator;
+mod interaction;
 mod runtime_parameters_resolver;
 mod template_parameters_extractor;
 mod template_parameters_validator;

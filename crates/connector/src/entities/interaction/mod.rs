@@ -32,6 +32,22 @@ pub use pull::*;
 pub use push::*;
 
 use serde::{Deserialize, Serialize};
+use ymir::errors::{Errors, Outcome};
+
+/// Maximum `maxRetries` accepted on an interaction lifecycle so misconfigurations cannot stall
+/// transfers indefinitely.
+pub const MAX_INTERACTION_RETRIES: u32 = 20;
+
+/// Whether a transfer stays open indefinitely or auto-completes once fulfilled.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum TransferLifetime {
+    /// Open-ended channel until an explicit DSP completion or termination message arrives.
+    #[default]
+    Infinite,
+    /// Single-shot / self-completing transfer: signals `Completed` once its delivery succeeds.
+    Finite,
+}
 
 /// Top-level interaction mode of a connector.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,4 +58,34 @@ pub enum InteractionConfig {
 
     #[serde(rename = "PUSH")]
     Push(PushLifecycle),
+}
+
+impl InteractionConfig {
+    pub fn lifetime(&self) -> TransferLifetime {
+        match self {
+            Self::Pull(lc) => lc.lifetime,
+            Self::Push(lc) => lc.lifetime,
+        }
+    }
+
+    pub fn max_retries(&self) -> Option<u32> {
+        match self {
+            Self::Pull(lc) => lc.max_retries,
+            Self::Push(lc) => lc.max_retries,
+        }
+    }
+
+    pub fn validate(&self) -> Outcome<()> {
+        if let Some(retries) = self.max_retries() {
+            if retries > MAX_INTERACTION_RETRIES {
+                return Err(Errors::validation(
+                    format!(
+                        "interaction maxRetries ({retries}) exceeds maximum allowed ({MAX_INTERACTION_RETRIES})"
+                    ),
+                    None,
+                ));
+            }
+        }
+        Ok(())
+    }
 }

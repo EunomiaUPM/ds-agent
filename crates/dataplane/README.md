@@ -12,7 +12,8 @@ instances from the catalog agent and credentials from the keystore.
 
 ```
 src/
-├── lib.rs           Re-exports DataplaneManager, the commands, DataplaneAddress and the migrations
+├── lib.rs           Re-exports DataplaneManager, the commands, DataplaneSignal, DataplaneAddress and the migrations
+├── signals.rs       Bounded mpsc DataplaneSignal channel (Completed / Failed) back to transfer-agent
 ├── entities/        Dataplane processes, their logs and events, list filters
 ├── services/        Processes (cached in Redis), logs and events
 ├── engine/
@@ -20,7 +21,7 @@ src/
 │   │                        runtime types, driver factory
 │   └── dataplane_drivers/   Authenticators, proxy configurators, pub/sub subscribers,
 │                            KeystoreClientImpl
-├── proxy/           HttpDataProxy: production HTTP data proxy (ingress auth, anti-SSRF, credentials)
+├── proxy/           HttpDataProxy + Redis/in-memory DeliveryTracker (ingress auth, anti-SSRF, FINITE/maxRetries)
 ├── cache/           Redis cache of dataplane processes
 ├── data/            Repository traits, SeaORM repositories and migrations
 ├── http/            Control API: processes, logs and events
@@ -98,6 +99,13 @@ static credentials are kept as resolved.
   from leaking to consumer sinks.
 - Bodies are limited to 2 MiB; the upstream connection times out after 10 s and the exchange
   after 30 s.
+- `FINITE` transfers reserve a single atomic delivery slot via `DeliveryTracker` (Redis Lua script
+  with synchronous in-memory fallback), answer `410 Gone` once consumed, and emit
+  `DataplaneSignal::Completed` after full response streaming (`Content-Length` or `EOF`) on `Pull`
+  or `2xx` sink acknowledgement on `Push`. Permanent upstream auth/sink/config errors or consecutive
+  transient `5xx`/network failures exceeding `maxRetries` emit `DataplaneSignal::Failed`, whereas
+  caller ingress errors (`400`/`401`/`403`) and functional `4xx` responses on `INFINITE` transfers
+  never emit `Failed` (anti-DoS).
 - Each request is recorded as a transfer event of the process with sensitive query parameters and
   credentials redacted.
 

@@ -22,6 +22,7 @@ use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::engine::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactoryTrait;
 use crate::entities::dataplane_transfers::TransferState;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
+use crate::signals::DataplaneSignalSender;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceFacadeTrait;
 use keystore::SecretStore;
@@ -34,6 +35,7 @@ pub struct DataplaneHandlerConsumerPull {
     config: Arc<TransferConfig>,
     secret_store: Option<Arc<dyn SecretStore>>,
     driver_factory: Arc<dyn DataplaneDriverFactoryTrait>,
+    signals: DataplaneSignalSender,
 }
 
 impl DataplaneHandlerConsumerPull {
@@ -50,7 +52,20 @@ impl DataplaneHandlerConsumerPull {
             config,
             secret_store,
             driver_factory,
+            signals: DataplaneSignalSender::noop(),
         }
+    }
+
+    pub fn with_signals(mut self, signals: DataplaneSignalSender) -> Self {
+        self.signals = signals;
+        self
+    }
+
+    async fn run_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
+        let ctx = self.configure_driver(context).await?;
+        let ctx = self.set_auth(ctx).await?;
+        let ctx = self.set_ready(ctx).await?;
+        self.set_started(ctx).await
     }
 }
 
@@ -74,6 +89,9 @@ impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPull {
     fn driver_factory(&self) -> Arc<dyn DataplaneDriverFactoryTrait> {
         self.driver_factory.clone()
     }
+    fn signal_sender(&self) -> DataplaneSignalSender {
+        self.signals.clone()
+    }
 
     fn accepts_command(&self, command: &DataplaneCommand, context: &DataplaneContext) -> bool {
         match command {
@@ -95,10 +113,13 @@ impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPull {
     }
     #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        let ctx = self.configure_driver(context).await?;
-        let ctx = self.set_auth(ctx).await?;
-        let ctx = self.set_ready(ctx).await?;
-        let ctx = self.set_started(ctx).await?;
-        Ok(ctx)
+        match self.run_configuring(context.clone()).await {
+            Ok(ctx) => Ok(ctx),
+            Err(e) => {
+                self.emit_failed(&context, "DATAPLANE_CONFIGURE_FAILED", e.to_string());
+                let _ = self.terminate_process(context).await;
+                Err(e)
+            }
+        }
     }
 }

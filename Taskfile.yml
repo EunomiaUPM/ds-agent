@@ -48,6 +48,11 @@ tasks:
     cmds:
       - ./examples/scripts/pull-demo.sh
 
+  examples:pull-finite:
+    desc: Run the reproducible single-shot FINITE HTTP PULL example (auto-completion over DSP)
+    cmds:
+      - ./examples/scripts/pull-finite-demo.sh
+
   examples:push:
     desc: Run the reproducible ECOSTARS-style HTTP PUSH example against the examples stack
     cmds:

@@ -32,6 +32,8 @@ fn pull_http_url_template_extracts_parameter() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/{{__RESOURCE_ID__}}".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -59,6 +61,8 @@ fn pull_http_url_with_multiple_parameters_extracts_all() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://{{__HOST__}}/{{__PATH__}}".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -87,6 +91,8 @@ fn pull_http_method_as_template_extracts_parameter() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Template("{{__METHOD__}}".to_string()),
@@ -114,6 +120,8 @@ fn pull_http_method_value_with_template_item_extracts_parameter() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Value(vec![
@@ -144,6 +152,8 @@ fn pull_http_headers_extra_key_extracts_parameter() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -174,6 +184,8 @@ fn pull_http_headers_without_extra_key_extracts_nothing() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -202,6 +214,8 @@ fn pull_http_headers_as_template_extracts_parameter() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -229,6 +243,8 @@ fn pull_http_body_template_extracts_parameter() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["POST".to_string()]),
@@ -256,6 +272,8 @@ fn pull_http_no_optional_fields_extracts_nothing() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -281,6 +299,8 @@ fn push_http_subscribe_only_extracts_parameters() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Push(PushLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             subscribe: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/{{__RESOURCE_ID__}}/subscribe".to_string(),
                 method: TemplateVecString::Value(vec!["POST".to_string()]),
@@ -309,6 +329,8 @@ fn push_http_with_unsubscribe_extracts_parameters_from_both() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Push(PushLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             subscribe: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/{{__SUBSCRIBE_ID__}}/subscribe".to_string(),
                 method: TemplateVecString::Value(vec!["POST".to_string()]),

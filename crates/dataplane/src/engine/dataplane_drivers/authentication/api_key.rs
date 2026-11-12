@@ -55,7 +55,7 @@ impl DriverAuthenticatorTrait for ApiKeyAuthenticator {
                 value: resolved_value,
                 location,
             },
-            ..Default::default()
+            ..context.runtime().cloned().unwrap_or_default()
         });
         Ok(ctx)
     }

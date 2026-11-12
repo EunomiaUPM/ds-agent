@@ -118,6 +118,8 @@ impl DataplaneModule {
             .with_keystore(ctx.keystore_lookup.clone())
             .with_accept_invalid_certs(self.proxy_accept_invalid_certs)
             .with_allow_private_egress(self.proxy_allow_private_egress)
+            .with_signals(ctx.signals.clone())
+            .with_tracker(ctx.tracker.clone())
             .router()
     }
 }

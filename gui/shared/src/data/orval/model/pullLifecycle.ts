@@ -14,8 +14,16 @@ are calls the GUI still makes to routes the backend no longer serves.
  */
 import type { ProtocolSpec } from './protocolSpec';
 import { PullLifecycleMode } from './pullLifecycleMode';
+import type { TransferLifetime } from './transferLifetime';
 
 export interface PullLifecycle {
   mode: PullLifecycleMode;
+  lifetime?: TransferLifetime;
+  /**
+   * Consecutive transient egress failures tolerated before terminating the transfer.
+   * @minimum 0
+   * @maximum 20
+   */
+  maxRetries?: number | null;
   dataAccess: ProtocolSpec;
 }

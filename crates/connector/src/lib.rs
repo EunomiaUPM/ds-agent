@@ -43,7 +43,9 @@ pub use data::migrations::get_connector_migrations;
 pub use data::repo_traits::connector_instance_repo::ConnectorInstanceRepoTrait;
 pub use entities::connector_instance;
 pub use entities::connector_instance::{ConnectorInstanceDto, ConnectorInstantiationDto};
-pub use entities::interaction::{InteractionConfig, PullLifecycle, PushLifecycle};
+pub use entities::interaction::{
+    InteractionConfig, PullLifecycle, PushLifecycle, TransferLifetime, MAX_INTERACTION_RETRIES,
+};
 pub use entities::parameters::TemplateVecString;
 pub use entities::resource::{HttpSpec, ProtocolSpec};
 pub use facades::connector_instance_facade::local::ConnectorInstanceLocalFacade;

@@ -38,4 +38,9 @@ pub trait TransferConfigTrait: CommonConfigTrait + ConfigLoader {
     fn proxy_allow_private_egress(&self) -> bool {
         false
     }
+    /// Default number of transient upstream/sink retries tolerated on infinite transfers before
+    /// emitting a failure signal to terminate the DSP transfer (`3` by default).
+    fn proxy_max_retries(&self) -> u32 {
+        3
+    }
 }

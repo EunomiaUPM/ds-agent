@@ -79,10 +79,24 @@ impl RequestHandler {
 
         // The provider side of the dataplane needs the stored process, so it runs after the write.
         domain.process = TransferContextProcessSlot::Existing(Box::new(process.clone()));
-        ctx.ports
-            .dataplane
-            .on_transfer_request_post(&domain.dataplane_hooks()?)
-            .await?;
+        let init_result = match domain.dataplane_hooks() {
+            Ok(hooks) => ctx.ports.dataplane.on_transfer_request_post(&hooks).await,
+            Err(err) => Err(err),
+        };
+        if let Err(err) = init_result {
+            if let Err(cleanup_err) = ctx
+                .processes()
+                .delete(&TransferDspPersistence::actor(), process.id().as_urn())
+                .await
+            {
+                tracing::warn!(
+                    process_id = %process.id(),
+                    error = %cleanup_err,
+                    "failed to delete orphan REQUESTED transfer process after dataplane init failure"
+                );
+            }
+            return Err(err);
+        }
         Ok(TransferDspOutcome::applied(
             &domain,
             &process,

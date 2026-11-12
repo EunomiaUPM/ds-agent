@@ -14,9 +14,17 @@ are calls the GUI still makes to routes the backend no longer serves.
  */
 import type { ProtocolSpec } from './protocolSpec';
 import { PushLifecycleMode } from './pushLifecycleMode';
+import type { TransferLifetime } from './transferLifetime';
 
 export interface PushLifecycle {
   mode: PushLifecycleMode;
+  lifetime?: TransferLifetime;
+  /**
+   * Consecutive transient egress failures tolerated before terminating the transfer.
+   * @minimum 0
+   * @maximum 20
+   */
+  maxRetries?: number | null;
   subscribe: ProtocolSpec;
   unsubscribe?: ProtocolSpec | null;
 }

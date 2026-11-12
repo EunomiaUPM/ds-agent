@@ -44,6 +44,8 @@ fn push_instance(subscribe_url: &str, unsubscribe_url: Option<&str>) -> Connecto
         },
         authentication_config: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Push(PushLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             subscribe: ProtocolSpec::Http(HttpSpec {
                 url_template: subscribe_url.to_string(),
                 method: TemplateVecString::Value(vec!["POST".to_string()]),

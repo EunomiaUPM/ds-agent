@@ -198,6 +198,8 @@ fn connector() -> ConnectorInstanceDto {
         },
         authentication_config: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "http://backend/data".into(),
                 method: TemplateVecString::Value(vec!["GET".into()]),

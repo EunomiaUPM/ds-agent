@@ -14929,6 +14929,16 @@ components:
         mode:
           type: string
           const: PULL
+        lifetime:
+          $ref: '#/components/schemas/TransferLifetime'
+          default: INFINITE
+        maxRetries:
+          type:
+          - integer
+          - 'null'
+          minimum: 0
+          maximum: 20
+          description: Consecutive transient egress failures tolerated before terminating the transfer.
         dataAccess:
           $ref: '#/components/schemas/ProtocolSpec'
     PushLifecycle:
@@ -14940,6 +14950,16 @@ components:
         mode:
           type: string
           const: PUSH
+        lifetime:
+          $ref: '#/components/schemas/TransferLifetime'
+          default: INFINITE
+        maxRetries:
+          type:
+          - integer
+          - 'null'
+          minimum: 0
+          maximum: 20
+          description: Consecutive transient egress failures tolerated before terminating the transfer.
         subscribe:
           $ref: '#/components/schemas/ProtocolSpec'
         unsubscribe:
@@ -15916,6 +15936,14 @@ components:
         created_at:
           type: string
           format: date-time
+    TransferLifetime:
+      type: string
+      description: Whether a transfer stays open indefinitely (`INFINITE`) or auto-completes once fulfilled
+        (`FINITE`).
+      enum:
+      - INFINITE
+      - FINITE
+      default: INFINITE
     TransferMessageDirection:
       type: string
       enum:

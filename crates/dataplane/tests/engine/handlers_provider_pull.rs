@@ -60,6 +60,8 @@ fn connector_fixture() -> ConnectorInstanceDto {
         },
         authentication_config: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "http://data-source.internal/api".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),

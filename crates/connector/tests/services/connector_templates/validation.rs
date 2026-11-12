@@ -337,3 +337,34 @@ async fn undeclared_unused_and_mistyped_parameters_are_reported_together() {
         "ACCESS_METHODS should not be in error: {full}"
     );
 }
+
+/// Creating a template whose `maxRetries` exceeds `MAX_INTERACTION_RETRIES` fails before persistence.
+#[tokio::test]
+async fn template_exceeding_max_retries_is_rejected() {
+    let json_dto = json!({
+        "authentication": { "type": "NO_AUTH" },
+        "interaction": {
+            "mode": "PULL",
+            "lifetime": "FINITE",
+            "maxRetries": 25,
+            "dataAccess": {
+                "protocol": "HTTP",
+                "urlTemplate": "https://api.example.com/data",
+                "method": ["GET"]
+            }
+        },
+        "parameters": []
+    });
+    let mut dto: ConnectorTemplateDto = serde_json::from_value(json_dto).unwrap();
+
+    let err = ConnectorTemplateService::new(Arc::new(MockConnectorRepoTrait::new()))
+        .create_template(&TestUsers::user("tenant-1", "/admin/tenant-1"), &mut dto)
+        .await
+        .unwrap_err();
+
+    assert!(
+        format!("{err:#}").contains("maxRetries"),
+        "expected maxRetries error, got: {err:#}"
+    );
+}
+

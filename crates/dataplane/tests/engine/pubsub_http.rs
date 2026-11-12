@@ -148,6 +148,8 @@ async fn set_subscribing_persists_subscription_and_unsubscribe_resolves_runtime_
             location: ApiKeyLocation::Query,
         },
         interaction: InteractionConfig::Push(PushLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             subscribe: ProtocolSpec::Http(HttpSpec {
                 url_template: format!("{base_url}/hooks"),
                 method: TemplateVecString::Value(vec!["POST".to_string()]),
@@ -309,6 +311,7 @@ async fn set_subscribing_persists_subscription_and_unsubscribe_resolves_runtime_
             },
             subscription: json!({ "id": "sub-99" }),
             unsubscription: Value::Null,
+            delivery_policy: Default::default(),
         };
         guard.inner.flow_control = Some(serde_json::to_value(rt).unwrap());
     }

@@ -43,6 +43,8 @@ fn pull_http(url: &str) -> ConnectorTemplateDto {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: url.to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -90,6 +92,8 @@ fn resolves_url_template() {
 fn resolves_method_template_variant() {
     let template = ConnectorTemplateDto {
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Template("{{__METHOD__}}".to_string()),
@@ -111,6 +115,8 @@ fn resolves_method_template_variant() {
 fn resolves_body_template() {
     let template = ConnectorTemplateDto {
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["POST".to_string()]),
@@ -133,6 +139,8 @@ fn resolves_body_template() {
 fn resolves_headers_map_value_variant() {
     let template = ConnectorTemplateDto {
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -158,6 +166,8 @@ fn resolves_headers_map_value_variant() {
 fn resolves_kafka_topic() {
     let template = ConnectorTemplateDto {
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Kafka(KafkaSpec {
                 brokers: TemplateVecString::Value(vec!["localhost:9092".to_string()]),
                 topic: "{{__TOPIC__}}".to_string(),
@@ -280,6 +290,8 @@ fn leaves_unresolved_placeholder_unchanged_when_param_missing() {
 fn resolves_push_subscribe_and_unsubscribe() {
     let template = ConnectorTemplateDto {
         interaction: InteractionConfig::Push(PushLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             subscribe: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/{{__ID__}}/subscribe".to_string(),
                 method: TemplateVecString::Value(vec!["POST".to_string()]),

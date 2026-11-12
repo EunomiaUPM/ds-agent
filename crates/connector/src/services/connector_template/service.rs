@@ -180,6 +180,7 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
         new_template: &mut ConnectorTemplateDto,
     ) -> Outcome<ConnectorTemplateDto> {
         // extract parameters and validate
+        new_template.interaction.validate()?;
         let mut extractor = TemplateParametersExtractor::new();
         extractor.walk(new_template)?;
         let parameters_found = extractor.found_parameters();

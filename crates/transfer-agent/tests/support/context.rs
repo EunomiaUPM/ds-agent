@@ -79,6 +79,7 @@ pub struct TestContext {
     catalog: Arc<dyn CatalogFacadeTrait>,
     connectors: Arc<dyn ConnectorInstanceFacadeTrait>,
     dataplane: Arc<dyn DataPlaneFacadeTrait>,
+    dataplane_signals: Option<dataplane::DataplaneSignalReceiver>,
     processes: Option<Arc<dyn TransferProcessServiceTrait>>,
     messages: Option<Arc<dyn TransferMessageServiceTrait>>,
 }
@@ -97,6 +98,7 @@ impl TestContext {
             catalog: Arc::new(MockCatalogFacadeTrait::new()),
             connectors: Arc::new(MockConnectorInstanceFacadeTrait::new()),
             dataplane: Arc::new(MockDataPlaneFacadeTrait::new()),
+            dataplane_signals: None,
             processes: None,
             messages: None,
         }
@@ -147,6 +149,11 @@ impl TestContext {
         self
     }
 
+    pub fn dataplane_signals(mut self, rx: dataplane::DataplaneSignalReceiver) -> Self {
+        self.dataplane_signals = Some(rx);
+        self
+    }
+
     pub fn processes(mut self, service: impl TransferProcessServiceTrait + 'static) -> Self {
         self.processes = Some(Arc::new(service));
         self
@@ -158,7 +165,7 @@ impl TestContext {
     }
 
     pub fn build(self) -> Arc<AppContext> {
-        let ports = TransferPorts::stubbed(
+        let mut ports = TransferPorts::stubbed(
             AuthPorts {
                 mates: self.mates,
                 grants: self.grants,
@@ -169,6 +176,9 @@ impl TestContext {
             self.connectors,
             self.dataplane,
         );
+        if let Some(rx) = self.dataplane_signals {
+            ports = ports.with_dataplane_signals(rx);
+        }
         let ctx = AppContext::bare(
             transfer_config_fixture(),
             Arc::new(self.repos),

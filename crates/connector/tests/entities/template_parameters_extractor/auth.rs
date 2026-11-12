@@ -32,6 +32,8 @@ fn no_auth_extracts_no_parameters() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -62,6 +64,8 @@ fn basic_auth_username_template_extracts_parameter() {
             },
         }),
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -94,6 +98,8 @@ fn basic_auth_literal_username_extracts_no_parameters() {
             },
         }),
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -123,6 +129,8 @@ fn bearer_token_plain_template_extracts_parameter() {
             },
         },
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -156,6 +164,8 @@ fn api_key_with_literal_key_extracts_no_parameters() {
             location: ApiKeyLocation::Header,
         },
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -187,6 +197,8 @@ fn api_key_with_template_key_extracts_parameter() {
             location: ApiKeyLocation::Header,
         },
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -223,6 +235,8 @@ fn oauth2_with_literal_fields_extracts_no_parameters() {
             on_token_expire: Default::default(),
         },
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -257,6 +271,8 @@ fn oauth2_with_template_fields_extracts_parameters() {
             on_token_expire: Default::default(),
         },
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -291,6 +307,8 @@ fn basic_auth_and_http_url_extracts_all_parameters() {
             },
         }),
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/{{__RESOURCE_ID__}}".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),

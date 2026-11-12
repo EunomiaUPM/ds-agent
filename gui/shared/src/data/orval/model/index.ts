@@ -453,6 +453,7 @@ export * from './transferCorrelation';
 export * from './transferCorrelationIdentifiers';
 export * from './transferEventDto';
 export * from './transferEventDtoLevel';
+export * from './transferLifetime';
 export * from './transferMessageDto';
 export * from './transferMessageDtoDirection';
 export * from './transferMessageDtoProtocol';

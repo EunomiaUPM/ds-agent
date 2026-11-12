@@ -24,6 +24,7 @@ use crate::engine::dataplane_manager::dataplane_handlers_provider_pull::Dataplan
 use crate::engine::dataplane_manager::dataplane_handlers_provider_push::DataplaneHandlerProviderPush;
 use crate::entities::dataplane_transfers::{InteractionMode, TransferRole};
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
+use crate::signals::DataplaneSignalSender;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceFacadeTrait;
 use keystore::SecretStore;
@@ -35,6 +36,7 @@ pub struct DataplaneStrategyFactory {
     config: Arc<TransferConfig>,
     secret_store: Option<Arc<dyn SecretStore>>,
     driver_factory: Arc<dyn DataplaneDriverFactoryTrait>,
+    signals: DataplaneSignalSender,
 }
 impl DataplaneStrategyFactory {
     pub fn new(
@@ -50,8 +52,15 @@ impl DataplaneStrategyFactory {
             config,
             secret_store,
             driver_factory,
+            signals: DataplaneSignalSender::noop(),
         }
     }
+
+    pub fn with_signals(mut self, signals: DataplaneSignalSender) -> Self {
+        self.signals = signals;
+        self
+    }
+
     pub fn get_strategy(
         &self,
         context: &DataplaneContext,
@@ -59,42 +68,46 @@ impl DataplaneStrategyFactory {
         let role = context.dataplane_process_role();
         let interaction_mode = context.dataplane_process_interaction_mode();
         match (role, interaction_mode) {
-            (TransferRole::Provider, InteractionMode::Pull) => {
-                Box::new(DataplaneHandlerProviderPull::new(
+            (TransferRole::Provider, InteractionMode::Pull) => Box::new(
+                DataplaneHandlerProviderPull::new(
                     self.dataplane_service.clone(),
                     self.connector_service.clone(),
                     self.config.clone(),
                     self.secret_store.clone(),
                     self.driver_factory.clone(),
-                ))
-            }
-            (TransferRole::Provider, InteractionMode::Push) => {
-                Box::new(DataplaneHandlerProviderPush::new(
+                )
+                .with_signals(self.signals.clone()),
+            ),
+            (TransferRole::Provider, InteractionMode::Push) => Box::new(
+                DataplaneHandlerProviderPush::new(
                     self.dataplane_service.clone(),
                     self.connector_service.clone(),
                     self.config.clone(),
                     self.secret_store.clone(),
                     self.driver_factory.clone(),
-                ))
-            }
-            (TransferRole::Consumer, InteractionMode::Pull) => {
-                Box::new(DataplaneHandlerConsumerPull::new(
+                )
+                .with_signals(self.signals.clone()),
+            ),
+            (TransferRole::Consumer, InteractionMode::Pull) => Box::new(
+                DataplaneHandlerConsumerPull::new(
                     self.dataplane_service.clone(),
                     self.connector_service.clone(),
                     self.config.clone(),
                     self.secret_store.clone(),
                     self.driver_factory.clone(),
-                ))
-            }
-            (TransferRole::Consumer, InteractionMode::Push) => {
-                Box::new(DataplaneHandlerConsumerPush::new(
+                )
+                .with_signals(self.signals.clone()),
+            ),
+            (TransferRole::Consumer, InteractionMode::Push) => Box::new(
+                DataplaneHandlerConsumerPush::new(
                     self.dataplane_service.clone(),
                     self.connector_service.clone(),
                     self.config.clone(),
                     self.secret_store.clone(),
                     self.driver_factory.clone(),
-                ))
-            }
+                )
+                .with_signals(self.signals.clone()),
+            ),
         }
     }
 }

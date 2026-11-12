@@ -38,8 +38,9 @@ docker compose -f examples/docker-compose.yaml up -d --build --wait
 # 2. Link wallets, self-issue Gaia-X LegalPerson VCs, and onboard Consumer <-> Provider
 ./examples/scripts/onboard.sh
 
-# 3. Run the EDACCIT-inspired HTTP PULL scenario
+# 3. Run the EDACCIT-inspired HTTP PULL scenario (INFINITE stream + single-shot FINITE snapshot)
 ./examples/scripts/pull-demo.sh
+./examples/scripts/pull-finite-demo.sh
 
 # 4. Run the ECOSTARS-inspired HTTP PUSH scenario
 ./examples/scripts/push-demo.sh
@@ -50,6 +51,7 @@ Or via `Taskfile.yml`:
 ```bash
 task examples:up
 task examples:pull
+task examples:pull-finite
 task examples:push
 task examples:down
 ```
@@ -79,6 +81,12 @@ task examples:down
    - Spoofed webhook calls to `/dataplane/proxy/{id}` without `?ingress_token=` are rejected with **`401 Unauthorized`**.
    - Triggering `POST /esg/emit` delivers the ESG payload through Provider `HttpDataProxy` → Consumer `HttpDataProxy` → `/consumer-sink/events` with `?ingress_token` stripped and zero provider credential leakage.
    - Terminating the transfer automatically invokes `DELETE /esg/webhooks/sub-1` (leaving `0` active subscriptions) and transitions the dataplane to `Terminated`.
+
+### 3. `./examples/scripts/pull-finite-demo.sh` (`FINITE` Single-Shot `HTTP PULL`)
+
+1. Registers `edaccit-arcgis-pull-finite` with `"lifetime": "FINITE"` and `"maxRetries": 1`.
+2. Negotiates an agreement and starts the `http+pull` transfer (`STARTED`).
+3. Pulls the GeoJSON snapshot once via the Consumer's local `HttpDataProxy` (`200 OK`, 3 features) and verifies that `DataplaneSignal::Completed` emitted at stream EOF automatically sends `TransferCompletionMessage` over DSP 2025-1, transitioning **both** Provider and Consumer to `COMPLETED` and rejecting any second pull (`403` / `410`).
 
 ## Tear Down
 

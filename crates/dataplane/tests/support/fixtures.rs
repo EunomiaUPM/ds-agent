@@ -52,6 +52,8 @@ pub fn plain_secret(value: &str) -> SecretString {
 
 fn dummy_interaction() -> InteractionConfig {
     InteractionConfig::Pull(PullLifecycle {
+        lifetime: Default::default(),
+        max_retries: None,
         data_access: ProtocolSpec::Http(HttpSpec {
             url_template: "https://example.com/data".to_string(),
             method: TemplateVecString::Value(vec!["GET".to_string()]),

@@ -22,7 +22,8 @@ src/
 │   ├── connector_template/  ConnectorTemplateDto and ConnectorMetadata
 │   ├── connector_instance/  ConnectorInstantiationDto (request) and ConnectorInstanceDto (resolved)
 │   ├── auth_config/         AuthenticationConfig: none, basic, bearer, API key, OAuth 2.0
-│   ├── interaction/         InteractionConfig: PULL (dataAccess) or PUSH (subscribe/unsubscribe)
+│   ├── interaction/         InteractionConfig: PULL (dataAccess) or PUSH (subscribe/unsubscribe),
+│   │                        with lifetime (INFINITE | FINITE) and optional maxRetries
 │   ├── resource/            ProtocolSpec: HTTP or Kafka
 │   ├── common/              SecretString and SecretSource
 │   ├── parameters/          Placeholder extraction, validation and resolution
@@ -81,7 +82,10 @@ Placeholders, by when they are resolved:
 
 When a template is created, every `{{__NAME__}}` it uses must be declared in `parameters` and
 every declaration must be used, with a type that fits where it appears (`STRING`, `INT`,
-`BOOLEAN`, `VEC<STRING>`, `MAP<STRING,STRING>`). Secret fields (`SecretString`) can come as
+`BOOLEAN`, `VEC<STRING>`, `MAP<STRING,STRING>`). Both `PULL` and `PUSH` interactions optionally
+declare `"lifetime": "INFINITE"` (default) or `"FINITE"` (single-shot transfer that completes
+after one `2xx` delivery) and `"maxRetries"` (`0..=20` consecutive transient failures before
+signalling termination). Secret fields (`SecretString`) can come as
 `PLAIN`, `BASE64`, or from `ENV_VAR`, and their content can hold placeholders (including
 `{{__RUNTIME_SECRET_{/key}__}}` backed by the keystore/Vault) too.
 

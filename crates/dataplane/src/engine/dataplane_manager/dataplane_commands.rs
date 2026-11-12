@@ -17,14 +17,18 @@
 
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::engine::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactoryTrait;
-use crate::engine::dataplane_manager::dataplane_runtime::{DataplaneRuntime, RuntimeSecretVault};
+use crate::engine::dataplane_manager::dataplane_runtime::{
+    DataplaneRuntime, DeliveryPolicy, RuntimeSecretVault,
+};
 use crate::entities::dataplane_transfers::{EditDataplaneTransferDto, TransferState};
 use crate::errors::DataplaneError;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
+use crate::signals::{DataplaneSignal, DataplaneSignalSender};
 use crate::DataplaneAddress;
+use common::config::services::traits::TransferConfigTrait;
 use common::config::services::TransferConfig;
 use ymir::oauth::Owner;
-use connector::{ConnectorInstanceDto, ConnectorInstanceFacadeTrait};
+use connector::{ConnectorInstanceDto, ConnectorInstanceFacadeTrait, TransferLifetime};
 use keystore::SecretStore;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -125,6 +129,24 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     /// The manager's factory, shared so every driver sees the same keystore.
     fn driver_factory(&self) -> Arc<dyn DataplaneDriverFactoryTrait>;
 
+    /// Channel to notify the control plane when an asynchronous hook fails irreversibly.
+    fn signal_sender(&self) -> DataplaneSignalSender {
+        DataplaneSignalSender::noop()
+    }
+
+    /// Emits a `DataplaneSignal::Failed` for the transfer process backing `context`.
+    fn emit_failed(&self, context: &DataplaneContext, code: &str, reason: String) {
+        if let Ok(transfer_process_id) =
+            Urn::from_str(&context.dataplane_process().inner.transfer_process_id)
+        {
+            self.signal_sender().emit(DataplaneSignal::Failed {
+                transfer_process_id,
+                code: code.to_string(),
+                reason,
+            });
+        }
+    }
+
     /// Whether this `(Role, InteractionMode)` handler accepts an external command from the
     /// control plane in the process's current state. Internal steps (`SetAuth`, `SetReady`)
     /// are never valid external commands.
@@ -134,7 +156,28 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     async fn configure_driver(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
         let driver = self.driver_factory().get_or_create_driver(&context)?;
         let mut context = driver.proxy_configurator.configure_proxy(&context).await?;
-        let runtime = DataplaneRuntime::default();
+        let default_retries = self.transfer_config().proxy_max_retries();
+        let delivery_policy = match context.connector_instance() {
+            Some(connector) => {
+                let lifetime = connector.interaction.lifetime();
+                let max_retries = connector.interaction.max_retries().unwrap_or(match lifetime {
+                    TransferLifetime::Finite => 0,
+                    TransferLifetime::Infinite => default_retries,
+                });
+                DeliveryPolicy {
+                    lifetime,
+                    max_retries,
+                }
+            }
+            None => DeliveryPolicy {
+                lifetime: TransferLifetime::Infinite,
+                max_retries: default_retries,
+            },
+        };
+        let runtime = DataplaneRuntime {
+            delivery_policy,
+            ..DataplaneRuntime::default()
+        };
         context.set_driver(driver);
         context.set_runtime(runtime);
         let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
@@ -313,6 +356,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 Ok(new_context)
             }
             Err(e) => {
+                self.emit_failed(&context, "DATAPLANE_SUBSCRIBE_FAILED", e.to_string());
                 let _ = self.terminate_process(context).await;
                 Err(e)
             }
@@ -350,6 +394,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         match self.try_unsubscribe(context.clone()).await {
             Ok(new_context) => Ok(new_context),
             Err(e) => {
+                self.emit_failed(&context, "DATAPLANE_UNSUBSCRIBE_FAILED", e.to_string());
                 let _ = self.terminate_process(context).await;
                 Err(e)
             }
@@ -357,6 +402,12 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     }
     #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_stopped(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+        if matches!(
+            context.dataplane_process().inner.state,
+            TransferState::Stopped | TransferState::Terminated
+        ) {
+            return Ok(context);
+        }
         let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         let new_state = TransferState::Stopped;
         let flow_control = self.export_runtime_flow_control(&context).await?;
@@ -377,6 +428,9 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     }
 
     async fn terminate_process(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+        if context.dataplane_process().inner.state == TransferState::Terminated {
+            return Ok(context);
+        }
         let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         let new_state = TransferState::Terminated;
         let dataplane_process = self

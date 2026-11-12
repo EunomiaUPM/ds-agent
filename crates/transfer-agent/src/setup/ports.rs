@@ -18,7 +18,7 @@
 //! Ports transfer consumes from other agents: in-process in the monolith, over HTTP standalone.
 
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use common::config::services::TransferConfig;
 use common::config::services::traits::TransferConfigTrait;
@@ -30,6 +30,9 @@ use common::facades::negotiation::remote::NegotiationRemoteFacade;
 use ymir::module_loader::root_context::RootContext;
 use connector::{ConnectorInstanceDto, ConnectorInstanceFacadeTrait, ConnectorInstanceRemoteFacade};
 use dataplane::setup::{DataplaneModule, DataplanePorts};
+use dataplane::{
+    DataplaneSignalReceiver, DataplaneSignalSender, DEFAULT_SIGNAL_CHANNEL_CAPACITY,
+};
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
@@ -48,13 +51,16 @@ pub struct TransferPorts {
     pub dataplane: Arc<dyn DataPlaneFacadeTrait>,
     /// The dataplane module transfer registers; none when the dataplane is stubbed.
     dataplane_module: Option<DataplaneModule>,
+    /// Receiver end of the dataplane-to-control-plane signal channel, claimed once by `DspContext`.
+    dataplane_signals: Arc<Mutex<Option<DataplaneSignalReceiver>>>,
 }
 
 impl TransferPorts {
     /// Microservices: every agent is reached through its API.
     pub async fn remote(config: &TransferConfig, root: &RootContext) -> Outcome<Self> {
-        let module =
-            DataplaneModule::compose(config, root, &DataplanePorts::remote(config, root)).await?;
+        let (signal_tx, signal_rx) = DataplaneSignalSender::open(DEFAULT_SIGNAL_CHANNEL_CAPACITY);
+        let ports = DataplanePorts::remote(config, root).with_signals(signal_tx);
+        let module = DataplaneModule::compose(config, root, &ports).await?;
         Ok(Self {
             auth: AuthPorts::remote(config.ssi_auth()),
             negotiation: Arc::new(NegotiationRemoteFacade::new(config.contracts())),
@@ -62,6 +68,7 @@ impl TransferPorts {
             connectors: Arc::new(ConnectorInstanceRemoteFacade::new(config.catalog())),
             dataplane: Arc::new(DataPlaneLocalFacade::new(module.local_manager())),
             dataplane_module: Some(module),
+            dataplane_signals: Arc::new(Mutex::new(Some(signal_rx))),
         })
     }
 
@@ -75,9 +82,9 @@ impl TransferPorts {
         connectors: Arc<dyn ConnectorInstanceFacadeTrait>,
     ) -> Outcome<Self> {
         // The dataplane always runs inside transfer; only its connector lookups follow the mode.
-        let module =
-            DataplaneModule::compose(config, root, &DataplanePorts::local(connectors.clone()))
-                .await?;
+        let (signal_tx, signal_rx) = DataplaneSignalSender::open(DEFAULT_SIGNAL_CHANNEL_CAPACITY);
+        let ports = DataplanePorts::local(connectors.clone()).with_signals(signal_tx);
+        let module = DataplaneModule::compose(config, root, &ports).await?;
         Ok(Self {
             auth,
             negotiation,
@@ -85,6 +92,7 @@ impl TransferPorts {
             connectors,
             dataplane: Arc::new(DataPlaneLocalFacade::new(module.local_manager())),
             dataplane_module: Some(module),
+            dataplane_signals: Arc::new(Mutex::new(Some(signal_rx))),
         })
     }
 
@@ -103,7 +111,24 @@ impl TransferPorts {
             connectors,
             dataplane,
             dataplane_module: None,
+            dataplane_signals: Arc::new(Mutex::new(None)),
         }
+    }
+
+    /// Injects a dataplane signal receiver (useful in tests with stubbed ports).
+    pub fn with_dataplane_signals(self, rx: DataplaneSignalReceiver) -> Self {
+        if let Ok(mut guard) = self.dataplane_signals.lock() {
+            *guard = Some(rx);
+        }
+        self
+    }
+
+    /// Claims the dataplane signal receiver once when composing the DSP background workers.
+    pub fn take_dataplane_signals(&self) -> Option<DataplaneSignalReceiver> {
+        self.dataplane_signals
+            .lock()
+            .ok()
+            .and_then(|mut guard| guard.take())
     }
 
     pub fn dataplane_module(&self) -> Option<DataplaneModule> {

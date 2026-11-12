@@ -19,6 +19,7 @@
 //! share, the validators, auto-start and the TCK scenarios.
 
 pub mod auto_start;
+pub mod dataplane_signals;
 pub mod dsp_flow;
 pub mod dsp_persistence;
 pub mod rpc_flow;

@@ -49,7 +49,7 @@ impl DriverAuthenticatorTrait for BasicConfigAuthenticator {
                 username: basic.username,
                 password,
             },
-            ..Default::default()
+            ..context.runtime().cloned().unwrap_or_default()
         });
         Ok(ctx)
     }

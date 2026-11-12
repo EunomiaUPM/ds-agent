@@ -18,17 +18,42 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use connector::{template_runtime_secret_regex, ApiKeyLocation, KeystoreLookup};
+use connector::{template_runtime_secret_regex, ApiKeyLocation, KeystoreLookup, TransferLifetime};
 use keystore::{Key, KeyPrefix, SecretStore, SecretValue};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use ymir::errors::Outcome;
+
+/// Runtime delivery and retry policy persisted inside `dataplane_transfers.flow_control`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeliveryPolicy {
+    #[serde(default)]
+    pub lifetime: TransferLifetime,
+    #[serde(default = "default_max_retries")]
+    pub max_retries: u32,
+}
+
+const fn default_max_retries() -> u32 {
+    3
+}
+
+impl Default for DeliveryPolicy {
+    fn default() -> Self {
+        Self {
+            lifetime: TransferLifetime::Infinite,
+            max_retries: default_max_retries(),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct DataplaneRuntime {
     pub auth: ResolvedAuthCredentials,
     pub subscription: serde_json::Value,
     pub unsubscription: serde_json::Value,
+    #[serde(default)]
+    pub delivery_policy: DeliveryPolicy,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
@@ -168,6 +193,7 @@ impl<'a> RuntimeSecretVault<'a> {
             auth,
             subscription: runtime.subscription.clone(),
             unsubscription: runtime.unsubscription.clone(),
+            delivery_policy: runtime.delivery_policy,
         })
     }
 

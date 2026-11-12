@@ -25,6 +25,7 @@ use crate::engine::dataplane_manager::dataplane_driver_factory::{
 use crate::engine::dataplane_manager::dataplane_handlers_strategy::DataplaneStrategyFactory;
 use crate::errors::DataplaneError;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
+use crate::signals::DataplaneSignalSender;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceFacadeTrait;
 use keystore::SecretStore;
@@ -38,6 +39,7 @@ pub struct DataplaneManager {
     config: Arc<TransferConfig>,
     driver_factory: Arc<dyn DataplaneDriverFactoryTrait>,
     secret_store: Option<Arc<dyn SecretStore>>,
+    signals: DataplaneSignalSender,
 }
 
 impl DataplaneManager {
@@ -55,6 +57,7 @@ impl DataplaneManager {
             config,
             driver_factory: Arc::new(DataplaneDriverFactory::new()),
             secret_store: None,
+            signals: DataplaneSignalSender::noop(),
         }
     }
 
@@ -70,6 +73,12 @@ impl DataplaneManager {
     /// Enables runtime-secret resolution via the given secret store.
     pub fn with_secret_store(mut self, store: Arc<dyn SecretStore>) -> Self {
         self.secret_store = Some(store);
+        self
+    }
+
+    /// Attaches the control-plane signal channel for asynchronous hook failures.
+    pub fn with_signals(mut self, signals: DataplaneSignalSender) -> Self {
+        self.signals = signals;
         self
     }
 
@@ -142,6 +151,7 @@ impl DataplaneManager {
             self.secret_store.clone(),
             self.driver_factory.clone(),
         )
+        .with_signals(self.signals.clone())
         .get_strategy(&context);
 
         if !handler_strategy.accepts_command(&command, &context) {

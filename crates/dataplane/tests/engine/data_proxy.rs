@@ -226,6 +226,7 @@ async fn accepts_bearer_and_query_ingress_token_and_strips_query_token_upstream(
             },
             subscription: Value::Null,
             unsubscription: Value::Null,
+            delivery_policy: Default::default(),
         }),
     );
 
@@ -320,6 +321,7 @@ async fn provider_push_uses_consumer_egress_token_and_never_leaks_provider_backe
             },
             subscription: json!({"id": "sub-1"}),
             unsubscription: Value::Null,
+            delivery_policy: Default::default(),
         }),
     );
 
@@ -373,6 +375,7 @@ async fn redacts_sensitive_query_params_in_transfer_events() {
             },
             subscription: Value::Null,
             unsubscription: Value::Null,
+            delivery_policy: Default::default(),
         }),
     );
 

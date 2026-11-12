@@ -34,3 +34,4 @@ mod handlers_strategy;
 mod manager;
 mod proxy_http;
 mod pubsub_http;
+mod signals;

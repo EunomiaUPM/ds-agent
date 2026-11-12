@@ -27,6 +27,7 @@ use common::tck::{TckMapping, TckQueue, TckWorker};
 
 use crate::protocols::dsp::services::auto_start::guard::AutoStartGuard;
 use crate::protocols::dsp::services::auto_start::worker::AutoStartWorker;
+use crate::protocols::dsp::services::dataplane_signals::DataplaneSignalWorker;
 use crate::protocols::dsp::services::dsp_flow::service::TransferDspFlow;
 use crate::protocols::dsp::services::dsp_persistence::service::TransferDspPersistence;
 use crate::protocols::dsp::services::rpc_flow::service::TransferRpcFlow;
@@ -58,6 +59,13 @@ impl DspContext {
         let inbound = Self::inbound(&app, auto_start, guard.as_ref());
         let mut workers: Vec<Box<dyn BackgroundWorker>> =
             vec![Box::new(AutoStartWorker::new(auto_start_jobs, outbound.clone()))];
+        if let Some(signal_rx) = app.ports.take_dataplane_signals() {
+            workers.push(Box::new(DataplaneSignalWorker::new(
+                signal_rx,
+                app.clone(),
+                outbound.clone(),
+            )));
+        }
         if let Some(jobs) = jobs {
             let player = Arc::new(TransferTckPlayer::new(
                 outbound.clone(),

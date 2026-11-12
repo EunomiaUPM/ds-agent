@@ -17,6 +17,7 @@
 
 //! Push lifecycle: the provider sends the data.
 
+use crate::entities::interaction::TransferLifetime;
 use crate::entities::resource::ProtocolSpec;
 use serde::{Deserialize, Serialize};
 
@@ -28,6 +29,21 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PushLifecycle {
+    #[serde(default)]
+    pub lifetime: TransferLifetime,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_retries: Option<u32>,
     pub subscribe: ProtocolSpec,
     pub unsubscribe: Option<ProtocolSpec>,
+}
+
+impl PushLifecycle {
+    pub fn new(subscribe: ProtocolSpec, unsubscribe: Option<ProtocolSpec>) -> Self {
+        Self {
+            lifetime: TransferLifetime::Infinite,
+            max_retries: None,
+            subscribe,
+            unsubscribe,
+        }
+    }
 }

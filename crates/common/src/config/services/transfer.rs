@@ -40,6 +40,12 @@ pub struct TransferConfig {
     proxy_accept_invalid_certs: bool,
     #[serde(default)]
     proxy_allow_private_egress: bool,
+    #[serde(default = "default_proxy_max_retries")]
+    proxy_max_retries: u32,
+}
+
+const fn default_proxy_max_retries() -> u32 {
+    3
 }
 
 impl TransferConfigTrait for TransferConfig {
@@ -63,6 +69,9 @@ impl TransferConfigTrait for TransferConfig {
     }
     fn proxy_allow_private_egress(&self) -> bool {
         self.proxy_allow_private_egress
+    }
+    fn proxy_max_retries(&self) -> u32 {
+        self.proxy_max_retries
     }
 }
 impl ConfigLoader for TransferConfig {

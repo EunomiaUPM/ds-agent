@@ -54,6 +54,8 @@ fn template_with_url(url: &str) -> ConnectorTemplateDto {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: url.to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -68,6 +70,8 @@ fn template_with_url(url: &str) -> ConnectorTemplateDto {
 fn template_with_body(body: &str) -> ConnectorTemplateDto {
     ConnectorTemplateDto {
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://api.example.com/resource".to_string(),
                 method: TemplateVecString::Value(vec!["POST".to_string()]),

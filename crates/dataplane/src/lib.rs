@@ -34,6 +34,7 @@ pub mod http;
 pub mod proxy;
 pub mod services;
 pub mod setup;
+pub mod signals;
 
 pub use data::migrations::get_dataplane_migrations;
 pub use engine::dataplane_manager::dataplane_commands::{
@@ -43,4 +44,8 @@ pub use engine::dataplane_manager::dataplane_commands::{
 pub use engine::dataplane_manager::dataplane_manager::DataplaneManager;
 pub use engine::dataplane_manager::DataplaneAddress;
 pub use services::dataplane_transfers::DataplaneTransferServiceTrait;
+pub use signals::{
+    DataplaneSignal, DataplaneSignalReceiver, DataplaneSignalSender,
+    DEFAULT_SIGNAL_CHANNEL_CAPACITY,
+};
 

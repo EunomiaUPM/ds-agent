@@ -112,6 +112,8 @@ fn dummy_pull_connector(urn: &Urn) -> ConnectorInstanceDto {
         },
         authentication_config: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "http://example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),
@@ -136,6 +138,8 @@ fn dummy_push_connector(urn: &Urn) -> ConnectorInstanceDto {
         },
         authentication_config: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Push(PushLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             subscribe: ProtocolSpec::Http(HttpSpec {
                 url_template: "http://example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),

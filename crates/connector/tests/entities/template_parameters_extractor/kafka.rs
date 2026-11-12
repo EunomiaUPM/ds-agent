@@ -32,6 +32,8 @@ fn pull_kafka_topic_template_extracts_parameter() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Kafka(KafkaSpec {
                 brokers: TemplateVecString::Value(vec!["localhost:9092".to_string()]),
                 topic: "{{__TOPIC__}}".to_string(),
@@ -58,6 +60,8 @@ fn pull_kafka_brokers_as_template_extracts_parameter() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Kafka(KafkaSpec {
                 brokers: TemplateVecString::Template("{{__BROKERS__}}".to_string()),
                 topic: "events".to_string(),
@@ -84,6 +88,8 @@ fn pull_kafka_brokers_value_with_template_item_extracts_parameter() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Kafka(KafkaSpec {
                 brokers: TemplateVecString::Value(vec![
                     "localhost:9092".to_string(),
@@ -113,6 +119,8 @@ fn pull_kafka_group_id_extracts_parameter() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Kafka(KafkaSpec {
                 brokers: TemplateVecString::Value(vec!["localhost:9092".to_string()]),
                 topic: "events".to_string(),
@@ -139,6 +147,8 @@ fn pull_kafka_without_group_id_extracts_nothing() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Kafka(KafkaSpec {
                 brokers: TemplateVecString::Value(vec!["localhost:9092".to_string()]),
                 topic: "events".to_string(),
@@ -163,6 +173,8 @@ fn push_kafka_subscribe_without_unsubscribe_extracts_parameters() {
         },
         authentication: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Push(PushLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             subscribe: ProtocolSpec::Kafka(KafkaSpec {
                 brokers: TemplateVecString::Value(vec!["localhost:9092".to_string()]),
                 topic: "{{__TOPIC__}}".to_string(),

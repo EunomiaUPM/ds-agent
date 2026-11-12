@@ -98,6 +98,8 @@ fn connector_fixture() -> ConnectorInstanceDto {
         },
         authentication_config: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Push(PushLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             subscribe: ProtocolSpec::Http(HttpSpec {
                 url_template: "http://example.com/events".to_string(),
                 method: TemplateVecString::Value(vec!["POST".to_string()]),

@@ -60,6 +60,8 @@ fn instance() -> ConnectorInstanceDto {
         },
         authentication_config: AuthenticationConfig::NoAuth,
         interaction: InteractionConfig::Pull(PullLifecycle {
+            lifetime: Default::default(),
+            max_retries: None,
             data_access: ProtocolSpec::Http(HttpSpec {
                 url_template: "https://example.com/data".to_string(),
                 method: TemplateVecString::Value(vec!["GET".to_string()]),

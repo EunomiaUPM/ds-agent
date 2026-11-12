@@ -24,10 +24,13 @@ use common::config::services::TransferConfig;
 use connector::{ConnectorInstanceFacadeTrait, ConnectorInstanceRemoteFacade};
 use ymir::module_loader::root_context::RootContext;
 
-/// Ports the dataplane consumes; today the connector instances.
+use crate::signals::DataplaneSignalSender;
+
+/// Ports the dataplane consumes; today the connector instances and optional control-plane signals.
 #[derive(Clone)]
 pub struct DataplanePorts {
     pub connector: Arc<dyn ConnectorInstanceFacadeTrait>,
+    pub signals: DataplaneSignalSender,
 }
 
 impl DataplanePorts {
@@ -35,11 +38,21 @@ impl DataplanePorts {
     pub fn remote(config: &TransferConfig, _root: &RootContext) -> Self {
         Self {
             connector: Arc::new(ConnectorInstanceRemoteFacade::new(config.catalog())),
+            signals: DataplaneSignalSender::noop(),
         }
     }
 
     /// Monolith: the catalog's in-process adapter.
     pub fn local(connector: Arc<dyn ConnectorInstanceFacadeTrait>) -> Self {
-        Self { connector }
+        Self {
+            connector,
+            signals: DataplaneSignalSender::noop(),
+        }
+    }
+
+    /// Attaches a control-plane signal sender (`Completed` / `Failed`).
+    pub fn with_signals(mut self, signals: DataplaneSignalSender) -> Self {
+        self.signals = signals;
+        self
     }
 }

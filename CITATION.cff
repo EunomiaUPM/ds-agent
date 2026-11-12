@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use Eunomia DS-Agent in academic or industrial work, please cite it using the metadata below."
+title: "Eunomia DS-Agent: A Rust Dataspace Protocol Agent with Template-Driven Connector and Data Plane"
+type: software
+version: 0.4.0
+date-released: "2026-11-12"
+license: GPL-3.0-or-later
+repository-code: "https://github.com/EunomiaUPM/ds-agent"
+url: "https://github.com/EunomiaUPM/ds-agent"
+keywords:
+  - dataspace-protocol
+  - data-spaces
+  - rust
+  - data-plane
+  - connector-templates
+  - odrl
+  - dcat
+authors:
+  - name: "GING Research Group (Next Generation Internet Group)"
+    affiliation: "Departamento de Ingeniería de Sistemas Telemáticos, Universidad Politécnica de Madrid (UPM)"
+    city: "Madrid"
+    country: "ES"

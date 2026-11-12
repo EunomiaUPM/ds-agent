@@ -27,7 +27,8 @@ cache_config: &cache_config
   url: 'provider-redis'
   port: '6379'
   user: 'default'
-  password: 'ds_core_provider_redis'
+  # Replace with deployment-specific secret in production overlays.
+  password: 'CHANGE_ME_REDIS_PASSWORD'
 
 common_config: &common_config
   hosts: *hosts_default

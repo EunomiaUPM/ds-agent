@@ -1,0 +1,242 @@
+name: ds-protocol-examples
+
+services:
+  # =========================================================================
+  # Mock Upstream (ArcGIS PULL + ESG Webhook PUSH) & Consumer Webhook Sink
+  # =========================================================================
+  mock-backend:
+    image: python:3.12-alpine
+    container_name: examples-mock-backend
+    restart: unless-stopped
+    working_dir: /srv
+    volumes:
+      - ./mock-backend/server.py:/srv/server.py:ro
+    command: ["python3", "/srv/server.py"]
+    ports:
+      - "18080:8080"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+
+  # =========================================================================
+  # Provider Stack (:1200)
+  # =========================================================================
+  provider-db:
+    image: postgres:16-alpine
+    container_name: examples-provider-db
+    restart: unless-stopped
+    env_file:
+      - ../static/environment/envs/provider.db.env.example
+    ports:
+      - "1400:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mini_provider"]
+      interval: 5s
+      retries: 15
+
+  provider-redis:
+    image: redis:7-alpine
+    container_name: examples-provider-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --requirepass ds_core_provider_redis
+      --user admin on >ds_core_provider_redis ~* +@all
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "ds_core_provider_redis", "ping"]
+      interval: 5s
+      retries: 15
+
+  provider-fafnir-setup:
+    image: rmenendez8/fafnir:v0.4.1
+    platform: linux/amd64
+    container_name: examples-provider-fafnir-setup
+    depends_on:
+      provider-db:
+        condition: service_healthy
+    volumes:
+      - ../static/environment/fafnir/provider-wallet.yaml:/app/static/fafnir/config.yaml:ro
+      - ../static/vault/provider/secrets/db.json.example:/app/vault/secrets/db.json.example:ro
+    env_file:
+      - ../static/environment/fafnir/env.example
+    command: ["setup", "--env-file", "/app/static/fafnir/config.yaml"]
+
+  provider-fafnir-wallet:
+    image: rmenendez8/fafnir:v0.4.1
+    platform: linux/amd64
+    container_name: examples-provider-fafnir-wallet
+    restart: unless-stopped
+    depends_on:
+      provider-fafnir-setup:
+        condition: service_completed_successfully
+    volumes:
+      - ../static/environment/fafnir/provider-wallet.yaml:/app/static/fafnir/config.yaml:ro
+      - ../static/vault/provider/secrets/db.json.example:/app/vault/secrets/db.json.example:ro
+    env_file:
+      - ../static/environment/fafnir/env.example
+    command: ["start", "--env-file", "/app/static/fafnir/config.yaml"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:7001/readiness"]
+      interval: 5s
+      timeout: 2s
+      retries: 15
+
+  provider-setup:
+    image: ${EUNOMIA_IMAGE:-eunomia-local:examples}
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: examples-provider-setup
+    command: ["setup", "-e", "/app/examples-config/provider.yaml"]
+    volumes:
+      - ../static:/app/static:ro
+      - ../static/vault/provider:/app/vault:ro
+      - ./config:/app/examples-config:ro
+    depends_on:
+      provider-db:
+        condition: service_healthy
+      provider-redis:
+        condition: service_healthy
+    env_file:
+      - ../static/environment/envs/core.provider.env.example
+    restart: "no"
+
+  provider:
+    image: ${EUNOMIA_IMAGE:-eunomia-local:examples}
+    container_name: examples-provider
+    restart: unless-stopped
+    command: ["start", "-e", "/app/examples-config/provider.yaml"]
+    ports:
+      - "1200:1200"
+    volumes:
+      - ../static:/app/static:ro
+      - ../static/vault/provider:/app/vault:ro
+      - ./config:/app/examples-config:ro
+    depends_on:
+      provider-setup:
+        condition: service_completed_successfully
+      provider-fafnir-wallet:
+        condition: service_healthy
+      mock-backend:
+        condition: service_healthy
+    env_file:
+      - ../static/environment/envs/core.provider.env.example
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:1200/.well-known/dspace-version"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+
+  # =========================================================================
+  # Consumer Stack (:1100)
+  # =========================================================================
+  consumer-db:
+    image: postgres:16-alpine
+    container_name: examples-consumer-db
+    restart: unless-stopped
+    env_file:
+      - ../static/environment/envs/consumer.db.env.example
+    ports:
+      - "1300:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mini_consumer"]
+      interval: 5s
+      retries: 15
+
+  consumer-redis:
+    image: redis:7-alpine
+    container_name: examples-consumer-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    command: >
+      redis-server
+      --requirepass ds_core_consumer_redis
+      --user admin on >ds_core_consumer_redis ~* +@all
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "ds_core_consumer_redis", "ping"]
+      interval: 5s
+      retries: 15
+
+  consumer-fafnir-setup:
+    image: rmenendez8/fafnir:v0.4.1
+    platform: linux/amd64
+    container_name: examples-consumer-fafnir-setup
+    depends_on:
+      consumer-db:
+        condition: service_healthy
+    volumes:
+      - ../static/environment/fafnir/consumer-wallet.yaml:/app/static/fafnir/config.yaml:ro
+      - ../static/vault/consumer/secrets/db.json.example:/app/vault/secrets/db.json.example:ro
+    env_file:
+      - ../static/environment/fafnir/env.example
+    command: ["setup", "--env-file", "/app/static/fafnir/config.yaml"]
+
+  consumer-fafnir-wallet:
+    image: rmenendez8/fafnir:v0.4.1
+    platform: linux/amd64
+    container_name: examples-consumer-fafnir-wallet
+    restart: unless-stopped
+    depends_on:
+      consumer-fafnir-setup:
+        condition: service_completed_successfully
+    volumes:
+      - ../static/environment/fafnir/consumer-wallet.yaml:/app/static/fafnir/config.yaml:ro
+      - ../static/vault/consumer/secrets/db.json.example:/app/vault/secrets/db.json.example:ro
+    env_file:
+      - ../static/environment/fafnir/env.example
+    command: ["start", "--env-file", "/app/static/fafnir/config.yaml"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:7001/readiness"]
+      interval: 5s
+      timeout: 2s
+      retries: 15
+
+  consumer-setup:
+    image: ${EUNOMIA_IMAGE:-eunomia-local:examples}
+    container_name: examples-consumer-setup
+    command: ["setup", "-e", "/app/examples-config/consumer.yaml"]
+    volumes:
+      - ../static:/app/static:ro
+      - ../static/vault/consumer:/app/vault:ro
+      - ./config:/app/examples-config:ro
+    depends_on:
+      consumer-db:
+        condition: service_healthy
+      consumer-redis:
+        condition: service_healthy
+      provider-setup:
+        condition: service_completed_successfully
+    env_file:
+      - ../static/environment/envs/core.consumer.env.example
+    restart: "no"
+
+  consumer:
+    image: ${EUNOMIA_IMAGE:-eunomia-local:examples}
+    container_name: examples-consumer
+    restart: unless-stopped
+    command: ["start", "-e", "/app/examples-config/consumer.yaml"]
+    ports:
+      - "1100:1100"
+    volumes:
+      - ../static:/app/static:ro
+      - ../static/vault/consumer:/app/vault:ro
+      - ./config:/app/examples-config:ro
+    depends_on:
+      consumer-setup:
+        condition: service_completed_successfully
+      consumer-fafnir-wallet:
+        condition: service_healthy
+      mock-backend:
+        condition: service_healthy
+    env_file:
+      - ../static/environment/envs/core.consumer.env.example
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:1100/.well-known/dspace-version"]
+      interval: 5s
+      timeout: 2s
+      retries: 20

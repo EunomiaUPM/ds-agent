@@ -1,0 +1,128 @@
+# Self-contained Consumer configuration for `examples/docker-compose.yaml`.
+# Uses Gaia-X self-attested `LegalPerson` credentials so onboarding works out of the box
+# without requiring an external SSI authority service.
+min_http: &min_http_host
+  protocol: "http"
+  url: "consumer"
+  port: "1100"
+  internal_port: null
+
+min_hosts: &min_hosts
+  http: *min_http_host
+  grpc: null
+  graphql: null
+
+api_version: &api_version "v1"
+
+min_known_config: &min_known_config
+  hosts: *min_hosts
+  api_version: *api_version
+
+inner_known_config: &inner_known_config
+  hosts: *min_hosts
+  api_version: *api_version
+
+is_catalog_datahub: &is_catalog_datahub false
+policy_templates_folder: &policy_templates_folder "/app/static/policy_templates"
+
+cache_config: &cache_config
+  cache_type: Redis
+  url: "consumer-redis"
+  port: "6379"
+  user: "default"
+  password: "ds_core_consumer_redis"
+
+common_config: &common_config
+  hosts: *min_hosts
+  db:
+    db_type: Postgres
+    url: "consumer-db"
+    port: "5432"
+  api:
+    version: *api_version
+    openapi_path: "/app/static/specs/openapi/merged_openapi.json"
+  connection:
+    is_prod: false
+    is_vault_real: false
+    has_proxy: false
+
+monolith:
+  common: *common_config
+  cache: *cache_config
+
+catalog:
+  common: *common_config
+  cache: *cache_config
+  is_datahub: *is_catalog_datahub
+  policy_templates_folder: *policy_templates_folder
+  datahub_host: null
+  datahub_token: null
+  ssi_auth: *min_known_config
+  contracts: *min_known_config
+
+ssi_auth:
+  common_config: *common_config
+  wallet_config:
+    wallet: Fafnir
+    api:
+      http:
+        protocol: "http"
+        url: "consumer-fafnir-wallet"
+        port: "7001"
+      grpc: null
+      graphql: null
+  client_config:
+    class_id: "Consumer"
+    display: null
+  oid4vp_service: V1_0
+  verify_req_config:
+    is_cert_allowed: false
+    auto_approve_cert: false
+    vcs_requested: [LegalPerson]
+  did_config:
+    type: Jwk
+  gaia_config:
+    legal_person:
+      name: "EunomiaDemoConsumer"
+      description: "Consumer participant for the reproducible HTTP PULL/PUSH examples"
+      registration_number:
+        kind: "VatId"
+        value: "VATES-123456789"
+        country_code: "ES"
+      legal_address:
+        country_code: "ES"
+        country_name: "Spain"
+        locality: "Madrid"
+        postal_code: "28040"
+        street_address: "Av. Complutense, 30"
+      headquarters_address:
+        country_code: "ES"
+        country_name: "Spain"
+        locality: "Madrid"
+        postal_code: "28040"
+        street_address: "Av. Complutense, 30"
+
+contracts:
+  common: *common_config
+  ssi_auth: *min_known_config
+  catalog: *min_known_config
+  is_catalog_datahub: *is_catalog_datahub
+
+transfer:
+  common: *common_config
+  cache: *cache_config
+  contracts: *min_known_config
+  catalog: *min_known_config
+  ssi_auth: *min_known_config
+  is_catalog_datahub: *is_catalog_datahub
+  proxy_accept_invalid_certs: false
+  proxy_allow_private_egress: true
+
+gateway:
+  common: *common_config
+  is_production: false
+  transfer: *inner_known_config
+  contracts: *inner_known_config
+  catalog: *inner_known_config
+  ssi_auth: *inner_known_config
+  is_catalog_datahub: *is_catalog_datahub

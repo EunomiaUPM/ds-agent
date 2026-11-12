@@ -1,0 +1,64 @@
+name: Workspace Tests & OpenAPI Check
+
+on:
+  push:
+    branches: [main, dev, dev-future, ds-sw-revision]
+  pull_request:
+    branches: [main, dev, dev-future]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust-tests:
+    name: Cargo Workspace Tests & OpenAPI Sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pkg-config libssl-dev protobuf-compiler python3-yaml
+
+      - name: Check OpenAPI specs are up to date
+        run: python3 scripts/tools/build-openapi.py --check
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry and build artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Ensure embedded frontend placeholder directory exists
+        run: mkdir -p crates/bff/src/static/admin/dist
+
+      - name: Run workspace unit and service tests
+        run: cargo test --workspace --locked
+
+  gui-typecheck:
+    name: Admin Console TypeScript Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gui
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: gui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check admin console
+        working-directory: gui/admin
+        run: npx tsc --noEmit

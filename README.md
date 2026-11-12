@@ -3,6 +3,7 @@
 [![Dataspace Protocol](https://img.shields.io/badge/Dataspace_Protocol-2025--1-0B6E99?style=flat-square)](https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/2025-1/)
 [![DSP TCK](https://img.shields.io/badge/DSP_TCK-1.0.0--RC6-0B6E99?style=flat-square)](https://github.com/eclipse-dataspacetck/dsp-tck)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE.md)
+[![Tests](https://img.shields.io/github/actions/workflow/status/EunomiaUPM/rainbow/test.yaml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=tests)](https://github.com/EunomiaUPM/rainbow/actions/workflows/test.yaml)
 [![Docker image](https://img.shields.io/docker/v/rmenendez8/eunomia?sort=semver&style=flat-square&logo=docker&logoColor=white&label=image)](https://hub.docker.com/r/rmenendez8/eunomia)
 [![Containers](https://img.shields.io/github/actions/workflow/status/EunomiaUPM/rainbow/build-containers.yaml?branch=dev&style=flat-square&logo=githubactions&logoColor=white&label=containers)](https://github.com/EunomiaUPM/rainbow/actions/workflows/build-containers.yaml)
 [![Docs](https://img.shields.io/github/actions/workflow/status/EunomiaUPM/rainbow/deploy-docs.yaml?branch=main&style=flat-square&logo=githubpages&logoColor=white&label=docs)](https://github.com/EunomiaUPM/rainbow/actions/workflows/deploy-docs.yaml)
@@ -128,7 +129,7 @@ Each box is a crate of this workspace:
 | Dataspace Protocol | [`catalog-agent`](crates/catalog-agent), [`negotiation-agent`](crates/negotiation-agent), [`transfer-agent`](crates/transfer-agent) |
 | Identity | [`auth`](crates/auth) |
 | Data plane | [`dataplane`](crates/dataplane), [`connector`](crates/connector) |
-| Platform | [`oauth`](crates/oauth), [`keystore`](crates/keystore), [`events`](crates/events) |
+| Platform | [`keystore`](crates/keystore), plus OAuth and event bus from [`ymir`](https://github.com/EunomiaUPM/ymir) |
 | Gateway and console | [`bff`](crates/bff), [`gui/`](gui) |
 | Foundation | [`common`](crates/common): boot, composition, config, auth, RDF and DSP building blocks |
 | All in one | [`monolith`](crates/monolith): every agent in one process, the `rmenendez8/eunomia` image |
@@ -139,11 +140,9 @@ Every crate has its own README with its structure, API and tests.
 
 ### Requirements
 
-- Rust (stable) and [Task](https://taskfile.dev)
+- Rust (stable), `protobuf-compiler` (`protoc`), and [Task](https://taskfile.dev)
 - Docker with compose
-- Node.js, only to work on the admin console
-- [`ymir`](https://github.com/EunomiaUPM/ymir) checked out next to this repository
-  (`../ymir`), since the workspace depends on it by path
+- Node.js, only to work on the admin console (`ymir` and `@eunomia/ui` are fetched automatically from GitHub releases/revisions declared in `Cargo.toml` and `gui/*/package.json`)
 
 ### Try it with the published images
 
@@ -217,17 +216,39 @@ task test:onboarding            # SSI onboarding against the running dev stack
 Each crate keeps its tests in `tests/`, one folder per layer. Integration tests live in
 `crates/monolith/tests/`.
 
+## Examples & Benchmarks
+
+Self-contained end-to-end demonstrations (`HTTP PULL` and `HTTP PUSH` webhook lifecycle with
+`RUNTIME_SECRET`, `RUNTIME_INGRESS`, and `RUNTIME_JSON` extraction) run in under 15 minutes
+using the `static` profile without external SSI infrastructure:
+
+```bash
+task examples:up      # build/start provider, consumer, and mock data/webhook backend
+task examples:pull    # run end-to-end DSP catalog -> negotiation -> HTTP pull transfer
+task examples:push    # run end-to-end DSP catalog -> negotiation -> HTTP webhook push transfer
+task examples:down    # tear down containers and volumes
+```
+
+See [`examples/README.md`](examples/README.md) for architecture diagrams, payload walkthroughs,
+and manual `curl` commands.
+
 ## Repository layout
 
 ```text
-crates/         Rust workspace
+crates/         Rust workspace (10 crates)
 gui/            Admin console (React)
+examples/       Reproducible end-to-end HTTP pull & push demonstrations (docker compose)
 deployment/     Dockerfile and docker compose stacks (mini, dev, prod, observability)
 scripts/        Onboarding, data seeding and TCK runner; entry points are in Taskfile.yml
 static/         Runtime config, vault fixtures, JSON-LD specs, connector blueprints, TCK fixtures
 tck/            DSP TCK properties and mapping
 docs/           Documentation site (Fumadocs)
 ```
+
+## How to cite
+
+If you use Eunomia DS-Agent in research or engineering publications, please cite the software
+metadata in [`CITATION.cff`](CITATION.cff).
 
 ## Contributing
 
@@ -236,4 +257,4 @@ code is organised, the code and test conventions, and what a pull request needs.
 
 ## License
 
-GPL-3.0. See [LICENSE.md](LICENSE.md).
+GPL-3.0-or-later. See [LICENSE.md](LICENSE.md) / [LICENSE.txt](LICENSE.txt).

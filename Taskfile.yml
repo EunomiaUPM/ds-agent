@@ -36,3 +36,24 @@ tasks:
     desc: SSI onboarding test in monolith, against the running dev stack (authority, consumer, provider)
     cmds:
       - cargo test -p monolith --test auth -- --ignored
+
+  examples:up:
+    desc: Build/start the self-contained Provider + Consumer + Mock Backend stack and onboard peers
+    cmds:
+      - docker compose -f examples/docker-compose.yaml up -d --build --wait
+      - ./examples/scripts/onboard.sh
+
+  examples:pull:
+    desc: Run the reproducible EDACCIT-style HTTP PULL example against the examples stack
+    cmds:
+      - ./examples/scripts/pull-demo.sh
+
+  examples:push:
+    desc: Run the reproducible ECOSTARS-style HTTP PUSH example against the examples stack
+    cmds:
+      - ./examples/scripts/push-demo.sh
+
+  examples:down:
+    desc: Stop and remove the reproducible examples stack and volumes
+    cmds:
+      - docker compose -f examples/docker-compose.yaml down -v

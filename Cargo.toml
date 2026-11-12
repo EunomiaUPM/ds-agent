@@ -93,9 +93,9 @@ rudof_rdf = { version = "0.3.35", default-features = false }
 oxrdf = "0.3.5"
 oxttl = "0.2.5"
 oxrdfxml = "0.2.5"
-ymir = { git = "https://github.com/EunomiaUPM/ymir.git", rev = "b1a50d7c0ae079183ec9fc07932ff4527e0c431b", features = ["grpc", "redis"] }
-events = { package = "ymir-events", git = "https://github.com/EunomiaUPM/ymir.git", rev = "b1a50d7c0ae079183ec9fc07932ff4527e0c431b" }
-#ymir = { path = "../ymir/crates/ymir", features = ["grpc", "redis"] }
-#events = { package = "ymir-events", path = "../ymir/crates/ymir-events" }
+#ymir = { git = "https://github.com/EunomiaUPM/ymir.git", rev = "b1a50d7c0ae079183ec9fc07932ff4527e0c431b", features = ["grpc", "redis"] }
+#events = { package = "ymir-events", git = "https://github.com/EunomiaUPM/ymir.git", rev = "b1a50d7c0ae079183ec9fc07932ff4527e0c431b" }
+ymir = { path = "../ymir/crates/ymir", features = ["grpc", "redis"] }
+events = { package = "ymir-events", path = "../ymir/crates/ymir-events" }
 #ymir = {git = "https://github.com/EunomiaUPM/ymir.git", tag = "v0.8.6"}
 

@@ -116,7 +116,7 @@ ssi_auth:
       name: "EunomiaConsumer"
       description: "Consumer node for the Eunomia DataSpace"
       registration_number:
-        kind: "VatId"
+        kind: "gx:VatID"
         value: "VATES-123456789"
         country_code: "ES"
         # subdivision_country_code: "ES-M"

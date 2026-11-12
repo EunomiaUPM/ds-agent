@@ -26,7 +26,7 @@ interface SentGrant {
   status: string;
   final_token?: string | null;
   /**
-   * Each entry is the string id of a VcTypeConfig, e.g. "gx_VatId_jwt_vc_json".
+   * Each entry is the string id of a VcTypeConfig, e.g. "gx_VatID_jwt_vc_json".
    * Comes from the backend's `impl_serde_via_str!(VcTypeConfig)`.
    */
   vc_type_config?: string[] | null;

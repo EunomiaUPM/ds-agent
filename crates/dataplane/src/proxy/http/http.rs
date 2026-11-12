@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! The proxy and its routes.
+//! Production HTTP data proxy (`HttpDataProxy`) and its Axum routes.
 
 use crate::data::factory_trait::DataplaneRepoTrait;
 use crate::data::sea_orm::orm::transfer_event::{LogLevel, NewTransferEvent};
@@ -26,30 +26,33 @@ use crate::engine::dataplane_manager::dataplane_proxy::{
 use crate::engine::dataplane_manager::dataplane_runtime::{
     DataplaneRuntime, ResolvedAuthCredentials, RuntimeSecretVault,
 };
-use crate::entities::dataplane_transfers::DataplaneTransferDto;
-use crate::entities::dataplane_transfers::TransferState;
+use crate::entities::dataplane_transfers::{
+    DataplaneTransferDto, InteractionMode, TransferRole, TransferState,
+};
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use axum::body::{to_bytes, Body, Bytes};
 use axum::extract::{FromRef, Path, Request, State};
-use axum::http::HeaderMap;
-use axum::http::StatusCode;
+use axum::http::header::AUTHORIZATION;
+use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::any;
 use axum::{Json, Router};
-use ymir::oauth::OwnedTrait;
-use ymir::types::oauth::UserInfo;
-use ymir::utils::get_urn_from_string;
+use common::routes::dataplane as routes;
 use connector::KeystoreLookup;
 use hyper::Method;
 use serde_json::json;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info};
+use url::Host;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
+use ymir::oauth::OwnedTrait;
 use ymir::services::client::ClientService;
 use ymir::types::http::Response as UpstreamResponse;
-use common::routes::dataplane as routes;
+use ymir::types::oauth::UserInfo;
+use ymir::utils::get_urn_from_string;
 
 /// Maximum request body we buffer before forwarding upstream (2 MiB).
 const MAX_BODY_BYTES: usize = 2 * 1024 * 1024;
@@ -57,6 +60,8 @@ const MAX_BODY_BYTES: usize = 2 * 1024 * 1024;
 const UPSTREAM_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 /// Cap on the whole upstream request/response exchange.
 const UPSTREAM_TIMEOUT: Duration = Duration::from_secs(30);
+/// Query parameter carrying per-transfer ingress tokens on webhook callbacks.
+const INGRESS_TOKEN_QUERY_PARAM: &str = "ingress_token";
 
 /// Hop-by-hop headers (RFC 7230 §6.1) that must not be relayed end-to-end.
 const HOP_BY_HOP_HEADERS: [&str; 8] = [
@@ -76,8 +81,13 @@ enum ProxyError {
     DataplaneNotFound,
     DataplaneLookupFailed,
     NotStarted(TransferState),
+    MissingIngressAuth,
+    InvalidIngressAuth,
     InvalidEgressConfig,
     UnsupportedEgress,
+    InvalidTargetUrl,
+    ForbiddenTarget(&'static str),
+    TargetResolutionFailed,
     BodyTooLarge,
 }
 
@@ -98,6 +108,14 @@ impl IntoResponse for ProxyError {
                 StatusCode::FORBIDDEN,
                 format!("Transfer is not STARTED (current: {state:?})"),
             ),
+            ProxyError::MissingIngressAuth => (
+                StatusCode::UNAUTHORIZED,
+                "missing ingress authorization".to_string(),
+            ),
+            ProxyError::InvalidIngressAuth => (
+                StatusCode::FORBIDDEN,
+                "invalid ingress authorization".to_string(),
+            ),
             ProxyError::InvalidEgressConfig => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Invalid or missing egress_config".to_string(),
@@ -105,6 +123,15 @@ impl IntoResponse for ProxyError {
             ProxyError::UnsupportedEgress => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Connector egress not handled by HTTP proxy".to_string(),
+            ),
+            ProxyError::InvalidTargetUrl => (
+                StatusCode::BAD_REQUEST,
+                "invalid upstream target URL".to_string(),
+            ),
+            ProxyError::ForbiddenTarget(reason) => (StatusCode::FORBIDDEN, reason.to_string()),
+            ProxyError::TargetResolutionFailed => (
+                StatusCode::BAD_GATEWAY,
+                "unable to resolve upstream target host".to_string(),
             ),
             ProxyError::BodyTooLarge => (StatusCode::BAD_REQUEST, "body too big".to_string()),
         };
@@ -119,60 +146,76 @@ struct OutboundRequest {
     body: Bytes,
 }
 
-/// HTTP data proxy: forwards `/{data_plane_id}/...` to the back end of that process.
+/// HTTP data proxy: validates per-transfer ingress capabilities, enforces anti-SSRF
+/// egress rules, resolves outbound credentials, and forwards `/{data_plane_id}/...`.
 #[derive(Clone)]
-pub struct TestingHTTPProxy {
+pub struct HttpDataProxy {
     client: Arc<ClientService>,
     dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,
     repo: Arc<dyn DataplaneRepoTrait>,
     keystore: Option<Arc<dyn KeystoreLookup>>,
+    allow_private_egress: bool,
 }
 
-impl FromRef<TestingHTTPProxy> for Arc<dyn DataplaneTransferServiceTrait> {
-    fn from_ref(input: &TestingHTTPProxy) -> Self {
+impl FromRef<HttpDataProxy> for Arc<dyn DataplaneTransferServiceTrait> {
+    fn from_ref(input: &HttpDataProxy) -> Self {
         input.dataplane_service.clone()
     }
 }
 
-impl TestingHTTPProxy {
-    /// Accepts self-signed upstream certificates and times out dead upstreams.
+impl HttpDataProxy {
+    /// Builds an HTTP data proxy with strict TLS certificate verification (`false`
+    /// invalid-cert acceptance) and private/loopback egress blocked (`false`) by default.
     pub fn new(
         dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,
         repo: Arc<dyn DataplaneRepoTrait>,
     ) -> Self {
-        // `danger_accept_invalid_certs` is intentional: this is a TESTING proxy
-        // that must reach upstreams using self-signed certificates. Timeouts stop
-        // a dead upstream from hanging the proxy connection indefinitely.
-        let client = ClientService::builder()
-            .accept_invalid_certs(true)
-            .connect_timeout(UPSTREAM_CONNECT_TIMEOUT)
-            .timeout(Some(UPSTREAM_TIMEOUT))
-            .build();
         Self {
-            client: Arc::new(client),
+            client: Arc::new(Self::build_client(false)),
             dataplane_service,
             repo,
             keystore: None,
+            allow_private_egress: false,
         }
     }
 
-    /// Attaches the keystore used to resolve credentials when proxying.
+    fn build_client(accept_invalid_certs: bool) -> ClientService {
+        ClientService::builder()
+            .accept_invalid_certs(accept_invalid_certs)
+            .connect_timeout(UPSTREAM_CONNECT_TIMEOUT)
+            .timeout(Some(UPSTREAM_TIMEOUT))
+            .build()
+    }
+
+    /// Attaches the keystore used to resolve vaulted credentials when proxying.
     pub fn with_keystore(mut self, keystore: Arc<dyn KeystoreLookup>) -> Self {
         self.keystore = Some(keystore);
         self
     }
+
+    /// Configures whether self-signed/invalid TLS certificates are accepted upstream
+    /// (`false` by default; enable only in controlled local/dev environments).
+    pub fn with_accept_invalid_certs(mut self, accept: bool) -> Self {
+        self.client = Arc::new(Self::build_client(accept));
+        self
+    }
+
+    /// Configures whether private, loopback, or link-local egress targets are allowed
+    /// (`false` by default; enable only for local/Docker-internal test topologies).
+    pub fn with_allow_private_egress(mut self, allow: bool) -> Self {
+        self.allow_private_egress = allow;
+        self
+    }
+
     pub fn router(self) -> Router {
         Router::new()
             .route(routes::proxy::BY_DATAPLANE, any(Self::forward_request_base))
-            .route(
-                routes::proxy::PATH,
-                any(Self::forward_request_wildcard),
-            )
+            .route(routes::proxy::PATH, any(Self::forward_request_wildcard))
             .with_state(self)
     }
 
     async fn forward_request_base(
-        State(state): State<TestingHTTPProxy>,
+        State(state): State<HttpDataProxy>,
         Path(data_plane_id): Path<String>,
         req: Request,
     ) -> impl IntoResponse {
@@ -180,7 +223,7 @@ impl TestingHTTPProxy {
     }
 
     async fn forward_request_wildcard(
-        State(state): State<TestingHTTPProxy>,
+        State(state): State<HttpDataProxy>,
         Path((data_plane_id, path)): Path<(String, String)>,
         req: Request,
     ) -> impl IntoResponse {
@@ -190,7 +233,7 @@ impl TestingHTTPProxy {
     /// Axum entry point: runs the proxy pipeline and turns an early
     /// `ProxyError` into its HTTP response.
     async fn handle_request(
-        state: TestingHTTPProxy,
+        state: HttpDataProxy,
         data_plane_id: String,
         path: Option<String>,
         req: Request,
@@ -201,8 +244,9 @@ impl TestingHTTPProxy {
         }
     }
 
-    /// The proxy pipeline, top to bottom: validate, authorize, build the
-    /// target URL, resolve credentials, then forward and log.
+    /// The proxy pipeline, top to bottom: validate transfer state, enforce per-transfer
+    /// ingress auth, build and validate target URL (anti-SSRF), resolve credentials,
+    /// then forward and log.
     async fn proxy(
         &self,
         data_plane_id: &str,
@@ -213,13 +257,17 @@ impl TestingHTTPProxy {
 
         let urn = Self::parse_dataplane_id(data_plane_id)?;
         let dataplane = self.load_started_dataplane(&urn).await?;
-        let egress = Self::parse_egress(&dataplane)?;
 
         // Capture the query string before the body consumes the request.
-        let query = req.uri().query().map(str::to_owned);
+        let raw_query = req.uri().query().map(str::to_owned);
+        Self::verify_ingress_auth(&dataplane, req.headers(), raw_query.as_deref())?;
+        let clean_query = Self::strip_ingress_token_query(raw_query.as_deref());
+
+        let egress = Self::parse_egress(&dataplane)?;
         let outbound = Self::extract_outbound(req).await?;
 
-        let target = Self::build_target_url(&egress, path, query.as_deref())?;
+        let target = Self::build_target_url(&egress, path, clean_query.as_deref())?;
+        self.validate_target_url(&target).await?;
         let credentials = self.resolve_credentials(&dataplane, &egress).await;
 
         Ok(self
@@ -243,7 +291,6 @@ impl TestingHTTPProxy {
     /// Loads the transfer and enforces that it is `Started` — the proxy only
     /// relays traffic for active transfers.
     async fn load_started_dataplane(&self, urn: &Urn) -> Result<DataplaneTransferDto, ProxyError> {
-        // The dataplane id in the URL is the capability: the proxy reads it whoever owns it.
         let dataplane = self
             .dataplane_service
             .get_one(&UserInfo::system(), urn)
@@ -257,6 +304,87 @@ impl TestingHTTPProxy {
             return Err(ProxyError::NotStarted(dataplane.inner.state.clone()));
         }
         Ok(dataplane)
+    }
+
+    /// Enforces per-transfer ingress capability authentication when the transfer's
+    /// `HttpListener` defines a non-empty token. Accepts either an `Authorization`
+    /// header (`<token_type> <token>`, defaulting to `Bearer`) or an `ingress_token`
+    /// query parameter (used by backend webhook callbacks).
+    fn verify_ingress_auth(
+        dataplane: &DataplaneTransferDto,
+        headers: &HeaderMap,
+        raw_query: Option<&str>,
+    ) -> Result<(), ProxyError> {
+        let Ok(DataplaneProxyIngress::HttpListener {
+            token: Some(expected),
+            token_type,
+            ..
+        }) = serde_json::from_value::<DataplaneProxyIngress>(
+            dataplane.inner.ingress_config.clone(),
+        )
+        else {
+            return Ok(());
+        };
+
+        if expected.is_empty() {
+            return Ok(());
+        }
+
+        let expected_scheme = token_type
+            .as_deref()
+            .filter(|s| !s.is_empty())
+            .unwrap_or("Bearer");
+
+        if let Some(raw_header) = headers.get(AUTHORIZATION) {
+            let header_str = raw_header
+                .to_str()
+                .map_err(|_| ProxyError::InvalidIngressAuth)?
+                .trim();
+            let Some((scheme, rest)) = header_str.split_once(' ') else {
+                return Err(ProxyError::InvalidIngressAuth);
+            };
+            if !scheme.eq_ignore_ascii_case(expected_scheme) {
+                return Err(ProxyError::InvalidIngressAuth);
+            }
+            let candidate = rest.trim();
+            if constant_time_eq(candidate.as_bytes(), expected.as_bytes()) {
+                return Ok(());
+            }
+            return Err(ProxyError::InvalidIngressAuth);
+        }
+
+        if let Some(qs) = raw_query {
+            for (k, v) in url::form_urlencoded::parse(qs.as_bytes()) {
+                if k == INGRESS_TOKEN_QUERY_PARAM {
+                    if constant_time_eq(v.as_bytes(), expected.as_bytes()) {
+                        return Ok(());
+                    }
+                    return Err(ProxyError::InvalidIngressAuth);
+                }
+            }
+        }
+
+        Err(ProxyError::MissingIngressAuth)
+    }
+
+    /// Strips `ingress_token` from the query string so internal proxy tokens are
+    /// never leaked to upstream services.
+    fn strip_ingress_token_query(raw_query: Option<&str>) -> Option<String> {
+        let qs = raw_query?;
+        if !qs.contains(INGRESS_TOKEN_QUERY_PARAM) {
+            return Some(qs.to_string());
+        }
+        let filtered: Vec<(String, String)> = url::form_urlencoded::parse(qs.as_bytes())
+            .filter(|(k, _)| k != INGRESS_TOKEN_QUERY_PARAM)
+            .map(|(k, v)| (k.into_owned(), v.into_owned()))
+            .collect();
+        if filtered.is_empty() {
+            None
+        } else {
+            let mut serializer = url::form_urlencoded::Serializer::new(String::new());
+            serializer.extend_pairs(filtered);
+            Some(serializer.finish())
+        }
     }
 
     /// Reads the egress configuration the transfer was provisioned with.
@@ -299,25 +427,94 @@ impl TestingHTTPProxy {
             url.push_str(p);
         }
 
-        // Preserve the original query string.
+        // Preserve the cleaned query string.
         if let Some(q) = query {
-            url.push(if url.contains('?') { '&' } else { '?' });
-            url.push_str(q);
+            if !q.is_empty() {
+                url.push(if url.contains('?') { '&' } else { '?' });
+                url.push_str(q);
+            }
         }
         Ok(url)
     }
 
+    /// Validates the upstream target URL scheme and, unless `allow_private_egress`
+    /// is explicitly enabled, blocks SSRF against loopback, RFC1918 private networks,
+    /// link-local/cloud metadata (`169.254.169.254`), and `.localhost`/`.internal` hosts.
+    async fn validate_target_url(&self, target: &str) -> Result<(), ProxyError> {
+        let parsed = url::Url::parse(target).map_err(|_| ProxyError::InvalidTargetUrl)?;
+        if !matches!(parsed.scheme(), "http" | "https") {
+            return Err(ProxyError::ForbiddenTarget("unsupported target URL scheme"));
+        }
+        let Some(host) = parsed.host() else {
+            return Err(ProxyError::InvalidTargetUrl);
+        };
+
+        if self.allow_private_egress {
+            return Ok(());
+        }
+
+        match host {
+            Host::Ipv4(ip) => {
+                if !is_global_ipv4(ip) {
+                    return Err(ProxyError::ForbiddenTarget(
+                        "private, loopback, or reserved target IP blocked",
+                    ));
+                }
+            }
+            Host::Ipv6(ip) => {
+                if !is_global_ipv6(ip) {
+                    return Err(ProxyError::ForbiddenTarget(
+                        "private, loopback, or reserved target IP blocked",
+                    ));
+                }
+            }
+            Host::Domain(domain) => {
+                let lower = domain.trim_end_matches('.').to_ascii_lowercase();
+                if lower == "localhost"
+                    || lower.ends_with(".localhost")
+                    || lower.ends_with(".internal")
+                {
+                    return Err(ProxyError::ForbiddenTarget(
+                        "local or internal target host blocked",
+                    ));
+                }
+                let port = parsed.port_or_known_default().unwrap_or(80);
+                let addrs: Vec<_> = tokio::net::lookup_host((domain, port))
+                    .await
+                    .map_err(|_| ProxyError::TargetResolutionFailed)?
+                    .collect();
+                if addrs.is_empty() {
+                    return Err(ProxyError::TargetResolutionFailed);
+                }
+                if addrs.iter().any(|addr| !is_global_ip(addr.ip())) {
+                    return Err(ProxyError::ForbiddenTarget(
+                        "target host resolves to private, loopback, or reserved IP",
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
     /// Determines the credentials to present upstream.
     ///
-    /// Provider-side: credentials live in `flow_control.auth` (resolved from the
-    /// connector secret during `set_auth`); vaulted OAuth2 tokens are resolved
-    /// via the keystore. Consumer-side: there is no connector, so we fall back
-    /// to the bearer token carried in the egress config.
+    /// Only `(Provider, Pull)` forwards to the provider's own backend data source and
+    /// therefore uses `flow_control.auth` (resolved via `RuntimeSecretVault`).
+    /// All peer-facing or consumer-sink hops (`Consumer + Pull`, `Provider + Push`,
+    /// `Consumer + Push`) use the token configured on `egress` (`DataAddress`),
+    /// preventing provider backend credentials from ever leaking to a consumer sink.
     async fn resolve_credentials(
         &self,
         dataplane: &DataplaneTransferDto,
         egress: &DataplaneProxyEgress,
     ) -> ResolvedAuthCredentials {
+        let uses_connector_auth = dataplane.inner.role == TransferRole::Provider
+            && dataplane.inner.interaction_mode == InteractionMode::Pull;
+
+        if !uses_connector_auth {
+            return Self::egress_credentials(egress);
+        }
+
         let runtime = dataplane
             .inner
             .flow_control
@@ -337,15 +534,31 @@ impl TestingHTTPProxy {
             .map(|rt| rt.auth)
             .unwrap_or(ResolvedAuthCredentials::NoAuth);
 
-        // Fall back to the egress bearer token when the runtime carries no auth.
         match auth {
-            ResolvedAuthCredentials::NoAuth => match egress {
-                DataplaneProxyEgress::HttpProxy { token: Some(t), .. } if !t.is_empty() => {
+            ResolvedAuthCredentials::NoAuth => Self::egress_credentials(egress),
+            other => other,
+        }
+    }
+
+    fn egress_credentials(egress: &DataplaneProxyEgress) -> ResolvedAuthCredentials {
+        match egress {
+            DataplaneProxyEgress::HttpProxy {
+                token: Some(t),
+                token_type,
+                ..
+            } if !t.is_empty() => match token_type.as_deref() {
+                None => ResolvedAuthCredentials::BearerToken { token: t.clone() },
+                Some(kind) if kind.eq_ignore_ascii_case("Bearer") => {
                     ResolvedAuthCredentials::BearerToken { token: t.clone() }
                 }
-                _ => ResolvedAuthCredentials::NoAuth,
+                Some(kind) => ResolvedAuthCredentials::OAuth2 {
+                    access_token: t.clone(),
+                    token_type: kind.to_string(),
+                    expires_at: None,
+                    refresh_token: None,
+                },
             },
-            other => other,
+            _ => ResolvedAuthCredentials::NoAuth,
         }
     }
 
@@ -363,17 +576,17 @@ impl TestingHTTPProxy {
         credentials: &ResolvedAuthCredentials,
     ) -> Response {
         let auth_preview = Self::preview_auth(credentials);
-        // Logged at warn so it stays visible regardless of the configured level.
-        warn!(
+        let safe_target = Self::redact_url(target);
+        debug!(
             "Proxy {} {} | keystore={} | {}",
             outbound.method,
-            target,
+            safe_target,
             self.keystore.is_some(),
             auth_preview
         );
 
         // Drop the inbound Authorization header — the proxy injects its own
-        // outbound credentials and two would produce duplicate values upstream.
+        // outbound credentials and must never relay its ingress capability token.
         let mut headers = outbound.headers;
         headers.remove("authorization");
 
@@ -393,7 +606,7 @@ impl TestingHTTPProxy {
             data_plane_id,
             path,
             egress,
-            target,
+            &safe_target,
             &outbound.method,
             &response,
         )
@@ -402,7 +615,7 @@ impl TestingHTTPProxy {
         Self::map_response(
             response,
             &outbound.method,
-            target,
+            &safe_target,
             &auth_preview,
             self.keystore.is_some(),
         )
@@ -417,7 +630,7 @@ impl TestingHTTPProxy {
         data_plane_id: &str,
         path: Option<&str>,
         egress: &DataplaneProxyEgress,
-        target: &str,
+        safe_target: &str,
         method: &Method,
         response: &Outcome<UpstreamResponse>,
     ) {
@@ -433,7 +646,7 @@ impl TestingHTTPProxy {
             level: LogLevel::Info,
             component: "DataProxy".to_string(),
             message: format!(
-                "Transfer [{role}|{mode}] from {data_plane_id} to {target} | Ingress: {ingress_type} | Egress: {egress_type}"
+                "Transfer [{role}|{mode}] from {data_plane_id} to {safe_target} | Ingress: {ingress_type} | Egress: {egress_type}"
             ),
             data: Some(json!({
                 "role": role,
@@ -442,7 +655,7 @@ impl TestingHTTPProxy {
                 "egress": egress_type,
                 "origin_path": path,
                 "method": method.to_string(),
-                "target": target,
+                "target": safe_target,
                 "status": status,
             })),
         };
@@ -463,7 +676,7 @@ impl TestingHTTPProxy {
     async fn map_response(
         result: Outcome<UpstreamResponse>,
         method: &Method,
-        target: &str,
+        safe_target: &str,
         auth_preview: &str,
         keystore_present: bool,
     ) -> Response {
@@ -476,13 +689,16 @@ impl TestingHTTPProxy {
                     .unwrap_or_else(|_| "<unreadable>".to_string());
                 error!(
                     "Upstream {} {} -> {} | sent=[{}] keystore={} | body: {}",
-                    method, target, status, auth_preview, keystore_present, body_text
+                    method, safe_target, status, auth_preview, keystore_present, body_text
                 );
                 (status, Json(json!({"error": "upstream error"}))).into_response()
             }
             Ok(res) => Self::relay_response(res),
             Err(e) => {
-                error!("Proxy forward failed {} {}: {:?}", method, target, e);
+                error!(
+                    "Proxy forward failed {} {}: {:?}",
+                    method, safe_target, e
+                );
                 (
                     StatusCode::BAD_GATEWAY,
                     Json(json!({"error": "proxy error"})),
@@ -532,28 +748,121 @@ impl TestingHTTPProxy {
         }
     }
 
-    /// Renders a truncated, log-safe preview of the outbound Authorization header.
+    /// Renders a fully redacted, log-safe description of the outbound credentials.
     fn preview_auth(credentials: &ResolvedAuthCredentials) -> String {
         match credentials {
             ResolvedAuthCredentials::NoAuth => "Authorization: <none>".to_string(),
-            ResolvedAuthCredentials::BearerToken { token } => {
-                format!("Authorization: Bearer {}", &token[..token.len().min(40)])
+            ResolvedAuthCredentials::BearerToken { .. } => {
+                "Authorization: Bearer [REDACTED]".to_string()
             }
-            ResolvedAuthCredentials::ApiKey { key, value, .. } => {
-                format!("{}: {}...", key, &value[..value.len().min(20)])
+            ResolvedAuthCredentials::ApiKey { key, location, .. } => {
+                format!("ApiKey({location:?}:{key}=[REDACTED])")
             }
             ResolvedAuthCredentials::BasicAuth { username, .. } => {
-                format!("Authorization: Basic <{username}:***>")
+                format!("Authorization: Basic <{username}:[REDACTED]>")
             }
-            ResolvedAuthCredentials::OAuth2 {
-                access_token,
-                token_type,
-                ..
-            } => format!(
-                "Authorization: {} {}",
-                token_type,
-                &access_token[..access_token.len().min(40)]
-            ),
+            ResolvedAuthCredentials::OAuth2 { token_type, .. } => {
+                format!("Authorization: {token_type} [REDACTED]")
+            }
         }
     }
+
+    /// Redacts sensitive query-string values (`token`, `key`, `secret`, `password`,
+    /// `auth`, `sig`, `credential`) before writing a URL to logs or transfer events.
+    pub fn redact_url(raw: &str) -> String {
+        let Ok(mut parsed) = url::Url::parse(raw) else {
+            return "<invalid-url>".to_string();
+        };
+        if parsed.password().is_some() {
+            let _ = parsed.set_password(Some("[REDACTED]"));
+        }
+        if parsed.query().is_some() {
+            let redacted: Vec<(String, String)> = parsed
+                .query_pairs()
+                .map(|(k, v)| {
+                    let lower = k.to_ascii_lowercase();
+                    if lower.contains("token")
+                        || lower.contains("key")
+                        || lower.contains("secret")
+                        || lower.contains("password")
+                        || lower.contains("auth")
+                        || lower.contains("sig")
+                        || lower.contains("credential")
+                    {
+                        (k.into_owned(), "[REDACTED]".to_string())
+                    } else {
+                        (k.into_owned(), v.into_owned())
+                    }
+                })
+                .collect();
+            parsed.query_pairs_mut().clear().extend_pairs(redacted);
+        }
+        parsed.to_string()
+    }
+}
+
+fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for (&x, &y) in a.iter().zip(b.iter()) {
+        diff |= x ^ y;
+    }
+    diff == 0
+}
+
+fn is_global_ip(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(v4) => is_global_ipv4(v4),
+        IpAddr::V6(v6) => is_global_ipv6(v6),
+    }
+}
+
+/// Checks whether an IPv4 address is globally routable per IANA RFC 6890.
+fn is_global_ipv4(ip: Ipv4Addr) -> bool {
+    let octets = ip.octets();
+    if octets[0] == 0 {
+        return false; // 0.0.0.0/8 ("this network")
+    }
+    if ip.is_private() || ip.is_loopback() || ip.is_link_local() || ip.is_multicast() {
+        return false;
+    }
+    if ip.is_documentation() || ip.is_broadcast() {
+        return false;
+    }
+    if octets[0] == 100 && (octets[1] & 0b1100_0000) == 64 {
+        return false; // 100.64.0.0/10 Shared Address Space (RFC 6598)
+    }
+    if octets[0] == 192 && octets[1] == 0 && octets[2] == 0 {
+        return false; // 192.0.0.0/24 IETF Protocol Assignments
+    }
+    if octets[0] == 198 && (octets[1] & 0xfe) == 18 {
+        return false; // 198.18.0.0/15 Benchmarking
+    }
+    if octets[0] >= 240 {
+        return false; // 240.0.0.0/4 Reserved for Future Use + Broadcast
+    }
+    true
+}
+
+/// Checks whether an IPv6 address is globally routable per IANA RFC 6890.
+fn is_global_ipv6(ip: Ipv6Addr) -> bool {
+    if ip.is_unspecified() || ip.is_loopback() || ip.is_multicast() {
+        return false;
+    }
+    if let Some(v4) = ip.to_ipv4_mapped() {
+        return is_global_ipv4(v4);
+    }
+    let segs = ip.segments();
+    if (segs[0] & 0xfe00) == 0xfc00 {
+        return false; // fc00::/7 Unique Local
+    }
+    if (segs[0] & 0xffc0) == 0xfe80 {
+        return false; // fe80::/10 Link-Local Unicast
+    }
+    if segs[0] == 0x2001 && segs[1] == 0x0db8 {
+        return false; // 2001:db8::/32 Documentation
+    }
+    true
 }

@@ -13,7 +13,4 @@ are calls the GUI still makes to routes the backend no longer serves.
  * OpenAPI spec version: 1.0.0
  */
 
-export type SecretStringContent = string | {
-  path: string;
-  key: string;
-};
+export type SecretStringContent = string;

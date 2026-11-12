@@ -51,7 +51,11 @@ pub use facades::connector_instance_facade::remote::ConnectorInstanceRemoteFacad
 pub use facades::connector_instance_facade::{
     ConnectorInstanceFacadeTrait, MockConnectorInstanceFacadeTrait,
 };
-pub use setup::{ConnectorModule, ConnectorPorts};
+pub use entities::errors::ConnectorErrors;
+pub use setup::{
+    ActiveTransferGuard, ConnectorModule, ConnectorPorts, LateBoundTransferGuard,
+    MockActiveTransferGuard,
+};
 
 pub use entities::auth_config::{
     ApiKeyLocation, AuthenticationConfig, BasicAuthConfig, OAuthGrantType, TokenExpireAction,

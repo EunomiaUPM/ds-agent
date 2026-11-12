@@ -140,10 +140,13 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         ctx: &DataplaneHookContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+        let cont = DataplaneContinuation {
             transfer_dto_urn: ctx.process_id.clone(),
-        }))
-        .await?;
+        };
+        mgr.execute_command(DataplaneCommand::SetStopped(cont.clone()))
+            .await?;
+        mgr.execute_command(DataplaneCommand::SetTerminating(cont))
+            .await?;
         Ok(())
     }
 
@@ -162,10 +165,13 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         ctx: &DataplaneHookContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+        let cont = DataplaneContinuation {
             transfer_dto_urn: ctx.process_id.clone(),
-        }))
-        .await?;
+        };
+        mgr.execute_command(DataplaneCommand::SetStopped(cont.clone()))
+            .await?;
+        mgr.execute_command(DataplaneCommand::SetTerminating(cont))
+            .await?;
         Ok(())
     }
 }

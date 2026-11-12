@@ -152,6 +152,8 @@ transfer:
   catalog: *min_known_config
   ssi_auth: *min_known_config
   is_catalog_datahub: *is_catalog_datahub
+  proxy_accept_invalid_certs: false
+  proxy_allow_private_egress: true
 
 # ==========================
 # GATEWAY

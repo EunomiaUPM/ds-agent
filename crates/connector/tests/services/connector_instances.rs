@@ -440,3 +440,81 @@ async fn upsert_with_template_not_visible_is_not_found() {
         ymir::errors::Errors::MissingResourceError { .. }
     ));
 }
+
+/// Deleting an instance while active transfers reference it returns 409 Conflict without touching
+/// the repositories.
+#[tokio::test]
+async fn delete_instance_with_active_transfers_returns_conflict() {
+    let urn = Urn::from_str("urn:uuid:f47ac10b-58cc-4372-a567-0e02b2c3d479").unwrap();
+    let expected_urn = urn.clone();
+
+    let mut guard = connector::MockActiveTransferGuard::new();
+    guard
+        .expect_count_active_transfers()
+        .withf(move |id| *id == expected_urn)
+        .times(1)
+        .returning(|_| Ok(2));
+
+    let svc = build_service(
+        MockConnectorTemplateRepoTrait::new(),
+        MockConnectorInstanceRepoTrait::new(),
+        MockConnectorDistroRelationRepoTrait::new(),
+        MockCatalogFacadeTrait::new(),
+    )
+    .with_transfer_guard(Arc::new(guard));
+
+    let err = svc
+        .delete_instance_by_id(&tenant_2(), &urn)
+        .await
+        .unwrap_err();
+    assert!(connector::ConnectorErrors::is_conflict(&err), "{err:?}");
+}
+
+/// Deleting an instance when all referencing transfers are terminated succeeds.
+#[tokio::test]
+async fn delete_instance_when_no_active_transfers_succeeds() {
+    let urn = Urn::from_str("urn:uuid:f47ac10b-58cc-4372-a567-0e02b2c3d479").unwrap();
+    let urn_str = urn.to_string();
+
+    let mut guard = connector::MockActiveTransferGuard::new();
+    guard
+        .expect_count_active_transfers()
+        .times(1)
+        .returning(|_| Ok(0));
+
+    let mut distro_repo = MockConnectorDistroRelationRepoTrait::new();
+    distro_repo
+        .expect_delete_relation_by_instance()
+        .times(1)
+        .returning(|_, _| Ok(()));
+
+    let mut instance_repo = MockConnectorInstanceRepoTrait::new();
+    instance_repo
+        .expect_delete_instance_by_id()
+        .withf(move |scope, id| *scope == OwnerScope::acting(&tenant_2()) && *id == urn_str)
+        .times(1)
+        .returning(|_, _| Ok(Owner::private(&tenant_2())));
+
+    let svc = build_service(
+        MockConnectorTemplateRepoTrait::new(),
+        instance_repo,
+        distro_repo,
+        MockCatalogFacadeTrait::new(),
+    )
+    .with_transfer_guard(Arc::new(guard));
+
+    let res = svc.delete_instance_by_id(&tenant_2(), &urn).await;
+    assert!(res.is_ok());
+}
+
+/// `VAULT_REF` was removed in favour of keystore-backed `{{__RUNTIME_SECRET_{/key}__}}`
+/// placeholders; attempting to deserialize it must fail cleanly.
+#[test]
+fn removed_vault_ref_secret_source_is_rejected() {
+    let raw = json!({
+        "type": "VAULT_REF",
+        "content": { "path": "/secret", "key": "token" }
+    });
+    let res = serde_json::from_value::<connector::SecretString>(raw);
+    assert!(res.is_err());
+}

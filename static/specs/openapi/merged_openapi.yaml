@@ -3040,7 +3040,8 @@ paths:
       - Peer Connection
       operationId: getHeldPeerToken
       summary: Token the caller already holds towards a peer
-      description: 'The caller''s token, if its grant already covers `need`; `null` otherwise. Never asks the peer for anything. `id` is the peer participant id (DID) in base64url without padding.'
+      description: The caller's token, if its grant already covers `need`; `null` otherwise. Never asks
+        the peer for anything. `id` is the peer participant id (DID) in base64url without padding.
       parameters:
       - $ref: '#/components/parameters/StringPathId'
       requestBody:
@@ -3065,6 +3066,8 @@ paths:
                 - 'null'
         '401':
           $ref: '#/components/responses/Unauthorized'
+      security:
+      - bearerAuth: []
   /api/v1/catalog-agent/catalogs:
     get:
       tags:
@@ -15582,21 +15585,9 @@ components:
           enum:
           - PLAIN
           - BASE64
-          - VAULT_REF
           - ENV_VAR
         content:
-          oneOf:
-          - type: string
-          - type: object
-            description: '`VAULT_REF` location.'
-            required:
-            - path
-            - key
-            properties:
-              path:
-                type: string
-              key:
-                type: string
+          type: string
     SentGrant:
       type: object
       description: Grant this connector requested from a peer.

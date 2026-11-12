@@ -66,7 +66,7 @@ concretos**. El único lugar que conoce los tipos concretos es `setup/`.
   no el *qué*.
 - Agrupa métodos con separadores de sección: `// --- Validación y lookup ---------------`.
 - Pipelines lineales: un método público que orquesta + helpers privados cortos y nombrados.
-  Referencia: `TestingHTTPProxy::proxy` en `dataplane/src/testing_proxy/http/http.rs`.
+  Referencia: `HttpDataProxy::proxy` en `dataplane/src/proxy/http/http.rs`.
 
 ---
 
@@ -256,7 +256,7 @@ Referencia: `dataplane/src/errors/mod.rs`.
 
 Cuando un error solo vive dentro de un módulo (p. ej. condiciones de salida temprana de un
 handler HTTP), declara un enum **local** con su propio `IntoResponse`, mapeando cada variante a
-su `StatusCode`. Referencia: `ProxyError` en `dataplane/src/testing_proxy/http/http.rs`.
+su `StatusCode`. Referencia: `ProxyError` en `dataplane/src/proxy/http/http.rs`.
 
 ### 5.3 Errores de repo
 

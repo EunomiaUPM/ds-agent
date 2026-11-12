@@ -87,7 +87,7 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
         let id = ctx.process_id.clone();
-        mgr.execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
+        mgr.execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
             transfer_dto_urn: id,
         }))
         .await?;
@@ -111,7 +111,7 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
         let id = ctx.process_id.clone();
-        mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
+        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
             transfer_dto_urn: id,
         }))
         .await?;
@@ -133,10 +133,13 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         ctx: &DataplaneHookContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
+        let cont = DataplaneContinuation {
             transfer_dto_urn: ctx.process_id.clone(),
-        }))
-        .await?;
+        };
+        mgr.execute_command(DataplaneCommand::SetStopped(cont.clone()))
+            .await?;
+        mgr.execute_command(DataplaneCommand::SetTerminating(cont))
+            .await?;
         Ok(())
     }
 
@@ -155,10 +158,13 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         ctx: &DataplaneHookContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
+        let cont = DataplaneContinuation {
             transfer_dto_urn: ctx.process_id.clone(),
-        }))
-        .await?;
+        };
+        mgr.execute_command(DataplaneCommand::SetStopped(cont.clone()))
+            .await?;
+        mgr.execute_command(DataplaneCommand::SetTerminating(cont))
+            .await?;
         Ok(())
     }
 }

@@ -81,9 +81,9 @@ Placeholders, by when they are resolved:
 
 When a template is created, every `{{__NAME__}}` it uses must be declared in `parameters` and
 every declaration must be used, with a type that fits where it appears (`STRING`, `INT`,
-`BOOLEAN`, `VEC<STRING>`, `MAP<STRING,STRING>`). Secret fields (`SecretString`) can come
-`PLAIN`, `BASE64`, from `VAULT_REF` or from `ENV_VAR`, and their content can hold placeholders
-too.
+`BOOLEAN`, `VEC<STRING>`, `MAP<STRING,STRING>`). Secret fields (`SecretString`) can come as
+`PLAIN`, `BASE64`, or from `ENV_VAR`, and their content can hold placeholders (including
+`{{__RUNTIME_SECRET_{/key}__}}` backed by the keystore/Vault) too.
 
 ## Instances
 

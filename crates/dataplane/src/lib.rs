@@ -23,7 +23,7 @@
 //! `{api}/transfer-agent/dataplane` and the data proxy on the path advertised in each data address.
 //!
 //! Modules: [`entities`], [`services`], [`data`], [`cache`], [`http`], [`engine`],
-//! [`testing_proxy`] (the HTTP data proxy), [`setup`].
+//! [`proxy`] (the HTTP data proxy), [`setup`].
 
 pub mod cache;
 pub mod data;
@@ -31,9 +31,9 @@ pub mod engine;
 pub mod entities;
 pub mod errors;
 pub mod http;
+pub mod proxy;
 pub mod services;
 pub mod setup;
-pub mod testing_proxy;
 
 pub use data::migrations::get_dataplane_migrations;
 pub use engine::dataplane_manager::dataplane_commands::{

@@ -70,11 +70,15 @@ impl CatalogAgentModule {
         let events = NoopEventSink::or_bus(event_bus.clone());
         let ctx = AppContext::build(config, root, cache, events, ports.clone());
         let catalog_facade: Arc<dyn CatalogFacadeTrait> = Arc::new(CatalogLocalFacade::new(ctx.clone()));
+        let mut connector_ports = ConnectorPorts::local(catalog_facade.clone());
+        if let Some(guard) = &ports.transfer_guard {
+            connector_ports = connector_ports.with_transfer_guard(guard.clone());
+        }
         let connector = ConnectorModule::compose(
             config,
             root,
             event_bus,
-            &ConnectorPorts::local(catalog_facade.clone()),
+            &connector_ports,
         );
         let connector_instances = connector.local_connector_instances();
         // A new profile is one more module here: its routes mount and the doctor sees it.

@@ -17,8 +17,14 @@
 
 use crate::DataplaneAddress;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 pub const HTTP_LISTENER_PATH: &str = "/dataplane/proxy/";
+
+/// Generates a 256-bit random capability token (64 hex chars) for per-transfer proxy ingress.
+pub fn generate_ingress_token() -> String {
+    format!("{}{}", Uuid::new_v4().simple(), Uuid::new_v4().simple())
+}
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum DataplaneProxyIngress {

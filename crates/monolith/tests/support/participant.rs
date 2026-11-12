@@ -75,6 +75,7 @@ impl Participant {
 
         let events = EventsModule::compose(&root);
         let bus = Some(events.event_bus());
+        let transfer_guard = std::sync::Arc::new(connector::LateBoundTransferGuard::new());
         let catalog = CatalogAgentModule::compose(
             &Self::section(
                 &common,
@@ -88,7 +89,7 @@ impl Participant {
             ),
             &root,
             bus.clone(),
-            &CatalogPorts::local(auth.clone()),
+            &CatalogPorts::local(auth.clone()).with_transfer_guard(transfer_guard.clone()),
         )
         .await
         .expect("compose catalog");
@@ -118,6 +119,7 @@ impl Participant {
                         "catalog": Self::known(port),
                         "is_catalog_datahub": false,
                         "ssi_auth": Self::known(port),
+                        "proxy_allow_private_egress": true,
                     }),
                 );
                 let ports = TransferPorts::local(
@@ -130,6 +132,9 @@ impl Participant {
                 )
                 .await
                 .expect("compose transfer ports");
+                if let Some(dp) = ports.dataplane_module() {
+                    transfer_guard.bind(dp.active_transfer_guard());
+                }
                 Some(TransferAgentModule::compose(&config, &root, bus, &ports))
             }
             Err(_) => None,

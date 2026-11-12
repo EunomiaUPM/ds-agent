@@ -44,8 +44,6 @@ impl DriverAuthenticatorTrait for BearerTokenAuthenticator {
         };
 
         let resolved = token.resolve().await?;
-        dbg!(&resolved);
-        dbg!(&token);
 
         let mut ctx = context.clone();
         ctx.set_runtime(DataplaneRuntime {

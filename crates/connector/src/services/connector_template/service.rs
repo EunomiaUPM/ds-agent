@@ -227,15 +227,10 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
         name: &str,
         version: &str,
     ) -> Outcome<()> {
-
         self.repo
             .get_templates_repo()
             .delete_template_by_name_and_version(&OwnerScope::acting(user), name, version)
-            .await
-            .map_err(|e| {
-                error!("{e}");
-                Errors::db(e.to_string(), None)
-            })?;
+            .await?;
 
         let deleted = events::EntityDeletedDto::new(format!("{name}:{version}"));
         events::emit_action!(

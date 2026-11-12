@@ -19,6 +19,5 @@ export type SecretStringType = typeof SecretStringType[keyof typeof SecretString
 export const SecretStringType = {
   PLAIN: 'PLAIN',
   BASE64: 'BASE64',
-  VAULT_REF: 'VAULT_REF',
   ENV_VAR: 'ENV_VAR',
 } as const;

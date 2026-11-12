@@ -134,24 +134,29 @@ impl<'a> RuntimeSecretVault<'a> {
                 expires_at,
                 refresh_token,
             } => {
+                let re = template_runtime_secret_regex();
+                let at_already_vaulted = re.is_match(access_token);
                 let at_path = format!("{prefix}/access-token");
 
-                let resolved_refresh = if let Some(rt) = refresh_token {
-                    let rt_path = format!("{prefix}/refresh-token");
-                    let (r1, r2) = tokio::join!(
-                        self.upsert(&at_path, json!(access_token)),
-                        self.upsert(&rt_path, json!(rt))
-                    );
-                    r1?;
-                    r2?;
-                    Some(Self::placeholder(&rt_path))
+                let exported_at = if at_already_vaulted {
+                    access_token.clone()
                 } else {
                     self.upsert(&at_path, json!(access_token)).await?;
-                    None
+                    Self::placeholder(&at_path)
+                };
+
+                let resolved_refresh = match refresh_token {
+                    Some(rt) if re.is_match(rt) => Some(rt.clone()),
+                    Some(rt) => {
+                        let rt_path = format!("{prefix}/refresh-token");
+                        self.upsert(&rt_path, json!(rt)).await?;
+                        Some(Self::placeholder(&rt_path))
+                    }
+                    None => None,
                 };
 
                 ResolvedAuthCredentials::OAuth2 {
-                    access_token: Self::placeholder(&at_path),
+                    access_token: exported_at,
                     token_type: token_type.clone(),
                     expires_at: *expires_at,
                     refresh_token: resolved_refresh,

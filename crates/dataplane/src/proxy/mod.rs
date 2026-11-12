@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! HTTP data proxy between consumers and the back end.
+//! Data plane proxy adapters between external callers and configured egress targets.
 
 pub mod http;
+
+pub use http::http::HttpDataProxy;

@@ -188,6 +188,19 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
     }
 
     #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn count_active_by_connector_instance(
+        &self,
+        connector_instance_id: &Urn,
+    ) -> Outcome<u64> {
+        DataplaneTransferEntity::find()
+            .filter(Column::ConnectorInstanceId.eq(connector_instance_id.to_string()))
+            .filter(Column::State.ne(dataplane_transfers::TransferState::Terminated))
+            .count(self.db.as_ref())
+            .await
+            .map_err(Self::fetch_err)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_by_transfer_process_id(
         &self,
         scope: &OwnerScope,

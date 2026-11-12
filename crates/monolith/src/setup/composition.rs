@@ -58,7 +58,9 @@ impl MonolithModule {
         let auth = AuthModule::compose(config.ssi_auth()?, root, bus.clone()).await?;
         let auth_ports = auth.local_ports();
         let self_participant = auth.self_participant_onboarder();
-        let catalog_ports = CatalogPorts::local(auth_ports.clone());
+        let transfer_guard = Arc::new(connector::LateBoundTransferGuard::new());
+        let catalog_ports =
+            CatalogPorts::local(auth_ports.clone()).with_transfer_guard(transfer_guard.clone());
         let catalog =
             CatalogAgentModule::compose(config.catalog()?, root, bus.clone(), &catalog_ports)
                 .await?;
@@ -82,6 +84,9 @@ impl MonolithModule {
             catalog.local_connector_instances(),
         )
         .await?;
+        if let Some(dp) = transfer_ports.dataplane_module() {
+            transfer_guard.bind(dp.active_transfer_guard());
+        }
         let modules = ModuleGroup::new("monolith")
             .register(catalog)
             .register(auth)

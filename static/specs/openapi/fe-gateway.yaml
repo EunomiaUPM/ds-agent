@@ -14057,21 +14057,9 @@ components:
           enum:
           - PLAIN
           - BASE64
-          - VAULT_REF
           - ENV_VAR
         content:
-          oneOf:
-          - type: string
-          - type: object
-            description: '`VAULT_REF` location.'
-            required:
-            - path
-            - key
-            properties:
-              path:
-                type: string
-              key:
-                type: string
+          type: string
     SentGrant:
       type: object
       description: Grant this connector requested from a peer.

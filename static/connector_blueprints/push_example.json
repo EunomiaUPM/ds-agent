@@ -3,11 +3,8 @@
     "type": "BASIC_AUTH",
     "username": "{{__BLA__}}",
     "password": {
-      "type": "VAULT_REF",
-      "content": {
-        "path": "asdasd",
-        "key": "asdasd"
-      }
+      "type": "PLAIN",
+      "content": "{{__RUNTIME_SECRET_{/push-secret}__}}"
     }
   },
   "interaction": {

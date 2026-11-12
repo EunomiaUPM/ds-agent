@@ -20,4 +20,6 @@ pub mod context;
 mod ports;
 
 pub use composition::ConnectorModule;
-pub use ports::ConnectorPorts;
+pub use ports::{
+    ActiveTransferGuard, ConnectorPorts, LateBoundTransferGuard, MockActiveTransferGuard,
+};

@@ -136,10 +136,14 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         ctx: &DataplaneHookContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
+        let cont = DataplaneContinuation {
             transfer_dto_urn: ctx.process_id.clone(),
-        }))
-        .await?;
+        };
+        let _ = mgr
+            .execute_command(DataplaneCommand::SetUnsubscribing(cont.clone()))
+            .await;
+        mgr.execute_command(DataplaneCommand::SetTerminating(cont))
+            .await?;
         Ok(())
     }
 
@@ -159,10 +163,14 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         ctx: &DataplaneHookContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
+        let cont = DataplaneContinuation {
             transfer_dto_urn: ctx.process_id.clone(),
-        }))
-        .await?;
+        };
+        let _ = mgr
+            .execute_command(DataplaneCommand::SetUnsubscribing(cont.clone()))
+            .await;
+        mgr.execute_command(DataplaneCommand::SetTerminating(cont))
+            .await?;
         Ok(())
     }
 }

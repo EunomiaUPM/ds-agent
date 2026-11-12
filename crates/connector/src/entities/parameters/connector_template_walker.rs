@@ -33,10 +33,6 @@ pub trait ConnectorTemplateWalker {
         match &mut secret.source {
             SecretSource::Plain(s) => self.on_string(s),
             SecretSource::Base64(s) => self.on_string(s),
-            SecretSource::VaultRef { path, key } => {
-                self.on_string(path)?;
-                self.on_string(key)
-            }
             SecretSource::EnvVar(s) => self.on_string(s),
         }
     }

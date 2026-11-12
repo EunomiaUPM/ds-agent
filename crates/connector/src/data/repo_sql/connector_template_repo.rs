@@ -22,10 +22,13 @@ use crate::data::repo_traits::connector_repo_errors::{
     ConnectorAgentRepoErrors, ConnectorTemplateRepoErrors,
 };
 use crate::data::repo_traits::connector_template_repo::ConnectorTemplateRepoTrait;
+use crate::entities::errors::ConnectorErrors;
 use crate::entities::filters::ConnectorTemplateFilter;
 use ymir::paginated_spec::{Page, SelectCursorExt, Sort};
 use ymir::query::FilterApplier;
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Select};
+use sea_orm::{
+    ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Select, SqlErr,
+};
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 impl FilterApplier<Select<connector_templates::Entity>> for ConnectorTemplateFilter {
@@ -191,10 +194,17 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
                 .into_errors()),
                 _ => Ok(()),
             },
-            Err(err) => Err(ConnectorAgentRepoErrors::ConnectorTemplateRepoErrors(
-                ConnectorTemplateRepoErrors::ErrorDeletingTemplate(err.to_string()),
-            )
-            .into_errors()),
+            Err(err) => match err.sql_err() {
+                Some(SqlErr::ForeignKeyConstraintViolation(_)) => Err(ConnectorErrors::conflict(
+                    format!(
+                        "connector template {name}:{version} is still referenced by one or more connector instances"
+                    ),
+                )),
+                _ => Err(ConnectorAgentRepoErrors::ConnectorTemplateRepoErrors(
+                    ConnectorTemplateRepoErrors::ErrorDeletingTemplate(err.to_string()),
+                )
+                .into_errors()),
+            },
         }
     }
 }

@@ -63,6 +63,12 @@ pub trait DataplaneTransfersRepo: Send + Sync + 'static {
         id: &Urn,
     ) -> Outcome<Option<dataplane_transfers::Model>>;
 
+    /// Number of non-terminated dataplane transfers referencing `connector_instance_id`.
+    async fn count_active_by_connector_instance(
+        &self,
+        connector_instance_id: &Urn,
+    ) -> Outcome<u64>;
+
     /// Process serving the given control-plane transfer process.
     async fn get_by_transfer_process_id(
         &self,

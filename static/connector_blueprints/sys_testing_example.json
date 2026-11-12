@@ -3,11 +3,8 @@
     "type": "BASIC_AUTH",
     "username": "user",
     "password": {
-      "type": "VAULT_REF",
-      "content": {
-        "path": "/users",
-        "key": "user"
-      }
+      "type": "PLAIN",
+      "content": "{{__RUNTIME_SECRET_{/users/user}__}}"
     }
   },
   "interaction": {

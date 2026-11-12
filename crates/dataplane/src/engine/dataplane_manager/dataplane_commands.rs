@@ -263,6 +263,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     async fn set_started(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         let new_state = TransferState::Started;
+        let flow_control = self.export_runtime_flow_control(&context).await?;
         let dataplane_process = self
             .dataplane_service()
             .edit(
@@ -270,6 +271,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
+                    flow_control,
                     ..EditDataplaneTransferDto::default()
                 },
             )
@@ -313,7 +315,10 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     }
     #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_unsubscribing(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
-        if context.dataplane_process().inner.state == TransferState::Stopped {
+        if matches!(
+            context.dataplane_process().inner.state,
+            TransferState::Ready | TransferState::Stopped | TransferState::Terminated
+        ) {
             return Ok(context);
         }
         let subscriber = context.driver().and_then(|d| d.subscriber.clone());
@@ -347,9 +352,8 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_stopped(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
-        // state
         let new_state = TransferState::Stopped;
-        // driver.auth
+        let flow_control = self.export_runtime_flow_control(&context).await?;
         let dataplane_process = self
             .dataplane_service()
             .edit(
@@ -357,6 +361,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
+                    flow_control,
                     ..EditDataplaneTransferDto::default()
                 },
             )

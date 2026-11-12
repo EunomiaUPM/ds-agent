@@ -53,19 +53,20 @@ pub enum AuthenticationConfig {
 
     /// HTTP Basic Authentication.
     ///
-    /// `username` supports `{{__PARAM__}}` placeholders.
-    /// `password` is a [`SecretString`] and is not parameterisable.
+    /// Both `username` and `password` ([`SecretString`]) support `{{__PARAM__}}`
+    /// and `{{__RUNTIME_SECRET_{/key}__}}` placeholders.
     BasicAuth(BasicAuthConfig),
 
     /// Bearer token authentication.
     ///
-    /// `token` is a [`SecretString`] and is not parameterisable.
+    /// `token` ([`SecretString`]) supports `{{__PARAM__}}` and
+    /// `{{__RUNTIME_SECRET_{/key}__}}` placeholders.
     BearerToken { token: SecretString },
 
     /// API key authentication (header or query parameter).
     ///
-    /// `key` (the header/query-parameter name) supports `{{__PARAM__}}` placeholders.
-    /// `value` is a [`SecretString`] and is not parameterisable.
+    /// Both `key` and `value` ([`SecretString`]) support `{{__PARAM__}}` and
+    /// `{{__RUNTIME_SECRET_{/key}__}}` placeholders.
     ApiKey {
         key: TemplateString,
         value: SecretString,

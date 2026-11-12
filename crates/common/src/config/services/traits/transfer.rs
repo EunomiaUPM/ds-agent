@@ -30,4 +30,12 @@ pub trait TransferConfigTrait: CommonConfigTrait + ConfigLoader {
     fn cache(&self) -> &CacheConfig;
     /// Whether the catalog is backed by a datahub.
     fn is_catalog_datahub(&self) -> bool;
+    /// Whether the HTTP data proxy accepts invalid/self-signed upstream TLS certificates (dev only).
+    fn proxy_accept_invalid_certs(&self) -> bool {
+        false
+    }
+    /// Whether the HTTP data proxy permits outbound egress to loopback/RFC1918/link-local addresses (dev/Docker local only).
+    fn proxy_allow_private_egress(&self) -> bool {
+        false
+    }
 }

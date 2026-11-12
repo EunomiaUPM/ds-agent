@@ -21,6 +21,7 @@
 use std::sync::Arc;
 
 use axum::Router;
+use common::config::services::traits::TransferConfigTrait;
 use common::config::services::TransferConfig;
 use ymir::config::traits::CommonConfigTrait;
 use ymir::module_loader::root_context::RootContext;
@@ -35,9 +36,9 @@ use crate::engine::dataplane_manager::dataplane_proxy::HTTP_LISTENER_PATH;
 use crate::http::dataplane_info::DataPlaneProcessesRouter;
 use crate::http::dataplane_transfer_logs::DataplaneTransferLogsRouter;
 use crate::http::transfer_events::TransferEventsRouter;
+use crate::proxy::HttpDataProxy;
 use crate::setup::context::AppContext;
 use crate::setup::ports::DataplanePorts;
-use crate::testing_proxy::http::http::TestingHTTPProxy;
 use common::routes::dataplane as routes;
 
 /// Dataplane as a module: control API under its prefix and the data proxy.
@@ -46,6 +47,8 @@ pub struct DataplaneModule {
     prefix: String,
     /// Public base URL of the agent, used to announce the proxy ingress URL to peers.
     public_base_url: String,
+    proxy_accept_invalid_certs: bool,
+    proxy_allow_private_egress: bool,
     ctx: AppContext,
 }
 
@@ -62,6 +65,8 @@ impl DataplaneModule {
                 config.common().get_api_version()
             ),
             public_base_url: config.common().get_host(HostType::Http),
+            proxy_accept_invalid_certs: config.proxy_accept_invalid_certs(),
+            proxy_allow_private_egress: config.proxy_allow_private_egress(),
             ctx: AppContext::build(config, root, ports).await?,
         })
     }
@@ -69,6 +74,13 @@ impl DataplaneModule {
     /// Manager driven in-process by the transfer agent that hosts the dataplane.
     pub fn local_manager(&self) -> Arc<DataplaneManager> {
         self.ctx.manager.clone()
+    }
+
+    /// Guard consulted by the connector service before deleting a connector instance.
+    pub fn active_transfer_guard(&self) -> Arc<dyn connector::ActiveTransferGuard> {
+        Arc::new(DataplaneActiveTransferGuard {
+            repo: self.ctx.repo.clone(),
+        })
     }
 
     /// Static, so the hosting agent's migrator can list them.
@@ -99,11 +111,13 @@ impl DataplaneModule {
             ))
     }
 
-    /// Data proxy with keystore-backed lookup.
+    /// Data proxy with keystore-backed lookup and security policy from config.
     fn proxy_router(&self) -> Router {
         let ctx = &self.ctx;
-        TestingHTTPProxy::new(ctx.transfer_svc.clone(), ctx.repo.clone())
+        HttpDataProxy::new(ctx.transfer_svc.clone(), ctx.repo.clone())
             .with_keystore(ctx.keystore_lookup.clone())
+            .with_accept_invalid_certs(self.proxy_accept_invalid_certs)
+            .with_allow_private_egress(self.proxy_allow_private_egress)
             .router()
     }
 }
@@ -126,5 +140,19 @@ impl ServiceModuleTrait for DataplaneModule {
                 self.proxy_router(),
             );
         Some((String::new(), router))
+    }
+}
+
+struct DataplaneActiveTransferGuard {
+    repo: Arc<dyn crate::data::factory_trait::DataplaneRepoTrait>,
+}
+
+#[async_trait::async_trait]
+impl connector::ActiveTransferGuard for DataplaneActiveTransferGuard {
+    async fn count_active_transfers(&self, instance_id: &urn::Urn) -> Outcome<u64> {
+        self.repo
+            .get_dataplane_transfers_repo()
+            .count_active_by_connector_instance(instance_id)
+            .await
     }
 }

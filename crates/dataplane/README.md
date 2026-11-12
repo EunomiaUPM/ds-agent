@@ -20,7 +20,7 @@ src/
 │   │                        runtime types, driver factory
 │   └── dataplane_drivers/   Authenticators, proxy configurators, pub/sub subscribers,
 │                            KeystoreClientImpl
-├── testing_proxy/   The HTTP data proxy (used in production despite its name)
+├── proxy/           HttpDataProxy: production HTTP data proxy (ingress auth, anti-SSRF, credentials)
 ├── cache/           Redis cache of dataplane processes
 ├── data/            Repository traits, SeaORM repositories and migrations
 ├── http/            Control API: processes, logs and events
@@ -83,15 +83,26 @@ static credentials are kept as resolved.
 
 `ANY /dataplane/proxy/{dataplane_id}[/{path}]` forwards the request to the process's egress:
 
-- The dataplane id in the URL is the capability: no bearer token is checked.
-- Only processes in `Started` are served; any other state answers 403.
-- The path and query are appended to the egress URL. Hop-by-hop headers and the incoming
-  `Authorization` are dropped, and the process's credentials are added.
+- Per-transfer capability tokens are minted when configuring `HttpListener` ingress (carried in
+  `DataAddress` as `Bearer <token>` for `Pull`/peer push hops and embedded as `?ingress_token=…`
+  in `{{__RUNTIME_INGRESS__}}` for backend webhook callbacks). Missing tokens return `401` and
+  invalid tokens return `403`; `ingress_token` and inbound `Authorization` are stripped before
+  forwarding upstream.
+- Only processes in `Started` are served; any other state answers `403`.
+- Egress targets are checked against SSRF rules: non-HTTP(S) schemes, loopback, RFC1918 private
+  networks, link-local/cloud metadata (`169.254.169.254`) and `.localhost`/`.internal` domains are
+  blocked (`403`) unless `proxy_allow_private_egress: true` is explicitly enabled in `TransferConfig`
+  for local/Docker development.
+- Outbound credentials come from `flow_control.auth` on `(Provider, Pull)` and strictly from the
+  peer/sink `egress` configuration on all other combinations, preventing provider backend secrets
+  from leaking to consumer sinks.
 - Bodies are limited to 2 MiB; the upstream connection times out after 10 s and the exchange
   after 30 s.
-- Each request is recorded as a transfer event of the process, with method, target and status.
+- Each request is recorded as a transfer event of the process with sensitive query parameters and
+  credentials redacted.
 
-The proxy's HTTP client accepts invalid upstream certificates.
+The proxy's HTTP client verifies upstream TLS certificates by default
+(`proxy_accept_invalid_certs: false`).
 
 ## Setup
 

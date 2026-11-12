@@ -22,12 +22,14 @@ use crate::entities::connector_instance::{
     ConnectorInstanceDto, ConnectorInstantiationDto, InstanceMetadataDto,
 };
 use crate::entities::connector_template::{ConnectorMetadata, ConnectorTemplateDto};
+use crate::entities::errors::ConnectorErrors;
 use crate::entities::interaction::InteractionConfig;
 use crate::entities::parameters::instance_parameters_map::InstanceParametersMapBuilder;
 use crate::entities::parameters::instance_parameters_resolver::InstanceParametersResolver;
 use crate::entities::parameters::instance_parameters_validator::InstanceParametersValidator;
-use common::facades::catalog::CatalogFacadeTrait;
 use crate::services::connector_instance::ConnectorInstanceServiceTrait;
+use crate::setup::ActiveTransferGuard;
+use common::facades::catalog::CatalogFacadeTrait;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
@@ -40,6 +42,7 @@ pub struct ConnectorInstanceService {
     /// `{{__SYS_OWN_URL_DOCKER__}}` placeholders during instance creation.
     own_url: String,
     event_bus: Option<events::EventBus>,
+    transfer_guard: Option<Arc<dyn ActiveTransferGuard>>,
 }
 
 impl ConnectorInstanceService {
@@ -53,11 +56,17 @@ impl ConnectorInstanceService {
             distribution_facade,
             own_url,
             event_bus: None,
+            transfer_guard: None,
         }
     }
 
     pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
         self.event_bus = event_bus;
+        self
+    }
+
+    pub fn with_transfer_guard(mut self, guard: Arc<dyn ActiveTransferGuard>) -> Self {
+        self.transfer_guard = Some(guard);
         self
     }
 
@@ -275,6 +284,15 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn delete_instance_by_id(&self, user: &UserInfo, id: &Urn) -> Outcome<()> {
+        if let Some(guard) = &self.transfer_guard {
+            let active = guard.count_active_transfers(id).await?;
+            if active > 0 {
+                return Err(ConnectorErrors::conflict(format!(
+                    "connector instance {id} is referenced by {active} active transfer(s); terminate them before deleting the instance"
+                )));
+            }
+        }
+
         let id_str = id.to_string();
 
         let _ = self

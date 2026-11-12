@@ -168,10 +168,36 @@ impl HttpProxyDriver {
             .map_err(|e| {
                 DataplaneError::ProxyRequestFailed {
                     method: method_str,
-                    url: url.clone(),
+                    url: Self::redact_url_for_error(target_url),
                     reason: e.to_string(),
                 }
                 .into()
             })
+    }
+
+    fn redact_url_for_error(raw: &str) -> String {
+        let Ok(mut parsed) = url::Url::parse(raw) else {
+            return "<invalid-url>".to_string();
+        };
+        if parsed.query().is_some() {
+            let redacted: Vec<(String, String)> = parsed
+                .query_pairs()
+                .map(|(k, v)| {
+                    let lower = k.to_ascii_lowercase();
+                    if lower.contains("token")
+                        || lower.contains("key")
+                        || lower.contains("secret")
+                        || lower.contains("password")
+                        || lower.contains("auth")
+                    {
+                        (k.into_owned(), "[REDACTED]".to_string())
+                    } else {
+                        (k.into_owned(), v.into_owned())
+                    }
+                })
+                .collect();
+            parsed.query_pairs_mut().clear().extend_pairs(redacted);
+        }
+        parsed.to_string()
     }
 }

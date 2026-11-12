@@ -36,6 +36,10 @@ pub struct TransferConfig {
     catalog: MinKnownConfig,
     is_catalog_datahub: bool,
     ssi_auth: MinKnownConfig,
+    #[serde(default)]
+    proxy_accept_invalid_certs: bool,
+    #[serde(default)]
+    proxy_allow_private_egress: bool,
 }
 
 impl TransferConfigTrait for TransferConfig {
@@ -53,6 +57,12 @@ impl TransferConfigTrait for TransferConfig {
     }
     fn is_catalog_datahub(&self) -> bool {
         self.is_catalog_datahub
+    }
+    fn proxy_accept_invalid_certs(&self) -> bool {
+        self.proxy_accept_invalid_certs
+    }
+    fn proxy_allow_private_egress(&self) -> bool {
+        self.proxy_allow_private_egress
     }
 }
 impl ConfigLoader for TransferConfig {

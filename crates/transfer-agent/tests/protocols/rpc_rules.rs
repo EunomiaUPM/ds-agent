@@ -23,6 +23,12 @@ use transfer_agent::protocols::dsp::entities::message_types::TransferDSPMessageT
 use transfer_agent::protocols::dsp::entities::message_types::TransferDSPMessageType::{
     TransferRequestMessage, TransferStartMessage, TransferTerminationMessage,
 };
+use transfer_agent::protocols::dsp::entities::state::TransferDSPState::{
+    REQUESTED, STARTED, SUSPENDED,
+};
+use transfer_agent::protocols::dsp::entities::state_metadata::TransferDSPStateAttribute::{
+    ByConsumer, ByProvider, OnRequest,
+};
 use transfer_agent::protocols::dsp::services::validator::TransferRpcRules;
 use serde_json::json;
 use transfer_agent::protocols::dsp::entities::context_rpc::{
@@ -82,15 +88,59 @@ async fn a_body_for_another_route_is_rejected() {
     assert!(err.to_string().contains("@type"), "{err}");
 }
 
-/// Only a consumer requests, only a provider starts, and a relay sends nothing.
+/// Only a consumer requests, a relay sends nothing, and a consumer only sends Start to resume
+/// a transfer it suspended itself.
 #[test]
 fn each_role_sends_only_its_messages() {
     assert!(TransferRules::role_may_send(&Consumer, &TransferRequestMessage, "role").is_ok());
     assert!(TransferRules::role_may_send(&Provider, &TransferRequestMessage, "role").is_err());
     assert!(TransferRules::role_may_send(&Provider, &TransferStartMessage, "role").is_ok());
-    assert!(TransferRules::role_may_send(&Consumer, &TransferStartMessage, "role").is_err());
+    assert!(TransferRules::role_may_send(&Consumer, &TransferStartMessage, "role").is_ok());
     assert!(TransferRules::role_may_send(&Consumer, &TransferTerminationMessage, "role").is_ok());
     assert!(TransferRules::role_may_send(&Relay, &TransferTerminationMessage, "role").is_err());
+
+    // Outbound start state gate: Consumer may only send Start in SUSPENDED
+    assert!(TransferRules::start_sent_in(&Provider, Some(&REQUESTED), "state").is_ok());
+    assert!(TransferRules::start_sent_in(&Provider, Some(&SUSPENDED), "state").is_ok());
+    assert!(TransferRules::start_sent_in(&Consumer, Some(&REQUESTED), "state").is_err());
+    assert!(TransferRules::start_sent_in(&Consumer, Some(&STARTED), "state").is_err());
+    assert!(TransferRules::start_sent_in(&Consumer, Some(&SUSPENDED), "state").is_ok());
+    assert!(TransferRules::start_sent_in(&Relay, Some(&SUSPENDED), "state").is_err());
+}
+
+/// Option A (Provider suspends -> Provider resumes; Consumer resume fails) and
+/// Option B (Consumer suspends -> Consumer resumes; Provider resume fails) on outbound RPC.
+#[test]
+fn outbound_suspension_semaphore_enforces_who_suspended_resumes() {
+    // Initial start from REQUESTED (OnRequest): only Provider may send
+    assert!(
+        TransferRules::outbound_semaphore(&OnRequest, &TransferStartMessage, &Provider, "sem")
+            .is_ok()
+    );
+    assert!(
+        TransferRules::outbound_semaphore(&OnRequest, &TransferStartMessage, &Consumer, "sem")
+            .is_err()
+    );
+
+    // Option A: Provider suspended (ByProvider) -> Provider resumes, Consumer rejected
+    assert!(
+        TransferRules::outbound_semaphore(&ByProvider, &TransferStartMessage, &Provider, "sem")
+            .is_ok()
+    );
+    assert!(
+        TransferRules::outbound_semaphore(&ByProvider, &TransferStartMessage, &Consumer, "sem")
+            .is_err()
+    );
+
+    // Option B: Consumer suspended (ByConsumer) -> Consumer resumes, Provider rejected
+    assert!(
+        TransferRules::outbound_semaphore(&ByConsumer, &TransferStartMessage, &Consumer, "sem")
+            .is_ok()
+    );
+    assert!(
+        TransferRules::outbound_semaphore(&ByConsumer, &TransferStartMessage, &Provider, "sem")
+            .is_err()
+    );
 }
 
 fn agreement() -> OdrlAgreement {

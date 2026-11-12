@@ -144,6 +144,23 @@ impl DataplaneManager {
         )
         .get_strategy(&context);
 
+        if !handler_strategy.accepts_command(&command, &context) {
+            return Err(DataplaneError::UnexpectedCommand {
+                command: format!(
+                    "{} for {} in state {:?}",
+                    command,
+                    handler_strategy.handler_name(),
+                    context.dataplane_process().inner.state
+                ),
+            }
+            .into());
+        }
+
+        let returns_address = matches!(
+            command,
+            DataplaneCommand::SetInit(_) | DataplaneCommand::GetAssociated(_)
+        );
+
         // Dispatch to the appropriate handler method
         let new_context = match command {
             DataplaneCommand::GetAssociated(_) => handler_strategy.get_associated(context),
@@ -158,12 +175,13 @@ impl DataplaneManager {
         }
         .await?;
 
-        if let Some(forward_address) = new_context.forward_dataplane_address() {
-            Ok(DataplaneCommandResponse::OkWithAddress(
-                forward_address.clone(),
-            ))
-        } else {
-            Ok(DataplaneCommandResponse::Ok)
+        if returns_address && new_context.proxy().is_some() {
+            if let Some(forward_address) = new_context.forward_dataplane_address() {
+                return Ok(DataplaneCommandResponse::OkWithAddress(
+                    forward_address.clone(),
+                ));
+            }
         }
+        Ok(DataplaneCommandResponse::Ok)
     }
 }

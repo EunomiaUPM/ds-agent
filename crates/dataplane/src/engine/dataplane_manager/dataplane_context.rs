@@ -183,11 +183,9 @@ impl DataplaneContext {
             forward_dataplane_address: dataplane_address,
         };
 
-        // driver to context
-        context.driver = match &connector {
-            Some(_) => Some(driver_factory.get_or_create_driver(&context)?),
-            None => None, // Consumer has no driver
-        };
+        // driver to context (both Provider and Consumer resolve their role/mode driver;
+        // ConsumerPush in particular needs NoOpPubSubscriber on continuations)
+        context.driver = Some(driver_factory.get_or_create_driver(&context)?);
 
         // proxy to context
         let ingress = serde_json::from_value::<DataplaneProxyIngress>(
@@ -197,7 +195,9 @@ impl DataplaneContext {
             dataplane_process.inner.egress_config.clone(),
         );
         if let (Ok(ingress), Ok(egress)) = (ingress, egress) {
-            context.forward_dataplane_address = Some(egress.clone().into());
+            if context.forward_dataplane_address.is_none() {
+                context.forward_dataplane_address = Some(egress.clone().into());
+            }
             context.proxy = Some(DataplaneProxy { ingress, egress });
         }
 

@@ -165,14 +165,15 @@ mod tests {
         role: DpRole,
         mode: InteractionMode,
         initial: TransferState,
-    ) -> (DataPlaneLocalFacade, Arc<Mutex<TransferState>>) {
-        let state = Arc::new(Mutex::new(initial));
+    ) -> (DataPlaneLocalFacade, Arc<Mutex<Vec<TransferState>>>) {
+        let history = Arc::new(Mutex::new(vec![initial]));
         let mut svc = MockDataplaneTransferServiceTrait::new();
-        let st_get = state.clone();
+        let hist_get = history.clone();
         let role_clone = role.clone();
         let mode_clone = mode.clone();
         svc.expect_get_by_process_id()
             .returning(move |_, tp_urn| {
+                let current = hist_get.lock().unwrap().last().cloned().unwrap();
                 Ok(DataplaneTransferDto {
                     inner: dataplane_transfers::Model {
                         user_id: "tenant-1".to_string(),
@@ -182,7 +183,7 @@ mod tests {
                         transfer_process_id: tp_urn.to_string(),
                         role: role_clone.clone(),
                         interaction_mode: mode_clone.clone(),
-                        state: st_get.lock().unwrap().clone(),
+                        state: current,
                         connector_instance_id: None,
                         ingress_config: json!("NoOp"),
                         egress_config: json!("NoOp"),
@@ -194,11 +195,15 @@ mod tests {
                     logs: vec![],
                 })
             });
-        let st_edit = state.clone();
+        let hist_edit = history.clone();
+        let role_edit = role.clone();
+        let mode_edit = mode.clone();
         svc.expect_edit().returning(move |_, tp_urn, edit| {
+            let mut guard = hist_edit.lock().unwrap();
             if let Some(new_st) = &edit.state {
-                *st_edit.lock().unwrap() = new_st.clone();
+                guard.push(new_st.clone());
             }
+            let current = guard.last().cloned().unwrap();
             Ok(DataplaneTransferDto {
                 inner: dataplane_transfers::Model {
                     user_id: "tenant-1".to_string(),
@@ -206,9 +211,9 @@ mod tests {
                     visibility: ymir::types::participants::Visibility::Private,
                     id: "urn:dataplane-transfer:hook-test-1".to_string(),
                     transfer_process_id: tp_urn.to_string(),
-                    role: role.clone(),
-                    interaction_mode: mode.clone(),
-                    state: st_edit.lock().unwrap().clone(),
+                    role: role_edit.clone(),
+                    interaction_mode: mode_edit.clone(),
+                    state: current,
                     connector_instance_id: None,
                     ingress_config: json!("NoOp"),
                     egress_config: json!("NoOp"),
@@ -221,17 +226,38 @@ mod tests {
             })
         });
 
-        let manager = Arc::new(DataplaneManager::new(
+        let mut manager = DataplaneManager::new(
             Arc::new(svc),
             Arc::new(MockConnectorInstanceFacadeTrait::new()),
             transfer_config_fixture(),
-        ));
-        (DataPlaneLocalFacade::new(manager), state)
+        );
+        if matches!(role, DpRole::Provider) {
+            use dataplane::engine::dataplane_drivers::authentication::no_op::NoOpAuthenticator;
+            use dataplane::engine::dataplane_drivers::configuration::no_op::NoOpProxyConfigurator;
+            use dataplane::engine::dataplane_drivers::pubsub::no_op::NoOpPubSubscriber;
+            use dataplane::engine::dataplane_drivers::DataplaneDriver;
+            use dataplane::engine::dataplane_manager::dataplane_driver_factory::MockDataplaneDriverFactoryTrait;
+
+            let mut mock_factory = MockDataplaneDriverFactoryTrait::new();
+            let mode_for_driver = mode.clone();
+            mock_factory.expect_get_or_create_driver().returning(move |_| {
+                Ok(DataplaneDriver {
+                    authenticator: Arc::new(NoOpAuthenticator),
+                    proxy_configurator: Arc::new(NoOpProxyConfigurator),
+                    subscriber: match mode_for_driver {
+                        InteractionMode::Pull => None,
+                        InteractionMode::Push => Some(Arc::new(NoOpPubSubscriber)),
+                    },
+                })
+            });
+            manager = manager.with_driver_factory(Arc::new(mock_factory));
+        }
+        (DataPlaneLocalFacade::new(Arc::new(manager)), history)
     }
 
     #[tokio::test]
     async fn completion_and_termination_drive_provider_pull_to_terminated() {
-        let (facade, state) =
+        let (facade, history) =
             make_facade_with_state(DpRole::Provider, InteractionMode::Pull, TransferState::Started);
         let ctx = DataplaneHookContext {
             process_id: Urn::from_str("urn:transfer-process:hook-1").unwrap(),
@@ -245,18 +271,32 @@ mod tests {
         };
 
         facade.on_transfer_completion_post(&ctx).await.unwrap();
-        assert_eq!(*state.lock().unwrap(), TransferState::Terminated);
+        assert_eq!(
+            *history.lock().unwrap(),
+            vec![
+                TransferState::Started,
+                TransferState::Stopped,
+                TransferState::Terminated
+            ]
+        );
 
-        *state.lock().unwrap() = TransferState::Started;
+        *history.lock().unwrap() = vec![TransferState::Started];
         facade.on_transfer_termination_post(&ctx).await.unwrap();
-        assert_eq!(*state.lock().unwrap(), TransferState::Terminated);
+        assert_eq!(
+            *history.lock().unwrap(),
+            vec![
+                TransferState::Started,
+                TransferState::Stopped,
+                TransferState::Terminated
+            ]
+        );
     }
 
     #[tokio::test]
-    async fn consumer_push_lifecycle_transitions_ready_started_stopped_terminated() {
-        let (facade, state) =
+    async fn consumer_push_lifecycle_uses_subscribing_unsubscribing_and_terminating() {
+        let (facade, history) =
             make_facade_with_state(DpRole::Consumer, InteractionMode::Push, TransferState::Ready);
-        let ctx = DataplaneHookContext {
+        let mut ctx = DataplaneHookContext {
             process_id: Urn::from_str("urn:transfer-process:hook-2").unwrap(),
             owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
             role: TransferRole::Consumer,
@@ -267,13 +307,148 @@ mod tests {
             is_restart: false,
         };
 
+        // Start: Ready -> Subscribing -> Started (via real DataplaneDriverFactory + NoOpPubSubscriber)
         facade.on_transfer_start_post(&ctx).await.unwrap();
-        assert_eq!(*state.lock().unwrap(), TransferState::Started);
+        assert_eq!(
+            *history.lock().unwrap(),
+            vec![
+                TransferState::Ready,
+                TransferState::Subscribing,
+                TransferState::Started
+            ]
+        );
 
+        // Suspend: Started -> Unsubscribing -> Stopped
         facade.on_transfer_suspension_post(&ctx).await.unwrap();
-        assert_eq!(*state.lock().unwrap(), TransferState::Stopped);
+        assert_eq!(
+            *history.lock().unwrap(),
+            vec![
+                TransferState::Ready,
+                TransferState::Subscribing,
+                TransferState::Started,
+                TransferState::Unsubscribing,
+                TransferState::Stopped
+            ]
+        );
 
+        // Resume: Stopped -> Subscribing -> Started
+        ctx.is_restart = true;
+        facade.on_transfer_start_post(&ctx).await.unwrap();
+        assert_eq!(
+            history.lock().unwrap().last().cloned(),
+            Some(TransferState::Started)
+        );
+
+        // Terminate from Started: passes through Unsubscribing -> Stopped -> Terminated
+        ctx.is_restart = false;
+        *history.lock().unwrap() = vec![TransferState::Started];
         facade.on_transfer_termination_post(&ctx).await.unwrap();
-        assert_eq!(*state.lock().unwrap(), TransferState::Terminated);
+        assert_eq!(
+            *history.lock().unwrap(),
+            vec![
+                TransferState::Started,
+                TransferState::Unsubscribing,
+                TransferState::Stopped,
+                TransferState::Terminated
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn provider_push_lifecycle_symmetric_with_consumer_push() {
+        let (facade, history) =
+            make_facade_with_state(DpRole::Provider, InteractionMode::Push, TransferState::Ready);
+        let ctx = DataplaneHookContext {
+            process_id: Urn::from_str("urn:transfer-process:hook-3").unwrap(),
+            owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
+            role: TransferRole::Provider,
+            transfer_direction: TransferDirection::Push,
+            connector_instance: TransferContextConnectorRole::ConsumerNotHavingConnector,
+            data_address: None,
+            resolved_data_address: None,
+            is_restart: false,
+        };
+
+        facade.on_transfer_start_post(&ctx).await.unwrap();
+        assert_eq!(
+            *history.lock().unwrap(),
+            vec![
+                TransferState::Ready,
+                TransferState::Subscribing,
+                TransferState::Started
+            ]
+        );
+
+        facade.on_transfer_completion_post(&ctx).await.unwrap();
+        assert_eq!(
+            *history.lock().unwrap(),
+            vec![
+                TransferState::Ready,
+                TransferState::Subscribing,
+                TransferState::Started,
+                TransferState::Unsubscribing,
+                TransferState::Stopped,
+                TransferState::Terminated
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn consumer_pull_lifecycle_configures_on_first_start_and_restarts_from_stopped() {
+        let (facade, history) =
+            make_facade_with_state(DpRole::Consumer, InteractionMode::Pull, TransferState::Init);
+        let mut ctx = DataplaneHookContext {
+            process_id: Urn::from_str("urn:transfer-process:hook-4").unwrap(),
+            owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
+            role: TransferRole::Consumer,
+            transfer_direction: TransferDirection::Pull,
+            connector_instance: TransferContextConnectorRole::ConsumerNotHavingConnector,
+            data_address: Some(
+                DataAddressDto {
+                    endpoint_type: "https://w3id.org/idsa/v4.1/HTTP".to_string(),
+                    endpoint: Some("http://provider.example/dataplane/proxy/p1".to_string()),
+                    endpoint_properties: None,
+                }
+                .into(),
+            ),
+            resolved_data_address: None,
+            is_restart: false,
+        };
+
+        // First start: Init -> Configuring -> Auth -> Ready -> Started
+        facade.on_transfer_start_post(&ctx).await.unwrap();
+        assert_eq!(
+            *history.lock().unwrap(),
+            vec![
+                TransferState::Init,
+                TransferState::Configuring,
+                TransferState::Auth,
+                TransferState::Ready,
+                TransferState::Started
+            ]
+        );
+
+        // Suspend: Started -> Stopped
+        facade.on_transfer_suspension_post(&ctx).await.unwrap();
+        assert_eq!(
+            history.lock().unwrap().last().cloned(),
+            Some(TransferState::Stopped)
+        );
+
+        // Restart: Stopped -> Started (SetStarted accepted because state == Stopped)
+        ctx.is_restart = true;
+        facade.on_transfer_start_post(&ctx).await.unwrap();
+        assert_eq!(
+            history.lock().unwrap().last().cloned(),
+            Some(TransferState::Started)
+        );
+
+        // Complete: Started -> Stopped -> Terminated
+        ctx.is_restart = false;
+        facade.on_transfer_completion_post(&ctx).await.unwrap();
+        assert_eq!(
+            history.lock().unwrap().last().cloned(),
+            Some(TransferState::Terminated)
+        );
     }
 }

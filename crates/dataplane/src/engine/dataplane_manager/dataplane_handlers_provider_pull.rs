@@ -16,7 +16,7 @@
  */
 
 use crate::engine::dataplane_manager::dataplane_commands::{
-    DataplaneCommandStateMachine,
+    DataplaneCommand, DataplaneCommandStateMachine,
 };
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::engine::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactoryTrait;
@@ -72,6 +72,17 @@ impl DataplaneCommandStateMachine for DataplaneHandlerProviderPull {
     }
     fn driver_factory(&self) -> Arc<dyn DataplaneDriverFactoryTrait> {
         self.driver_factory.clone()
+    }
+
+    fn accepts_command(&self, command: &DataplaneCommand, _context: &DataplaneContext) -> bool {
+        matches!(
+            command,
+            DataplaneCommand::SetInit(_)
+                | DataplaneCommand::GetAssociated(_)
+                | DataplaneCommand::SetStarted(_)
+                | DataplaneCommand::SetStopped(_)
+                | DataplaneCommand::SetTerminating(_)
+        )
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]

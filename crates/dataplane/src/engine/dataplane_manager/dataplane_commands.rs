@@ -125,6 +125,11 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     /// The manager's factory, shared so every driver sees the same keystore.
     fn driver_factory(&self) -> Arc<dyn DataplaneDriverFactoryTrait>;
 
+    /// Whether this `(Role, InteractionMode)` handler accepts an external command from the
+    /// control plane in the process's current state. Internal steps (`SetAuth`, `SetReady`)
+    /// are never valid external commands.
+    fn accepts_command(&self, command: &DataplaneCommand, context: &DataplaneContext) -> bool;
+
     /// Creates the driver, configures its proxy and moves the process to `Configuring`.
     async fn configure_driver(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
         let driver = self.driver_factory().get_or_create_driver(&context)?;
@@ -308,13 +313,12 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 Ok(new_context)
             }
             Err(e) => {
-                let _ = self.set_terminating(context).await;
+                let _ = self.terminate_process(context).await;
                 Err(e)
             }
         }
     }
-    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
-    async fn set_unsubscribing(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+    async fn try_unsubscribe(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         if matches!(
             context.dataplane_process().inner.state,
             TransferState::Ready | TransferState::Stopped | TransferState::Terminated
@@ -338,13 +342,15 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
             )
             .await?;
         context.set_dataplane_process(dataplane_process);
-        match subscriber.unsubscribe(&context).await {
-            Ok(ctx) => {
-                let new_context = self.set_stopped(ctx).await?;
-                Ok(new_context)
-            }
+        let ctx = subscriber.unsubscribe(&context).await?;
+        self.set_stopped(ctx).await
+    }
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
+    async fn set_unsubscribing(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
+        match self.try_unsubscribe(context.clone()).await {
+            Ok(new_context) => Ok(new_context),
             Err(e) => {
-                let _ = self.set_terminating(context).await;
+                let _ = self.terminate_process(context).await;
                 Err(e)
             }
         }
@@ -370,8 +376,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         Ok(context)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
-    async fn set_terminating(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+    async fn terminate_process(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         let new_state = TransferState::Terminated;
         let dataplane_process = self
@@ -396,5 +401,10 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
             .await;
         }
         Ok(context)
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
+    async fn set_terminating(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
+        self.terminate_process(context).await
     }
 }

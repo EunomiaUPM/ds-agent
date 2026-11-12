@@ -256,13 +256,47 @@ async fn consumer_and_provider_drive_a_transfer_over_rpc() {
     let mine = model["id"].clone();
     let theirs = process_id_by_provider_pid(provider, &provider_pid).await;
 
-    let steps: [(&Participant, &str, &str, &str); 4] = [
+    let steps: [(&Participant, &str, &str, &str); 6] = [
         (provider, "setup-start", "RpcTransferStartMessage", "STARTED"),
+        // Option A: Provider suspends -> Consumer resume fails -> Provider resumes
         (provider, "setup-suspension", "RpcTransferSuspensionMessage", "SUSPENDED"),
         (provider, "setup-start", "RpcTransferStartMessage", "STARTED"),
+        // Option B: Consumer suspends -> Provider resume fails -> Consumer resumes
+        (consumer, "setup-suspension", "RpcTransferSuspensionMessage", "SUSPENDED"),
+        (consumer, "setup-start", "RpcTransferStartMessage", "STARTED"),
         (consumer, "setup-termination", "RpcTransferTerminationMessage", "TERMINATED"),
     ];
-    for (who, step, rpc_type, expected) in steps {
+    for (idx, (who, step, rpc_type, expected)) in steps.into_iter().enumerate() {
+        // Before Option A resume (idx == 2), Consumer attempting setup-start must fail.
+        if idx == 2 {
+            let (status, err) = consumer
+                .post_dsp(
+                    &format!("{TRANSFERS}/rpc/setup-start"),
+                    "owner",
+                    &json!({
+                        "@context": EUNOMIA_CONTEXT_URL,
+                        "@type": "RpcTransferStartMessage",
+                        "@id": &mine,
+                    }),
+                )
+                .await;
+            assert!(status >= 400, "consumer must not resume provider suspension: {status} {err}");
+        }
+        // Before Option B resume (idx == 4), Provider attempting setup-start must fail.
+        if idx == 4 {
+            let (status, err) = provider
+                .post_dsp(
+                    &format!("{TRANSFERS}/rpc/setup-start"),
+                    "owner",
+                    &json!({
+                        "@context": EUNOMIA_CONTEXT_URL,
+                        "@type": "RpcTransferStartMessage",
+                        "@id": &theirs,
+                    }),
+                )
+                .await;
+            assert!(status >= 400, "provider must not resume consumer suspension: {status} {err}");
+        }
         let id = if std::ptr::eq(who, provider) { &theirs } else { &mine };
         let body = json!({
             "@context": EUNOMIA_CONTEXT_URL,

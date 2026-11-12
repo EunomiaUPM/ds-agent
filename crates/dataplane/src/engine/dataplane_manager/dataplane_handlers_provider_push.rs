@@ -15,13 +15,17 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::engine::dataplane_manager::dataplane_commands::DataplaneCommandStateMachine;
+use crate::engine::dataplane_manager::dataplane_commands::{
+    DataplaneCommand, DataplaneCommandStateMachine,
+};
+use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::engine::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactoryTrait;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceFacadeTrait;
 use keystore::SecretStore;
 use std::sync::Arc;
+use ymir::errors::Outcome;
 
 pub struct DataplaneHandlerProviderPush {
     dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,
@@ -68,5 +72,32 @@ impl DataplaneCommandStateMachine for DataplaneHandlerProviderPush {
     }
     fn driver_factory(&self) -> Arc<dyn DataplaneDriverFactoryTrait> {
         self.driver_factory.clone()
+    }
+
+    fn accepts_command(&self, command: &DataplaneCommand, _context: &DataplaneContext) -> bool {
+        matches!(
+            command,
+            DataplaneCommand::SetInit(_)
+                | DataplaneCommand::GetAssociated(_)
+                | DataplaneCommand::SetSubscribing(_)
+                | DataplaneCommand::SetUnsubscribing(_)
+                | DataplaneCommand::SetTerminating(_)
+        )
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
+    async fn set_terminating(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
+        let ctx = match self.try_unsubscribe(context.clone()).await {
+            Ok(unsubscribed) => unsubscribed,
+            Err(e) => {
+                tracing::warn!(
+                    handler = self.handler_name(),
+                    error = %e,
+                    "unsubscribe failed during termination; proceeding to Terminated"
+                );
+                context
+            }
+        };
+        self.terminate_process(ctx).await
     }
 }

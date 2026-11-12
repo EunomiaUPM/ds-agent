@@ -21,8 +21,8 @@ use crate::protocols::dsp::facades::dataplane_facade::DataplaneHookContext;
 use crate::protocols::dsp::entities::data_address::DataAddressDto;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
 use dataplane::{
-    DataplaneAddress, DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection,
-    DataplaneInitCommandTypes, DataplaneManager,
+    DataplaneAddress, DataplaneCommand, DataplaneCommandResponse, DataplaneContinuation,
+    DataplaneInitCommandDirection, DataplaneInitCommandTypes, DataplaneManager,
 };
 use ymir::errors::{Errors, Outcome};
 
@@ -55,7 +55,7 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         let data_address: DataplaneAddress = ctx
             .dataplane_address()
             .ok_or_else(|| Errors::crazy("Data address instance should be defined", None))?;
-        let _res = mgr
+        let res = mgr
             .execute_command(DataplaneCommand::SetInit(
                 DataplaneInitCommandTypes::AsProvider {
                     transfer_process_id: id,
@@ -67,7 +67,14 @@ impl DataPlaneStrategy for ProviderPushStrategy {
                 },
             ))
             .await?;
-        // _res comes with dataAddress also, but not used in implementation
+        // SetInit returns the provider's internal ingress DataAddress; the provider does not
+        // forward it over DSP, as the consumer already supplied its webhook on Request.
+        if !matches!(res, DataplaneCommandResponse::OkWithAddress(_)) {
+            return Err(Errors::crazy(
+                "Dataplane SetInit for ProviderPush should return OkWithAddress",
+                None,
+            ));
+        }
         Ok(())
     }
 
@@ -139,9 +146,6 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         let cont = DataplaneContinuation {
             transfer_dto_urn: ctx.process_id.clone(),
         };
-        let _ = mgr
-            .execute_command(DataplaneCommand::SetUnsubscribing(cont.clone()))
-            .await;
         mgr.execute_command(DataplaneCommand::SetTerminating(cont))
             .await?;
         Ok(())
@@ -166,9 +170,6 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         let cont = DataplaneContinuation {
             transfer_dto_urn: ctx.process_id.clone(),
         };
-        let _ = mgr
-            .execute_command(DataplaneCommand::SetUnsubscribing(cont.clone()))
-            .await;
         mgr.execute_command(DataplaneCommand::SetTerminating(cont))
             .await?;
         Ok(())

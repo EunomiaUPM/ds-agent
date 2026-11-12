@@ -96,22 +96,73 @@ impl TransferRules {
         }
     }
 
-    /// Whether a role may send the message: only a consumer requests, only a provider starts.
+    /// Whether a role may ever send the message: only a consumer requests, and a relay sends
+    /// nothing. Whether a consumer may send a `TransferStartMessage` depends on state and
+    /// suspension ownership (checked by [`Self::start_sent_in`] and [`Self::outbound_semaphore`]).
     pub fn role_may_send(
         role: &TransferRole,
         message: &TransferDSPMessageType,
         path: impl Into<Path>,
     ) -> Result<(), Violations> {
-        use TransferDSPMessageType::{TransferRequestMessage, TransferStartMessage};
+        use TransferDSPMessageType::TransferRequestMessage;
         let refuse = |why: &'static str| Err(violation(path.into(), codes::NOT_ALLOWED, why));
         match (role, message) {
             (TransferRole::Relay, _) => refuse("Relay is not a transfer peer"),
             (TransferRole::Provider, TransferRequestMessage) => {
                 refuse("only a Consumer sends a TransferRequestMessage")
             }
-            (TransferRole::Consumer, TransferStartMessage) => {
-                refuse("only a Provider sends a TransferStartMessage")
+            _ => Ok(()),
+        }
+    }
+
+    /// Outbound counterpart of [`Self::start_received_in`] (DSP 9.1): the first start is the
+    /// provider's; a consumer only sends `TransferStartMessage` to resume from `SUSPENDED`.
+    pub fn start_sent_in(
+        role: &TransferRole,
+        current: Option<&TransferDSPState>,
+        path: impl Into<Path>,
+    ) -> Result<(), Violations> {
+        let refuse = |why: &'static str| Err(violation(path.into(), codes::NOT_ALLOWED, why));
+        match (role, current) {
+            (TransferRole::Consumer, Some(TransferDSPState::SUSPENDED)) => Ok(()),
+            (TransferRole::Consumer, _) => {
+                refuse("a Consumer only sends a TransferStartMessage to resume a suspension")
             }
+            (TransferRole::Provider, _) => Ok(()),
+            (TransferRole::Relay, _) => refuse("Relay is not a transfer peer"),
+        }
+    }
+
+    /// Outbound suspension semaphore (`role` is the local sender): only the actor that suspended
+    /// the transfer may resume it with `TransferStartMessage`.
+    pub fn outbound_semaphore(
+        attribute: &TransferDSPStateAttribute,
+        message: &TransferDSPMessageType,
+        role: &TransferRole,
+        path: impl Into<Path>,
+    ) -> Result<(), Violations> {
+        use TransferDSPMessageType::TransferStartMessage;
+        use TransferDSPStateAttribute::{ByConsumer, ByProvider, OnRequest};
+        use TransferRole::{Consumer, Provider};
+
+        let p = path.into();
+        match message {
+            TransferStartMessage => match (attribute, role) {
+                (OnRequest, Provider) | (ByProvider, Provider) | (ByConsumer, Consumer) => Ok(()),
+                (OnRequest, Consumer) => Err(violation(
+                    p,
+                    codes::NOT_ALLOWED,
+                    "only a Provider sends the initial TransferStartMessage",
+                )),
+                (ByProvider, Consumer) | (ByConsumer, Provider) => Err(violation(
+                    p,
+                    codes::NOT_ALLOWED,
+                    "only the role that suspended the transfer may resume it",
+                )),
+                (_, TransferRole::Relay) => {
+                    Err(violation(p, codes::NOT_ALLOWED, "Relay is not a transfer peer"))
+                }
+            },
             _ => Ok(()),
         }
     }
@@ -133,7 +184,8 @@ impl TransferRules {
         }
     }
 
-    /// Enforce suspension semaphore: a role cannot resume what it suspended itself.
+    /// Inbound suspension semaphore (`role` is the local receiver): reject a `TransferStartMessage`
+    /// sent by the counterparty when our own side (`role`) is the one that suspended the transfer.
     pub fn semaphore(
         attribute: &TransferDSPStateAttribute,
         message: &TransferDSPMessageType,
@@ -151,7 +203,7 @@ impl TransferRules {
                 (ByConsumer, Consumer) | (ByProvider, Provider) => Err(violation(
                     p,
                     codes::NOT_ALLOWED,
-                    "cannot resume a transfer suspended by your own role",
+                    "only the role that suspended the transfer may resume it",
                 )),
                 _ => Ok(()),
             },

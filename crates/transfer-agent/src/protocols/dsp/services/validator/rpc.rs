@@ -20,10 +20,12 @@
 
 use common::validation::{Rule, Stage, ValidationRegistry, Validator};
 use serde_json::Value;
+use std::str::FromStr;
 
 use crate::protocols::dsp::entities::context_rpc::{TransferRpcDomain, TransferRpcTyped};
 use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
 use crate::protocols::dsp::entities::protocol_fields::TransferProtocolFields;
+use crate::protocols::dsp::entities::state_metadata::TransferDSPStateAttribute;
 use crate::protocols::dsp::services::validator::{TransferDspRules, TransferRules};
 
 /// Rule registries of the outbound transfer flow.
@@ -104,6 +106,26 @@ impl TransferRpcRules {
             .with(TransferRequestMessage, Stage::Domain, counterparty)
             .with(
                 TransferStartMessage,
+                Stage::Domain,
+                Validator::new()
+                    .rule(|f: &TransferRpcDomain| {
+                        TransferRules::start_sent_in(
+                            &f.role,
+                            f.current_state().as_ref(),
+                            "state",
+                        )
+                    })
+                    .rule(|f: &TransferRpcDomain| {
+                        TransferRules::outbound_semaphore(
+                            &Self::stored_attribute(f),
+                            &f.typed.message,
+                            &f.role,
+                            "stateAttribute",
+                        )
+                    }),
+            )
+            .with(
+                TransferStartMessage,
                 Stage::Shape,
                 Self::outgoing(TransferDspRules::pids_message()),
             )
@@ -157,5 +179,14 @@ impl TransferRpcRules {
     /// Runs a message-shape validator on the message as it will be sent.
     fn outgoing(fields: Validator<TransferProtocolFields>) -> Validator<TransferRpcDomain> {
         Validator::new().rule(move |f: &TransferRpcDomain| fields.check(&f.outgoing.fields))
+    }
+
+    fn stored_attribute(domain: &TransferRpcDomain) -> TransferDSPStateAttribute {
+        domain
+            .process
+            .as_ref()
+            .and_then(|p| p.state_metadata().attribute.as_deref())
+            .and_then(|s| TransferDSPStateAttribute::from_str(s).ok())
+            .unwrap_or(TransferDSPStateAttribute::OnRequest)
     }
 }

@@ -42,12 +42,12 @@ The transfer agent calls `DataplaneManager::execute_command(DataplaneCommand)`:
 
 | Command | Effect |
 |---|---|
-| `SetInit(AsProvider \| AsConsumer)` | Creates the process and walks it through `Configuring`, `Auth` and `Ready` |
-| `SetConfiguring((continuation, address))` | Reconfigures with the peer's data address |
-| `GetAssociated(continuation)` | Returns the process's address without changing it |
-| `SetStarted`, `SetStopped` | Moves the state |
-| `SetSubscribing`, `SetUnsubscribing` | Push only: subscribes or unsubscribes at the back end, then `Started` or `Stopped` |
-| `SetTerminating` | `Terminated`, and deletes the runtime secrets of the process |
+| `SetInit(AsProvider \| AsConsumer)` | Creates the process (`Init` + `Ok` on `ConsumerPull`; walks `Configuring -> Auth -> Ready` + `OkWithAddress` on the other three) |
+| `SetConfiguring((continuation, address))` | `ConsumerPull` only: configures proxy with the provider's address and walks through `Started` (`Ok`) |
+| `GetAssociated(continuation)` | Returns the process's ingress `DataplaneAddress` without changing state |
+| `SetStarted`, `SetStopped` | `Pull` only (`ConsumerPull` accepts `SetStarted` only from `Stopped`); rejected on `Push` |
+| `SetSubscribing`, `SetUnsubscribing` | `Push` only: subscribes or unsubscribes via driver (`NoOpPubSubscriber` on consumer, `HttpPubSubscriber` on provider), then `Started` or `Stopped`; rejected on `Pull` |
+| `SetTerminating` | Unsubscribes active `Push` transfers (`Unsubscribing -> Stopped`), moves to `Terminated`, and deletes runtime secrets |
 
 The answer is `Ok`, or `OkWithAddress(DataplaneAddress)` when the peer needs an address: the
 control plane puts it in the DSP `DataAddress` (`endpointType`, `endpoint`, and the

@@ -29,7 +29,7 @@ use ymir::query::{Page, Sort};
 use ymir::utils::parse_urn;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, QuerySelect,
+    QueryOrder, QuerySelect, TransactionTrait,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -259,6 +259,9 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         scope: &OwnerScope,
         id: &Urn,
     ) -> Outcome<Owner> {
+        let txn = self.db.begin().await.map_err(|e| {
+            TransferProcessRepoErrors::ErrorDeletingTransferProcess(Box::new(e)).into_errors()
+        })?;
         let q = orm::Entity::delete_many()
             .filter(orm::Column::Id.eq(id.to_string()))
             .filter(scope.condition(
@@ -266,7 +269,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
                 orm::Column::UserRole,
                 orm::Column::Visibility,
             ));
-        let rows = q.exec_with_returning(self.db.as_ref()).await.map_err(|e| {
+        let rows = q.exec_with_returning(&txn).await.map_err(|e| {
             TransferProcessRepoErrors::ErrorDeletingTransferProcess(Box::new(e)).into_errors()
         })?;
         let owner = rows
@@ -278,9 +281,15 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         use crate::data::sea_orm::orm::transfer_identifier as ident_orm;
         ident_orm::Entity::delete_many()
             .filter(ident_orm::Column::TransferProcessId.eq(id.to_string()))
-            .exec(self.db.as_ref())
+            .exec(&txn)
             .await
-            .map_err(Self::fetch_err)?;
+            .map_err(|e| {
+                TransferProcessRepoErrors::ErrorDeletingTransferProcess(Box::new(e)).into_errors()
+            })?;
+
+        txn.commit().await.map_err(|e| {
+            TransferProcessRepoErrors::ErrorDeletingTransferProcess(Box::new(e)).into_errors()
+        })?;
 
         Ok(owner)
     }

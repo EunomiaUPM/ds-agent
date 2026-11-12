@@ -178,3 +178,139 @@ async fn set_unsubscribing_provider_push() {
 
     assert!(result.is_ok());
 }
+
+/// ProviderPush SetTerminating on a Started transfer runs Unsubscribing -> Stopped -> Terminated.
+#[tokio::test]
+async fn set_terminating_provider_push_unsubscribes_before_terminated() {
+    let mut mock_entity = MockDataplaneTransferServiceTrait::new();
+    let mut mock_connector = MockConnectorMock::new();
+
+    let tp_id = Urn::from_str("urn:transfer-process:27").unwrap();
+    let connector_urn = Urn::from_str("urn:connector-instance:27").unwrap();
+
+    mock_entity
+        .expect_get_by_process_id()
+        .times(1)
+        .returning(|_, _| {
+            Ok(dummy_dataplane_transfer_dto(
+                "urn:dataplane-transfer:27",
+                "urn:transfer-process:27",
+                TransferRole::Provider,
+                InteractionMode::Push,
+                TransferState::Started,
+                Some(Urn::from_str("urn:connector-instance:27").unwrap()),
+            ))
+        });
+
+    mock_connector
+        .expect_get_instance_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(dummy_push_connector(&connector_urn))));
+
+    let mut mock_factory = MockDataplaneDriverFactoryTrait::new();
+    mock_factory
+        .expect_get_or_create_driver()
+        .times(1)
+        .returning(move |_| Ok(dummy_driver()));
+
+    for state in [
+        TransferState::Unsubscribing,
+        TransferState::Stopped,
+        TransferState::Terminated,
+    ] {
+        let s = state.clone();
+        mock_entity
+            .expect_edit()
+            .times(1)
+            .withf(move |_, _, edit| edit.state == Some(s.clone()))
+            .returning(move |_, _, _| {
+                Ok(dummy_dataplane_transfer_dto(
+                    "urn:dataplane-transfer:27",
+                    "urn:transfer-process:27",
+                    TransferRole::Provider,
+                    InteractionMode::Push,
+                    state.clone(),
+                    Some(Urn::from_str("urn:connector-instance:27").unwrap()),
+                ))
+            });
+    }
+
+    let result = DataplaneManager::new(
+        Arc::new(mock_entity),
+        Arc::new(mock_connector),
+        transfer_config_fixture(),
+    )
+    .with_driver_factory(Arc::new(mock_factory))
+    .execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
+        transfer_dto_urn: tp_id,
+    }))
+    .await;
+
+    assert!(matches!(result.unwrap(), DataplaneCommandResponse::Ok));
+}
+
+/// ProviderPush rejects external SetStarted, SetStopped, and SetConfiguring commands.
+#[tokio::test]
+async fn set_started_stopped_and_configuring_rejected_provider_push() {
+    let mut mock_entity = MockDataplaneTransferServiceTrait::new();
+    let mut mock_connector = MockConnectorMock::new();
+
+    let tp_id = Urn::from_str("urn:transfer-process:28").unwrap();
+    let connector_urn = Urn::from_str("urn:connector-instance:28").unwrap();
+
+    mock_entity
+        .expect_get_by_process_id()
+        .times(3)
+        .returning(|_, _| {
+            Ok(dummy_dataplane_transfer_dto(
+                "urn:dataplane-transfer:28",
+                "urn:transfer-process:28",
+                TransferRole::Provider,
+                InteractionMode::Push,
+                TransferState::Ready,
+                Some(Urn::from_str("urn:connector-instance:28").unwrap()),
+            ))
+        });
+
+    mock_connector
+        .expect_get_instance_by_id()
+        .times(3)
+        .returning(move |_| Ok(Some(dummy_push_connector(&connector_urn))));
+
+    let mut mock_factory = MockDataplaneDriverFactoryTrait::new();
+    mock_factory
+        .expect_get_or_create_driver()
+        .times(3)
+        .returning(move |_| Ok(dummy_driver()));
+
+    let mgr = DataplaneManager::new(
+        Arc::new(mock_entity),
+        Arc::new(mock_connector),
+        transfer_config_fixture(),
+    )
+    .with_driver_factory(Arc::new(mock_factory));
+
+    assert!(mgr
+        .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
+            transfer_dto_urn: tp_id.clone(),
+        }))
+        .await
+        .is_err());
+
+    assert!(mgr
+        .execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: tp_id.clone(),
+        }))
+        .await
+        .is_err());
+
+    assert!(mgr
+        .execute_command(DataplaneCommand::SetConfiguring((
+            DataplaneContinuation {
+                transfer_dto_urn: tp_id,
+            },
+            dummy_dataplane_forward_address(),
+        )))
+        .await
+        .is_err());
+}

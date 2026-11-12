@@ -90,9 +90,11 @@ fn provider_receives_start_only_to_resume() {
     assert!(TransferRules::start_received_in(&Relay, Some(&SUSPENDED), "state").is_err());
 }
 
-/// A role cannot resume a transfer it suspended itself
+/// Inbound semaphore (`role` is the receiver): only the party that suspended the transfer may
+/// send `TransferStartMessage` to resume it.
 #[test]
 fn transfer_rules_suspension_semaphore() {
+    // Reject when the counterparty tries to resume a transfer suspended by us (the receiver)
     assert!(
         TransferRules::semaphore(&ByConsumer, &TransferStartMessage, &Consumer, "sem").is_err()
     );
@@ -100,7 +102,7 @@ fn transfer_rules_suspension_semaphore() {
         TransferRules::semaphore(&ByProvider, &TransferStartMessage, &Provider, "sem").is_err()
     );
 
-    // The counterparty can resume
+    // Accept when the party that suspended the transfer sends TransferStartMessage to us
     assert!(TransferRules::semaphore(&ByConsumer, &TransferStartMessage, &Provider, "sem").is_ok());
     assert!(TransferRules::semaphore(&ByProvider, &TransferStartMessage, &Consumer, "sem").is_ok());
 

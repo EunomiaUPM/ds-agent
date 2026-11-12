@@ -19,7 +19,7 @@
 
 use super::*;
 
-/// A consumer pull init creates the transfer in Init and answers with the proxy address.
+/// A consumer pull init creates the transfer in Init and answers with Ok (no proxy yet).
 #[tokio::test]
 async fn set_init_consumer_pull() {
     let mut mock_entity = MockDataplaneTransferServiceTrait::new();
@@ -60,18 +60,13 @@ async fn set_init_consumer_pull() {
         DataplaneInitCommandTypes::AsConsumer {
             owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
             transfer_process_id,
-            direction: DataplaneInitCommandDirection::Pull {
-                data_address: Some(dummy_dataplane_forward_address()),
-            },
+            direction: DataplaneInitCommandDirection::Pull { data_address: None },
         },
     ))
     .await;
 
     assert!(result.is_ok());
-    assert!(matches!(
-        result.unwrap(),
-        DataplaneCommandResponse::OkWithAddress(_)
-    ));
+    assert!(matches!(result.unwrap(), DataplaneCommandResponse::Ok));
 }
 
 /// A consumer push init creates the transfer and walks it through Configuring, Auth and
@@ -143,7 +138,10 @@ async fn set_init_consumer_push() {
     ))
     .await;
 
-    assert!(result.is_ok());
+    assert!(matches!(
+        result.unwrap(),
+        DataplaneCommandResponse::OkWithAddress(_)
+    ));
 }
 
 /// A provider pull init creates the transfer with its connector and walks it through
@@ -238,5 +236,83 @@ async fn set_init_provider_pull() {
     ))
     .await;
 
-    assert!(result.is_ok());
+    assert!(matches!(
+        result.unwrap(),
+        DataplaneCommandResponse::OkWithAddress(_)
+    ));
+}
+
+/// A provider push init creates the transfer with its connector, walks it through Configuring,
+/// Auth and Ready, and returns OkWithAddress (internal ingress address).
+#[tokio::test]
+async fn set_init_provider_push() {
+    let mut mock_entity = MockDataplaneTransferServiceTrait::new();
+    let mock_connector = MockConnectorMock::new();
+
+    let tp_id = Urn::from_str("urn:transfer-process:4").unwrap();
+    let connector_urn = Urn::from_str("urn:connector-instance:4").unwrap();
+    let connector = dummy_push_connector(&connector_urn);
+
+    mock_entity
+        .expect_create()
+        .withf(|_, dto: &NewDataplaneTransferDto| {
+            dto.role == TransferRole::Provider
+                && dto.interaction_mode == InteractionMode::Push
+                && dto.connector_instance_id.is_some()
+        })
+        .times(1)
+        .returning(|_, dto| {
+            Ok(dummy_dataplane_transfer_dto(
+                "urn:dataplane-transfer:4",
+                &dto.transfer_process_id,
+                dto.role.clone(),
+                dto.interaction_mode.clone(),
+                dto.state.clone(),
+                dto.connector_instance_id.clone(),
+            ))
+        });
+
+    for state in [
+        TransferState::Configuring,
+        TransferState::Auth,
+        TransferState::Ready,
+    ] {
+        let s = state.clone();
+        mock_entity
+            .expect_edit()
+            .times(1)
+            .withf(move |_, _, edit| edit.state == Some(s.clone()))
+            .returning(move |_, _, _| {
+                Ok(dummy_dataplane_transfer_dto(
+                    "urn:dataplane-transfer:4",
+                    "urn:transfer-process:4",
+                    TransferRole::Provider,
+                    InteractionMode::Push,
+                    state.clone(),
+                    Some(Urn::from_str("urn:connector-instance:4").unwrap()),
+                ))
+            });
+    }
+
+    let result = DataplaneManager::new(
+        Arc::new(mock_entity),
+        Arc::new(mock_connector),
+        transfer_config_fixture(),
+    )
+    .execute_command(DataplaneCommand::SetInit(
+        DataplaneInitCommandTypes::AsProvider {
+            owner: common::test_utils::scopes::TestUsers::owner("tenant-1"),
+            transfer_process_id: tp_id,
+            connector_instance: connector,
+            direction: DataplaneInitCommandDirection::Push {
+                data_address: Some(dummy_dataplane_forward_address()),
+            },
+        },
+    ))
+    .await;
+
+    assert!(matches!(
+        result.unwrap(),
+        DataplaneCommandResponse::OkWithAddress(_)
+    ));
 }

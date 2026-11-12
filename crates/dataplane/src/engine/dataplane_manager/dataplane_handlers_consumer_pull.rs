@@ -16,10 +16,11 @@
  */
 
 use crate::engine::dataplane_manager::dataplane_commands::{
-    DataplaneCommandStateMachine,
+    DataplaneCommand, DataplaneCommandStateMachine,
 };
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::engine::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactoryTrait;
+use crate::entities::dataplane_transfers::TransferState;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceFacadeTrait;
@@ -72,6 +73,20 @@ impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPull {
     }
     fn driver_factory(&self) -> Arc<dyn DataplaneDriverFactoryTrait> {
         self.driver_factory.clone()
+    }
+
+    fn accepts_command(&self, command: &DataplaneCommand, context: &DataplaneContext) -> bool {
+        match command {
+            DataplaneCommand::SetInit(_)
+            | DataplaneCommand::GetAssociated(_)
+            | DataplaneCommand::SetConfiguring(_)
+            | DataplaneCommand::SetStopped(_)
+            | DataplaneCommand::SetTerminating(_) => true,
+            DataplaneCommand::SetStarted(_) => {
+                context.dataplane_process().inner.state == TransferState::Stopped
+            }
+            _ => false,
+        }
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]

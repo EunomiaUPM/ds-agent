@@ -19,7 +19,7 @@
 
 use super::*;
 
-/// SetStarted loads the transfer by process id and persists Started.
+/// SetStarted on a Stopped consumer pull transfer persists Started and answers Ok.
 #[tokio::test]
 async fn set_started() {
     let mut mock_entity = MockDataplaneTransferServiceTrait::new();
@@ -36,7 +36,7 @@ async fn set_started() {
                 "urn:transfer-process:10",
                 TransferRole::Consumer,
                 InteractionMode::Pull,
-                TransferState::Ready,
+                TransferState::Stopped,
                 None,
             ))
         });
@@ -66,7 +66,42 @@ async fn set_started() {
     }))
     .await;
 
-    assert!(result.is_ok());
+    assert!(matches!(result.unwrap(), DataplaneCommandResponse::Ok));
+}
+
+/// ConsumerPull only accepts SetStarted when Stopped; calling SetStarted in Init is rejected.
+#[tokio::test]
+async fn set_started_rejected_when_consumer_pull_not_stopped() {
+    let mut mock_entity = MockDataplaneTransferServiceTrait::new();
+    let mock_connector = MockConnectorMock::new();
+
+    let tp_id = Urn::from_str("urn:transfer-process:10b").unwrap();
+
+    mock_entity
+        .expect_get_by_process_id()
+        .times(1)
+        .returning(|_, _| {
+            Ok(dummy_dataplane_transfer_dto(
+                "urn:dataplane-transfer:10b",
+                "urn:transfer-process:10b",
+                TransferRole::Consumer,
+                InteractionMode::Pull,
+                TransferState::Init,
+                None,
+            ))
+        });
+
+    let result = DataplaneManager::new(
+        Arc::new(mock_entity),
+        Arc::new(mock_connector),
+        transfer_config_fixture(),
+    )
+    .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
+        transfer_dto_urn: tp_id,
+    }))
+    .await;
+
+    assert!(result.is_err());
 }
 
 /// SetStopped loads the transfer by process id and persists Stopped.
@@ -169,9 +204,9 @@ async fn set_terminating() {
     assert!(result.is_ok());
 }
 
-/// Default set_subscribing in the trait just returns Ok(context) without touching the DB
+/// ConsumerPull rejects SetSubscribing.
 #[tokio::test]
-async fn set_subscribing_noop() {
+async fn set_subscribing_rejected_for_consumer_pull() {
     let mut mock_entity = MockDataplaneTransferServiceTrait::new();
     let mock_connector = MockConnectorMock::new();
 
@@ -186,7 +221,7 @@ async fn set_subscribing_noop() {
                 "urn:transfer-process:13",
                 TransferRole::Consumer,
                 InteractionMode::Pull,
-                TransferState::Ready,
+                TransferState::Started,
                 None,
             ))
         });
@@ -201,12 +236,12 @@ async fn set_subscribing_noop() {
     }))
     .await;
 
-    assert!(result.is_ok());
+    assert!(result.is_err());
 }
 
-/// Default set_unsubscribing in the trait just returns Ok(context) without touching the DB
+/// ConsumerPull rejects SetUnsubscribing.
 #[tokio::test]
-async fn set_unsubscribing_noop() {
+async fn set_unsubscribing_rejected_for_consumer_pull() {
     let mut mock_entity = MockDataplaneTransferServiceTrait::new();
     let mock_connector = MockConnectorMock::new();
 
@@ -236,7 +271,161 @@ async fn set_unsubscribing_noop() {
     }))
     .await;
 
-    assert!(result.is_ok());
+    assert!(result.is_err());
+}
+
+/// ConsumerPush resolves NoOpPubSubscriber on continuation and transitions Ready -> Subscribing -> Started.
+#[tokio::test]
+async fn set_subscribing_consumer_push() {
+    let mut mock_entity = MockDataplaneTransferServiceTrait::new();
+    let mock_connector = MockConnectorMock::new();
+
+    let tp_id = Urn::from_str("urn:transfer-process:15").unwrap();
+
+    mock_entity
+        .expect_get_by_process_id()
+        .times(1)
+        .returning(|_, _| {
+            Ok(dummy_dataplane_transfer_dto(
+                "urn:dataplane-transfer:15",
+                "urn:transfer-process:15",
+                TransferRole::Consumer,
+                InteractionMode::Push,
+                TransferState::Ready,
+                None,
+            ))
+        });
+
+    for state in [TransferState::Subscribing, TransferState::Started] {
+        let s = state.clone();
+        mock_entity
+            .expect_edit()
+            .times(1)
+            .withf(move |_, _, edit| edit.state == Some(s.clone()))
+            .returning(move |_, _, _| {
+                Ok(dummy_dataplane_transfer_dto(
+                    "urn:dataplane-transfer:15",
+                    "urn:transfer-process:15",
+                    TransferRole::Consumer,
+                    InteractionMode::Push,
+                    state.clone(),
+                    None,
+                ))
+            });
+    }
+
+    let result = DataplaneManager::new(
+        Arc::new(mock_entity),
+        Arc::new(mock_connector),
+        transfer_config_fixture(),
+    )
+    .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
+        transfer_dto_urn: tp_id,
+    }))
+    .await;
+
+    assert!(matches!(result.unwrap(), DataplaneCommandResponse::Ok));
+}
+
+/// ConsumerPush transitions Started -> Unsubscribing -> Stopped on SetUnsubscribing, and
+/// Started -> Unsubscribing -> Stopped -> Terminated on SetTerminating.
+#[tokio::test]
+async fn set_terminating_consumer_push_unsubscribes_before_terminated() {
+    let mut mock_entity = MockDataplaneTransferServiceTrait::new();
+    let mock_connector = MockConnectorMock::new();
+
+    let tp_id = Urn::from_str("urn:transfer-process:16").unwrap();
+
+    mock_entity
+        .expect_get_by_process_id()
+        .times(1)
+        .returning(|_, _| {
+            Ok(dummy_dataplane_transfer_dto(
+                "urn:dataplane-transfer:16",
+                "urn:transfer-process:16",
+                TransferRole::Consumer,
+                InteractionMode::Push,
+                TransferState::Started,
+                None,
+            ))
+        });
+
+    for state in [
+        TransferState::Unsubscribing,
+        TransferState::Stopped,
+        TransferState::Terminated,
+    ] {
+        let s = state.clone();
+        mock_entity
+            .expect_edit()
+            .times(1)
+            .withf(move |_, _, edit| edit.state == Some(s.clone()))
+            .returning(move |_, _, _| {
+                Ok(dummy_dataplane_transfer_dto(
+                    "urn:dataplane-transfer:16",
+                    "urn:transfer-process:16",
+                    TransferRole::Consumer,
+                    InteractionMode::Push,
+                    state.clone(),
+                    None,
+                ))
+            });
+    }
+
+    let result = DataplaneManager::new(
+        Arc::new(mock_entity),
+        Arc::new(mock_connector),
+        transfer_config_fixture(),
+    )
+    .execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
+        transfer_dto_urn: tp_id,
+    }))
+    .await;
+
+    assert!(matches!(result.unwrap(), DataplaneCommandResponse::Ok));
+}
+
+/// ConsumerPush rejects external SetStarted and SetStopped commands.
+#[tokio::test]
+async fn set_started_and_stopped_rejected_for_consumer_push() {
+    let mut mock_entity = MockDataplaneTransferServiceTrait::new();
+    let mock_connector = MockConnectorMock::new();
+
+    let tp_id = Urn::from_str("urn:transfer-process:17").unwrap();
+
+    mock_entity
+        .expect_get_by_process_id()
+        .times(2)
+        .returning(|_, _| {
+            Ok(dummy_dataplane_transfer_dto(
+                "urn:dataplane-transfer:17",
+                "urn:transfer-process:17",
+                TransferRole::Consumer,
+                InteractionMode::Push,
+                TransferState::Ready,
+                None,
+            ))
+        });
+
+    let mgr = DataplaneManager::new(
+        Arc::new(mock_entity),
+        Arc::new(mock_connector),
+        transfer_config_fixture(),
+    );
+
+    assert!(mgr
+        .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
+            transfer_dto_urn: tp_id.clone(),
+        }))
+        .await
+        .is_err());
+
+    assert!(mgr
+        .execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: tp_id,
+        }))
+        .await
+        .is_err());
 }
 
 /// SetAuth is an internal state-machine step — never a valid external command.

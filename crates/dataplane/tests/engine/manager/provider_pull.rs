@@ -210,10 +210,9 @@ async fn set_terminating_provider_pull() {
     assert!(result.is_ok());
 }
 
-/// SetSubscribing on a provider pull transfer persists nothing.
+/// ProviderPull rejects SetSubscribing, SetUnsubscribing, and SetConfiguring.
 #[tokio::test]
-async fn set_subscribing_noop_provider_pull() {
-    // Pull providers have no subscriber - set_subscribing is noop
+async fn set_subscribing_unsubscribing_and_configuring_rejected_provider_pull() {
     let mut mock_entity = MockDataplaneTransferServiceTrait::new();
     let mut mock_connector = MockConnectorMock::new();
     let mut mock_factory = MockDataplaneDriverFactoryTrait::new();
@@ -223,7 +222,7 @@ async fn set_subscribing_noop_provider_pull() {
 
     mock_entity
         .expect_get_by_process_id()
-        .times(1)
+        .times(3)
         .returning(|_, _| {
             Ok(dummy_dataplane_transfer_dto(
                 "urn:dataplane-transfer:23",
@@ -237,73 +236,42 @@ async fn set_subscribing_noop_provider_pull() {
 
     mock_connector
         .expect_get_instance_by_id()
-        .times(1)
+        .times(3)
         .returning(move |_| Ok(Some(dummy_pull_connector(&connector_urn))));
 
     mock_factory
         .expect_get_or_create_driver()
-        .times(1)
+        .times(3)
         .returning(|_| Ok(dummy_driver_pull()));
 
-    let result = DataplaneManager::new(
+    let mgr = DataplaneManager::new(
         Arc::new(mock_entity),
         Arc::new(mock_connector),
         transfer_config_fixture(),
     )
-    .with_driver_factory(Arc::new(mock_factory))
-    .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
-        transfer_dto_urn: tp_id,
-    }))
-    .await;
+    .with_driver_factory(Arc::new(mock_factory));
 
-    assert!(result.is_ok());
-}
+    assert!(mgr
+        .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
+            transfer_dto_urn: tp_id.clone(),
+        }))
+        .await
+        .is_err());
 
-/// SetUnsubscribing on a provider pull transfer persists nothing.
-#[tokio::test]
-async fn set_unsubscribing_noop_provider_pull() {
-    // Pull providers have no subscriber - set_unsubscribing is noop
-    let mut mock_entity = MockDataplaneTransferServiceTrait::new();
-    let mut mock_connector = MockConnectorMock::new();
-    let mut mock_factory = MockDataplaneDriverFactoryTrait::new();
+    assert!(mgr
+        .execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
+            transfer_dto_urn: tp_id.clone(),
+        }))
+        .await
+        .is_err());
 
-    let tp_id = Urn::from_str("urn:transfer-process:24").unwrap();
-    let connector_urn = Urn::from_str("urn:connector-instance:24").unwrap();
-
-    mock_entity
-        .expect_get_by_process_id()
-        .times(1)
-        .returning(|_, _| {
-            Ok(dummy_dataplane_transfer_dto(
-                "urn:dataplane-transfer:24",
-                "urn:transfer-process:24",
-                TransferRole::Provider,
-                InteractionMode::Pull,
-                TransferState::Started,
-                Some(Urn::from_str("urn:connector-instance:24").unwrap()),
-            ))
-        });
-
-    mock_connector
-        .expect_get_instance_by_id()
-        .times(1)
-        .returning(move |_| Ok(Some(dummy_pull_connector(&connector_urn))));
-
-    mock_factory
-        .expect_get_or_create_driver()
-        .times(1)
-        .returning(|_| Ok(dummy_driver_pull()));
-
-    let result = DataplaneManager::new(
-        Arc::new(mock_entity),
-        Arc::new(mock_connector),
-        transfer_config_fixture(),
-    )
-    .with_driver_factory(Arc::new(mock_factory))
-    .execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
-        transfer_dto_urn: tp_id,
-    }))
-    .await;
-
-    assert!(result.is_ok());
+    assert!(mgr
+        .execute_command(DataplaneCommand::SetConfiguring((
+            DataplaneContinuation {
+                transfer_dto_urn: tp_id,
+            },
+            dummy_dataplane_forward_address(),
+        )))
+        .await
+        .is_err());
 }

@@ -1,8 +1,10 @@
-# Opt-in tracing/metrics backend shared by the consumer and provider agents running on the host.
-# Start it, then export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 before running an agent.
+# Opt-in tracing/metrics/logs/Kafka backend shared by consumer, provider, and heimdall agents.
+# Start OTLP + Loki + Jaeger + Prometheus + Grafana:
 #   docker compose -f docker-compose.observability.yaml up -d
+# Start with optional Kafka event backbone (localhost:9092):
+#   docker compose -f docker-compose.observability.yaml --profile kafka up -d
 # Traces: Jaeger UI at http://localhost:16686 · Metrics: Prometheus at http://localhost:9090
-# Dashboards: Grafana at http://localhost:3000 (anonymous admin, datasources pre-provisioned)
+# Logs: Loki at http://localhost:3100 · Dashboards: Grafana at http://localhost:3000
 name: observability-dev
 
 services:
@@ -19,6 +21,7 @@ services:
       - "8889:8889"   # Prometheus scrape endpoint for agent metrics
     depends_on:
       - jaeger
+      - loki
 
   jaeger:
     container_name: "jaeger"
@@ -26,6 +29,14 @@ services:
     restart: always
     ports:
       - "16686:16686" # Jaeger UI
+
+  loki:
+    container_name: "loki"
+    image: "grafana/loki:3.4.2"
+    restart: always
+    command: [ "-config.file=/etc/loki/local-config.yaml" ]
+    ports:
+      - "3100:3100"
 
   prometheus:
     container_name: "prometheus"
@@ -56,3 +67,25 @@ services:
     depends_on:
       - prometheus
       - jaeger
+      - loki
+
+  # Optional dataspace event backbone; disabled unless started with `--profile kafka`.
+  kafka:
+    container_name: "observability-kafka"
+    image: "apache/kafka:3.9.0"
+    profiles: [ "kafka" ]
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://localhost:9092"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@localhost:9093"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"

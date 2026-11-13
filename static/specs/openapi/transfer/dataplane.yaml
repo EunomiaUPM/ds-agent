@@ -968,6 +968,11 @@ components:
           - 'null'
           additionalProperties:
             type: string
+        reason:
+          type:
+          - string
+          - 'null'
+          description: Optional reason stored on the state transition log when `state` changes.
     ErrorInfo:
       type: object
       description: Error body returned by every agent.
@@ -1044,6 +1049,11 @@ components:
           - 'null'
         ingressConfig: {}
         egressConfig: {}
+        reason:
+          type:
+          - string
+          - 'null'
+          description: Optional reason stored on the initial state transition log.
     PaginatedDataplaneTransferDto:
       type: object
       required:

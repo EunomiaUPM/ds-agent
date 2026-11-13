@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from "react";
 import { useGetTransferProcessById } from "shared/src/data/orval/transfers/transfers";
 import {
   useGetDataplaneTransferByProcessId,
@@ -15,54 +16,95 @@ import {
 
 export interface TransferProcessDetail {
   isLoading: boolean;
+  isDataplaneLoading: boolean;
+  isLogsLoading: boolean;
+  isEventsLoading: boolean;
+  isFetching: boolean;
   tp: TransferProcessDto | null;
   dp: DataplaneTransferDto | null;
   info: DataplaneInfoResponse | null;
   logs: DataplaneTransferLogDto[];
   events: TransferEventDto[];
+  refresh: () => void;
 }
 
 export function useTransferProcessDetail(transferProcessId: string): TransferProcessDetail {
-  const { data: transferProcess, isLoading } = useGetTransferProcessById(transferProcessId);
+  const tpQuery = useGetTransferProcessById(transferProcessId);
 
-  const { data: dataplaneTransfer } = useGetDataplaneTransferByProcessId(transferProcessId, {
+  const dpQuery = useGetDataplaneTransferByProcessId(transferProcessId, {
     query: { retry: false },
   });
 
-  const dataplaneProcessId =
-    dataplaneTransfer?.data && "id" in dataplaneTransfer.data
-      ? (dataplaneTransfer.data as DataplaneTransferDto).id
-      : undefined;
+  const dp = useMemo<DataplaneTransferDto | null>(() => {
+    const raw = dpQuery.data?.data;
+    return raw && "id" in raw ? (raw as DataplaneTransferDto) : null;
+  }, [dpQuery.data]);
 
-  const { data: dataplaneLogs } = useGetDataplaneTransferLogs(dataplaneProcessId!, {
+  const dataplaneProcessId = dp?.id;
+
+  const logsQuery = useGetDataplaneTransferLogs(dataplaneProcessId ?? "", {
     query: { enabled: !!dataplaneProcessId },
   });
 
-  const { data: transferEvents } = useGetTransferEventsByDataplaneProcessId(dataplaneProcessId!, {
+  const eventsQuery = useGetTransferEventsByDataplaneProcessId(dataplaneProcessId ?? "", {
     query: { enabled: !!dataplaneProcessId },
   });
 
-  const { data: dataplaneInfo } = useGetDataplaneTransferInfo(dataplaneProcessId!, {
+  const infoQuery = useGetDataplaneTransferInfo(dataplaneProcessId ?? "", {
     query: { enabled: !!dataplaneProcessId },
   });
 
-  const tp = transferProcess?.status === 200 ? transferProcess.data : null;
+  const tp = tpQuery.data?.status === 200 ? tpQuery.data.data : null;
 
-  const dp =
-    dataplaneTransfer?.data && "id" in dataplaneTransfer.data
-      ? (dataplaneTransfer.data as DataplaneTransferDto)
-      : null;
+  const info = useMemo<DataplaneInfoResponse | null>(() => {
+    const raw = infoQuery.data?.data;
+    return raw && !("code" in raw) ? (raw as DataplaneInfoResponse) : null;
+  }, [infoQuery.data]);
 
-  const info =
-    dataplaneInfo?.data && !("code" in dataplaneInfo.data)
-      ? (dataplaneInfo.data as DataplaneInfoResponse)
-      : null;
+  const logs = useMemo<DataplaneTransferLogDto[]>(() => {
+    const raw = logsQuery.data?.data;
+    if (!raw || !Array.isArray(raw)) return [];
+    return [...raw].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    );
+  }, [logsQuery.data]);
 
-  const logs: DataplaneTransferLogDto[] =
-    dataplaneLogs?.data && Array.isArray(dataplaneLogs.data) ? dataplaneLogs.data : [];
+  const events = useMemo<TransferEventDto[]>(() => {
+    const raw = eventsQuery.data?.data;
+    if (!raw || !Array.isArray(raw)) return [];
+    return [...raw].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+  }, [eventsQuery.data]);
 
-  const events: TransferEventDto[] =
-    transferEvents?.data && Array.isArray(transferEvents.data) ? transferEvents.data : [];
+  const refresh = useCallback(() => {
+    void tpQuery.refetch();
+    void dpQuery.refetch();
+    if (dataplaneProcessId) {
+      void logsQuery.refetch();
+      void eventsQuery.refetch();
+      void infoQuery.refetch();
+    }
+  }, [tpQuery, dpQuery, logsQuery, eventsQuery, infoQuery, dataplaneProcessId]);
 
-  return { isLoading, tp, dp, info, logs, events };
+  const isFetching =
+    tpQuery.isFetching ||
+    dpQuery.isFetching ||
+    logsQuery.isFetching ||
+    eventsQuery.isFetching ||
+    infoQuery.isFetching;
+
+  return {
+    isLoading: tpQuery.isLoading,
+    isDataplaneLoading: dpQuery.isLoading,
+    isLogsLoading: logsQuery.isLoading,
+    isEventsLoading: eventsQuery.isLoading,
+    isFetching,
+    tp,
+    dp,
+    info,
+    logs,
+    events,
+    refresh,
+  };
 }

@@ -21,3 +21,9 @@ datasources:
         queries:
           - name: Span rate
             query: 'sum(rate(span_calls_total{$$__tags}[5m]))'
+
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100

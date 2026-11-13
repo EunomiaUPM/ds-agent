@@ -63,6 +63,30 @@
             "$ref": "#/components/parameters/TopicPattern"
           },
           {
+            "name": "dataspace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "participant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "service",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "source_crate",
             "in": "query",
             "required": false,
@@ -72,6 +96,118 @@
               "examples": [
                 "transfer_agent"
               ]
+            }
+          },
+          {
+            "name": "event_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/EventCategory"
+            }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/EventSeverity"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/EventOutcome"
+            }
+          },
+          {
+            "name": "payload_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actor_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subject_kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subject_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "correlation_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "agreement_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transfer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "negotiation_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "grant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "peer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -834,6 +970,16 @@
       }
     },
     "schemas": {
+      "ActorType": {
+        "type": "string",
+        "enum": [
+          "HumanUser",
+          "PeerParticipant",
+          "AgentService",
+          "SystemWorker",
+          "Anonymous"
+        ]
+      },
       "CreateSubscriptionCommand": {
         "type": "object",
         "required": [
@@ -871,6 +1017,16 @@
             "type": [
               "integer",
               "null"
+            ]
+          },
+          "delivery_format": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookDeliveryFormat"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "expiration_time": {
@@ -968,6 +1124,13 @@
           "Purged"
         ]
       },
+      "DeliveryClass": {
+        "type": "string",
+        "enum": [
+          "AuditDurable",
+          "TelemetryStream"
+        ]
+      },
       "DeliveryStatus": {
         "type": "string",
         "enum": [
@@ -976,6 +1139,27 @@
           "Failed",
           "DeadLetter"
         ]
+      },
+      "EntityRef": {
+        "type": "object",
+        "required": [
+          "kind",
+          "id"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
       },
       "ErrorInfo": {
         "type": "object",
@@ -1082,6 +1266,95 @@
           }
         }
       },
+      "EventActor": {
+        "type": "object",
+        "required": [
+          "actor_type",
+          "id"
+        ],
+        "properties": {
+          "actor_type": {
+            "$ref": "#/components/schemas/ActorType"
+          },
+          "id": {
+            "type": "string"
+          },
+          "participant_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "EventAttestation": {
+        "type": "object",
+        "required": [
+          "format",
+          "signer_did",
+          "signature"
+        ],
+        "properties": {
+          "format": {
+            "type": "string"
+          },
+          "signer_did": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
+          }
+        }
+      },
+      "EventCategory": {
+        "type": "string",
+        "enum": [
+          "AuditLifecycle",
+          "UsageControl",
+          "Attestation",
+          "DataAccess",
+          "ResourceChange",
+          "Security",
+          "Diagnostic"
+        ]
+      },
+      "EventCorrelation": {
+        "type": "object",
+        "required": [
+          "flow_refs"
+        ],
+        "properties": {
+          "correlation_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "URN shared by the events of one flow."
+          },
+          "causation_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "trace_context": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "W3C `traceparent` of the publishing span."
+          },
+          "flow_refs": {
+            "$ref": "#/components/schemas/FlowRefs"
+          }
+        }
+      },
       "EventCount": {
         "type": "object",
         "required": [
@@ -1098,13 +1371,19 @@
         "type": "object",
         "required": [
           "id",
-          "user_id",
-          "role",
-          "visibility",
-          "topic",
-          "source_crate",
-          "schema_version",
+          "spec_version",
           "timestamp",
+          "topic",
+          "event_type",
+          "severity",
+          "delivery_class",
+          "schema_version",
+          "payload_type",
+          "source",
+          "actor",
+          "correlation",
+          "integrity",
+          "visibility_owner",
           "payload"
         ],
         "properties": {
@@ -1114,19 +1393,21 @@
               "urn:uuid:8a4e1f0c-7d4b-4a52-9f0e-2a6c5b1d3e47"
             ]
           },
-          "user_id": {
+          "spec_version": {
             "type": "string",
-            "description": "Owner of the record (\"system\" if a peer opened it)."
-          },
-          "role": {
-            "type": "string",
-            "description": "Role the record was created under (or that handles it).",
             "examples": [
-              "/admin/upm"
+              "2.0"
             ]
           },
-          "visibility": {
-            "$ref": "#/components/schemas/Visibility"
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sequence": {
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "topic": {
             "type": "string",
@@ -1134,23 +1415,58 @@
               "transfers:started"
             ]
           },
-          "source_crate": {
-            "type": "string"
+          "event_type": {
+            "$ref": "#/components/schemas/EventCategory"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/EventSeverity"
+          },
+          "outcome": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EventOutcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "delivery_class": {
+            "$ref": "#/components/schemas/DeliveryClass"
           },
           "schema_version": {
             "type": "integer"
           },
-          "timestamp": {
+          "payload_type": {
             "type": "string",
-            "format": "date-time"
+            "examples": [
+              "dataspace.transfer.v1"
+            ]
           },
-          "correlation_id": {
-            "type": "string",
-            "description": "URN shared by the events of one flow."
+          "source": {
+            "$ref": "#/components/schemas/EventSource"
           },
-          "trace_context": {
-            "type": "string",
-            "description": "W3C `traceparent` of the publishing span."
+          "actor": {
+            "$ref": "#/components/schemas/EventActor"
+          },
+          "subject": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntityRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "correlation": {
+            "$ref": "#/components/schemas/EventCorrelation"
+          },
+          "integrity": {
+            "$ref": "#/components/schemas/EventIntegrity"
+          },
+          "visibility_owner": {
+            "$ref": "#/components/schemas/EventVisibilityOwner"
           },
           "payload": {
             "description": "Event payload, any JSON value."
@@ -1165,6 +1481,81 @@
           }
         }
       },
+      "EventIntegrity": {
+        "type": "object",
+        "required": [
+          "payload_digest",
+          "canonicalization"
+        ],
+        "properties": {
+          "payload_digest": {
+            "type": "string"
+          },
+          "canonicalization": {
+            "type": "string"
+          },
+          "attestation": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EventAttestation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "EventOutcome": {
+        "type": "string",
+        "enum": [
+          "Success",
+          "Denied",
+          "Failed",
+          "Pending"
+        ]
+      },
+      "EventSeverity": {
+        "type": "string",
+        "enum": [
+          "Debug",
+          "Info",
+          "Warn",
+          "Error",
+          "Critical"
+        ]
+      },
+      "EventSource": {
+        "type": "object",
+        "required": [
+          "service",
+          "instance_id",
+          "crate_name"
+        ],
+        "properties": {
+          "dataspace_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "participant_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "service": {
+            "type": "string"
+          },
+          "instance_id": {
+            "type": "string"
+          },
+          "crate_name": {
+            "type": "string"
+          }
+        }
+      },
       "EventSubscription": {
         "type": "object",
         "required": [
@@ -1174,6 +1565,7 @@
           "visibility",
           "callback_address",
           "topic_pattern",
+          "delivery_format",
           "active",
           "created_at"
         ],
@@ -1228,6 +1620,9 @@
               "null"
             ]
           },
+          "delivery_format": {
+            "$ref": "#/components/schemas/WebhookDeliveryFormat"
+          },
           "active": {
             "type": "boolean"
           },
@@ -1248,6 +1643,66 @@
               "null"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "EventVisibilityOwner": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "role",
+          "visibility"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          }
+        }
+      },
+      "FlowRefs": {
+        "type": "object",
+        "properties": {
+          "agreement_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transfer_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "negotiation_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "grant_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dataset_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "peer_id": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
@@ -1321,8 +1776,83 @@
           "payload"
         ],
         "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "timestamp": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "sequence": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "visibility": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Visibility"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "topic": {
             "type": "string"
+          },
+          "event_type": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EventCategory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "severity": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EventSeverity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcome": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EventOutcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "delivery_class": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DeliveryClass"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payload_type": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "source_crate": {
             "type": [
@@ -1336,12 +1866,64 @@
               "null"
             ]
           },
+          "source": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EventSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EventActor"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "subject": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EntityRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "correlation_id": {
             "type": [
               "string",
               "null"
             ],
             "description": "URN."
+          },
+          "causation_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "trace_context": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "flow_refs": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FlowRefs"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "payload": {
             "description": "Event payload, any JSON value."
@@ -1396,6 +1978,16 @@
               "null"
             ]
           },
+          "delivery_format": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookDeliveryFormat"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "active": {
             "type": [
               "boolean",
@@ -1418,6 +2010,13 @@
           "Private",
           "Anonymous",
           "Public"
+        ]
+      },
+      "WebhookDeliveryFormat": {
+        "type": "string",
+        "enum": [
+          "envelope",
+          "payload_only"
         ]
       }
     }

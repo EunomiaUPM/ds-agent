@@ -20,5 +20,5 @@ import { EventSubscriptions } from "@eunomia/ui/events";
 import { EventTopics } from "shared/src/lib/eventTopics";
 
 export const Route = createFileRoute("/events/subscriptions")({
-  component: () => <EventSubscriptions topics={EventTopics} defaultPattern="transfers:*" />,
+  component: () => <EventSubscriptions topics={EventTopics} defaultPattern="transfers:**" />,
 });

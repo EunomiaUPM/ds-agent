@@ -1,5 +1,6 @@
 # Receives OTLP from the agents: traces go to Jaeger; metrics (agent-emitted plus RED
-# metrics derived from spans, e.g. per DSP orchestrator step) are exposed for Prometheus.
+# metrics derived from spans, e.g. per DSP orchestrator step) are exposed for Prometheus;
+# structured dataspace event LogRecords go to Loki (and debug stdout).
 receivers:
   otlp:
     protocols:
@@ -28,6 +29,10 @@ exporters:
     endpoint: 0.0.0.0:8889
     resource_to_telemetry_conversion:
       enabled: true
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+  debug:
+    verbosity: basic
 
 service:
   pipelines:
@@ -39,3 +44,7 @@ service:
       receivers: [ otlp, spanmetrics ]
       processors: [ batch ]
       exporters: [ prometheus ]
+    logs:
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ otlphttp/loki, debug ]

@@ -38,7 +38,19 @@ const DETOURS = {
 
 function TransferProcessPage() {
   const { transferProcessId } = Route.useParams();
-  const { isLoading, tp, dp, info, logs, events } = useTransferProcessDetail(transferProcessId);
+  const {
+    isLoading,
+    isDataplaneLoading,
+    isLogsLoading,
+    isEventsLoading,
+    isFetching,
+    tp,
+    dp,
+    info,
+    logs,
+    events,
+    refresh,
+  } = useTransferProcessDetail(transferProcessId);
   const { data: messagesData } = useGetTransferMessagesByProcessId(transferProcessId, {
     limit: 100,
     sort: "created_at_asc",
@@ -48,7 +60,10 @@ function TransferProcessPage() {
     query: { enabled: !!agreementId },
   });
 
-  const messages = messagesData?.status === 200 ? messagesData.data.items : [];
+  const messages = useMemo(
+    () => (messagesData?.status === 200 ? messagesData.data.items : []),
+    [messagesData],
+  );
   const agreement = agreementData?.status === 200 ? agreementData.data : undefined;
   const visited = useMemo(
     () =>
@@ -174,15 +189,34 @@ function TransferProcessPage() {
         </TabsContent>
 
         <TabsContent value="dataplane" className="pt-5">
-          <DataPlaneTab dp={dp} info={info} />
+          <DataPlaneTab
+            dp={dp}
+            info={info}
+            logs={logs}
+            events={events}
+            tpState={tp.state}
+            isLoading={isDataplaneLoading}
+            isRefreshing={isFetching}
+            onRefresh={refresh}
+          />
         </TabsContent>
 
         <TabsContent value="logs" className="pt-5">
-          <DataplaneLogsTab logs={logs} />
+          <DataplaneLogsTab
+            logs={logs}
+            isLoading={isDataplaneLoading || isLogsLoading}
+            isRefreshing={isFetching}
+            onRefresh={refresh}
+          />
         </TabsContent>
 
         <TabsContent value="events" className="pt-5">
-          <TransferEventsTab events={events} />
+          <TransferEventsTab
+            events={events}
+            isLoading={isDataplaneLoading || isEventsLoading}
+            isRefreshing={isFetching}
+            onRefresh={refresh}
+          />
         </TabsContent>
       </Tabs>
     </PageLayout>

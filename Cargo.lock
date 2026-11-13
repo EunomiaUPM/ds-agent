@@ -1233,6 +1233,7 @@ dependencies = [
  "urn",
  "uuid",
  "ymir",
+ "ymir-events",
 ]
 
 [[package]]
@@ -7198,7 +7199,7 @@ checksum = "cfe53a6657fd280eaa890a3bc59152892ffa3e30101319d168b781ed6529b049"
 [[package]]
 name = "ymir"
 version = "0.8.0"
-source = "git+https://github.com/EunomiaUPM/ymir.git?rev=b1a50d7c0ae079183ec9fc07932ff4527e0c431b#b1a50d7c0ae079183ec9fc07932ff4527e0c431b"
+source = "git+https://github.com/EunomiaUPM/ymir.git?rev=86941d235d18c5c54c77b401716163d0f3044fbe#86941d235d18c5c54c77b401716163d0f3044fbe"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -7253,7 +7254,7 @@ dependencies = [
 [[package]]
 name = "ymir-events"
 version = "0.8.0"
-source = "git+https://github.com/EunomiaUPM/ymir.git?rev=b1a50d7c0ae079183ec9fc07932ff4527e0c431b#b1a50d7c0ae079183ec9fc07932ff4527e0c431b"
+source = "git+https://github.com/EunomiaUPM/ymir.git?rev=86941d235d18c5c54c77b401716163d0f3044fbe#86941d235d18c5c54c77b401716163d0f3044fbe"
 dependencies = [
  "async-trait",
  "axum",
@@ -7261,10 +7262,13 @@ dependencies = [
  "chrono",
  "futures-util",
  "hmac",
+ "json-canon",
  "log",
  "mockall",
  "opentelemetry",
+ "opentelemetry_sdk",
  "rand 0.10.2",
+ "rdkafka",
  "sea-orm",
  "sea-orm-migration",
  "serde",
@@ -7274,6 +7278,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+ "tracing-opentelemetry",
  "url",
  "urn",
  "uuid",

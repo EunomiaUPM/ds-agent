@@ -4,12 +4,16 @@ import path from "path";
 import tsconfigPaths from "vite-tsconfig-paths";
 import tailwind from "tailwindcss";
 import autoprefixer from "autoprefixer";
-import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
 
 export default defineConfig(() => {
   return {
     base: "/admin/",
-    plugins: [react(), tsconfigPaths(), TanStackRouterVite({ autoCodeSplitting: true })],
+    plugins: [
+      tanstackRouter({ target: "react", autoCodeSplitting: true }),
+      react(),
+      tsconfigPaths(),
+    ],
     publicDir: path.resolve(__dirname, "../shared/public"),
     // One copy of React and TanStack whichever package imports them.
     resolve: {

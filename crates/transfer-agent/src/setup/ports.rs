@@ -57,10 +57,14 @@ pub struct TransferPorts {
 
 impl TransferPorts {
     /// Microservices: every agent is reached through its API.
-    pub async fn remote(config: &TransferConfig, root: &RootContext) -> Outcome<Self> {
+    pub async fn remote(
+        config: &TransferConfig,
+        root: &RootContext,
+        events: Arc<dyn events::EventSinkTrait>,
+    ) -> Outcome<Self> {
         let (signal_tx, signal_rx) = DataplaneSignalSender::open(DEFAULT_SIGNAL_CHANNEL_CAPACITY);
         let ports = DataplanePorts::remote(config, root).with_signals(signal_tx);
-        let module = DataplaneModule::compose(config, root, &ports).await?;
+        let module = DataplaneModule::compose(config, root, events, &ports).await?;
         Ok(Self {
             auth: AuthPorts::remote(config.ssi_auth()),
             negotiation: Arc::new(NegotiationRemoteFacade::new(config.contracts())),
@@ -76,6 +80,7 @@ impl TransferPorts {
     pub async fn local(
         config: &TransferConfig,
         root: &RootContext,
+        events: Arc<dyn events::EventSinkTrait>,
         auth: AuthPorts,
         negotiation: Arc<dyn NegotiationFacadeTrait>,
         catalog: Arc<dyn CatalogFacadeTrait>,
@@ -84,7 +89,7 @@ impl TransferPorts {
         // The dataplane always runs inside transfer; only its connector lookups follow the mode.
         let (signal_tx, signal_rx) = DataplaneSignalSender::open(DEFAULT_SIGNAL_CHANNEL_CAPACITY);
         let ports = DataplanePorts::local(connectors.clone()).with_signals(signal_tx);
-        let module = DataplaneModule::compose(config, root, &ports).await?;
+        let module = DataplaneModule::compose(config, root, events, &ports).await?;
         Ok(Self {
             auth,
             negotiation,
@@ -135,12 +140,13 @@ impl TransferPorts {
         self.dataplane_module.clone()
     }
 
-    /// The connector instance serving `target` in `format`: its dataset, then the distribution
-    /// in that format, then the instance behind it.
+    /// The connector instance serving `target` in `format`: its dataset and distribution
+    /// in parallel, then the instance behind it.
     pub async fn connector_for(&self, target: &Urn, format: &str) -> Outcome<ConnectorInstanceDto> {
-        let dataset = self.catalog.get_dataset(target).await?;
-        let dataset_id = Urn::from_str(&dataset.id)?;
-        let distribution = self.catalog.get_distribution_by_format(&dataset_id, format).await?;
+        let (_, distribution) = tokio::try_join!(
+            self.catalog.get_dataset(target),
+            self.catalog.get_distribution_by_format(target, format),
+        )?;
         let distribution_id = Urn::from_str(&distribution.id)?;
         self.connectors
             .get_instance_by_distribution(&distribution_id)

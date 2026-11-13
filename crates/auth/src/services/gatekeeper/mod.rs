@@ -19,4 +19,6 @@
 
 mod gatekeeper_trait;
 pub mod gnap;
+pub mod token_cache;
 pub use gatekeeper_trait::{GateKeeperTrait, MockGateKeeperTrait};
+pub use token_cache::TokenAuthCache;

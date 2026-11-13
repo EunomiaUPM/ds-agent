@@ -207,3 +207,43 @@ async fn root_creates_its_own_secrets() {
     let entry = svc.create(&TestUsers::user("admin-tenant", "/admin"), &cmd).await.unwrap();
     assert_eq!(entry.metadata.user_id, "admin-tenant");
 }
+
+/// `read` caches secret entries in L1 and updates or evicts them on `update` and `delete`.
+#[tokio::test]
+async fn read_secret_caches_hits_and_evicts_on_update_and_delete() {
+    let mut repo = MockSecretRepoTrait::new();
+    let user = TestUsers::user("tenant-1", "/admin/tenant-1");
+    let key = test_key("cached");
+    let initial = make_secret_entry(
+        "tenant-1",
+        key.clone(),
+        SecretValue::new(serde_json::json!({"api_token": "v1"})),
+    );
+    let edit_cmd = make_edit_cmd();
+    let updated = make_secret_entry("tenant-1", key.clone(), edit_cmd.value.clone());
+
+    repo.expect_get_secret_by_key()
+        .times(2)
+        .returning(move |_, _| Ok(Some(initial.clone())));
+    repo.expect_put_secret()
+        .times(1)
+        .returning(move |_, _, _| Ok(updated.clone()));
+    repo.expect_delete_secret()
+        .times(1)
+        .returning(|_, _| Ok(()));
+
+    let svc = make_service(repo);
+    let r1 = svc.read(&user, &key).await.unwrap();
+    let r2 = svc.read(&user, &key).await.unwrap();
+    assert_eq!(r1.value.expose(), &serde_json::json!({"api_token": "v1"}));
+    assert_eq!(r2.value.expose(), r1.value.expose());
+
+    // Update refreshes the L1 entry so subsequent read returns v2 without hitting repo.
+    svc.update(&user, &key, &edit_cmd).await.unwrap();
+    let r3 = svc.read(&user, &key).await.unwrap();
+    assert_eq!(r3.value.expose(), edit_cmd.value.expose());
+
+    // Delete evicts L1 so the following read hits the repository again.
+    svc.delete(&user, &key).await.unwrap();
+    let _ = svc.read(&user, &key).await.unwrap();
+}

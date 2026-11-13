@@ -19,7 +19,7 @@
 
 use std::sync::Arc;
 
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use common::config::services::traits::CatalogConfigTrait;
 use common::config::types::traits::MinKnownConfigTrait;
 use ymir::oauth::OwnerScope;
@@ -27,6 +27,7 @@ use ymir::config::types::HostType;
 use ymir::data::entities::shared::registered_dataset::Model as RegisteredDataset;
 use ymir::errors::Outcome;
 
+use crate::entities::resource::CatalogResource;
 use crate::entities::resource_kind::ResourceKind;
 use crate::services::registry::RegistryServiceTrait;
 use crate::setup::context::AppContext;
@@ -48,6 +49,33 @@ impl RegistryService {
             common::dsp_common::paths::CATALOG
         )
     }
+
+    fn to_registered(
+        resource: &CatalogResource,
+        location: &str,
+        now: DateTime<Utc>,
+    ) -> Option<RegisteredDataset> {
+        if resource.kind() != ResourceKind::Dataset || resource.is_draft() {
+            return None;
+        }
+        let owner = resource.owner();
+        Some(RegisteredDataset {
+            id: resource.id().to_string(),
+            catalog_id: resource.catalog_id()?.to_string(),
+            location: location.to_string(),
+            requirements: Vec::new(),
+            owner_user_id: owner.user_id.clone(),
+            owner_role: owner.role.clone(),
+            owner_visibility: owner.visibility.clone(),
+            updated_at: now,
+        })
+    }
+
+    async fn log_if_err(result: Outcome<()>, context: &str) {
+        if let Err(error) = result {
+            tracing::warn!(%error, "{context}");
+        }
+    }
 }
 
 #[async_trait::async_trait]
@@ -60,27 +88,94 @@ impl RegistryServiceTrait for RegistryService {
         let datasets = set
             .published()
             .iter()
-            .filter(|resource| resource.kind() == ResourceKind::Dataset)
-            .filter_map(|resource| {
-                let owner = resource.owner();
-                Some(RegisteredDataset {
-                    id: resource.id().to_string(),
-                    catalog_id: resource.catalog_id()?.to_string(),
-                    location: location.clone(),
-                    requirements: Vec::new(),
-                    owner_user_id: owner.user_id.clone(),
-                    owner_role: owner.role.clone(),
-                    owner_visibility: owner.visibility.clone(),
-                    updated_at: now,
-                })
-            })
+            .filter_map(|resource| Self::to_registered(resource, &location, now))
             .collect();
         self.ctx.ports.auth.registry.sync_datasets(datasets).await
     }
 
     async fn resync(&self) {
-        if let Err(error) = self.sync().await {
-            tracing::warn!(%error, "datasets not registered with auth");
+        Self::log_if_err(self.sync().await, "datasets not registered with auth").await;
+    }
+
+    async fn sync_saved(&self, resource: &CatalogResource) {
+        if resource.kind() != ResourceKind::Dataset {
+            return;
+        }
+        if resource.is_draft() {
+            Self::log_if_err(
+                self.ctx
+                    .ports
+                    .auth
+                    .registry
+                    .unregister_datasets(vec![resource.id().to_string()])
+                    .await,
+                "dataset not unregistered from auth",
+            )
+            .await;
+            return;
+        }
+        let location = self.location();
+        if let Some(row) = Self::to_registered(resource, &location, Utc::now()) {
+            Self::log_if_err(
+                self.ctx.ports.auth.registry.upsert_datasets(vec![row]).await,
+                "dataset not registered with auth",
+            )
+            .await;
+        }
+    }
+
+    async fn sync_deleted(&self, resource: &CatalogResource) {
+        match resource.kind() {
+            ResourceKind::Dataset => {
+                Self::log_if_err(
+                    self.ctx
+                        .ports
+                        .auth
+                        .registry
+                        .unregister_datasets(vec![resource.id().to_string()])
+                        .await,
+                    "dataset not unregistered from auth",
+                )
+                .await;
+            }
+            ResourceKind::Catalog => self.resync().await,
+            _ => {}
+        }
+    }
+
+    async fn sync_imported(&self, resources: &[CatalogResource]) {
+        let location = self.location();
+        let now = Utc::now();
+        let mut upsert = Vec::new();
+        let mut remove = Vec::new();
+        for resource in resources
+            .iter()
+            .filter(|resource| resource.kind() == ResourceKind::Dataset)
+        {
+            if resource.is_draft() {
+                remove.push(resource.id().to_string());
+            } else if let Some(row) = Self::to_registered(resource, &location, now) {
+                upsert.push(row);
+            }
+        }
+        if !upsert.is_empty() {
+            Self::log_if_err(
+                self.ctx.ports.auth.registry.upsert_datasets(upsert).await,
+                "imported datasets not registered with auth",
+            )
+            .await;
+        }
+        if !remove.is_empty() {
+            Self::log_if_err(
+                self.ctx
+                    .ports
+                    .auth
+                    .registry
+                    .unregister_datasets(remove)
+                    .await,
+                "drafted imported datasets not unregistered from auth",
+            )
+            .await;
         }
     }
 }

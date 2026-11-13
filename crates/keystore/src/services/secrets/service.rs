@@ -17,13 +17,16 @@
 
 //! Store implementation over the repository.
 
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
+use std::time::{Duration, Instant};
 
-use ymir::oauth::Owner;
-use ymir::types::oauth::UserInfo;
-use ymir::errors::NotFoundExt;
+use events::schemas::dataspace::{KeystoreAuditPayload, ResourceAction};
+use events::{EventContext, EventSinkTrait, NoopEventSink, TypedEventSink};
+use ymir::errors::{NotFoundExt, Outcome};
 use ymir::query::QueryFilter;
-use ymir::errors::Outcome;
+use ymir::types::oauth::UserInfo;
+use ymir::types::participants::Visibility;
 
 use crate::data::repo::secrets::SecretRepoTrait;
 use crate::entities::commands::{EditSecretCommand, NewSecretCommand};
@@ -34,24 +37,68 @@ use crate::entities::secret_value::SecretValue;
 use crate::entities::version::Version;
 use crate::services::secrets::SecretStore;
 
-/// Secret store over a repository, emitting `keystore:` events when a bus is set.
+/// Secret store over a repository, emitting redacted `KeystoreAuditPayload` events.
 pub struct SecretStoreImpl {
     repo: Arc<dyn SecretRepoTrait>,
-    event_bus: Option<events::EventBus>,
+    events: Arc<dyn EventSinkTrait>,
+    l1: RwLock<HashMap<(String, String), (Instant, SecretEntry)>>,
 }
 
 impl SecretStoreImpl {
+    const L1_TTL: Duration = Duration::from_secs(5);
+    const L1_MAX_ENTRIES: usize = 2048;
+
     pub fn new(repo: Arc<dyn SecretRepoTrait>) -> Self {
         Self {
             repo,
-            event_bus: None,
+            events: Arc::new(NoopEventSink),
+            l1: RwLock::new(HashMap::new()),
         }
     }
 
-    /// Publishes create, update and delete events on `event_bus`.
-    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
-        self.event_bus = event_bus;
+    fn read_l1(&self, user_id: &str, key: &Key) -> Option<SecretEntry> {
+        let guard = self.l1.read().ok()?;
+        let (ts, entry) = guard.get(&(user_id.to_string(), key.as_str().to_string()))?;
+        (ts.elapsed() < Self::L1_TTL).then(|| entry.clone())
+    }
+
+    fn write_l1(&self, user_id: &str, entry: &SecretEntry) {
+        if let Ok(mut guard) = self.l1.write() {
+            if guard.len() >= Self::L1_MAX_ENTRIES {
+                guard.retain(|_, (ts, _)| ts.elapsed() < Self::L1_TTL);
+            }
+            guard.insert(
+                (user_id.to_string(), entry.metadata.key.as_str().to_string()),
+                (Instant::now(), entry.clone()),
+            );
+        }
+    }
+
+    fn evict_l1(&self, user_id: &str, key: &Key) {
+        if let Ok(mut guard) = self.l1.write() {
+            guard.remove(&(user_id.to_string(), key.as_str().to_string()));
+        }
+    }
+
+    /// Publishes create, update and delete audit events on `events`.
+    pub fn with_event_sink(mut self, events: Arc<dyn EventSinkTrait>) -> Self {
+        self.events = events;
         self
+    }
+
+    async fn emit_audit(&self, user: &UserInfo, action: ResourceAction, key: &Key) {
+        let ctx = EventContext::for_user_with_visibility(user, Visibility::Private);
+        let payload = KeystoreAuditPayload {
+            action,
+            entry_kind: "secret".to_string(),
+            entry_id: key.as_str().to_string(),
+            name: key.as_str().to_string(),
+            key_type: None,
+            value_redacted: true,
+        };
+        if let Err(err) = TypedEventSink::emit(&*self.events, &ctx, &payload).await {
+            tracing::warn!(error = %err, key = %key, "Failed to emit keystore secret audit event");
+        }
     }
 }
 
@@ -60,14 +107,9 @@ impl SecretStore for SecretStoreImpl {
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn create(&self, user: &UserInfo, cmd: &NewSecretCommand) -> Outcome<SecretEntry> {
         let entry = self.repo.create_secret(user.id(), cmd).await?;
-        events::emit_action!(
-            self.event_bus,
-            &Owner::private(user),
-            crate::EVENT_PREFIX,
-            "secret",
-            "create",
-            &entry
-        );
+        self.write_l1(user.id(), &entry);
+        self.emit_audit(user, ResourceAction::Created, &entry.metadata.key)
+            .await;
         Ok(entry)
     }
 
@@ -78,10 +120,16 @@ impl SecretStore for SecretStoreImpl {
         fields(user = %user.id(), key = %key)
     )]
     async fn read(&self, user: &UserInfo, key: &Key) -> Outcome<SecretEntry> {
-        self.repo
+        if let Some(cached) = self.read_l1(user.id(), key) {
+            return Ok(cached);
+        }
+        let entry = self
+            .repo
             .get_secret_by_key(user.id(), key)
             .await?
-            .or_not_found(key, "secret")
+            .or_not_found(key, "secret")?;
+        self.write_l1(user.id(), &entry);
+        Ok(entry)
     }
 
     #[tracing::instrument(
@@ -100,14 +148,9 @@ impl SecretStore for SecretStoreImpl {
             .repo
             .put_secret(user.id(), key, cmd)
             .await?;
-        events::emit_action!(
-            self.event_bus,
-            &Owner::private(user),
-            crate::EVENT_PREFIX,
-            "secret",
-            "edit",
-            &entry
-        );
+        self.write_l1(user.id(), &entry);
+        self.emit_audit(user, ResourceAction::Updated, &entry.metadata.key)
+            .await;
         Ok(entry.metadata.version)
     }
 
@@ -119,14 +162,8 @@ impl SecretStore for SecretStoreImpl {
     )]
     async fn delete(&self, user: &UserInfo, key: &Key) -> Outcome<()> {
         self.repo.delete_secret(user.id(), key).await?;
-        events::emit_action!(
-            self.event_bus,
-            &Owner::private(user),
-            crate::EVENT_PREFIX,
-            "secret",
-            "delete",
-            &events::EntityDeletedDto::new(key.as_str())
-        );
+        self.evict_l1(user.id(), key);
+        self.emit_audit(user, ResourceAction::Deleted, key).await;
         Ok(())
     }
 
@@ -169,17 +206,16 @@ impl SecretStore for SecretStoreImpl {
                 self.create(user, &cmd).await?;
             }
             Some(existing) => {
-                self.repo
-                    .put_secret(
-                        user.id(),
-                        key,
-                        &EditSecretCommand {
-                            value,
-                            expected_version: existing.metadata.version,
-                            description: None,
-                        },
-                    )
-                    .await?;
+                self.update(
+                    user,
+                    key,
+                    &EditSecretCommand {
+                        value,
+                        expected_version: existing.metadata.version,
+                        description: None,
+                    },
+                )
+                .await?;
             }
         }
         Ok(())

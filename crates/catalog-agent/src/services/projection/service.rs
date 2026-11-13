@@ -73,18 +73,12 @@ impl ProjectionService {
             .map(ProjectionBody::Text)
     }
 
-    fn cache_key(
-        user: &UserInfo,
-        root: &str,
-        request: &ProjectionRequest,
-        generation: u64,
-    ) -> String {
+    fn reader_key(user: &UserInfo, request: &ProjectionRequest) -> String {
         let limit = request
             .limit
             .map(|l| l.to_string())
             .unwrap_or_else(|| "all".into());
-        let reader = format!("user:{}:{limit}:{}", user.id(), request.syntax.extension());
-        ProjectionKey::of(&request.profile, root, &reader, generation)
+        format!("user:{}:{limit}:{}", user.id(), request.syntax.extension())
     }
 
     fn to_cache(projection: &Projection) -> Value {
@@ -134,14 +128,20 @@ impl ProjectionServiceTrait for ProjectionService {
     ) -> Outcome<Projection> {
         let adapter = self.adapter(&request.profile)?;
         let root_id = id.to_string();
-        let key = Self::cache_key(user, &root_id, request, self.ctx.cache.generation().await);
-        if let Some(cached) = self.ctx.cache.get_projection(&key).await {
+        let reader = Self::reader_key(user, request);
+        let (generation, cached) = self
+            .ctx
+            .cache
+            .get_versioned_projection(&request.profile, &root_id, &reader)
+            .await;
+        if let Some(cached) = cached {
             if let Some(projection) =
                 Self::from_cache(cached, &root_id, adapter.as_ref(), request.syntax)
             {
                 return Ok(projection);
             }
         }
+        let key = ProjectionKey::of(&request.profile, &root_id, &reader, generation);
         let (root, set) = self
             .ctx
             .closures()

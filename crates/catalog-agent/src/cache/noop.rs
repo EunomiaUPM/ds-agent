@@ -36,6 +36,15 @@ impl CatalogCacheTrait for NoopCatalogCache {
         None
     }
 
+    async fn get_versioned_projection(
+        &self,
+        _profile: &str,
+        _root: &str,
+        _reader: &str,
+    ) -> (u64, Option<Value>) {
+        (0, None)
+    }
+
     async fn put_projection(&self, _key: &str, _projection: &Value) {}
 
     async fn get_peer_catalog(&self, _user_id: &str, _peer_id: &str) -> Outcome<Option<Value>> {

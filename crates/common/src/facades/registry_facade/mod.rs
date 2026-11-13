@@ -30,4 +30,8 @@ use ymir::errors::Outcome;
 pub trait RegistryFacadeTrait: Send + Sync {
     /// Leaves exactly `datasets` registered: every published dataset, each time.
     async fn sync_datasets(&self, datasets: Vec<RegisteredDataset>) -> Outcome<()>;
+    /// Inserts or updates a changed subset of published datasets without a full replace.
+    async fn upsert_datasets(&self, datasets: Vec<RegisteredDataset>) -> Outcome<()>;
+    /// Unregisters deleted or unpublished datasets by id.
+    async fn unregister_datasets(&self, ids: Vec<String>) -> Outcome<()>;
 }

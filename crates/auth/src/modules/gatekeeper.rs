@@ -16,8 +16,10 @@
  */
 
 use crate::entities::filters::RecvGrantFilter;
-use crate::services::{HasGateKeeper, HasRepo, MayHaveEventBus};
-use crate::types::events::{recv_owner, GrantEvent};
+use crate::services::gatekeeper::TokenAuthCache;
+use crate::services::{HasEventSink, HasGateKeeper, HasRepo};
+use crate::types::events::AuthEvents;
+use events::EventActor;
 use crate::types::token_lifetimes::PENDING_GRANT_TTL_SECS;
 use async_trait::async_trait;
 use axum::body::Bytes;
@@ -52,7 +54,7 @@ use crate::types::token::IssuedToken;
 /// that role or above handle it, and anyone sees it if it is public.
 #[async_trait]
 pub trait GateKeeperModule:
-    HasGateKeeper + HasVerifier + HasRepo + MayHaveEventBus + Send + Sync + 'static
+    HasGateKeeper + HasVerifier + HasRepo + HasEventSink + Send + Sync + 'static
 {
     // ==========================================================================================
     // Received grants: queries
@@ -153,32 +155,54 @@ pub trait GateKeeperModule:
     /// error otherwise. No user: the caller is a DSP endpoint answering the peer.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn verify_token(&self, token: &str) -> Outcome<VerifiedPeer> {
+        let token_hash = hash_token(token);
+        if let Some(cached) = self.token_cache().and_then(|c| c.get_peer(&token_hash)) {
+            return Ok(cached);
+        }
         let grant = self
             .repo()
             .recv_grant()
-            .get_valid_by_final_hash(&hash_token(token), Utc::now())
+            .get_valid_by_final_hash(&token_hash, Utc::now())
             .await?;
-        let participant_id = require_field(grant.participant_id.as_ref(), "participant_id")?;
-        Ok(VerifiedPeer {
-            participant_id: participant_id.to_string(),
-            role: grant.role,
-            visibility: grant.visibility,
-        })
+        let peer = TokenAuthCache::verified_peer(&grant)?;
+        if let Some(cache) = self.token_cache() {
+            cache.put_peer(token_hash, &grant, &peer);
+        }
+        Ok(peer)
     }
 
     /// The peer behind `token` if it also covers `need`; missing-resource error otherwise.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn authorize(&self, token: &str, need: &AccessNeed) -> Outcome<VerifiedPeer> {
+        let token_hash = hash_token(token);
+        if let Some((grant_id, peer, granted)) =
+            self.token_cache().and_then(|c| c.get_authorized(&token_hash))
+        {
+            if !need.covered_by(&granted) {
+                return Err(Errors::missing_resource(&grant_id, "access not granted", None));
+            }
+            return Ok(peer);
+        }
         let grant = self
             .repo()
             .recv_grant()
-            .get_valid_by_final_hash(&hash_token(token), Utc::now())
+            .get_valid_by_final_hash(&token_hash, Utc::now())
             .await?;
-        let granted = self.repo().resource_req().get_by_id(&grant.id).await?.granted;
-        if !need.covered_by(granted.as_deref().unwrap_or_default()) {
+        let granted = self
+            .repo()
+            .resource_req()
+            .get_by_id(&grant.id)
+            .await?
+            .granted
+            .unwrap_or_default();
+        let peer = TokenAuthCache::verified_peer(&grant)?;
+        if let Some(cache) = self.token_cache() {
+            cache.put_authorized(token_hash, &grant, peer.clone(), granted.clone());
+        }
+        if !need.covered_by(&granted) {
             return Err(Errors::missing_resource(&grant.id, "access not granted", None));
         }
-        self.verify_token(token).await
+        Ok(peer)
     }
 
     // ==========================================================================================
@@ -274,6 +298,9 @@ pub trait GateKeeperModule:
             grant.final_token_hash = None;
             grant.managing_token_hash = None;
             let grant = self.repo().recv_grant().update(grant).await?;
+            if let Some(cache) = self.token_cache() {
+                cache.invalidate_grant(&grant.id);
+            }
             self.gate_event(&grant, "revoked").await;
         }
         Ok(())
@@ -304,7 +331,11 @@ pub trait GateKeeperModule:
             grant.final_token_hash = None;
             grant.managing_token_hash = None;
             let grant = self.repo().recv_grant().update(grant).await?;
-            self.gate_event(&grant, "revoked").await;
+            if let Some(cache) = self.token_cache() {
+                cache.invalidate_grant(&grant.id);
+            }
+            self.gate_event_with_actor(&grant, "revoked", Some(EventActor::human(user)))
+                .await;
         }
         Ok(())
     }
@@ -314,16 +345,16 @@ pub trait GateKeeperModule:
     // ==========================================================================================
 
     async fn gate_event(&self, grant: &grant::Model, action: &str) {
-        let owner = recv_owner(grant);
-        let payload = GrantEvent::from(grant);
-        events::emit_action!(
-            self.event_bus(),
-            &owner,
-            crate::EVENT_PREFIX,
-            "gate",
-            action,
-            &payload
-        );
+        self.gate_event_with_actor(grant, action, None).await;
+    }
+
+    async fn gate_event_with_actor(
+        &self,
+        grant: &grant::Model,
+        action: &str,
+        actor: Option<EventActor>,
+    ) {
+        AuthEvents::recv_grant_action(self.event_sink().as_ref(), grant, action, actor).await;
     }
 
     #[tracing::instrument(level = "info", skip_all, err)]
@@ -373,6 +404,9 @@ pub trait GateKeeperModule:
             grant.status = GrantStatus::Finalized;
             grant.ended_at = Some(now);
             let grant = self.repo().recv_grant().update(grant).await?;
+            if let Some(cache) = self.token_cache() {
+                cache.invalidate_grant(&grant.id);
+            }
             self.gate_event(&grant, "finalized").await;
             return Err(Errors::security(
                 "Grant has reached its maximum lifetime",
@@ -394,6 +428,9 @@ pub trait GateKeeperModule:
             .await?;
         if !rotated {
             return Err(Errors::security("Token was rotated concurrently", None));
+        }
+        if let Some(cache) = self.token_cache() {
+            cache.invalidate_grant(&grant.id);
         }
         self.gate_event(&rotated_grant, "rotated").await;
 
@@ -499,6 +536,9 @@ pub trait GateKeeperModule:
             (self.reissue_token(&mut grant, now)?, "modified")
         };
         let grant = self.repo().recv_grant().update(grant).await?;
+        if let Some(cache) = self.token_cache() {
+            cache.invalidate_grant(&grant.id);
+        }
         self.gate_event(&grant, action).await;
 
         let r#continue = self.rotate_continuation(interaction).await?;
@@ -560,6 +600,9 @@ pub trait GateKeeperModule:
         };
         let issued = self.reissue_token(&mut grant, Utc::now())?;
         let grant = self.repo().recv_grant().update(grant).await?;
+        if let Some(cache) = self.token_cache() {
+            cache.invalidate_grant(&grant.id);
+        }
         self.gate_event(&grant, "modified").await;
         let r#continue = self.rotate_continuation(interaction).await?;
         Ok(GrantResponse::token_issued(
@@ -600,6 +643,18 @@ pub trait GateKeeperModule:
     #[tracing::instrument(level = "info", skip_all, err, fields(datasets = datasets.len()))]
     async fn register_datasets(&self, datasets: Vec<registered_dataset::Model>) -> Outcome<()> {
         self.repo().registered_dataset().replace_all(datasets).await
+    }
+
+    /// Inserts or updates a changed subset of published datasets in auth's registry.
+    #[tracing::instrument(level = "info", skip_all, err, fields(datasets = datasets.len()))]
+    async fn upsert_datasets(&self, datasets: Vec<registered_dataset::Model>) -> Outcome<()> {
+        self.repo().registered_dataset().upsert_datasets(datasets).await
+    }
+
+    /// Removes `ids` from auth's dataset registry without touching unrelated rows.
+    #[tracing::instrument(level = "info", skip_all, err, fields(ids = ids.len()))]
+    async fn unregister_datasets(&self, ids: &[String]) -> Outcome<()> {
+        self.repo().registered_dataset().delete_datasets(ids).await
     }
 
     /// The credentials `access` asks for: the base, plus what each registered dataset asked by id

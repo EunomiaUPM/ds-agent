@@ -37,6 +37,13 @@ pub trait CatalogCacheTrait: Send + Sync {
     /// Moves to a new generation: every cached projection is stale from now on.
     async fn invalidate(&self);
     async fn get_projection(&self, key: &str) -> Option<Value>;
+    /// Reads the current generation and projection in one round-trip, using L1 when valid.
+    async fn get_versioned_projection(
+        &self,
+        profile: &str,
+        root: &str,
+        reader: &str,
+    ) -> (u64, Option<Value>);
     async fn put_projection(&self, key: &str, projection: &Value);
     async fn get_peer_catalog(&self, user_id: &str, peer_id: &str) -> Outcome<Option<Value>>;
     async fn put_peer_catalog(&self, user_id: &str, peer_id: &str, catalog: &Value) -> Outcome<()>;
@@ -46,6 +53,11 @@ pub trait CatalogCacheTrait: Send + Sync {
 pub struct ProjectionKey;
 
 impl ProjectionKey {
+    /// Unversioned projection key prefix `{profile}:{root}:{reader}`.
+    pub fn prefix(profile: &str, root: &str, reader: &str) -> String {
+        format!("{profile}:{root}:{reader}")
+    }
+
     /// One profile's projection of one root, for one kind of reader, at one generation.
     pub fn of(profile: &str, root: &str, reader: &str, generation: u64) -> String {
         format!("{profile}:{root}:{reader}:{generation}")

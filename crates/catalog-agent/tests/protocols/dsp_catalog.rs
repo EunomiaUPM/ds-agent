@@ -20,13 +20,16 @@
 
 use catalog_agent::cache::MockCatalogCacheTrait;
 use catalog_agent::entities::resource_kind::ResourceKind;
+use catalog_agent::entities::resource_set::ResourceSet;
 use catalog_agent::protocols::dsp::entities::protocol_fields::CatalogProtocolFields;
 use catalog_agent::protocols::dsp::services::dsp_catalog::service::DspCatalogService;
 use catalog_agent::protocols::dsp::services::dsp_catalog::DspCatalogServiceTrait;
 use catalog_agent::services::closure::MockClosureServiceTrait;
 use serde_json::json;
 
-use crate::support::builders::{id, provider_set, provider_set_with_draft, urn};
+use crate::support::builders::{
+    catalog, dataset, id, provider_set, provider_set_with_draft, urn,
+};
 use crate::support::context::TestContext;
 
 fn closures() -> MockClosureServiceTrait {
@@ -45,8 +48,9 @@ fn closures() -> MockClosureServiceTrait {
 #[tokio::test]
 async fn catalog_is_projected_and_cached() {
     let mut cache = MockCatalogCacheTrait::new();
-    cache.expect_generation().returning(|| 4);
-    cache.expect_get_projection().returning(|_| None);
+    cache
+        .expect_get_versioned_projection()
+        .returning(|_, _, _| (4, None));
     cache
         .expect_put_projection()
         .withf(|key, _| key == "dsp:main:published:4")
@@ -67,10 +71,9 @@ async fn catalog_is_projected_and_cached() {
 #[tokio::test]
 async fn cached_catalog_is_served_without_loading() {
     let mut cache = MockCatalogCacheTrait::new();
-    cache.expect_generation().returning(|| 4);
     cache
-        .expect_get_projection()
-        .returning(|_| Some(json!({"@type": "Catalog", "cached": true})));
+        .expect_get_versioned_projection()
+        .returning(|_, _, _| (4, Some(json!({"@type": "Catalog", "cached": true}))));
     let ctx = TestContext::new().cache(cache).build();
 
     let catalog = DspCatalogService::new(ctx)
@@ -127,5 +130,28 @@ async fn drafts_are_not_offered_to_peers() {
 
     assert!(!catalog.to_string().contains(&id(ResourceKind::Dataset, 3)));
     assert!(!catalog.to_string().contains("publicationState"));
+    assert_eq!(missing.info().status_code.as_u16(), 404);
+}
+
+/// A dataset whose parent catalog is a draft returns 404 via `closure.resource` without `main_catalog`.
+#[tokio::test]
+async fn dataset_with_draft_parent_catalog_returns_404_via_closure_resource() {
+    let mut closures = MockClosureServiceTrait::new();
+    closures.expect_main_catalog().never();
+    closures.expect_resource().returning(|_, req_id| {
+        let mut set = ResourceSet::new();
+        let draft_cat = catalog(5).with_publication(true);
+        let child_ds = dataset(6, 5);
+        set.insert(draft_cat);
+        set.insert(child_ds.clone());
+        Ok((req_id == child_ds.id()).then_some((child_ds, set)))
+    });
+    let service = DspCatalogService::new(TestContext::new().closures(closures).build());
+
+    let missing = service
+        .dataset("peer", &urn(ResourceKind::Dataset, 6))
+        .await
+        .unwrap_err();
+
     assert_eq!(missing.info().status_code.as_u16(), 404);
 }

@@ -28,6 +28,7 @@ use axum::http::HeaderMap;
 use common::test_utils::scopes::TestUsers;
 use ymir::errors::Errors;
 use ymir::types::gnap::access_token::{BoundToken, TokenManagement};
+use ymir::types::gnap::grant_request::access::AccessNeed;
 use ymir::types::gnap::grant_response::{GrantResponse, GrantResponseKind};
 use ymir::types::gnap::GrantStatus;
 use ymir::types::participants::Visibility;
@@ -368,4 +369,104 @@ async fn unknown_token_is_rejected() {
     let result = d.core().verify_token("forged").await;
 
     assert!(result.is_err());
+}
+
+// ==========================================================================================
+// Incremental dataset registration
+// ==========================================================================================
+
+/// Upserting and removing subsets delegates incrementally instead of rewriting the whole table.
+#[tokio::test]
+async fn incremental_dataset_registration_delegates_to_upsert_and_delete() {
+    let mut d = Doubles::default();
+    let sample = ymir::data::entities::shared::registered_dataset::Model {
+        id: "urn:dataset:1".into(),
+        catalog_id: "urn:catalog:1".into(),
+        location: "https://provider.example/dsp/catalog/datasets".into(),
+        requirements: Vec::new(),
+        owner_user_id: "u-1".into(),
+        owner_role: ymir::types::oauth::RolePath::root(),
+        owner_visibility: Visibility::Public,
+        updated_at: chrono::Utc::now(),
+    };
+    d.repos
+        .registered_dataset
+        .expect_upsert_datasets()
+        .withf(|rows| rows.len() == 1 && rows[0].id == "urn:dataset:1")
+        .returning(|_| Ok(()));
+    d.repos
+        .registered_dataset
+        .expect_delete_datasets()
+        .withf(|ids| ids == ["urn:dataset:1"])
+        .returning(|_| Ok(()));
+
+    let core = d.core();
+    core.upsert_datasets(vec![sample]).await.unwrap();
+    core.unregister_datasets(&["urn:dataset:1".into()])
+        .await
+        .unwrap();
+}
+
+/// `authorize` caches approved token grants in L1 and invalidates them on revocation.
+#[tokio::test]
+async fn authorize_caches_grant_and_invalidates_on_revoke() {
+    let mut d = Doubles::default();
+    let need = AccessNeed::Dataset {
+        base: "http://provider.example/dsp".to_string(),
+        id: "urn:dataset:1".to_string(),
+    };
+    let granted = need.to_request();
+
+    d.repos
+        .recv_grant
+        .expect_get_valid_by_final_hash()
+        .times(2)
+        .withf(|hash, _| hash == hash_token("peer-token"))
+        .returning(|_, _| {
+            let mut grant = recv_grant("/admin/upm", "g-1");
+            grant.status = GrantStatus::Approved;
+            grant.participant_id = Some("did:web:peer".to_string());
+            grant.final_token_hash = Some(hash_token("peer-token"));
+            Ok(grant)
+        });
+    d.repos
+        .resource_req
+        .expect_get_by_id()
+        .times(2)
+        .withf(|id| id == "g-1")
+        .returning(move |id| {
+            let mut req = resource_req(id);
+            req.granted = Some(granted.clone());
+            Ok(req)
+        });
+    d.repos
+        .recv_grant
+        .expect_get_by_id()
+        .times(1)
+        .withf(|id| id == "g-1")
+        .returning(|id| {
+            let mut grant = recv_grant("/admin/upm", id);
+            grant.status = GrantStatus::Approved;
+            grant.final_token_hash = Some(hash_token("peer-token"));
+            Ok(grant)
+        });
+    d.repos
+        .recv_grant
+        .expect_update()
+        .times(1)
+        .returning(Ok);
+
+    let core = d.core();
+    let first = core.authorize("peer-token", &need).await.unwrap();
+    let second = core.authorize("peer-token", &need).await.unwrap();
+    assert_eq!(first.participant_id, "did:web:peer");
+    assert_eq!(second.participant_id, "did:web:peer");
+
+    core.disconnect(&TestUsers::user("admin", "/admin"), "g-1")
+        .await
+        .unwrap();
+
+    // After revocation, cache entry is invalidated so authorize queries the repo again.
+    let third = core.authorize("peer-token", &need).await.unwrap();
+    assert_eq!(third.participant_id, "did:web:peer");
 }

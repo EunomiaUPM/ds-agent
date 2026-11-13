@@ -25,6 +25,7 @@ use ymir::config::types::HostType;
 use ymir::data::entities::shared::registered_dataset::Model as RegisteredDataset;
 use ymir::errors::Outcome;
 use ymir::services::client::ClientExt;
+use ymir::types::http::HttpBody;
 use ymir::utils::http_client;
 
 use crate::config::types::min_known_config::MinKnownConfig;
@@ -41,22 +42,48 @@ impl RegistryRemoteFacade {
     pub fn new(config: Arc<MinKnownConfig>) -> Self {
         Self { config }
     }
+
+    fn url(&self, suffix: &str) -> String {
+        format!(
+            "{}{}{}{}",
+            self.config.get_host(HostType::Http),
+            self.config.get_api_version(),
+            gate::PREFIX,
+            suffix
+        )
+    }
 }
 
 #[async_trait]
 impl RegistryFacadeTrait for RegistryRemoteFacade {
     #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth"))]
     async fn sync_datasets(&self, datasets: Vec<RegisteredDataset>) -> Outcome<()> {
-        let url = format!(
-            "{}{}{}{}",
-            self.config.get_host(HostType::Http),
-            self.config.get_api_version(),
-            gate::PREFIX,
-            gate::REGISTRY_DATASETS
-        );
+        let url = self.url(gate::REGISTRY_DATASETS);
         http_client()
             .put_json::<_, Value>(&url, None, &datasets)
             .await
             .map(|_| ())
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth", count = datasets.len()))]
+    async fn upsert_datasets(&self, datasets: Vec<RegisteredDataset>) -> Outcome<()> {
+        if datasets.is_empty() {
+            return Ok(());
+        }
+        let url = self.url(gate::REGISTRY_DATASETS);
+        http_client()
+            .post_ok(&url, None, HttpBody::json(&datasets)?)
+            .await
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth", count = ids.len()))]
+    async fn unregister_datasets(&self, ids: Vec<String>) -> Outcome<()> {
+        if ids.is_empty() {
+            return Ok(());
+        }
+        let url = self.url(gate::REGISTRY_DATASETS_REMOVE);
+        http_client()
+            .post_ok(&url, None, HttpBody::json(&ids)?)
+            .await
     }
 }

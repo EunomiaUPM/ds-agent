@@ -106,9 +106,12 @@ impl ShapeSet {
     /// Validates `graph` against the named groups, or the default ones when `checks` is empty.
     pub fn validate(&self, graph: &RdfGraph, checks: &[String]) -> Outcome<ShaclReport> {
         let selected = self.select(checks)?;
+        let store = (!selected.is_empty()).then(|| Self::store(graph));
         let mut results = Vec::new();
         for group in &selected {
-            let mut validation = GraphValidation::new(Graph::from(Self::store(graph)));
+            let mut validation = GraphValidation::new(Graph::from(
+                store.as_ref().expect("non-empty selection builds store").clone(),
+            ));
             let report = validation
                 .validate(
                     &group.schema,

@@ -101,6 +101,15 @@ impl RdfCanonicalizer {
 
     /// Expands the message and returns both expanded JSON and canonical n-quads.
     pub async fn expand_once(&self) -> Outcome<RdfExpansion> {
+        self.run_expand(true).await
+    }
+
+    /// Expands the message into JSON-LD expanded JSON without running RDFC-1.0 canonicalization.
+    pub async fn expand_json_only(&self) -> Outcome<serde_json::Value> {
+        Ok(self.run_expand(false).await?.expanded)
+    }
+
+    async fn run_expand(&self, canonicalize: bool) -> Outcome<RdfExpansion> {
         let message = serde_json::to_string(&self.message).map_err(|_| {
             Errors::format(
                 BadFormat::Received,
@@ -144,8 +153,12 @@ impl RdfCanonicalizer {
             })?;
 
         let expanded = Self::expanded_json(&to_rdf)?;
-        let quads: Quads = to_rdf.cloned_quads().map(Self::to_sophia_quad).collect();
-        let canonical_n_quads = Self::to_canonical_n_quads(&quads)?;
+        let canonical_n_quads = if canonicalize {
+            let quads: Quads = to_rdf.cloned_quads().map(Self::to_sophia_quad).collect();
+            Self::to_canonical_n_quads(&quads)?
+        } else {
+            String::new()
+        };
 
         Ok(RdfExpansion {
             expanded,

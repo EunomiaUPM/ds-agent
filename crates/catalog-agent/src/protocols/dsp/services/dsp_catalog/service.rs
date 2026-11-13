@@ -62,11 +62,15 @@ impl DspCatalogServiceTrait for DspCatalogService {
     #[tracing::instrument(level = "info", skip_all, err, fields(peer = %peer))]
     async fn catalog(&self, peer: &str, _request: &CatalogProtocolFields) -> Outcome<Value> {
         let adapter = self.adapter()?;
-        let generation = self.ctx.cache.generation().await;
-        let key = ProjectionKey::of(adapter.key(), "main", Self::READER, generation);
-        if let Some(cached) = self.ctx.cache.get_projection(&key).await {
+        let (generation, cached) = self
+            .ctx
+            .cache
+            .get_versioned_projection(adapter.key(), "main", Self::READER)
+            .await;
+        if let Some(cached) = cached {
             return Ok(cached);
         }
+        let key = ProjectionKey::of(adapter.key(), "main", Self::READER, generation);
         let (main, set) = self.ctx.closures().main_catalog(&OwnerScope::All).await?;
         let catalog = adapter.project(&set.published(), &main)?;
         self.ctx.cache.put_projection(&key, &catalog).await;
@@ -76,23 +80,23 @@ impl DspCatalogServiceTrait for DspCatalogService {
     #[tracing::instrument(level = "info", skip_all, err, fields(peer = %peer))]
     async fn dataset(&self, peer: &str, id: &Urn) -> Outcome<Value> {
         let adapter = self.adapter()?;
-        let generation = self.ctx.cache.generation().await;
-        let key = ProjectionKey::of(adapter.key(), id.as_ref(), Self::READER, generation);
-        if let Some(cached) = self.ctx.cache.get_projection(&key).await {
+        let (generation, cached) = self
+            .ctx
+            .cache
+            .get_versioned_projection(adapter.key(), id.as_ref(), Self::READER)
+            .await;
+        if let Some(cached) = cached {
             return Ok(cached);
         }
-        let (_, published) = self.ctx.closures().main_catalog(&OwnerScope::All).await?;
-        if !published.contains(id.as_ref()) {
-            return Err(Self::not_found(id));
-        }
+        let key = ProjectionKey::of(adapter.key(), id.as_ref(), Self::READER, generation);
         let (root, set) = self
             .ctx
             .closures()
             .resource(&OwnerScope::All, id)
             .await?
-            .filter(|(root, _)| root.kind() == ResourceKind::Dataset)
+            .filter(|(root, _)| root.kind() == ResourceKind::Dataset && root.catalog_id().is_some())
             .ok_or_else(|| Self::not_found(id))?;
-        // A draft dataset is not offered: a peer gets the same 404 as for a missing one.
+        // A draft dataset or one under a draft catalog is hidden as 404.
         let set = set.shared_from(&root).ok_or_else(|| Self::not_found(id))?;
         let dataset = adapter.project(&set, &root)?;
         self.ctx.cache.put_projection(&key, &dataset).await;

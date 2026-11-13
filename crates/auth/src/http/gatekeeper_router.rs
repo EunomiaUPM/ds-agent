@@ -74,7 +74,11 @@ impl GateKeeperRouter {
             .route(gate::REQUEST_DETAILS, get(Self::get_one_with_details))
             .route(gate::TOKEN_VERIFY, post(Self::verify_token))
             .route(gate::TOKEN_AUTHORIZE, post(Self::authorize))
-            .route(gate::REGISTRY_DATASETS, put(Self::register_datasets))
+            .route(
+                gate::REGISTRY_DATASETS,
+                put(Self::register_datasets).post(Self::upsert_datasets),
+            )
+            .route(gate::REGISTRY_DATASETS_REMOVE, post(Self::unregister_datasets))
             .with_state(self.gatekeeper.clone())
     }
 
@@ -200,6 +204,23 @@ impl GateKeeperRouter {
         payload: Result<Json<Vec<RegisteredDataset>>, JsonRejection>,
     ) -> AppResult<Json<Value>> {
         gatekeeper.register_datasets(extract_payload(payload)?).await?;
+        Ok(Json(Value::Null))
+    }
+
+    async fn upsert_datasets(
+        State(gatekeeper): State<Arc<dyn GateKeeperModule>>,
+        payload: Result<Json<Vec<RegisteredDataset>>, JsonRejection>,
+    ) -> AppResult<Json<Value>> {
+        gatekeeper.upsert_datasets(extract_payload(payload)?).await?;
+        Ok(Json(Value::Null))
+    }
+
+    async fn unregister_datasets(
+        State(gatekeeper): State<Arc<dyn GateKeeperModule>>,
+        payload: Result<Json<Vec<String>>, JsonRejection>,
+    ) -> AppResult<Json<Value>> {
+        let ids = extract_payload(payload)?;
+        gatekeeper.unregister_datasets(&ids).await?;
         Ok(Json(Value::Null))
     }
 }

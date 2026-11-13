@@ -23,15 +23,15 @@ use crate::modules::{
 };
 use crate::services::callback::CallbackTrait;
 use crate::services::gaia_self_attester::GaiaSelfAttesterTrait;
-use crate::services::gatekeeper::GateKeeperTrait;
+use crate::services::gatekeeper::{GateKeeperTrait, TokenAuthCache};
 use crate::services::peer_connector::PeerConnectorTrait;
 use crate::services::vc_requester::VcRequesterTrait;
 use crate::services::{
-    HasCallback, HasConfig, HasGaiaSelfAttester, HasGateKeeper, HasPeerConnector, HasRepo,
-    HasVcRequester, MayHaveEventBus,
+    HasCallback, HasConfig, HasEventSink, HasGaiaSelfAttester, HasGateKeeper, HasPeerConnector,
+    HasRepo, HasVcRequester,
 };
 use common::config::services::SsiAuthConfig;
-use events::EventBus;
+use events::{EventSinkTrait, NoopEventSink};
 use std::sync::Arc;
 use ymir::modules::WalletModuleTrait;
 use ymir::services::issuer::IssuerTrait;
@@ -51,7 +51,8 @@ pub struct AuthCore {
     gaia: Option<Arc<dyn GaiaSelfAttesterTrait>>,
     issuer: Option<Arc<dyn IssuerTrait>>,
     config: Arc<SsiAuthConfig>,
-    event_bus: Option<EventBus>,
+    event_sink: Arc<dyn EventSinkTrait>,
+    token_cache: TokenAuthCache,
 }
 
 impl AuthCore {
@@ -66,7 +67,7 @@ impl AuthCore {
         gaia: Option<Arc<dyn GaiaSelfAttesterTrait>>,
         issuer: Option<Arc<dyn IssuerTrait>>,
         config: Arc<SsiAuthConfig>,
-        event_bus: Option<EventBus>,
+        events: Option<Arc<dyn EventSinkTrait>>,
     ) -> AuthCore {
         AuthCore {
             vc_requester,
@@ -79,14 +80,15 @@ impl AuthCore {
             wallet,
             gaia,
             issuer,
-            event_bus,
+            event_sink: events.unwrap_or_else(|| Arc::new(NoopEventSink)),
+            token_cache: TokenAuthCache::default(),
         }
     }
 }
 
-impl MayHaveEventBus for AuthCore {
-    fn event_bus(&self) -> Option<&EventBus> {
-        self.event_bus.as_ref()
+impl HasEventSink for AuthCore {
+    fn event_sink(&self) -> Arc<dyn EventSinkTrait> {
+        self.event_sink.clone()
     }
 }
 
@@ -129,6 +131,10 @@ impl HasVcRequester for AuthCore {
 impl HasGateKeeper for AuthCore {
     fn gatekeeper(&self) -> Arc<dyn GateKeeperTrait> {
         self.gatekeeper.clone()
+    }
+
+    fn token_cache(&self) -> Option<&TokenAuthCache> {
+        Some(&self.token_cache)
     }
 }
 

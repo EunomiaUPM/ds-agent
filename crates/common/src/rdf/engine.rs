@@ -77,13 +77,22 @@ impl RdfEngine {
         &mut self.loader
     }
 
-    /// Expands a JSON-LD message into an expanded document and canonical n-quads.
-    pub async fn expand(&self, message: &serde_json::Value) -> Outcome<RdfExpansion> {
+    fn canonicalizer(&self, message: &serde_json::Value) -> RdfCanonicalizer {
         let mut canonicalizer = RdfCanonicalizer::with_loader(message.clone(), self.loader.clone());
         if let Some(ctx) = &self.expand_context {
             canonicalizer = canonicalizer.with_expand_context(ctx.clone());
         }
-        canonicalizer.expand_once().await
+        canonicalizer
+    }
+
+    /// Expands a JSON-LD message into an expanded document and canonical n-quads.
+    pub async fn expand(&self, message: &serde_json::Value) -> Outcome<RdfExpansion> {
+        self.canonicalizer(message).expand_once().await
+    }
+
+    /// Expands a JSON-LD message into expanded JSON without running RDFC-1.0 canonicalization.
+    pub async fn expand_only(&self, message: &serde_json::Value) -> Outcome<serde_json::Value> {
+        self.canonicalizer(message).expand_json_only().await
     }
 
     /// Produces the URDNA2015 / RDFC-1.0 canonical n-quads for a JSON-LD message.

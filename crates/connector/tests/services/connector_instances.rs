@@ -40,10 +40,12 @@ use connector::services::connector_instance::service::ConnectorInstanceService;
 use connector::{
     ConnectorInstanceRepoTrait, ConnectorInstanceServiceTrait, ConnectorInstantiationDto,
 };
+use async_trait::async_trait;
+use events::{EventCategory, EventEnvelope, EventOutcome, EventSeverity, EventSinkTrait};
 use serde_json::json;
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use urn::Urn;
 use ymir::errors::RepoIntoErrors;
 
@@ -507,6 +509,73 @@ async fn delete_instance_when_no_active_transfers_succeeds() {
     assert!(res.is_ok());
 }
 
+#[derive(Default)]
+struct CaptureSink(Mutex<Vec<EventEnvelope>>);
+
+#[async_trait]
+impl EventSinkTrait for CaptureSink {
+    async fn emit_envelope(&self, envelope: EventEnvelope) -> ymir::errors::Outcome<()> {
+        self.0.lock().unwrap().push(envelope);
+        Ok(())
+    }
+}
+
+#[tokio::test]
+async fn delete_instance_guard_emits_policy_decisions() {
+    let urn = Urn::from_str("urn:uuid:f47ac10b-58cc-4372-a567-0e02b2c3d479").unwrap();
+    let urn_str = urn.to_string();
+
+    let mut deny_guard = connector::MockActiveTransferGuard::new();
+    deny_guard.expect_count_active_transfers().returning(|_| Ok(1));
+
+    let deny_sink = Arc::new(CaptureSink::default());
+    let deny_svc = build_service(
+        MockConnectorTemplateRepoTrait::new(),
+        MockConnectorInstanceRepoTrait::new(),
+        MockConnectorDistroRelationRepoTrait::new(),
+        MockCatalogFacadeTrait::new(),
+    )
+    .with_transfer_guard(Arc::new(deny_guard))
+    .with_event_sink(deny_sink.clone());
+
+    assert!(deny_svc.delete_instance_by_id(&tenant_2(), &urn).await.is_err());
+    let deny_events = deny_sink.0.lock().unwrap().clone();
+    assert_eq!(deny_events.len(), 1);
+    assert_eq!(deny_events[0].event_type, EventCategory::UsageControl);
+    assert_eq!(deny_events[0].outcome, Some(EventOutcome::Denied));
+    assert_eq!(deny_events[0].severity, EventSeverity::Warn);
+    assert_eq!(deny_events[0].topic.as_str(), "usage_control:pdp:evaluated");
+    assert_eq!(deny_events[0].payload_type, "usage_control.decision.v1");
+
+    let mut permit_guard = connector::MockActiveTransferGuard::new();
+    permit_guard.expect_count_active_transfers().returning(|_| Ok(0));
+    let mut distro_repo = MockConnectorDistroRelationRepoTrait::new();
+    distro_repo.expect_delete_relation_by_instance().returning(|_, _| Ok(()));
+    let mut instance_repo = MockConnectorInstanceRepoTrait::new();
+    instance_repo
+        .expect_delete_instance_by_id()
+        .withf(move |_, id| *id == urn_str)
+        .returning(|_, _| Ok(Owner::private(&tenant_2())));
+
+    let permit_sink = Arc::new(CaptureSink::default());
+    let permit_svc = build_service(
+        MockConnectorTemplateRepoTrait::new(),
+        instance_repo,
+        distro_repo,
+        MockCatalogFacadeTrait::new(),
+    )
+    .with_transfer_guard(Arc::new(permit_guard))
+    .with_event_sink(permit_sink.clone());
+
+    permit_svc.delete_instance_by_id(&tenant_2(), &urn).await.unwrap();
+    let permit_events = permit_sink.0.lock().unwrap().clone();
+    assert_eq!(permit_events.len(), 2);
+    assert_eq!(permit_events[0].event_type, EventCategory::UsageControl);
+    assert_eq!(permit_events[0].outcome, Some(EventOutcome::Success));
+    assert_eq!(permit_events[0].topic.as_str(), "usage_control:pdp:evaluated");
+    assert_eq!(permit_events[1].topic.as_str(), "connector_instances:deleted");
+}
+
 /// `VAULT_REF` was removed in favour of keystore-backed `{{__RUNTIME_SECRET_{/key}__}}`
 /// placeholders; attempting to deserialize it must fail cleanly.
 #[test]
@@ -517,4 +586,57 @@ fn removed_vault_ref_secret_source_is_rejected() {
     });
     let res = serde_json::from_value::<connector::SecretString>(raw);
     assert!(res.is_err());
+}
+
+/// `get_instance_by_id` caches repeated lookups in L1 and evicts the entry on delete.
+#[tokio::test]
+async fn get_instance_by_id_caches_hits_and_evicts_on_delete() {
+    let urn = Urn::from_str("urn:uuid:f47ac10b-58cc-4372-a567-0e02b2c3d479").unwrap();
+    let urn_str = urn.to_string();
+    let mut instance_repo = MockConnectorInstanceRepoTrait::new();
+    let mut distro_repo = MockConnectorDistroRelationRepoTrait::new();
+
+    let tpl = get_template_fixture_dto();
+    let model = connector_instances::Model {
+        id: urn_str.clone(),
+        user_id: "tenant-2".to_string(),
+        user_role: RolePath::from_str("/admin/tenant-2").unwrap(),
+        visibility: Visibility::Private,
+        template_name: "tpl".to_string(),
+        template_version: "1.0".to_string(),
+        distribution_id: "urn:distribution:1".to_string(),
+        created_at: chrono::Utc::now().into(),
+        metadata: json!({}),
+        configuration_parameters: json!({}),
+        authentication: serde_json::to_value(tpl.authentication).unwrap(),
+        interaction: serde_json::to_value(tpl.interaction).unwrap(),
+    };
+    let model_ret = model.clone();
+    instance_repo
+        .expect_get_instance_by_id()
+        .times(2)
+        .returning(move |_, _| Ok(Some(model_ret.clone())));
+    distro_repo
+        .expect_delete_relation_by_instance()
+        .times(1)
+        .returning(|_, _| Ok(()));
+    instance_repo
+        .expect_delete_instance_by_id()
+        .times(1)
+        .returning(|_, _| Ok(Owner::private(&tenant_2())));
+
+    let svc = build_service(
+        MockConnectorTemplateRepoTrait::new(),
+        instance_repo,
+        distro_repo,
+        MockCatalogFacadeTrait::new(),
+    );
+
+    assert!(svc.get_instance_by_id(&tenant_2(), &urn).await.unwrap().is_some());
+    assert!(svc.get_instance_by_id(&tenant_2(), &urn).await.unwrap().is_some());
+
+    svc.delete_instance_by_id(&tenant_2(), &urn).await.unwrap();
+
+    // Delete invalidated L1 so the third read hits the repository again.
+    assert!(svc.get_instance_by_id(&tenant_2(), &urn).await.unwrap().is_some());
 }

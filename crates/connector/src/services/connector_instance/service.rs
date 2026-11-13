@@ -30,10 +30,22 @@ use crate::entities::parameters::instance_parameters_validator::InstanceParamete
 use crate::services::connector_instance::ConnectorInstanceServiceTrait;
 use crate::setup::ActiveTransferGuard;
 use common::facades::catalog::CatalogFacadeTrait;
+use events::schemas::dataspace::{
+    ConnectorLifecyclePayload, PolicyDecisionOutcome, PolicyDecisionPayload, ResourceAction,
+};
+use events::{EventActor, EventContext, EventSinkTrait, NoopEventSink, TypedEventSink};
+use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
+use std::time::{Duration, Instant};
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
+
+#[derive(Default)]
+struct InstanceL1Cache {
+    by_id: HashMap<(String, String, String), (Instant, ConnectorInstanceDto)>,
+    by_distro: HashMap<(String, String, String), (Instant, ConnectorInstanceDto)>,
+}
 
 pub struct ConnectorInstanceService {
     repo: Arc<dyn ConnectorRepoTrait>,
@@ -41,11 +53,15 @@ pub struct ConnectorInstanceService {
     /// The service's own base URL, used to resolve `{{__SYS_OWN_URL__}}` and
     /// `{{__SYS_OWN_URL_DOCKER__}}` placeholders during instance creation.
     own_url: String,
-    event_bus: Option<events::EventBus>,
+    events: Arc<dyn EventSinkTrait>,
     transfer_guard: Option<Arc<dyn ActiveTransferGuard>>,
+    l1: RwLock<InstanceL1Cache>,
 }
 
 impl ConnectorInstanceService {
+    const L1_TTL: Duration = Duration::from_secs(5);
+    const L1_MAX_ENTRIES: usize = 2048;
+
     pub fn new(
         repo: Arc<dyn ConnectorRepoTrait>,
         distribution_facade: Arc<dyn CatalogFacadeTrait>,
@@ -55,14 +71,115 @@ impl ConnectorInstanceService {
             repo,
             distribution_facade,
             own_url,
-            event_bus: None,
+            events: Arc::new(NoopEventSink),
             transfer_guard: None,
+            l1: RwLock::new(InstanceL1Cache::default()),
         }
     }
 
-    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
-        self.event_bus = event_bus;
+    fn cache_key(user: &UserInfo, id: &str) -> (String, String, String) {
+        (user.id().to_string(), user.role().to_string(), id.to_string())
+    }
+
+    fn read_by_id(&self, user: &UserInfo, id: &str) -> Option<ConnectorInstanceDto> {
+        let key = Self::cache_key(user, id);
+        let guard = self.l1.read().ok()?;
+        let (ts, dto) = guard.by_id.get(&key)?;
+        (ts.elapsed() < Self::L1_TTL).then(|| dto.clone())
+    }
+
+    fn read_by_distro(&self, user: &UserInfo, distro_id: &str) -> Option<ConnectorInstanceDto> {
+        let key = Self::cache_key(user, distro_id);
+        let guard = self.l1.read().ok()?;
+        let (ts, dto) = guard.by_distro.get(&key)?;
+        (ts.elapsed() < Self::L1_TTL).then(|| dto.clone())
+    }
+
+    fn write_l1(
+        &self,
+        user: &UserInfo,
+        distro_id: Option<&str>,
+        dto: &ConnectorInstanceDto,
+    ) {
+        if let Ok(mut guard) = self.l1.write() {
+            let now = Instant::now();
+            if guard.by_id.len() >= Self::L1_MAX_ENTRIES {
+                guard.by_id.retain(|_, (ts, _)| ts.elapsed() < Self::L1_TTL);
+            }
+            if guard.by_distro.len() >= Self::L1_MAX_ENTRIES {
+                guard.by_distro.retain(|_, (ts, _)| ts.elapsed() < Self::L1_TTL);
+            }
+            guard.by_id.insert(
+                Self::cache_key(user, &dto.id.to_string()),
+                (now, dto.clone()),
+            );
+            if let Some(d) = distro_id {
+                guard
+                    .by_distro
+                    .insert(Self::cache_key(user, d), (now, dto.clone()));
+            }
+        }
+    }
+
+    fn evict_instance(&self, id_str: &str, distro_id: Option<&str>) {
+        if let Ok(mut guard) = self.l1.write() {
+            guard.by_id.retain(|(_, _, k), _| k != id_str);
+            guard.by_distro.retain(|(_, _, d), (_, dto)| {
+                dto.id.to_string() != id_str && distro_id != Some(d.as_str())
+            });
+        }
+    }
+
+    /// Publishes instance lifecycle events on `events`.
+    pub fn with_event_sink(mut self, events: Arc<dyn EventSinkTrait>) -> Self {
+        self.events = events;
         self
+    }
+
+    async fn emit_lifecycle(
+        &self,
+        ctx: EventContext,
+        action: ResourceAction,
+        connector_id: String,
+        name: String,
+        connector_type: Option<String>,
+    ) {
+        let payload = ConnectorLifecyclePayload {
+            action,
+            connector_kind: "instance".to_string(),
+            connector_id,
+            name,
+            connector_type,
+            status: None,
+        };
+        if let Err(err) = TypedEventSink::emit(&*self.events, &ctx, &payload).await {
+            tracing::warn!(error = %err, "Failed to emit connector instance lifecycle event");
+        }
+    }
+
+    async fn emit_guard_decision(
+        &self,
+        ctx: EventContext,
+        decision: PolicyDecisionOutcome,
+        connector_id: &str,
+        reason: Option<String>,
+    ) {
+        let payload = PolicyDecisionPayload {
+            decision,
+            enforcement_point: "connector_guard".to_string(),
+            action: "delete_connector_instance".to_string(),
+            agreement_id: None,
+            transfer_id: None,
+            dataset_id: Some(connector_id.to_string()),
+            policy_id: Some("active_transfers_guard".to_string()),
+            policy_digest: None,
+            peer_id: None,
+            obligations_triggered: Vec::new(),
+            reason,
+        };
+        if let Err(err) = TypedEventSink::emit(&*self.events, &ctx, &payload).await {
+            tracing::warn!(error = %err, "Failed to emit connector guard policy decision");
+        }
     }
 
     pub fn with_transfer_guard(mut self, guard: Arc<dyn ActiveTransferGuard>) -> Self {
@@ -116,13 +233,20 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
         id: &Urn,
     ) -> Outcome<Option<ConnectorInstanceDto>> {
         let id_str = id.to_string();
+        if let Some(cached) = self.read_by_id(user, &id_str) {
+            return Ok(Some(cached));
+        }
         let instance = self
             .repo
             .get_instances_repo()
             .get_instance_by_id(&OwnerScope::seeing(user), &id_str)
             .await?;
 
-        instance.map(Self::map_model_to_dto).transpose()
+        let dto = instance.map(Self::map_model_to_dto).transpose()?;
+        if let Some(d) = &dto {
+            self.write_l1(user, None, d);
+        }
+        Ok(dto)
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
@@ -132,6 +256,9 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
         distribution_id: &Urn,
     ) -> Outcome<Option<ConnectorInstanceDto>> {
         let dist_id_str = distribution_id.to_string();
+        if let Some(cached) = self.read_by_distro(user, &dist_id_str) {
+            return Ok(Some(cached));
+        }
 
         let relation = self
             .repo
@@ -153,7 +280,11 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
             )
             .await?;
 
-        result.map(Self::map_model_to_dto).transpose()
+        let dto = result.map(Self::map_model_to_dto).transpose()?;
+        if let Some(d) = &dto {
+            self.write_l1(user, Some(&dist_id_str), d);
+        }
+        Ok(dto)
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
@@ -270,44 +401,69 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
             .get_distro_relation_repo()
             .get_relation_by_distribution(&OwnerScope::acting(user), &distribution_id)
             .await?;
-        match instance_distro_relation {
+        let action = match instance_distro_relation {
             None => {
                 self.repo
                     .get_distro_relation_repo()
                     .create_relation(&owner, &distribution_id, &saved_model.id)
-                    .await?
+                    .await?;
+                ResourceAction::Created
             }
             Some(_) => {
                 self.repo
                     .get_distro_relation_repo()
                     .update_relation(&OwnerScope::acting(user), &distribution_id, &saved_model.id)
-                    .await?
+                    .await?;
+                ResourceAction::Updated
             }
         };
 
         let owner = saved_model.owner();
         let result = Self::map_model_to_dto(saved_model)?;
-        events::emit_action!(
-            self.event_bus,
-            &owner,
-            crate::EVENT_PREFIX,
-            "instance",
-            "create",
-            &result
-        );
+        self.evict_instance(&result.id.to_string(), Some(&distribution_id));
+        let connector_type = match &result.interaction {
+            InteractionConfig::Pull(_) => "pull",
+            InteractionConfig::Push(_) => "push",
+        };
+        let instance_name = result
+            .metadata
+            .name
+            .clone()
+            .unwrap_or_else(|| result.id.to_string());
+        self.emit_lifecycle(
+            EventContext::for_owner(owner).with_actor(EventActor::human(user)),
+            action,
+            result.id.to_string(),
+            instance_name,
+            Some(connector_type.to_string()),
+        )
+        .await;
         Ok(result)
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
     async fn delete_instance_by_id(&self, user: &UserInfo, id: &Urn) -> Outcome<()> {
-        if let Some(guard) = &self.transfer_guard {
+        let guard_checked = if let Some(guard) = &self.transfer_guard {
             let active = guard.count_active_transfers(id).await?;
             if active > 0 {
+                let reason = format!(
+                    "connector instance {id} is referenced by {active} active transfer(s)"
+                );
+                self.emit_guard_decision(
+                    EventContext::for_user(user).with_correlation(id.to_string()),
+                    PolicyDecisionOutcome::Deny,
+                    &id.to_string(),
+                    Some(reason),
+                )
+                .await;
                 return Err(ConnectorErrors::conflict(format!(
                     "connector instance {id} is referenced by {active} active transfer(s); terminate them before deleting the instance"
                 )));
             }
-        }
+            true
+        } else {
+            false
+        };
 
         let id_str = id.to_string();
 
@@ -322,15 +478,26 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
             .get_instances_repo()
             .delete_instance_by_id(&OwnerScope::acting(user), &id_str)
             .await?;
-        let deleted = events::EntityDeletedDto::new(id_str);
-        events::emit_action!(
-            self.event_bus,
-            &owner,
-            crate::EVENT_PREFIX,
-            "instance",
-            "delete",
-            &deleted
-        );
+        self.evict_instance(&id_str, None);
+        if guard_checked {
+            self.emit_guard_decision(
+                EventContext::for_owner(owner.clone())
+                    .with_actor(EventActor::human(user))
+                    .with_correlation(id_str.clone()),
+                PolicyDecisionOutcome::Permit,
+                &id_str,
+                None,
+            )
+            .await;
+        }
+        self.emit_lifecycle(
+            EventContext::for_owner(owner).with_actor(EventActor::human(user)),
+            ResourceAction::Deleted,
+            id_str.clone(),
+            id_str,
+            None,
+        )
+        .await;
         Ok(())
     }
 }

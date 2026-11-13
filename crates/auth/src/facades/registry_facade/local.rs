@@ -42,4 +42,12 @@ impl RegistryFacadeTrait for RegistryLocalFacade {
     async fn sync_datasets(&self, datasets: Vec<RegisteredDataset>) -> Outcome<()> {
         self.gatekeeper.register_datasets(datasets).await
     }
+
+    async fn upsert_datasets(&self, datasets: Vec<RegisteredDataset>) -> Outcome<()> {
+        self.gatekeeper.upsert_datasets(datasets).await
+    }
+
+    async fn unregister_datasets(&self, ids: Vec<String>) -> Outcome<()> {
+        self.gatekeeper.unregister_datasets(&ids).await
+    }
 }

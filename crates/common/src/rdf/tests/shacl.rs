@@ -177,3 +177,17 @@ async fn nested_results_name_their_holder() {
         "in a nested node, dcat:startDate is mandatory"
     );
 }
+
+/// Multiple selected groups validate against the shared store cleanly.
+#[tokio::test]
+async fn multiple_groups_share_store_and_collect_all_findings() {
+    let data = graph("<urn:d:1> a <http://www.w3.org/ns/dcat#Dataset> .").await;
+    let report = shapes()
+        .validate(&data, &["base".to_string(), "advice".to_string()])
+        .unwrap();
+
+    assert!(!report.conforms);
+    assert_eq!(report.violations, 1);
+    assert_eq!(report.warnings, 1);
+    assert_eq!(report.results.len(), 2);
+}

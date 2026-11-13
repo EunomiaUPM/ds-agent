@@ -207,3 +207,12 @@ async fn odrl_offer_constraint_datatypes_expand() {
     );
     assert!(!out.contains("<xsd:"), "got: {out}");
 }
+
+/// `expand_only` returns the same expanded JSON-LD structure as `expand`.
+#[tokio::test]
+async fn expand_only_matches_expand_expanded_json() {
+    let input = sample_transfer_request();
+    let full = RdfEngine::dsp().expand(&input).await.unwrap();
+    let fast = RdfEngine::dsp().expand_only(&input).await.unwrap();
+    assert_eq!(fast, full.expanded);
+}

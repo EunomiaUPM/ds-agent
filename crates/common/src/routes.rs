@@ -95,6 +95,8 @@ pub mod auth {
         pub const TOKEN_AUTHORIZE: &str = "/token/authorize";
         /// The datasets the catalog publishes, all at once (registry facade).
         pub const REGISTRY_DATASETS: &str = "/registry/datasets";
+        /// Subset of registered datasets removed from auth's registry.
+        pub const REGISTRY_DATASETS_REMOVE: &str = "/registry/datasets/remove";
     }
 
     /// Gaia-X self-attestation.

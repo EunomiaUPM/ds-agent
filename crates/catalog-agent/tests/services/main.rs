@@ -33,5 +33,6 @@ mod policy_composition;
 mod policy_templates;
 mod projection;
 mod public_refs;
+mod registry;
 mod resources;
 mod schemas;

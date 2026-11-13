@@ -15,11 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Registering the published datasets with the auth agent (GNAP RS): all of them, each time.
+//! Registering the published datasets with the auth agent (GNAP RS).
 
 pub mod service;
 
 use ymir::errors::Outcome;
+
+use crate::entities::resource::CatalogResource;
 
 /// Keeps auth's registry equal to what the catalog publishes.
 #[mockall::automock]
@@ -27,7 +29,12 @@ use ymir::errors::Outcome;
 pub trait RegistryServiceTrait: Send + Sync {
     /// Sends auth every dataset of the connector's catalogs, with its catalog, location and owner.
     async fn sync(&self) -> Outcome<()>;
-    /// [`sync`](Self::sync) after a write or at boot: a failure is logged and the next one repairs
-    /// it.
+    /// [`sync`](Self::sync) after boot or a catalog-wide change: failures are logged and repaired later.
     async fn resync(&self);
+    /// Incrementally upserts or unregisters a saved `Dataset` in auth's registry; skips other kinds.
+    async fn sync_saved(&self, resource: &CatalogResource);
+    /// Unregisters a deleted `Dataset`, or runs [`resync`](Self::resync) if a `Catalog` cascaded.
+    async fn sync_deleted(&self, resource: &CatalogResource);
+    /// Syncs datasets written by a catalog import without reloading the entire catalog closure.
+    async fn sync_imported(&self, resources: &[CatalogResource]);
 }

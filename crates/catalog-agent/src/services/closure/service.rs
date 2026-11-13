@@ -146,8 +146,24 @@ impl ClosureServiceTrait for ClosureService {
                     .await?
             }
             ResourceKind::Dataset => {
-                self.distributions(scope, &mut set, std::slice::from_ref(id))
-                    .await?
+                if let Some(catalog_id) = root.catalog_id() {
+                    let repo = self.ctx.repos.resource_repo();
+                    let (distributions, parent) = tokio::try_join!(
+                        repo.get_children(
+                            scope,
+                            Some(ResourceKind::Distribution),
+                            std::slice::from_ref(id)
+                        ),
+                        repo.get_by_id(scope, catalog_id),
+                    )?;
+                    set.extend(distributions);
+                    if let Some(parent) = parent {
+                        set.insert_parent(parent);
+                    }
+                } else {
+                    self.distributions(scope, &mut set, std::slice::from_ref(id))
+                        .await?;
+                }
             }
             ResourceKind::Distribution => {
                 // Its dataset, for the schema it inherits; not part of the projection.

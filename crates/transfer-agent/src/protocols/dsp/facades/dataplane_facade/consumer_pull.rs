@@ -20,8 +20,8 @@ use crate::protocols::dsp::facades::dataplane_facade::DataplaneHookContext as Ds
 use crate::protocols::dsp::entities::data_address::DataAddressDto;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
 use dataplane::{
-    DataplaneAddress, DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection,
-    DataplaneInitCommandTypes, DataplaneManager,
+    DataplaneAddress, DataplaneCommand, DataplaneInitCommandDirection, DataplaneInitCommandTypes,
+    DataplaneManager,
 };
 use ymir::errors::{Errors, Outcome};
 
@@ -70,10 +70,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
-        let id = ctx.process_id.clone();
-        let continuation = DataplaneContinuation {
-            transfer_dto_urn: id,
-        };
+        let continuation = ctx.continuation();
         if !ctx.is_restart {
             let dataplane: DataplaneAddress = ctx
                 .dataplane_address()
@@ -110,10 +107,8 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
-            transfer_dto_urn: ctx.process_id.clone(),
-        }))
-        .await?;
+        mgr.execute_command(DataplaneCommand::SetStopped(ctx.continuation()))
+            .await?;
         Ok(())
     }
 
@@ -132,12 +127,9 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        let cont = DataplaneContinuation {
-            transfer_dto_urn: ctx.process_id.clone(),
-        };
-        mgr.execute_command(DataplaneCommand::SetStopped(cont.clone()))
+        mgr.execute_command(DataplaneCommand::SetStopped(ctx.stopping_continuation()))
             .await?;
-        mgr.execute_command(DataplaneCommand::SetTerminating(cont))
+        mgr.execute_command(DataplaneCommand::SetTerminating(ctx.continuation()))
             .await?;
         Ok(())
     }
@@ -157,12 +149,9 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        let cont = DataplaneContinuation {
-            transfer_dto_urn: ctx.process_id.clone(),
-        };
-        mgr.execute_command(DataplaneCommand::SetStopped(cont.clone()))
+        mgr.execute_command(DataplaneCommand::SetStopped(ctx.stopping_continuation()))
             .await?;
-        mgr.execute_command(DataplaneCommand::SetTerminating(cont))
+        mgr.execute_command(DataplaneCommand::SetTerminating(ctx.continuation()))
             .await?;
         Ok(())
     }

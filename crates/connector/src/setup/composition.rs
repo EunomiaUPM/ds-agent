@@ -34,6 +34,7 @@ use crate::http::connector_template::ConnectorTemplateRouter;
 use crate::setup::context::AppContext;
 use crate::setup::ports::ConnectorPorts;
 use common::routes::connector as routes;
+use events::EventSinkTrait;
 
 /// Connector as a module mounted by the catalog agent.
 pub struct ConnectorModule {
@@ -46,12 +47,12 @@ impl ConnectorModule {
     pub fn compose(
         config: &CatalogConfig,
         root: &RootContext,
-        event_bus: Option<events::EventBus>,
+        events: Arc<dyn EventSinkTrait>,
         ports: &ConnectorPorts,
     ) -> Self {
         Self {
             prefix: format!("{}/connector", config.common().get_api_version()),
-            ctx: AppContext::build(config, root, event_bus, ports),
+            ctx: AppContext::build(config, root, events, ports),
         }
     }
 

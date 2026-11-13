@@ -57,23 +57,23 @@ impl MonolithModule {
     /// Providers are built before their consumers so every facade resolves in-process;
     /// registration order is kept as before.
     pub async fn compose(config: &ApplicationConfig, root: &RootContext) -> Outcome<Self> {
-        let events = EventsModule::compose(root);
-        let bus = Some(events.event_bus());
-        let auth = AuthModule::compose(config.ssi_auth()?, root, bus.clone()).await?;
+        let events = EventsModule::try_compose(root)?;
+        let sink = events.event_sink();
+        let auth = AuthModule::compose(config.ssi_auth()?, root, sink.clone()).await?;
         let auth_ports = auth.local_ports();
         let self_participant = auth.self_participant_onboarder();
         let transfer_guard = Arc::new(connector::LateBoundTransferGuard::new());
         let catalog_ports =
             CatalogPorts::local(auth_ports.clone()).with_transfer_guard(transfer_guard.clone());
         let catalog =
-            CatalogAgentModule::compose(config.catalog()?, root, bus.clone(), &catalog_ports)
+            CatalogAgentModule::compose(config.catalog()?, root, sink.clone(), &catalog_ports)
                 .await?;
         let negotiation_ports =
             NegotiationPorts::local(auth_ports.clone(), catalog.catalog_facade());
         let negotiation = NegotiationAgentModule::compose(
             config.contracts()?,
             root,
-            bus.clone(),
+            sink.clone(),
             &negotiation_ports,
         )
         .await?;
@@ -82,6 +82,7 @@ impl MonolithModule {
         let transfer_ports = TransferPorts::local(
             config.transfer()?,
             root,
+            sink.clone(),
             auth_ports.clone(),
             negotiation.negotiation_facade(),
             catalog.catalog_facade(),
@@ -95,16 +96,16 @@ impl MonolithModule {
             .register(catalog)
             .register(auth)
             .register(negotiation)
-            // .register(OAuthModule::compose(config.common(), root, bus.clone()))
+            // .register(OAuthModule::compose(config.common(), root, sink.clone()))
             .register(TransferAgentModule::compose(
                 config.transfer()?,
                 root,
-                bus.clone(),
+                sink.clone(),
                 &transfer_ports,
             ))
             .register(events)
             .register(BffModule::compose(config.gateway()?, root).without_root())
-            .register(KeystoreModule::compose(config, root, bus));
+            .register(KeystoreModule::compose(config, root, sink));
         let api_base = config.common().get_api_version();
         Ok(Self {
             modules,

@@ -23,7 +23,9 @@ use crate::engine::dataplane_manager::dataplane_driver_factory::DataplaneDriverF
 use crate::engine::dataplane_manager::dataplane_proxy::{
     DataplaneProxy, DataplaneProxyEgress, DataplaneProxyIngress,
 };
-use crate::engine::dataplane_manager::dataplane_runtime::DataplaneRuntime;
+use crate::engine::dataplane_manager::dataplane_runtime::{
+    DataplaneRuntime, ResolvedAuthCredentials,
+};
 use crate::entities::dataplane_transfers::{
     DataplaneTransferDto, InteractionMode, NewDataplaneTransferDto, TransferRole, TransferState,
 };
@@ -52,6 +54,7 @@ pub struct DataplaneContext {
     runtime: Option<DataplaneRuntime>,
     proxy: Option<DataplaneProxy>,
     forward_dataplane_address: Option<DataplaneAddress>,
+    transition_reason: Option<String>,
 }
 
 impl DataplaneContext {
@@ -103,6 +106,14 @@ impl DataplaneContext {
             },
         };
 
+        let init_reason = Self::describe_init(
+            &transfer_role,
+            &interaction_mode,
+            transfer_id,
+            connector_instance.as_ref().map(|c| &c.id),
+            data_plane_address.as_ref(),
+        );
+
         // db access
         let dataplane_process = dataplane_service
             .create(
@@ -117,6 +128,7 @@ impl DataplaneContext {
                     connector_instance_id: connector_instance.as_ref().map(|c| c.id.clone()),
                     ingress_config: json!({}),
                     egress_config: json!({}),
+                    reason: Some(init_reason),
                 },
             )
             .await?;
@@ -130,6 +142,7 @@ impl DataplaneContext {
             runtime: None,
             proxy: None,
             forward_dataplane_address: data_plane_address.clone(),
+            transition_reason: None,
         })
     }
 
@@ -181,6 +194,7 @@ impl DataplaneContext {
             runtime,
             proxy: None,
             forward_dataplane_address: dataplane_address,
+            transition_reason: continuation.reason,
         };
 
         // driver to context (both Provider and Consumer resolve their role/mode driver;
@@ -305,5 +319,110 @@ impl DataplaneContext {
 
     pub fn config(&self) -> Arc<TransferConfig> {
         self.config.clone()
+    }
+
+    pub fn transition_reason(&self) -> Option<&str> {
+        self.transition_reason.as_deref()
+    }
+
+    pub fn take_transition_reason(&mut self) -> Option<String> {
+        self.transition_reason.take()
+    }
+
+    pub fn set_transition_reason(&mut self, reason: Option<String>) -> &mut Self {
+        self.transition_reason = reason;
+        self
+    }
+
+    /// Strips query strings, fragments, and userinfo before logging endpoints.
+    pub fn redact_endpoint(raw: &str) -> String {
+        if raw.trim().is_empty() {
+            return "<empty>".to_string();
+        }
+        match url::Url::parse(raw) {
+            Ok(mut parsed) => {
+                let _ = parsed.set_username("");
+                let _ = parsed.set_password(None);
+                parsed.set_query(None);
+                parsed.set_fragment(None);
+                parsed.to_string()
+            }
+            Err(_) => raw
+                .split(['?', '#'])
+                .next()
+                .filter(|s| !s.is_empty())
+                .unwrap_or("<redacted>")
+                .to_string(),
+        }
+    }
+
+    fn describe_init(
+        role: &TransferRole,
+        mode: &InteractionMode,
+        transfer_id: &Urn,
+        connector_id: Option<&Urn>,
+        address: Option<&DataplaneAddress>,
+    ) -> String {
+        let mut msg = format!("Initialized {role} {mode} dataplane for transfer {transfer_id}");
+        if let Some(id) = connector_id {
+            msg.push_str(&format!(", connector={id}"));
+        }
+        if let Some(addr) = address.filter(|a| !a.endpoint.trim().is_empty()) {
+            msg.push_str(&format!(
+                ", endpoint={} ({})",
+                Self::redact_endpoint(&addr.endpoint),
+                addr.endpoint_type
+            ));
+        }
+        msg
+    }
+
+    /// Human-readable, secret-free summary of the configured ingress endpoint.
+    pub fn describe_ingress(&self) -> String {
+        match self.proxy.as_ref().map(|p| &p.ingress) {
+            Some(DataplaneProxyIngress::HttpListener { path, token, .. }) => {
+                format!("HttpListener({path}, auth={})", token.is_some())
+            }
+            Some(DataplaneProxyIngress::NoOp) => "NoOp".to_string(),
+            None => "Unconfigured".to_string(),
+        }
+    }
+
+    /// Human-readable, secret-free summary of the configured egress target.
+    pub fn describe_egress(&self) -> String {
+        match self.proxy.as_ref().map(|p| &p.egress) {
+            Some(DataplaneProxyEgress::HttpProxy { path, token, .. }) => {
+                format!(
+                    "HttpProxy({}, auth={})",
+                    Self::redact_endpoint(path),
+                    token.is_some()
+                )
+            }
+            Some(DataplaneProxyEgress::DataClient { path, .. }) => {
+                format!("DataClient({})", Self::redact_endpoint(path))
+            }
+            Some(DataplaneProxyEgress::NoOp) => "NoOp".to_string(),
+            None => "Unconfigured".to_string(),
+        }
+    }
+
+    /// Human-readable, secret-free summary of resolved runtime authentication.
+    pub fn describe_auth(&self) -> String {
+        match self.runtime.as_ref().map(|rt| &rt.auth) {
+            Some(ResolvedAuthCredentials::NoAuth) | None => "NoAuth".to_string(),
+            Some(ResolvedAuthCredentials::BearerToken { .. }) => "BearerToken".to_string(),
+            Some(ResolvedAuthCredentials::ApiKey { key, location, .. }) => {
+                format!("ApiKey(key={key}, location={location:?})")
+            }
+            Some(ResolvedAuthCredentials::BasicAuth { .. }) => "BasicAuth".to_string(),
+            Some(ResolvedAuthCredentials::OAuth2 {
+                token_type,
+                expires_at,
+                ..
+            }) => format!(
+                "OAuth2(token_type={token_type}, has_expiry={})",
+                expires_at.is_some()
+            ),
+        }
     }
 }

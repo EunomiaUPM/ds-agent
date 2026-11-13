@@ -171,14 +171,8 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
         CompositionResolver::new(&library).check(command.kind, &command.content, &parameters)?;
         command.references = keys;
         let stored = self.ctx.repos.policy_template_repo().insert(&command).await?;
-        events::emit_action!(
-            self.ctx.events,
-            &stored.owner(),
-            crate::EVENT_PREFIX,
-            "policy_template",
-            "create",
-            &stored
-        );
+        crate::setup::CatalogEvents::policy_template_created(self.ctx.events.as_ref(), &stored)
+            .await;
         Ok(stored)
     }
 
@@ -198,14 +192,13 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
             )));
         }
         repo.delete_version(&OwnerScope::acting(user), template_id, version_id).await?;
-        events::emit_action!(
-            self.ctx.events,
-            &Owner::private(user),
-            crate::EVENT_PREFIX,
-            "policy_template",
-            "delete",
-            &events::EntityDeletedDto::new(format!("{template_id}:{version_id}"))
-        );
+        crate::setup::CatalogEvents::policy_template_deleted(
+            self.ctx.events.as_ref(),
+            user,
+            template_id,
+            version_id,
+        )
+        .await;
         Ok(())
     }
 

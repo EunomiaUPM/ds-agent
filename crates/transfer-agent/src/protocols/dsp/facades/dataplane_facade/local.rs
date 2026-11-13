@@ -268,6 +268,7 @@ mod tests {
             data_address: None,
             resolved_data_address: None,
             is_restart: false,
+            reason: None,
         };
 
         facade.on_transfer_completion_post(&ctx).await.unwrap();
@@ -305,6 +306,7 @@ mod tests {
             data_address: None,
             resolved_data_address: None,
             is_restart: false,
+            reason: None,
         };
 
         // Start: Ready -> Subscribing -> Started (via real DataplaneDriverFactory + NoOpPubSubscriber)
@@ -367,6 +369,7 @@ mod tests {
             data_address: None,
             resolved_data_address: None,
             is_restart: false,
+            reason: None,
         };
 
         facade.on_transfer_start_post(&ctx).await.unwrap();
@@ -413,6 +416,7 @@ mod tests {
             ),
             resolved_data_address: None,
             is_restart: false,
+            reason: None,
         };
 
         // First start: Init -> Configuring -> Auth -> Ready -> Started

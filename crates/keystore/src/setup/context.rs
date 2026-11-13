@@ -46,9 +46,9 @@ impl AppContext {
     pub fn build(
         config: &ApplicationConfig,
         root: &RootContext,
-        event_bus: Option<events::EventBus>,
+        events: Arc<dyn events::EventSinkTrait>,
     ) -> Self {
-        let (parameter_svc, secret_svc) = Self::build_stores(root, event_bus);
+        let (parameter_svc, secret_svc) = Self::build_stores(root, events);
         let config_svc = Arc::new(ConfigStoreImpl::new(Arc::new(ConfigPassthroughRepo::new(
             Arc::new(config.clone()),
         ))));
@@ -62,7 +62,7 @@ impl AppContext {
 
     pub fn build_stores(
         root: &RootContext,
-        event_bus: Option<events::EventBus>,
+        events: Arc<dyn events::EventSinkTrait>,
     ) -> (
         Arc<dyn ParameterStore<serde_json::Value>>,
         Arc<dyn SecretStore>,
@@ -77,8 +77,8 @@ impl AppContext {
             VaultService::Fake(_) => Arc::new(SeaOrmSecretRepo::new(db)),
         };
         (
-            Arc::new(ParameterStoreImpl::new(parameter_repo).with_event_bus(event_bus.clone())),
-            Arc::new(SecretStoreImpl::new(secret_repo).with_event_bus(event_bus)),
+            Arc::new(ParameterStoreImpl::new(parameter_repo).with_event_sink(events.clone())),
+            Arc::new(SecretStoreImpl::new(secret_repo).with_event_sink(events)),
         )
     }
 }

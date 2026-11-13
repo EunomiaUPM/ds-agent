@@ -18,8 +18,7 @@
 use crate::engine::dataplane_drivers::DriverProxyConfiguratorTrait;
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::engine::dataplane_manager::dataplane_proxy::{
-    generate_ingress_token, DataplaneProxy, DataplaneProxyEgress, DataplaneProxyIngress,
-    HTTP_LISTENER_PATH,
+    DataplaneProxy, DataplaneProxyEgress, DataplaneProxyIngress,
 };
 use crate::errors::DataplaneError;
 use ymir::errors::Outcome;
@@ -29,13 +28,9 @@ pub struct HttpProviderPushConfigurator;
 
 impl HttpProviderPushConfigurator {
     fn configure_ingress(&self, context: &DataplaneContext) -> Outcome<DataplaneProxyIngress> {
-        let dataplane_id = context.dataplane_process().inner.id.clone();
-        let ingress_path = format!("{HTTP_LISTENER_PATH}{dataplane_id}");
-        Ok(DataplaneProxyIngress::HttpListener {
-            path: ingress_path,
-            token_type: Some("Bearer".to_string()),
-            token: Some(generate_ingress_token()),
-        })
+        Ok(DataplaneProxyIngress::http_bearer(
+            &context.dataplane_process().inner.id,
+        ))
     }
     fn configure_egress(&self, context: &DataplaneContext) -> Outcome<DataplaneProxyEgress> {
         if let Some(dataplane_address) = context.forward_dataplane_address() {

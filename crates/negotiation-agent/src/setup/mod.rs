@@ -21,8 +21,10 @@ mod admin_module;
 mod boot;
 mod composition;
 pub mod context;
+pub mod events;
 mod ports;
 
 pub use boot::NegotiationAgentBoot;
 pub use composition::NegotiationAgentModule;
+pub use events::NegotiationEvents;
 pub use ports::NegotiationPorts;

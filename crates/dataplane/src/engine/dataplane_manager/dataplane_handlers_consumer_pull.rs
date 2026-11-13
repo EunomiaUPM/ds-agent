@@ -116,8 +116,14 @@ impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPull {
         match self.run_configuring(context.clone()).await {
             Ok(ctx) => Ok(ctx),
             Err(e) => {
-                self.emit_failed(&context, "DATAPLANE_CONFIGURE_FAILED", e.to_string());
-                let _ = self.terminate_process(context).await;
+                let err_msg = e.to_string();
+                self.emit_failed(&context, "DATAPLANE_CONFIGURE_FAILED", err_msg.clone());
+                let _ = self
+                    .terminate_process_with_reason(
+                        context,
+                        format!("Configuration failed [DATAPLANE_CONFIGURE_FAILED]: {err_msg}"),
+                    )
+                    .await;
                 Err(e)
             }
         }

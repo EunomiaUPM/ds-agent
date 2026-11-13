@@ -202,21 +202,14 @@ impl ResourceService {
         }
     }
 
-    /// Cached projections and auth's registry are stale after any write; neither failure fails it.
-    async fn touched(&self) {
-        self.ctx.cache.invalidate().await;
-        self.ctx.registry().resync().await;
-    }
-
     async fn emit(&self, resource: &CatalogResource, action: &str) {
-        events::emit_action!(
-            self.ctx.events,
-            &resource.owner(),
-            crate::EVENT_PREFIX,
-            resource.kind().as_str(),
-            action,
-            &AdminDocument::render(resource)
-        );
+        crate::setup::CatalogEvents::resource(
+            self.ctx.events.as_ref(),
+            resource,
+            crate::setup::CatalogEvents::map_resource_action(action),
+            None,
+        )
+        .await;
     }
 
     fn reason(path: &str, message: String) -> ErrorReason {
@@ -398,7 +391,8 @@ impl ResourceServiceTrait for ResourceService {
             command.description.clone(),
         );
         let stored = self.repo().insert(&resource).await?;
-        self.touched().await;
+        self.ctx.cache.invalidate().await;
+        self.ctx.registry().sync_saved(&stored).await;
         self.emit(&stored, "create").await;
         Ok(stored)
     }
@@ -433,7 +427,8 @@ impl ResourceServiceTrait for ResourceService {
             command.description.clone(),
         );
         let stored = self.repo().insert(&resource).await?;
-        self.touched().await;
+        self.ctx.cache.invalidate().await;
+        self.ctx.registry().sync_saved(&stored).await;
         self.emit(&stored, "create").await;
         Ok(stored)
     }
@@ -477,7 +472,10 @@ impl ResourceServiceTrait for ResourceService {
             .repo()
             .replace(&OwnerScope::acting(user), &revised, current.version())
             .await?;
-        self.touched().await;
+        self.ctx.cache.invalidate().await;
+        if stored.kind() == ResourceKind::Dataset && command.visibility.is_some() {
+            self.ctx.registry().sync_saved(&stored).await;
+        }
         self.emit(&stored, "edit").await;
         Ok(stored)
     }
@@ -510,7 +508,8 @@ impl ResourceServiceTrait for ResourceService {
                 current.version(),
             )
             .await?;
-        self.touched().await;
+        self.ctx.cache.invalidate().await;
+        self.ctx.registry().sync_saved(&stored).await;
         self.emit(&stored, if draft { "draft" } else { "publish" })
             .await;
         Ok(stored)
@@ -601,7 +600,8 @@ impl ResourceServiceTrait for ResourceService {
                 )));
             }
         };
-        self.touched().await;
+        self.ctx.cache.invalidate().await;
+        self.ctx.registry().sync_deleted(&deleted).await;
         self.emit(&deleted, "delete").await;
         Ok(())
     }

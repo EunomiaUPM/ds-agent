@@ -21,6 +21,7 @@ use std::sync::Arc;
 
 use crate::core::AuthCore;
 use crate::modules::ParticipantModule;
+use ymir::config::types::EventNodeIdentity;
 use ymir::boot::seeders::{BootPhase, BootSeeder};
 use ymir::errors::{Errors, Outcome};
 use ymir::modules::WalletModuleTrait;
@@ -30,12 +31,16 @@ use ymir::types::oauth::UserInfo;
 #[derive(Clone)]
 pub struct SelfParticipantOnboarder {
     core: Arc<AuthCore>,
+    node_identity: Arc<EventNodeIdentity>,
 }
 
 impl SelfParticipantOnboarder {
     /// Acts on `core` in-process, as `UserInfo::system()`.
-    pub fn new(core: Arc<AuthCore>) -> Self {
-        Self { core }
+    pub fn new(core: Arc<AuthCore>, node_identity: Arc<EventNodeIdentity>) -> Self {
+        Self {
+            core,
+            node_identity,
+        }
     }
 }
 
@@ -60,6 +65,8 @@ impl BootSeeder for SelfParticipantOnboarder {
             }
             Err(e) => return Err(e),
         };
+        self.node_identity
+            .set_participant_id(Some(participant.participant_id.clone()));
         tracing::info!(
             participant = participant.participant_id,
             "Self participant ready"

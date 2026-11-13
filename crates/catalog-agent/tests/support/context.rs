@@ -45,7 +45,7 @@ use catalog_agent::setup::context::{AppContext, CatalogServices};
 use catalog_agent::setup::CatalogPorts;
 use common::facades::grants_facade::{GrantsFacadeTrait, MockGrantsFacadeTrait};
 use common::facades::mates_facade::{MatesFacadeTrait, MockMatesFacadeTrait};
-use common::facades::registry_facade::MockRegistryFacadeTrait;
+use common::facades::registry_facade::{MockRegistryFacadeTrait, RegistryFacadeTrait};
 use common::facades::AuthPorts;
 use common::test_utils::config_fixtures::catalog_config_fixture;
 use common::test_utils::grpc::StubTokenValidator;
@@ -84,6 +84,7 @@ pub struct TestContext {
     cache: Arc<dyn CatalogCacheTrait>,
     grants: Arc<dyn GrantsFacadeTrait>,
     mates: Arc<dyn MatesFacadeTrait>,
+    auth_registry: Option<Arc<dyn RegistryFacadeTrait>>,
     resources: Option<Arc<dyn ResourceServiceTrait>>,
     closures: Option<Arc<dyn ClosureServiceTrait>>,
     offers: Option<Arc<dyn OdrlPolicyServiceTrait>>,
@@ -107,6 +108,7 @@ impl TestContext {
             cache: Arc::new(NoopCatalogCache),
             grants: Arc::new(MockGrantsFacadeTrait::new()),
             mates: Arc::new(MockMatesFacadeTrait::new()),
+            auth_registry: None,
             resources: None,
             closures: None,
             offers: None,
@@ -159,6 +161,12 @@ impl TestContext {
         self
     }
 
+    /// Configures a mock auth registry facade and keeps the real `RegistryService` active.
+    pub fn auth_registry(mut self, registry: impl RegistryFacadeTrait + 'static) -> Self {
+        self.auth_registry = Some(Arc::new(registry));
+        self
+    }
+
     pub fn resources(mut self, service: impl ResourceServiceTrait + 'static) -> Self {
         self.resources = Some(Arc::new(service));
         self
@@ -200,10 +208,13 @@ impl TestContext {
     }
 
     pub fn build(self) -> Arc<AppContext> {
+        let use_real_registry = self.auth_registry.is_some();
         let ports = CatalogPorts::local(AuthPorts {
             mates: self.mates,
             grants: self.grants,
-            registry: Arc::new(MockRegistryFacadeTrait::new()),
+            registry: self
+                .auth_registry
+                .unwrap_or_else(|| Arc::new(MockRegistryFacadeTrait::new())),
         });
         let ctx = AppContext::bare(
             catalog_config_fixture(),
@@ -214,10 +225,15 @@ impl TestContext {
             Arc::new(StubTokenValidator),
         );
         let mut services = CatalogServices::own(&ctx);
-        // Writes resync auth's registry; the tests here do not look at it.
-        let mut registry = MockRegistryServiceTrait::new();
-        registry.expect_resync().return_const(());
-        services.registry = Arc::new(registry);
+        if !use_real_registry {
+            // Writes notify auth's registry; the tests here do not inspect those calls.
+            let mut registry = MockRegistryServiceTrait::new();
+            registry.expect_resync().return_const(());
+            registry.expect_sync_saved().return_const(());
+            registry.expect_sync_deleted().return_const(());
+            registry.expect_sync_imported().return_const(());
+            services.registry = Arc::new(registry);
+        }
         if let Some(resources) = self.resources {
             services.resources = resources;
         }

@@ -257,3 +257,66 @@ async fn extractor_tolerates_missing_optional_fields() {
     assert!(typed.fields.provider_pid.is_none());
     assert!(typed.fields.data_address.is_none());
 }
+
+/// DSP/RPC control-plane messages format diagnostic dataplane transition reasons consistently.
+#[test]
+fn dataplane_hook_reason_formats_dsp_lifecycle_and_error_fields() {
+    use transfer_agent::protocols::dsp::facades::dataplane_facade::DataplaneHookContext;
+
+    assert_eq!(
+        DataplaneHookContext::format_message_reason(
+            &TransferDSPMessageType::TransferStartMessage,
+            "DSP peer",
+            None,
+            &[],
+            false,
+        )
+        .as_deref(),
+        Some("Transfer started (DSP peer: TransferStartMessage)")
+    );
+    assert_eq!(
+        DataplaneHookContext::format_message_reason(
+            &TransferDSPMessageType::TransferStartMessage,
+            "DSP peer",
+            None,
+            &[],
+            true,
+        )
+        .as_deref(),
+        Some("Transfer resumed (DSP peer: TransferStartMessage)")
+    );
+    assert_eq!(
+        DataplaneHookContext::format_message_reason(
+            &TransferDSPMessageType::TransferTerminationMessage,
+            "local RPC",
+            Some(" DATAPLANE_FORBIDDEN_TARGET "),
+            &[" ".into(), "private, loopback, or reserved target IP blocked".into()],
+            false,
+        )
+        .as_deref(),
+        Some(
+            "Transfer terminated (local RPC: TransferTerminationMessage) [code=DATAPLANE_FORBIDDEN_TARGET]: private, loopback, or reserved target IP blocked"
+        )
+    );
+    assert_eq!(
+        DataplaneHookContext::format_message_reason(
+            &TransferDSPMessageType::TransferCompletionMessage,
+            "DSP peer",
+            None,
+            &[],
+            false,
+        )
+        .as_deref(),
+        Some("Transfer completed (DSP peer: TransferCompletionMessage)")
+    );
+    assert_eq!(
+        DataplaneHookContext::format_message_reason(
+            &TransferDSPMessageType::TransferError,
+            "DSP peer",
+            Some("ERR"),
+            &["ignored".into()],
+            false,
+        ),
+        None
+    );
+}

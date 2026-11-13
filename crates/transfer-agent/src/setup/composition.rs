@@ -21,8 +21,9 @@ use ymir::module_loader::module_group::ModuleGroup;
 use ymir::module_loader::root_context::RootContext;
 use ymir::module_loader::service_module::ServiceModuleTrait;
 use dataplane::setup::DataplaneModule;
-use events::NoopEventSink;
+use events::EventSinkTrait;
 use sea_orm_migration::MigrationTrait;
+use std::sync::Arc;
 use tonic::service::RoutesBuilder;
 
 use crate::SERVICE_NAME;
@@ -41,10 +42,9 @@ impl TransferAgentModule {
     pub fn compose(
         config: &TransferConfig,
         root: &RootContext,
-        event_bus: Option<events::EventBus>,
+        events: Arc<dyn EventSinkTrait>,
         ports: &TransferPorts,
     ) -> Self {
-        let events = NoopEventSink::or_bus(event_bus);
         let ctx = AppContext::build(config, root, events, ports.clone());
         let mut modules = ModuleGroup::new(SERVICE_NAME)
             .register(DspModule::new(ctx.clone()))

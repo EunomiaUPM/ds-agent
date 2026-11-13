@@ -75,12 +75,37 @@ impl DoctorServiceTrait for DoctorService {
         } else {
             vec![root.id().to_string()]
         };
-        let profiles = adapters
-            .iter()
-            .map(|adapter| adapter.diagnose(&set, &root, deep))
-            .collect::<Outcome<Vec<_>>>()?;
+        let resource_id = root.id().to_string();
+        let profiles = tokio::task::spawn_blocking(move || {
+            if adapters.len() <= 1 {
+                return adapters
+                    .iter()
+                    .map(|adapter| adapter.diagnose(&set, &root, deep))
+                    .collect::<Outcome<Vec<_>>>();
+            }
+            std::thread::scope(|scope| {
+                let handles: Vec<_> = adapters
+                    .iter()
+                    .map(|adapter| {
+                        let set_ref = &set;
+                        let root_ref = &root;
+                        scope.spawn(move || adapter.diagnose(set_ref, root_ref, deep))
+                    })
+                    .collect();
+                handles
+                    .into_iter()
+                    .map(|h| {
+                        h.join().unwrap_or_else(|_| {
+                            Err(Errors::crazy("profile validation worker panicked", None))
+                        })
+                    })
+                    .collect::<Outcome<Vec<_>>>()
+            })
+        })
+        .await
+        .map_err(|err| Errors::crazy(format!("doctor task failed: {err}"), None))??;
         Ok(DoctorReport {
-            resource: root.id().to_string(),
+            resource: resource_id,
             kind: kind.term().to_string(),
             checked,
             profiles,

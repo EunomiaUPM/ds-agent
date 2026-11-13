@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::services::{HasGaiaSelfAttester, MayHaveEventBus};
-use crate::types::events::GaiaIssuedEvent;
+use crate::services::{HasEventSink, HasGaiaSelfAttester};
+use crate::types::events::AuthEvents;
 use async_trait::async_trait;
 use ymir::data::entities::wallet::vc;
 use ymir::errors::Outcome;
@@ -28,7 +28,7 @@ use ymir::types::oauth::{RoleTrait, UserInfo};
 /// Issuing this participant's own Gaia-X credentials.
 #[async_trait]
 pub trait GaiaSelfAttesterModule:
-    HasGaiaSelfAttester + HasIssuer + HasWallet + MayHaveEventBus + Send + Sync + 'static
+    HasGaiaSelfAttester + HasIssuer + HasWallet + HasEventSink + Send + Sync + 'static
 {
     /// Attests the connector's shared identity, hence admin only.
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
@@ -48,17 +48,11 @@ pub trait GaiaSelfAttesterModule:
         self.wallet().store_vc(legal_p).await?;
         self.wallet().store_vc(terms).await?;
 
-        let payload = GaiaIssuedEvent {
-            credentials: vec!["LegalPerson".to_string(), "TermsAndConditions".to_string()],
-        };
-        events::emit_action!(
-            self.event_bus(),
-            &Owner::connector(),
-            crate::EVENT_PREFIX,
-            "gaia",
-            "issued",
-            &payload
-        );
+        AuthEvents::gaia_self_issued(
+            self.event_sink().as_ref(),
+            vec!["LegalPerson".to_string(), "TermsAndConditions".to_string()],
+        )
+        .await;
         Ok(())
     }
 }

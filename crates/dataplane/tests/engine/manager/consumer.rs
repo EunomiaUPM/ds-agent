@@ -61,9 +61,7 @@ async fn set_started() {
         Arc::new(mock_connector),
         transfer_config_fixture(),
     )
-    .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
-        transfer_dto_urn: tp_id,
-    }))
+    .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation::new(tp_id)))
     .await;
 
     assert!(matches!(result.unwrap(), DataplaneCommandResponse::Ok));
@@ -96,9 +94,7 @@ async fn set_started_rejected_when_consumer_pull_not_stopped() {
         Arc::new(mock_connector),
         transfer_config_fixture(),
     )
-    .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
-        transfer_dto_urn: tp_id,
-    }))
+    .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation::new(tp_id)))
     .await;
 
     assert!(result.is_err());
@@ -146,9 +142,7 @@ async fn set_stopped() {
         Arc::new(mock_connector),
         transfer_config_fixture(),
     )
-    .execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
-        transfer_dto_urn: tp_id,
-    }))
+    .execute_command(DataplaneCommand::SetStopped(DataplaneContinuation::new(tp_id)))
     .await;
 
     assert!(result.is_ok());
@@ -196,9 +190,7 @@ async fn set_terminating() {
         Arc::new(mock_connector),
         transfer_config_fixture(),
     )
-    .execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
-        transfer_dto_urn: tp_id,
-    }))
+    .execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation::new(tp_id)))
     .await;
 
     assert!(result.is_ok());
@@ -231,9 +223,7 @@ async fn set_subscribing_rejected_for_consumer_pull() {
         Arc::new(mock_connector),
         transfer_config_fixture(),
     )
-    .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
-        transfer_dto_urn: tp_id,
-    }))
+    .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation::new(tp_id)))
     .await;
 
     assert!(result.is_err());
@@ -266,9 +256,7 @@ async fn set_unsubscribing_rejected_for_consumer_pull() {
         Arc::new(mock_connector),
         transfer_config_fixture(),
     )
-    .execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
-        transfer_dto_urn: tp_id,
-    }))
+    .execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation::new(tp_id)))
     .await;
 
     assert!(result.is_err());
@@ -319,9 +307,7 @@ async fn set_subscribing_consumer_push() {
         Arc::new(mock_connector),
         transfer_config_fixture(),
     )
-    .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
-        transfer_dto_urn: tp_id,
-    }))
+    .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation::new(tp_id)))
     .await;
 
     assert!(matches!(result.unwrap(), DataplaneCommandResponse::Ok));
@@ -377,9 +363,7 @@ async fn set_terminating_consumer_push_unsubscribes_before_terminated() {
         Arc::new(mock_connector),
         transfer_config_fixture(),
     )
-    .execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
-        transfer_dto_urn: tp_id,
-    }))
+    .execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation::new(tp_id)))
     .await;
 
     assert!(matches!(result.unwrap(), DataplaneCommandResponse::Ok));
@@ -414,16 +398,12 @@ async fn set_started_and_stopped_rejected_for_consumer_push() {
     );
 
     assert!(mgr
-        .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
-            transfer_dto_urn: tp_id.clone(),
-        }))
+        .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation::new(tp_id.clone())))
         .await
         .is_err());
 
     assert!(mgr
-        .execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
-            transfer_dto_urn: tp_id,
-        }))
+        .execute_command(DataplaneCommand::SetStopped(DataplaneContinuation::new(tp_id)))
         .await
         .is_err());
 }
@@ -467,10 +447,125 @@ async fn continuation_not_found_returns_err() {
         Arc::new(mock_connector),
         transfer_config_fixture(),
     )
-    .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
-        transfer_dto_urn: Urn::from_str("urn:transfer-process:99").unwrap(),
-    }))
+    .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation::new(Urn::from_str("urn:transfer-process:99").unwrap())))
     .await;
 
     assert!(result.is_err());
+}
+
+/// ConsumerPull records redacted proxy configuration reasons across Configuring..Started and final termination.
+#[tokio::test]
+async fn consumer_pull_records_redacted_stage_reasons_and_termination_reason() {
+    use std::sync::Mutex;
+
+    let mut mock_entity = MockDataplaneTransferServiceTrait::new();
+    let mock_connector = MockConnectorMock::new();
+    let tp_id = Urn::from_str("urn:transfer-process:18").unwrap();
+
+    let current = Arc::new(Mutex::new(dummy_dataplane_transfer_dto(
+        "urn:dataplane-transfer:18",
+        "urn:transfer-process:18",
+        TransferRole::Consumer,
+        InteractionMode::Pull,
+        TransferState::Init,
+        None,
+    )));
+    let recorded = Arc::new(Mutex::new(Vec::<(Option<TransferState>, Option<String>)>::new()));
+
+    let current_get = current.clone();
+    mock_entity
+        .expect_get_by_process_id()
+        .returning(move |_, _| Ok(current_get.lock().unwrap().clone()));
+
+    let current_edit = current.clone();
+    let recorded_edit = recorded.clone();
+    mock_entity.expect_edit().returning(move |_, _, edit| {
+        recorded_edit
+            .lock()
+            .unwrap()
+            .push((edit.state.clone(), edit.reason.clone()));
+        let mut guard = current_edit.lock().unwrap();
+        if let Some(st) = &edit.state {
+            guard.inner.state = st.clone();
+        }
+        if let Some(ing) = &edit.ingress_config {
+            guard.inner.ingress_config = ing.clone();
+        }
+        if let Some(egr) = &edit.egress_config {
+            guard.inner.egress_config = egr.clone();
+        }
+        Ok(guard.clone())
+    });
+
+    let mgr = DataplaneManager::new(
+        Arc::new(mock_entity),
+        Arc::new(mock_connector),
+        transfer_config_fixture(),
+    );
+
+    mgr.execute_command(DataplaneCommand::SetConfiguring((
+        DataplaneContinuation::with_reason(
+            tp_id.clone(),
+            Some("Transfer started (DSP peer: TransferStartMessage)".to_string()),
+        ),
+        DataplaneAddress {
+            endpoint_type: "HTTP".to_string(),
+            endpoint: "https://user:secretpass@provider.example/dataplane/proxy/p1?ingress_token=leaked-q"
+                .to_string(),
+            authorization_type: Some("Bearer".to_string()),
+            authorization: Some("secret-bearer-token".to_string()),
+        },
+    )))
+    .await
+    .unwrap();
+
+    let term_reason = "Transfer terminated (DSP peer: TransferTerminationMessage) [code=DATAPLANE_FORBIDDEN_TARGET]: private IP blocked";
+    mgr.execute_command(DataplaneCommand::SetStopped(
+        DataplaneContinuation::with_reason(
+            tp_id.clone(),
+            Some(format!("Stopping before final transition; {term_reason}")),
+        ),
+    ))
+    .await
+    .unwrap();
+    mgr.execute_command(DataplaneCommand::SetTerminating(
+        DataplaneContinuation::with_reason(tp_id, Some(term_reason.to_string())),
+    ))
+    .await
+    .unwrap();
+
+    let entries = recorded.lock().unwrap().clone();
+    assert_eq!(entries.len(), 6);
+
+    assert_eq!(entries[0].0, Some(TransferState::Configuring));
+    let cfg_reason = entries[0].1.as_deref().unwrap();
+    assert!(cfg_reason.contains("HttpListener(/dataplane/proxy/urn:dataplane-transfer:18, auth=true)"));
+    assert!(cfg_reason.contains("HttpProxy(https://provider.example/dataplane/proxy/p1, auth=true)"));
+    assert!(cfg_reason.contains("Transfer started (DSP peer: TransferStartMessage)"));
+    assert!(!cfg_reason.contains("secretpass"));
+    assert!(!cfg_reason.contains("leaked-q"));
+    assert!(!cfg_reason.contains("secret-bearer-token"));
+
+    let persisted_ingress = current.lock().unwrap().inner.ingress_config.clone();
+    let listener = &persisted_ingress["HttpListener"];
+    assert_eq!(listener["token_type"], serde_json::json!("Bearer"));
+    let generated_token = listener["token"]
+        .as_str()
+        .expect("consumer pull listener must mint a bearer token");
+    assert_eq!(generated_token.len(), 64);
+    assert!(!cfg_reason.contains(generated_token));
+
+    assert_eq!(entries[1].0, Some(TransferState::Auth));
+    assert!(entries[1].1.as_deref().unwrap().contains("Authentication completed"));
+
+    assert_eq!(entries[2].0, Some(TransferState::Ready));
+    assert!(entries[2].1.as_deref().unwrap().contains("Dataplane ready"));
+
+    assert_eq!(entries[3].0, Some(TransferState::Started));
+    assert!(entries[3].1.as_deref().unwrap().contains("Transfer started (handler=ConsumerPull"));
+
+    assert_eq!(entries[4].0, Some(TransferState::Stopped));
+    assert!(entries[4].1.as_deref().unwrap().contains(term_reason));
+
+    assert_eq!(entries[5], (Some(TransferState::Terminated), Some(term_reason.to_string())));
 }

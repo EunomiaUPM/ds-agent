@@ -98,17 +98,22 @@ impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPush {
 
     #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_terminating(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        let ctx = match self.try_unsubscribe(context.clone()).await {
-            Ok(unsubscribed) => unsubscribed,
+        match self.try_unsubscribe(context.clone()).await {
+            Ok(unsubscribed) => self.terminate_process(unsubscribed).await,
             Err(e) => {
                 tracing::warn!(
                     handler = self.handler_name(),
                     error = %e,
                     "unsubscribe failed during termination; proceeding to Terminated"
                 );
-                context
+                let err_reason = match context.transition_reason() {
+                    Some(caller) => {
+                        format!("Unsubscribe failed during termination ({e}); {caller}")
+                    }
+                    None => format!("Unsubscribe failed during termination: {e}"),
+                };
+                self.terminate_process_with_reason(context, err_reason).await
             }
-        };
-        self.terminate_process(ctx).await
+        }
     }
 }

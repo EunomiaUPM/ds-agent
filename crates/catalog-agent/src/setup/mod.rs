@@ -21,10 +21,12 @@ mod admin_module;
 mod boot;
 mod composition;
 pub mod context;
+pub mod events;
 mod ports;
 mod seeders;
 
 pub use boot::CatalogAgentBoot;
 pub use composition::CatalogAgentModule;
+pub use events::CatalogEvents;
 pub use ports::CatalogPorts;
 pub use seeders::{MainCatalogProvisioner, PolicyTemplateLoader, RegistrySync};

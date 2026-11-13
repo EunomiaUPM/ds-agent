@@ -33,8 +33,10 @@ use crate::data::repo::offer::OfferRepoTrait;
 use crate::entities::filters::OfferFilter;
 use crate::entities::offer::NewOfferDto;
 use crate::setup::context::AppContext;
+use crate::setup::NegotiationEvents;
 use crate::services::offer::OfferServiceTrait;
 use crate::services::offer::views::OfferView;
+use events::EventActor;
 
 /// Offer service over the context's repos, emitting `negotiations:` events.
 pub struct OfferService {
@@ -200,14 +202,12 @@ impl OfferServiceTrait for OfferService {
         let created = self.offer_repo().create_offer(&new_model).await?;
 
         let view = OfferView::assemble(created);
-        events::emit_action!(
-            self.ctx.events,
-            &view.inner.owner(),
-            crate::EVENT_PREFIX,
-            "offer",
-            "create",
-            &view
-        );
+        NegotiationEvents::offer_created(
+            self.ctx.events.as_ref(),
+            &view,
+            Some(EventActor::human(user)),
+        )
+        .await;
         Ok(view)
     }
 
@@ -222,14 +222,13 @@ impl OfferServiceTrait for OfferService {
             .offer_repo()
             .delete_offer(&OwnerScope::acting(user), id)
             .await?;
-        events::emit_action!(
-            self.ctx.events,
-            &owner,
-            crate::EVENT_PREFIX,
-            "offer",
-            "delete",
-            &events::EntityDeletedDto::new(id)
-        );
+        NegotiationEvents::offer_deleted(
+            self.ctx.events.as_ref(),
+            owner,
+            id,
+            Some(EventActor::human(user)),
+        )
+        .await;
         Ok(())
     }
 }

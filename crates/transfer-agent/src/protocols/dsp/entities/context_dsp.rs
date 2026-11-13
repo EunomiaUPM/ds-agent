@@ -233,6 +233,13 @@ impl TransferDspDomain {
 
     /// What the dataplane hooks need from this message and the process it refers to.
     pub fn dataplane_hooks(&self) -> Outcome<DataplaneHookContext> {
+        let reason = DataplaneHookContext::format_message_reason(
+            &self.typed.message,
+            "DSP peer",
+            self.typed.fields.code.as_deref(),
+            &self.typed.fields.reason,
+            self.is_restart,
+        );
         Ok(DataplaneHookContext {
             process_id: self.process_urn()?,
             owner: self.owner(),
@@ -242,6 +249,7 @@ impl TransferDspDomain {
             data_address: self.typed.fields.data_address.clone(),
             resolved_data_address: None,
             is_restart: self.is_restart,
+            reason,
         })
     }
 

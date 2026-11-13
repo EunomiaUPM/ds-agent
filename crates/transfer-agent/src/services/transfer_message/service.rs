@@ -29,7 +29,9 @@ use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::filters::TransferMessageFilter;
 use crate::services::transfer_message::TransferMessageServiceTrait;
 use crate::setup::context::AppContext;
+use crate::setup::TransferEvents;
 use crate::services::transfer_message::views::TransferMessageView;
+use events::EventActor;
 
 pub struct TransferMessageService {
     ctx: Arc<AppContext>,
@@ -155,14 +157,13 @@ impl TransferMessageServiceTrait for TransferMessageService {
         // Assemble into view
         let owner = message.owner().clone();
         let view = TransferMessageView::assemble(message);
-        events::emit_action!(
-            self.ctx.events,
-            &owner,
-            crate::EVENT_PREFIX,
-            "message",
-            "create",
-            &view
-        );
+        TransferEvents::message(
+            self.ctx.events.as_ref(),
+            owner,
+            &view,
+            Some(EventActor::human(user)),
+        )
+        .await;
         Ok(view)
     }
 
@@ -179,14 +180,13 @@ impl TransferMessageServiceTrait for TransferMessageService {
             .message_repo()
             .delete_transfer_message(&OwnerScope::acting(user), id)
             .await?;
-        events::emit_action!(
-            self.ctx.events,
-            &owner,
-            crate::EVENT_PREFIX,
-            "message",
-            "delete",
-            &events::EntityDeletedDto::new(id)
-        );
+        TransferEvents::message_deleted(
+            self.ctx.events.as_ref(),
+            owner,
+            id,
+            Some(EventActor::human(user)),
+        )
+        .await;
         Ok(())
     }
 }

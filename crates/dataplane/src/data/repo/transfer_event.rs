@@ -65,6 +65,17 @@ pub trait TransferEventRepo: Send + Sync + 'static {
         &self,
         new_transfer_event: &NewTransferEvent,
     ) -> Outcome<transfer_event::Model>;
+
+    /// Persists a batch of diagnostic events; default falls back to sequential creates.
+    async fn create_transfer_events_batch(
+        &self,
+        new_transfer_events: &[NewTransferEvent],
+    ) -> Outcome<()> {
+        for event in new_transfer_events {
+            self.create_transfer_event(event).await?;
+        }
+        Ok(())
+    }
 }
 
 /// Failures of the event repository, mapped onto `Errors`.

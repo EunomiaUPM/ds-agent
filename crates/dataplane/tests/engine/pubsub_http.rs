@@ -255,9 +255,7 @@ async fn set_subscribing_persists_subscription_and_unsubscribe_resolves_runtime_
 
     // 2. SetSubscribing (rehydrated from persisted row) -> calls POST /hooks, saves subscription in flow_control!
     manager
-        .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
-            transfer_dto_urn: tp_urn.clone(),
-        }))
+        .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation::new(tp_urn.clone())))
         .await
         .unwrap();
 
@@ -318,9 +316,7 @@ async fn set_subscribing_persists_subscription_and_unsubscribe_resolves_runtime_
 
     // 3. SetUnsubscribing (rehydrated from persisted row) -> resolves {{__RUNTIME_JSON_{.subscription.id}__}} -> sub-99!
     manager
-        .execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
-            transfer_dto_urn: tp_urn,
-        }))
+        .execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation::new(tp_urn)))
         .await
         .unwrap();
 

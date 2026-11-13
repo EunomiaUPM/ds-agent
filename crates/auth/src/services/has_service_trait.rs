@@ -18,11 +18,11 @@
 use crate::data::factory::AuthRepoTrait;
 use crate::services::callback::CallbackTrait;
 use crate::services::gaia_self_attester::GaiaSelfAttesterTrait;
-use crate::services::gatekeeper::GateKeeperTrait;
+use crate::services::gatekeeper::{GateKeeperTrait, TokenAuthCache};
 use crate::services::peer_connector::PeerConnectorTrait;
 use crate::services::vc_requester::VcRequesterTrait;
 use common::config::services::SsiAuthConfig;
-use events::EventBus;
+use events::EventSinkTrait;
 use std::sync::Arc;
 
 /// Access to the auth config, for the default methods of the modules.
@@ -48,6 +48,10 @@ pub trait HasCallback {
 /// Access to the gatekeeper.
 pub trait HasGateKeeper {
     fn gatekeeper(&self) -> Arc<dyn GateKeeperTrait>;
+
+    fn token_cache(&self) -> Option<&TokenAuthCache> {
+        None
+    }
 }
 
 /// Access to the VC requester.
@@ -60,6 +64,6 @@ pub trait HasGaiaSelfAttester {
     fn gaia(&self) -> Arc<dyn GaiaSelfAttesterTrait>;
 }
 
-pub trait MayHaveEventBus {
-    fn event_bus(&self) -> Option<&EventBus>;
+pub trait HasEventSink {
+    fn event_sink(&self) -> Arc<dyn EventSinkTrait>;
 }

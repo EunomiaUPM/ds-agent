@@ -18,9 +18,10 @@
 //! DataplaneTransferService with mocked repositories: tenant isolation and role checks.
 
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use chrono::Utc;
+use events::{EventEnvelope, EventSeverity, EventSinkTrait};
 use ymir::batch_requests::BatchRequests;
 use ymir::query::{Page, Sort};
 use ymir::oauth::OwnerScope;
@@ -82,6 +83,7 @@ fn make_new_dto() -> NewDataplaneTransferDto {
         connector_instance_id: None,
         ingress_config: serde_json::json!({}),
         egress_config: serde_json::json!({}),
+        reason: None,
     }
 }
 
@@ -347,4 +349,164 @@ async fn admin_can_filter_specific_tenant() {
         .unwrap();
 
     assert_eq!(paginated.items.len(), 1);
+}
+
+struct CaptureSink(Mutex<Vec<EventEnvelope>>);
+
+impl CaptureSink {
+    fn new() -> Arc<Self> {
+        Arc::new(Self(Mutex::new(Vec::new())))
+    }
+}
+
+#[async_trait::async_trait]
+impl EventSinkTrait for CaptureSink {
+    async fn emit_envelope(&self, envelope: EventEnvelope) -> ymir::errors::Outcome<()> {
+        self.0.lock().unwrap().push(envelope);
+        Ok(())
+    }
+}
+
+/// Creating and editing a transfer normalizes reasons into transfer logs and transition events.
+#[tokio::test]
+async fn create_and_edit_propagate_normalized_reason_to_transfer_logs_and_events() {
+    let recorded_logs = Arc::new(Mutex::new(Vec::new()));
+    let captured_logs = recorded_logs.clone();
+
+    let mut transfer_repo = MockDataplaneTransfersRepo::new();
+    transfer_repo
+        .expect_create_dataplane_transfers()
+        .times(1)
+        .returning(|_| Ok(make_transfer_model(40, "tenant-reason")));
+    let current_model = make_transfer_model(40, "tenant-reason");
+    transfer_repo
+        .expect_get_dataplane_transfers_by_id()
+        .times(3)
+        .returning(move |_, _| Ok(Some(current_model.clone())));
+    transfer_repo
+        .expect_put_dataplane_transfers()
+        .times(3)
+        .returning(|_, _, cmd| {
+            let mut updated = make_transfer_model(40, "tenant-reason");
+            if let Some(st) = &cmd.state {
+                updated.state = st.clone();
+            }
+            Ok(updated)
+        });
+
+    let mut logs_repo = MockDataplaneTransferLogsRepo::new();
+    logs_repo
+        .expect_get_transfer_logs_by_dataplane_process_id()
+        .returning(|_, _| Ok(vec![]));
+    logs_repo.expect_create_log().returning(move |cmd| {
+        captured_logs
+            .lock()
+            .unwrap()
+            .push((cmd.previous_state.clone(), cmd.new_state.clone(), cmd.reason.clone()));
+        Ok(LogModel {
+            id: test_urn(900).to_string(),
+            user_id: cmd.owner.user_id,
+            user_role: ymir::types::oauth::RolePath::root(),
+            visibility: ymir::types::participants::Visibility::Private,
+            dataplane_process_id: cmd.dataplane_process_id,
+            previous_state: cmd.previous_state,
+            new_state: cmd.new_state,
+            trigger: cmd.trigger,
+            reason: cmd.reason,
+            created_at: Utc::now().into(),
+        })
+    });
+
+    let mut factory = MockDataplaneRepoTrait::new();
+    let transfer_arc: Arc<dyn DataplaneTransfersRepo> = Arc::new(transfer_repo);
+    let field_arc: Arc<dyn DataplaneFieldRepoTrait> = Arc::new(default_field_repo());
+    let logs_arc: Arc<dyn DataplaneTransferLogsRepo> = Arc::new(logs_repo);
+    factory
+        .expect_get_dataplane_transfers_repo()
+        .return_const(transfer_arc);
+    factory
+        .expect_get_dataplane_fields_repo()
+        .return_const(field_arc);
+    factory
+        .expect_get_dataplane_transfer_logs_repo()
+        .return_const(logs_arc);
+
+    let sink = CaptureSink::new();
+    let svc = DataplaneTransferService::new(Arc::new(factory), Arc::new(NoopCache::new()))
+        .with_events(sink.clone());
+    let owner = TestUsers::user("tenant-reason", "/admin/tenant-reason");
+
+    let mut create_cmd = make_new_dto();
+    create_cmd.id = Some(test_urn(40));
+    create_cmd.owner = Some(TestUsers::owner("tenant-reason"));
+    create_cmd.reason = Some("  Initialized provider pull  ".to_string());
+    svc.create(&owner, &create_cmd).await.unwrap();
+
+    // Unchanged state must not write a transfer log even if a reason is provided.
+    svc.edit(
+        &owner,
+        &test_urn(40),
+        &EditDataplaneTransferDto {
+            state: Some(TransferState::Init),
+            reason: Some("ignored".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    svc.edit(
+        &owner,
+        &test_urn(40),
+        &EditDataplaneTransferDto {
+            state: Some(TransferState::Started),
+            reason: Some("Transfer active".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let term_reason = "Transfer terminated (DSP peer: TransferTerminationMessage) [code=DATAPLANE_FORBIDDEN_TARGET]: private IP blocked";
+    svc.edit(
+        &owner,
+        &test_urn(40),
+        &EditDataplaneTransferDto {
+            state: Some(TransferState::Terminated),
+            reason: Some(term_reason.to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let logs = recorded_logs.lock().unwrap().clone();
+    assert_eq!(
+        logs,
+        vec![
+            (None, TransferState::Init, Some("Initialized provider pull".to_string())),
+            (
+                Some(TransferState::Init),
+                TransferState::Started,
+                Some("Transfer active".to_string())
+            ),
+            (
+                Some(TransferState::Init),
+                TransferState::Terminated,
+                Some(term_reason.to_string())
+            ),
+        ]
+    );
+
+    let events = sink.0.lock().unwrap().clone();
+    assert_eq!(events.len(), 3);
+    assert_eq!(events[0].severity, EventSeverity::Info);
+    assert!(events[0].payload["message"]
+        .as_str()
+        .unwrap()
+        .contains("reason=Initialized provider pull"));
+    assert!(events[0].payload.get("error_reason").is_none());
+    assert_eq!(events[1].severity, EventSeverity::Info);
+    assert_eq!(events[2].severity, EventSeverity::Error);
+    assert_eq!(events[2].payload["error_reason"].as_str(), Some(term_reason));
 }

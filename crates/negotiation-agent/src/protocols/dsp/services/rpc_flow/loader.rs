@@ -103,7 +103,11 @@ impl NegotiationRpcLoader {
         };
         let peer_address = peer_address.unwrap_or_default();
         let peer_id = body.associated_agent_peer.clone().unwrap_or_default();
-        let offer = self.resolved_offer(role, body.offer.clone()).await?;
+        let (offer, peer_mate) = tokio::join!(
+            self.resolved_offer(role, body.offer.clone()),
+            self.peer_mate(user, &peer_id),
+        );
+        let offer = offer?;
         let outgoing = Self::build(
             typed.message,
             json!({ pid_member: own_pid, "offer": offer, "callbackAddress": callback }),
@@ -113,7 +117,7 @@ impl NegotiationRpcLoader {
             process: None,
             role,
             owner: Owner::for_new(user, None, None),
-            peer_mate: self.peer_mate(user, &peer_id).await,
+            peer_mate,
             peer_id,
             target_url: format!("{}/negotiations/{segment}", Self::base(&peer_address)),
             peer_address,
@@ -147,22 +151,32 @@ impl NegotiationRpcLoader {
             "consumerPid": process.consumer_pid,
             "providerPid": process.provider_pid,
         });
-        match typed.message {
-            NegotiationRpcMessage::Request | NegotiationRpcMessage::Offer => {
-                members["offer"] = self
-                    .resolved_offer(process.role, body.offer.clone())
-                    .await?
-                    .unwrap_or(Value::Null);
-            }
-            NegotiationRpcMessage::Agreement => {
-                members["agreement"] = self.agreement(&process).await?;
-            }
-            NegotiationRpcMessage::Termination => {
-                members["code"] = json!(body.code);
-                members["reason"] = json!(body.reason);
-            }
-            _ => {}
-        }
+        let peer_id = process.peer_id().to_string();
+        let (prepared, opening_target, peer_mate) = tokio::join!(
+            async {
+                match typed.message {
+                    NegotiationRpcMessage::Request | NegotiationRpcMessage::Offer => {
+                        members["offer"] = self
+                            .resolved_offer(process.role, body.offer.clone())
+                            .await?
+                            .unwrap_or(Value::Null);
+                    }
+                    NegotiationRpcMessage::Agreement => {
+                        members["agreement"] = self.agreement(&process).await?;
+                    }
+                    NegotiationRpcMessage::Termination => {
+                        members["code"] = json!(body.code);
+                        members["reason"] = json!(body.reason);
+                    }
+                    _ => {}
+                }
+                Outcome::Ok(members)
+            },
+            self.persistence.opening_target(&process),
+            self.peer_mate(user, &peer_id),
+        );
+        let members = prepared?;
+        let opening_target = opening_target?;
         let peer_address = process.callback_address().unwrap_or_default().to_string();
         let target_url = format!(
             "{}/negotiations/{}/{}",
@@ -170,13 +184,12 @@ impl NegotiationRpcLoader {
             process.peer_pid().unwrap_or_default(),
             Self::segment(typed.message)
         );
-        let peer_id = process.peer_id().to_string();
         Ok(NegotiationRpcDomain {
             outgoing: Self::build(typed.message, members).await?,
-            opening_target: self.persistence.opening_target(&process).await?,
+            opening_target,
             role: process.role,
             owner: process.owner(),
-            peer_mate: self.peer_mate(user, &peer_id).await,
+            peer_mate,
             peer_id,
             peer_address,
             target_url,
@@ -188,22 +201,18 @@ impl NegotiationRpcLoader {
     /// The agreement closing the last offer: its rules and target (the published offer's when it
     /// went by id), us as assigner and the peer as assignee.
     async fn agreement(&self, process: &NegotiationProcess) -> Outcome<Value> {
-        let offer = self.persistence.last_offer(process).await?.ok_or_else(|| {
+        let (offer, me) = tokio::join!(
+            self.persistence.last_offer(process),
+            self.ctx.ports.auth.mates.get_me_mate(),
+        );
+        let offer = offer?.ok_or_else(|| {
             Errors::missing_resource(process.model.id.clone(), "no offer to agree on", None)
         })?;
         let (content, target) = match offer.offer_content.get("target") {
             Some(target) => (offer.offer_content.clone(), target.clone()),
             None => self.published(&offer.offer_id).await?,
         };
-        let assigner = self
-            .ctx
-            .ports
-            .auth
-            .mates
-            .get_me_mate()
-            .await
-            .map(|me| me.participant_id)
-            .unwrap_or_default();
+        let assigner = me.map(|me| me.participant_id).unwrap_or_default();
         let mut agreement = json!({
             "@id": format!("urn:agreement:{}", uuid::Uuid::new_v4()),
             "@type": "Agreement",

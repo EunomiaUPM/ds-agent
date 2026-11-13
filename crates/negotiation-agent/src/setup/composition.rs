@@ -33,7 +33,7 @@ use common::public_refs::PublicResolverTrait;
 use ymir::module_loader::module_group::ModuleGroup;
 use ymir::module_loader::root_context::RootContext;
 use ymir::module_loader::service_module::ServiceModuleTrait;
-use events::NoopEventSink;
+use events::EventSinkTrait;
 use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
 use ymir::errors::Outcome;
@@ -49,10 +49,9 @@ impl NegotiationAgentModule {
     pub async fn compose(
         config: &ContractsConfig,
         root: &RootContext,
-        event_bus: Option<events::EventBus>,
+        events: Arc<dyn EventSinkTrait>,
         ports: &NegotiationPorts,
     ) -> Outcome<Self> {
-        let events = NoopEventSink::or_bus(event_bus);
         let ctx = AppContext::build(config, root, events, ports.clone());
         let modules = ModuleGroup::new(SERVICE_NAME)
             .register(DspModule::new(ctx.clone()))

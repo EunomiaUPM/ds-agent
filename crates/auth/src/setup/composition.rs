@@ -42,10 +42,10 @@ use common::facades::AuthPorts;
 use ymir::module_loader::root_context::RootContext;
 use ymir::module_loader::service_module::ServiceModuleTrait;
 use common::routes::auth::gate;
-use events::EventBus;
+use events::EventSinkTrait;
 use sea_orm_migration::MigrationTrait;
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait, WalletConfigTrait};
-use ymir::config::types::HostType;
+use ymir::config::types::{EventNodeIdentity, HostType};
 use ymir::errors::{Errors, Outcome};
 use ymir::services::issuer::{oid4vci_1_0, IssuerTrait};
 use ymir::services::token_validator::OauthTokenValidatorTrait;
@@ -61,6 +61,8 @@ pub struct AuthModule {
     core: Arc<AuthCore>,
     /// The process-wide validator from the root context, for the OAuth guard of the user routes.
     oauth_token_validator: Arc<dyn OauthTokenValidatorTrait>,
+    /// Node identity enriched once the local participant DID is resolved.
+    node_identity: Arc<EventNodeIdentity>,
 }
 
 impl AuthModule {
@@ -70,7 +72,7 @@ impl AuthModule {
     pub async fn compose(
         config: &SsiAuthConfig,
         root: &RootContext,
-        event_bus: Option<EventBus>,
+        events: Arc<dyn EventSinkTrait>,
     ) -> Outcome<Self> {
         // ===== CONFIG ============================================================================
         let vault = root.vault.clone();
@@ -141,13 +143,14 @@ impl AuthModule {
             gaia,
             issuer,
             core_config,
-            event_bus,
+            Some(events),
         ));
 
         // ===== MODULE ============================================================================
         Ok(Self {
             core,
             oauth_token_validator: root.validator.clone(),
+            node_identity: root.node_identity.clone(),
         })
     }
 
@@ -180,7 +183,7 @@ impl AuthModule {
 
     /// Onboards this agent's own wallet as a participant; registered by the monolith only.
     pub fn self_participant_onboarder(&self) -> SelfParticipantOnboarder {
-        SelfParticipantOnboarder::new(self.core.clone())
+        SelfParticipantOnboarder::new(self.core.clone(), self.node_identity.clone())
     }
 
     /// Auth ports served in-process, for every agent sharing this process.

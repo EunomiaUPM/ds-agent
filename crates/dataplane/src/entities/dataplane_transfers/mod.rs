@@ -54,6 +54,9 @@ pub struct NewDataplaneTransferDto {
     pub connector_instance_id: Option<Urn>,
     pub ingress_config: Value,
     pub egress_config: Value,
+    /// Optional reason stored on the initial state transition log.
+    #[serde(default)]
+    pub reason: Option<String>,
 }
 
 /// Partial process update.
@@ -67,6 +70,9 @@ pub struct EditDataplaneTransferDto {
     pub egress_config: Option<Value>,
     pub flow_control: Option<Value>,
     pub fields: Option<HashMap<String, String>>,
+    /// Optional reason stored on the state transition log when `state` changes.
+    #[serde(default)]
+    pub reason: Option<String>,
 }
 
 impl NewDataplaneTransferDto {

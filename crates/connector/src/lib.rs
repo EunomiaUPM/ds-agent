@@ -33,11 +33,6 @@ pub mod http;
 pub mod services;
 pub mod setup;
 
-/// Domain name of the connector's events.
-pub const EVENT_DOMAIN: &str = "connector";
-/// Topic prefix of the connector's events.
-pub const EVENT_PREFIX: &str = "connector:";
-
 pub use data::entities::connector_instances::Model as ConnectorInstanceModel;
 pub use data::migrations::get_connector_migrations;
 pub use data::repo_traits::connector_instance_repo::ConnectorInstanceRepoTrait;

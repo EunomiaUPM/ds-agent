@@ -44,10 +44,12 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
 
     async fn compose(config: &CatalogConfig, root: &RootContext) -> Outcome<ServiceComposer> {
         let ports = CatalogPorts::remote(config, root);
-        let agent = CatalogAgentModule::compose(config, root, None, &ports).await?;
+        let pipeline = events::EventsModule::build_standalone_pipeline(root, None)?;
+        let agent = CatalogAgentModule::compose(config, root, pipeline.sink, &ports).await?;
         let public_refs = PublicRefsModule::new(config.common(), vec![agent.public_resolver()]);
         Ok(ServiceComposer::new()
             .register(agent)
+            .register(events::StandaloneEventsModule::new(pipeline.workers))
             .register(public_refs)
             .register(WellKnownModule::new(
                 config.common(),

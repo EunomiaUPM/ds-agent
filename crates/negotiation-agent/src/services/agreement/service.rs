@@ -35,8 +35,10 @@ use crate::data::repo::agreement::AgreementRepoTrait;
 use crate::entities::agreement::{EditAgreementDto, NewAgreementDto};
 use crate::entities::filters::AgreementFilter;
 use crate::setup::context::AppContext;
+use crate::setup::NegotiationEvents;
 use crate::services::agreement::AgreementServiceTrait;
 use crate::services::agreement::views::AgreementView;
+use events::EventActor;
 
 /// Agreement service over the context's repos, emitting `negotiations:` events.
 pub struct AgreementService {
@@ -241,14 +243,13 @@ impl AgreementServiceTrait for AgreementService {
         let created = self.agreement_repo().create_agreement(&new_model).await?;
 
         let view = AgreementView::assemble(created);
-        events::emit_action!(
-            self.ctx.events,
-            &view.inner.owner(),
-            crate::EVENT_PREFIX,
-            "agreement",
-            "create",
-            &view
-        );
+        NegotiationEvents::agreement(
+            self.ctx.events.as_ref(),
+            &view,
+            "created",
+            Some(EventActor::human(user)),
+        )
+        .await;
         Ok(view)
     }
 
@@ -267,14 +268,13 @@ impl AgreementServiceTrait for AgreementService {
             .await?;
 
         let view = AgreementView::assemble(updated);
-        events::emit_action!(
-            self.ctx.events,
-            &view.inner.owner(),
-            crate::EVENT_PREFIX,
-            "agreement",
-            "edit",
-            &view
-        );
+        NegotiationEvents::agreement(
+            self.ctx.events.as_ref(),
+            &view,
+            "updated",
+            Some(EventActor::human(user)),
+        )
+        .await;
         Ok(view)
     }
 
@@ -289,14 +289,13 @@ impl AgreementServiceTrait for AgreementService {
             .agreement_repo()
             .delete_agreement(&OwnerScope::acting(user), id)
             .await?;
-        events::emit_action!(
-            self.ctx.events,
-            &owner,
-            crate::EVENT_PREFIX,
-            "agreement",
-            "delete",
-            &events::EntityDeletedDto::new(id)
-        );
+        NegotiationEvents::agreement_deleted(
+            self.ctx.events.as_ref(),
+            owner,
+            id,
+            Some(EventActor::human(user)),
+        )
+        .await;
         Ok(())
     }
 }

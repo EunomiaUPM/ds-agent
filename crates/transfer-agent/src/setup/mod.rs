@@ -21,8 +21,10 @@ mod admin_module;
 mod boot;
 mod composition;
 pub mod context;
+pub mod events;
 mod ports;
 
 pub use boot::TransferBoot;
 pub use composition::TransferAgentModule;
+pub use events::TransferEvents;
 pub use ports::TransferPorts;

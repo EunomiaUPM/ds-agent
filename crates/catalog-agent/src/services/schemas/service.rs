@@ -165,14 +165,7 @@ impl SchemaService {
 
     async fn store(&self, command: NewSchemaVersionCommand) -> Outcome<SchemaView> {
         let stored = self.ctx.repos.schema_repo().insert(&command).await?;
-        events::emit_action!(
-            self.ctx.events,
-            &stored.owner(),
-            crate::EVENT_PREFIX,
-            "schema",
-            "create",
-            &stored
-        );
+        crate::setup::CatalogEvents::schema_created(self.ctx.events.as_ref(), &stored).await;
         Ok(self.view(stored))
     }
 
@@ -337,14 +330,14 @@ impl SchemaServiceTrait for SchemaService {
             Some(v) => format!("{id}/{v}"),
             None => id.to_string(),
         };
-        events::emit_action!(
-            self.ctx.events,
+        crate::setup::CatalogEvents::schema_deleted(
+            self.ctx.events.as_ref(),
             &versions[0].owner(),
-            crate::EVENT_PREFIX,
-            "schema",
-            "delete",
-            &events::EntityDeletedDto::new(deleted)
-        );
+            deleted,
+            version,
+            events::EventActor::human(user),
+        )
+        .await;
         Ok(())
     }
 

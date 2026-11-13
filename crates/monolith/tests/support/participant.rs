@@ -24,7 +24,7 @@ use catalog_agent::setup::{CatalogAgentModule, CatalogPorts};
 use ymir::boot::seeders::BootPhase;
 use ymir::boot::workers::WorkerSet;
 use common::config::services::{ContractsConfig, TransferConfig};
-use ymir::config::types::CommonConfig;
+use ymir::config::types::{CommonConfig, EventNodeIdentity, EventsConfig};
 use common::config::types::min_known_config::MinKnownConfig;
 use common::facades::AuthPorts;
 use ymir::module_loader::root_context::RootContext;
@@ -65,16 +65,24 @@ impl Participant {
         let base_url = format!("http://127.0.0.1:{port}");
         let common = Self::common_config(port);
         let db = TestDatabase::create().await;
+        let events_config = EventsConfig::default();
+        let node_identity = Arc::new(EventNodeIdentity::from_config(
+            &events_config,
+            "participant-test",
+        ));
+        node_identity.set_participant_id(Some(did.to_string()));
         let root = RootContext {
             vault: Arc::new(Self::vault()),
             db: db.connection.clone(),
             validator: Arc::new(OwnerValidator {
                 tenant: tenant.to_string(),
             }),
+            events_config,
+            node_identity,
         };
 
-        let events = EventsModule::compose(&root);
-        let bus = Some(events.event_bus());
+        let events = EventsModule::try_compose(&root).expect("compose events");
+        let sink = events.event_sink();
         let transfer_guard = std::sync::Arc::new(connector::LateBoundTransferGuard::new());
         let catalog = CatalogAgentModule::compose(
             &Self::section(
@@ -88,7 +96,7 @@ impl Participant {
                 }),
             ),
             &root,
-            bus.clone(),
+            sink.clone(),
             &CatalogPorts::local(auth.clone()).with_transfer_guard(transfer_guard.clone()),
         )
         .await
@@ -103,7 +111,7 @@ impl Participant {
                 }),
             ),
             &root,
-            bus.clone(),
+            sink.clone(),
             &NegotiationPorts::local(auth.clone(), catalog.catalog_facade()),
         )
         .await
@@ -125,6 +133,7 @@ impl Participant {
                 let ports = TransferPorts::local(
                     &config,
                     &root,
+                    sink.clone(),
                     auth.clone(),
                     negotiation.negotiation_facade(),
                     catalog.catalog_facade(),
@@ -135,7 +144,7 @@ impl Participant {
                 if let Some(dp) = ports.dataplane_module() {
                     transfer_guard.bind(dp.active_transfer_guard());
                 }
-                Some(TransferAgentModule::compose(&config, &root, bus, &ports))
+                Some(TransferAgentModule::compose(&config, &root, sink, &ports))
             }
             Err(_) => None,
         };

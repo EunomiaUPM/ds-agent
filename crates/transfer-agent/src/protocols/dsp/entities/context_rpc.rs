@@ -117,19 +117,12 @@ impl TransferRpcRaw {
 pub struct TransferRpcRdf {
     pub raw: TransferRpcRaw,
     pub expanded: Value,
-    pub canonical_n_quads: String,
-    pub canonical_hash: [u8; 32],
 }
 
 impl TransferRpcRdf {
     pub async fn from_raw(raw: TransferRpcRaw) -> Outcome<Self> {
-        let expansion = EunomiaTransfer::engine().expand(&raw.json).await?;
-        Ok(Self {
-            canonical_hash: expansion.canonical_hash(),
-            canonical_n_quads: expansion.canonical_n_quads,
-            expanded: expansion.expanded,
-            raw,
-        })
+        let expanded = EunomiaTransfer::engine().expand_only(&raw.json).await?;
+        Ok(Self { expanded, raw })
     }
 }
 
@@ -190,15 +183,44 @@ impl TransferRpcDomain {
 
     /// What the dataplane hooks need; `data_address` is the one this side hands the peer.
     pub fn hooks(&self, data_address: Option<DataAddress>) -> DataplaneHookContext {
+        Self::hook_context(
+            &self.typed,
+            &self.process_id,
+            &self.owner,
+            self.role,
+            self.transfer_direction,
+            self.is_restart,
+            data_address,
+        )
+    }
+
+    /// Builds a hook context before `outgoing` is materialized, avoiding placeholder RDF builds.
+    pub fn hook_context(
+        typed: &TransferRpcTyped,
+        process_id: &Urn,
+        owner: &Owner,
+        role: TransferRole,
+        transfer_direction: TransferDirection,
+        is_restart: bool,
+        data_address: Option<DataAddress>,
+    ) -> DataplaneHookContext {
+        let reason = DataplaneHookContext::format_message_reason(
+            &typed.message,
+            "local RPC",
+            typed.body.code.as_deref(),
+            typed.body.reason.as_deref().unwrap_or(&[]),
+            is_restart,
+        );
         DataplaneHookContext {
-            process_id: self.process_id.clone(),
-            owner: self.owner.clone(),
-            role: self.role,
-            transfer_direction: self.transfer_direction,
+            process_id: process_id.clone(),
+            owner: owner.clone(),
+            role,
+            transfer_direction,
             connector_instance: TransferContextConnectorRole::ConsumerNotHavingConnector,
             resolved_data_address: data_address.clone(),
             data_address,
-            is_restart: self.is_restart,
+            is_restart,
+            reason,
         }
     }
 }

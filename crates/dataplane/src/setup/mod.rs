@@ -19,7 +19,9 @@
 
 mod composition;
 pub mod context;
+pub mod events;
 mod ports;
 
 pub use composition::DataplaneModule;
+pub use events::DataplaneEvents;
 pub use ports::DataplanePorts;

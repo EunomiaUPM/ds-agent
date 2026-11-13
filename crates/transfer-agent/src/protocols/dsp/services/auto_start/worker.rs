@@ -41,7 +41,7 @@ pub struct AutoStartWorker {
 
 impl AutoStartWorker {
     /// Waits before each attempt: the consumer stores its process only after our ack.
-    const DELAYS_MS: [u64; 8] = [400, 400, 800, 1600, 1600, 1600, 1600, 1600];
+    const DELAYS_MS: [u64; 8] = [25, 75, 200, 400, 800, 1600, 1600, 1600];
 
     pub fn new(jobs: AutoStartJobs, runner: Arc<FlowRunner<TransferRpcFlow>>) -> Self {
         Self { jobs, runner }

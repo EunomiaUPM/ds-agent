@@ -198,4 +198,25 @@ impl TransferEventRepo for TransferEventRepoForSql {
             })?;
         Ok(event)
     }
+
+    #[tracing::instrument(level = "debug", skip_all, err)]
+    async fn create_transfer_events_batch(
+        &self,
+        new_transfer_events: &[NewTransferEvent],
+    ) -> Outcome<()> {
+        if new_transfer_events.is_empty() {
+            return Ok(());
+        }
+        for chunk in new_transfer_events.chunks(500) {
+            let models: Vec<transfer_event::ActiveModel> =
+                chunk.iter().cloned().map(Into::into).collect();
+            TransferEventEntity::insert_many(models)
+                .exec_without_returning(self.db.as_ref())
+                .await
+                .map_err(|e| {
+                    TransferEventRepoErrors::ErrorCreatingTransferEvent(Box::new(e)).into_errors()
+                })?;
+        }
+        Ok(())
+    }
 }

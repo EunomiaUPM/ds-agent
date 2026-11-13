@@ -23,6 +23,7 @@ use dataplane::engine::dataplane_manager::dataplane_commands::{
 };
 use dataplane::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use dataplane::engine::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactory;
+use dataplane::engine::dataplane_manager::dataplane_proxy::DataplaneProxyIngress;
 use std::sync::Arc;
 
 use common::test_utils::config_fixtures::transfer_config_fixture;
@@ -166,7 +167,7 @@ async fn set_configuring_builds_driver_and_proxy() {
         "proxy must be built after configuring"
     );
     assert!(ctx.connector_instance().is_none());
-    // after set_ready/set_started the forward address is the local proxy ingress URL
+    // after set_ready/set_started the forward address is the local proxy ingress URL with Bearer auth
     let addr = ctx
         .forward_dataplane_address()
         .expect("proxy ingress address must be set");
@@ -175,6 +176,21 @@ async fn set_configuring_builds_driver_and_proxy() {
         "expected proxy ingress path, got: {}",
         addr.endpoint
     );
+    assert_eq!(addr.authorization_type.as_deref(), Some("Bearer"));
+    assert!(
+        addr.authorization
+            .as_deref()
+            .is_some_and(|tok| tok.len() == 64 && tok.chars().all(|c| c.is_ascii_hexdigit())),
+        "expected 64-char hex ingress token on forward address"
+    );
+    assert!(matches!(
+        ctx.proxy().unwrap().ingress(),
+        DataplaneProxyIngress::HttpListener {
+            token_type: Some(tt),
+            token: Some(tok),
+            ..
+        } if tt == "Bearer" && tok.len() == 64
+    ));
 }
 
 /// set_auth on its own: a no-op authentication followed by put(Auth).

@@ -25,11 +25,12 @@ use crate::services::secrets::SecretStore;
 use crate::setup::context::AppContext;
 use axum::Router;
 use common::config::ApplicationConfig;
+use events::EventSinkTrait;
+use sea_orm_migration::MigrationTrait;
+use ymir::config::traits::ApiConfigTrait;
 use ymir::config::traits::CommonConfigTrait;
 use ymir::module_loader::root_context::RootContext;
 use ymir::module_loader::service_module::ServiceModuleTrait;
-use sea_orm_migration::MigrationTrait;
-use ymir::config::traits::ApiConfigTrait;
 
 /// Keystore as a module: parameters, secrets and the config passthrough under `{api}/keystore`.
 pub struct KeystoreModule {
@@ -42,23 +43,23 @@ impl KeystoreModule {
     pub fn compose(
         config: &ApplicationConfig,
         root: &RootContext,
-        event_bus: Option<events::EventBus>,
+        events: Arc<dyn EventSinkTrait>,
     ) -> Self {
         Self {
             prefix: format!("{}/keystore", config.common().get_api_version()),
-            ctx: AppContext::build(config, root, event_bus),
+            ctx: AppContext::build(config, root, events),
         }
     }
 
     /// Parameter and secret stores alone, for crates that read the keystore in-process.
     pub fn build_stores(
         root: &RootContext,
-        event_bus: Option<events::EventBus>,
+        events: Arc<dyn EventSinkTrait>,
     ) -> (
         Arc<dyn ParameterStore<serde_json::Value>>,
         Arc<dyn SecretStore>,
     ) {
-        AppContext::build_stores(root, event_bus)
+        AppContext::build_stores(root, events)
     }
 
     /// Static, so the hosting agent's migrator can list them.

@@ -460,10 +460,16 @@ async fn subscribe_hook_failure_emits_failed_and_termination_is_idempotent() {
 
     let persisted: Arc<Mutex<Option<DataplaneTransferDto>>> = Arc::new(Mutex::new(None));
     let edits_after_terminated = Arc::new(AtomicUsize::new(0));
+    let recorded_reasons = Arc::new(Mutex::new(Vec::<(TransferState, Option<String>)>::new()));
 
     let mut svc = MockDataplaneTransferServiceTrait::new();
     let persisted_create = persisted.clone();
+    let recorded_create = recorded_reasons.clone();
     svc.expect_create().returning(move |_, new_dto| {
+        recorded_create
+            .lock()
+            .unwrap()
+            .push((new_dto.state.clone(), new_dto.reason.clone()));
         let dto = DataplaneTransferDto {
             inner: dataplane_transfers::Model {
                 user_id: "tenant-1".to_string(),
@@ -495,6 +501,7 @@ async fn subscribe_hook_failure_emits_failed_and_termination_is_idempotent() {
         .returning(move |_, _| Ok(persisted_get.lock().unwrap().clone().unwrap()));
     let persisted_edit = persisted.clone();
     let edits_counter = edits_after_terminated.clone();
+    let recorded_edit = recorded_reasons.clone();
     svc.expect_edit().returning(move |_, _, edit_dto| {
         let mut guard = persisted_edit.lock().unwrap();
         let dto = guard.as_mut().unwrap();
@@ -502,6 +509,10 @@ async fn subscribe_hook_failure_emits_failed_and_termination_is_idempotent() {
             edits_counter.fetch_add(1, Ordering::SeqCst);
         }
         if let Some(st) = &edit_dto.state {
+            recorded_edit
+                .lock()
+                .unwrap()
+                .push((st.clone(), edit_dto.reason.clone()));
             dto.inner.state = st.clone();
         }
         if let Some(ing) = &edit_dto.ingress_config {
@@ -552,9 +563,7 @@ async fn subscribe_hook_failure_emits_failed_and_termination_is_idempotent() {
 
     // SetSubscribing fails against dead webhook -> emits Failed and terminates dataplane!
     let err = mgr
-        .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
-            transfer_dto_urn: tp_urn.clone(),
-        }))
+        .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation::new(tp_urn.clone())))
         .await;
     assert!(err.is_err());
 
@@ -573,11 +582,23 @@ async fn subscribe_hook_failure_emits_failed_and_termination_is_idempotent() {
         persisted.lock().unwrap().as_ref().unwrap().inner.state,
         TransferState::Terminated
     );
+    let log_reasons = recorded_reasons.lock().unwrap().clone();
+    assert!(log_reasons
+        .iter()
+        .all(|(_, reason)| reason.as_deref().is_some_and(|r| !r.is_empty())));
+    let term_reason = log_reasons
+        .iter()
+        .rev()
+        .find(|(st, _)| *st == TransferState::Terminated)
+        .and_then(|(_, r)| r.as_deref())
+        .expect("Terminated reason must be recorded");
+    assert!(
+        term_reason.contains("DATAPLANE_SUBSCRIBE_FAILED"),
+        "expected failure code in Terminated reason, got {term_reason}"
+    );
 
     // Subsequent SetTerminating (e.g. from control-plane on_terminate_post) is an idempotent no-op!
-    mgr.execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
-        transfer_dto_urn: tp_urn,
-    }))
+    mgr.execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation::new(tp_urn)))
     .await
     .unwrap();
     assert_eq!(edits_after_terminated.load(Ordering::SeqCst), 0);

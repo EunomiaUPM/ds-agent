@@ -264,17 +264,6 @@ impl CatalogImportService {
         }
     }
 
-    async fn emit(&self, resource: &CatalogResource, action: &str) {
-        events::emit_action!(
-            self.ctx.events,
-            &resource.owner(),
-            crate::EVENT_PREFIX,
-            resource.kind().as_str(),
-            action,
-            &AdminDocument::render(resource)
-        );
-    }
-
     fn bad(reason: impl Into<String>) -> Errors {
         Errors::format(BadFormat::Received, reason.into(), None)
     }
@@ -347,15 +336,19 @@ impl CatalogImportServiceTrait for CatalogImportService {
             .import(&OwnerScope::acting(user), &writes)
             .await?;
         self.ctx.cache.invalidate().await;
-        self.ctx.registry().resync().await;
-        for write in &writes {
-            let action = if write.expected.is_some() {
-                "edit"
-            } else {
-                "create"
-            };
-            self.emit(&write.resource, action).await;
-        }
+        let written: Vec<_> = writes.iter().map(|write| write.resource.clone()).collect();
+        self.ctx.registry().sync_imported(&written).await;
+        let events: Vec<_> = writes
+            .iter()
+            .map(|write| {
+                (
+                    &write.resource,
+                    events::schemas::dataspace::ResourceAction::Imported,
+                )
+            })
+            .collect();
+        crate::setup::CatalogEvents::resources_batch(self.ctx.events.as_ref(), &events, None)
+            .await;
         report.imported = true;
         Ok(report)
     }

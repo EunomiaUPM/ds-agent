@@ -50,14 +50,13 @@ impl OdrlPolicyService {
     }
 
     async fn emit_deleted(&self, offer: &OdrlOffer) {
-        events::emit_action!(
-            self.ctx.events,
-            &offer.owner(),
-            crate::EVENT_PREFIX,
-            "offer",
-            "delete",
-            &events::EntityDeletedDto::new(&offer.id)
-        );
+        crate::setup::CatalogEvents::odrl_offer(
+            self.ctx.events.as_ref(),
+            offer,
+            events::schemas::dataspace::ResourceAction::Deleted,
+            None,
+        )
+        .await;
     }
 }
 
@@ -150,14 +149,13 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
             .insert(&offer, &command.references)
             .await?;
         self.ctx.cache.invalidate().await;
-        events::emit_action!(
-            self.ctx.events,
-            &stored.owner(),
-            crate::EVENT_PREFIX,
-            "offer",
-            "create",
-            &OdrlPolicyView::assemble(stored.clone())
-        );
+        crate::setup::CatalogEvents::odrl_offer(
+            self.ctx.events.as_ref(),
+            &stored,
+            events::schemas::dataspace::ResourceAction::Created,
+            Some(events::EventActor::human(user)),
+        )
+        .await;
         Ok(stored)
     }
 

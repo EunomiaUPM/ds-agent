@@ -91,9 +91,7 @@ async fn set_subscribing_provider_push() {
         transfer_config_fixture(),
     )
     .with_driver_factory(Arc::new(mock_factory))
-    .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
-        transfer_dto_urn: tp_id,
-    }))
+    .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation::new(tp_id)))
     .await;
 
     assert!(result.is_ok());
@@ -171,9 +169,7 @@ async fn set_unsubscribing_provider_push() {
         transfer_config_fixture(),
     )
     .with_driver_factory(Arc::new(mock_factory))
-    .execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
-        transfer_dto_urn: tp_id,
-    }))
+    .execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation::new(tp_id)))
     .await;
 
     assert!(result.is_ok());
@@ -241,9 +237,7 @@ async fn set_terminating_provider_push_unsubscribes_before_terminated() {
         transfer_config_fixture(),
     )
     .with_driver_factory(Arc::new(mock_factory))
-    .execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
-        transfer_dto_urn: tp_id,
-    }))
+    .execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation::new(tp_id)))
     .await;
 
     assert!(matches!(result.unwrap(), DataplaneCommandResponse::Ok));
@@ -291,24 +285,18 @@ async fn set_started_stopped_and_configuring_rejected_provider_push() {
     .with_driver_factory(Arc::new(mock_factory));
 
     assert!(mgr
-        .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
-            transfer_dto_urn: tp_id.clone(),
-        }))
+        .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation::new(tp_id.clone())))
         .await
         .is_err());
 
     assert!(mgr
-        .execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
-            transfer_dto_urn: tp_id.clone(),
-        }))
+        .execute_command(DataplaneCommand::SetStopped(DataplaneContinuation::new(tp_id.clone())))
         .await
         .is_err());
 
     assert!(mgr
         .execute_command(DataplaneCommand::SetConfiguring((
-            DataplaneContinuation {
-                transfer_dto_urn: tp_id,
-            },
+            DataplaneContinuation::new(tp_id),
             dummy_dataplane_forward_address(),
         )))
         .await

@@ -19,11 +19,12 @@
 
 use std::sync::Arc;
 
-use ymir::oauth::Owner;
-use ymir::types::oauth::UserInfo;
-use ymir::errors::NotFoundExt;
+use events::schemas::dataspace::{KeystoreAuditPayload, ResourceAction};
+use events::{EventContext, EventSinkTrait, NoopEventSink, TypedEventSink};
+use ymir::errors::{NotFoundExt, Outcome};
 use ymir::query::QueryFilter;
-use ymir::errors::Outcome;
+use ymir::types::oauth::UserInfo;
+use ymir::types::participants::Visibility;
 
 use crate::data::repo::parameters::ParameterRepoTrait;
 use crate::entities::commands::{EditParameterCommand, NewParameterCommand};
@@ -33,24 +34,39 @@ use crate::entities::key::Key;
 use crate::entities::version::Version;
 use crate::services::parameters::ParameterStore;
 
-/// Parameter store over a repository, emitting `keystore:` events when a bus is set.
+/// Parameter store over a repository, emitting redacted `KeystoreAuditPayload` events.
 pub struct ParameterStoreImpl {
     repo: Arc<dyn ParameterRepoTrait<Value = serde_json::Value>>,
-    event_bus: Option<events::EventBus>,
+    events: Arc<dyn EventSinkTrait>,
 }
 
 impl ParameterStoreImpl {
     pub fn new(repo: Arc<dyn ParameterRepoTrait<Value = serde_json::Value>>) -> Self {
         Self {
             repo,
-            event_bus: None,
+            events: Arc::new(NoopEventSink),
         }
     }
 
-    /// Publishes create, update and delete events on `event_bus`.
-    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
-        self.event_bus = event_bus;
+    /// Publishes create, update and delete audit events on `events`.
+    pub fn with_event_sink(mut self, events: Arc<dyn EventSinkTrait>) -> Self {
+        self.events = events;
         self
+    }
+
+    async fn emit_audit(&self, user: &UserInfo, action: ResourceAction, key: &Key) {
+        let ctx = EventContext::for_user_with_visibility(user, Visibility::Private);
+        let payload = KeystoreAuditPayload {
+            action,
+            entry_kind: "parameter".to_string(),
+            entry_id: key.as_str().to_string(),
+            name: key.as_str().to_string(),
+            key_type: None,
+            value_redacted: true,
+        };
+        if let Err(err) = TypedEventSink::emit(&*self.events, &ctx, &payload).await {
+            tracing::warn!(error = %err, key = %key, "Failed to emit keystore parameter audit event");
+        }
     }
 }
 
@@ -63,14 +79,8 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
         cmd: &NewParameterCommand<serde_json::Value>,
     ) -> Outcome<Entry<serde_json::Value>> {
         let entry = self.repo.create_parameter(user.id(), cmd).await?;
-        events::emit_action!(
-            self.event_bus,
-            &Owner::private(user),
-            crate::EVENT_PREFIX,
-            "parameter",
-            "create",
-            &entry
-        );
+        self.emit_audit(user, ResourceAction::Created, &entry.metadata.key)
+            .await;
         Ok(entry)
     }
 
@@ -105,14 +115,8 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
             .repo
             .put_parameter(user.id(), key, cmd)
             .await?;
-        events::emit_action!(
-            self.event_bus,
-            &Owner::private(user),
-            crate::EVENT_PREFIX,
-            "parameter",
-            "edit",
-            &entry
-        );
+        self.emit_audit(user, ResourceAction::Updated, &entry.metadata.key)
+            .await;
         Ok(entry.metadata.version)
     }
 
@@ -126,14 +130,7 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
         self.repo
             .delete_parameter(user.id(), key)
             .await?;
-        events::emit_action!(
-            self.event_bus,
-            &Owner::private(user),
-            crate::EVENT_PREFIX,
-            "parameter",
-            "delete",
-            &events::EntityDeletedDto::new(key.as_str())
-        );
+        self.emit_audit(user, ResourceAction::Deleted, key).await;
         Ok(())
     }
 

@@ -16,9 +16,10 @@
  */
 
 use crate::entities::filters::SentGrantFilter;
-use crate::services::{HasCallback, HasRepo, HasVcRequester, MayHaveEventBus};
+use crate::services::{HasCallback, HasEventSink, HasRepo, HasVcRequester};
 use crate::types::entities::ReachAuthority;
-use crate::types::events::{sent_owner, GrantEvent, VerificationEvent};
+use crate::types::events::AuthEvents;
+use events::schemas::identity::VerificationAction;
 use crate::types::response::VcWhatResponse;
 use async_trait::async_trait;
 use chrono::Utc;
@@ -42,7 +43,7 @@ use ymir::types::wallet::OidcUri;
 /// on it.
 #[async_trait]
 pub trait VcRequesterModule:
-    HasVcRequester + HasRepo + HasCallback + HasWallet + MayHaveEventBus + Send + Sync + 'static
+    HasVcRequester + HasRepo + HasCallback + HasWallet + HasEventSink + Send + Sync + 'static
 {
     // ==========================================================================================
     // VC requests: queries
@@ -308,22 +309,10 @@ pub trait VcRequesterModule:
     }
 
     async fn vc_event(&self, grant: &grant::Model, action: &str) {
-        let owner = sent_owner(grant);
-        let payload = GrantEvent::from(grant);
-        events::emit_action!(
-            self.event_bus(),
-            &owner,
-            crate::EVENT_PREFIX,
-            "vc-request",
-            action,
-            &payload
-        );
+        AuthEvents::sent_grant_action(self.event_sink().as_ref(), grant, action).await;
     }
 
     async fn vc_presented_event(&self, verification: &verification::Model) {
-        if self.event_bus().is_none() {
-            return;
-        }
         let grant = match self.repo().sent_grant().get_by_id(&verification.grant_id).await {
             Ok(grant) => grant,
             Err(e) => {
@@ -331,15 +320,12 @@ pub trait VcRequesterModule:
                 return;
             }
         };
-        let owner = sent_owner(&grant);
-        let payload = VerificationEvent::from(verification);
-        events::emit_action!(
-            self.event_bus(),
-            &owner,
-            crate::EVENT_PREFIX,
-            "vc-request",
-            "presented",
-            &payload
-        );
+        let action = if verification.status == ymir::types::verification::VerificationStatus::Verified {
+            VerificationAction::Verified
+        } else {
+            VerificationAction::Failed
+        };
+        AuthEvents::sent_verification(self.event_sink().as_ref(), &grant, verification, action)
+            .await;
     }
 }

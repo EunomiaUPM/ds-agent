@@ -125,32 +125,32 @@ impl TransferRpcLoader {
             .unwrap_or_else(|| self.own_dsp_base());
         let message = typed.message.clone();
         let peer_id = body.associated_agent_peer.clone().unwrap_or_default();
-        let mut domain = TransferRpcDomain {
-            process: None,
-            process_id,
-            role: TransferRole::Consumer,
-            transfer_direction,
-            owner: Owner::for_new(caller, None, None),
-            agreement: self
-                .agreement(body.agreement_id.as_deref().unwrap_or_default())
-                .await?,
-            peer_mate: self.peer_mate(caller, &peer_id).await,
-            peer_id,
-            target_url: format!(
-                "{}/transfers/request",
-                Self::base(body.provider_address.as_deref().unwrap_or_default())
-            ),
-            outgoing: RdfMessage::<DspTransfer>::build(&message, Map::new()).await?,
-            is_restart: false,
-            typed,
-        };
+        let owner = Owner::for_new(caller, None, None);
+        let (agreement, peer_mate) = tokio::join!(
+            self.agreement(body.agreement_id.as_deref().unwrap_or_default()),
+            self.peer_mate(caller, &peer_id),
+        );
+        let agreement = agreement?;
+        let target_url = format!(
+            "{}/transfers/request",
+            Self::base(body.provider_address.as_deref().unwrap_or_default())
+        );
         // A push consumer sets its sink up first: the request carries its address.
         let sink = body.data_address.clone().map(DataAddress::from);
+        let hooks = TransferRpcDomain::hook_context(
+            &typed,
+            &process_id,
+            &owner,
+            TransferRole::Consumer,
+            transfer_direction,
+            false,
+            sink.clone(),
+        );
         let sink = self
             .ctx
             .ports
             .dataplane
-            .on_transfer_request_pre(&domain.hooks(sink.clone()))
+            .on_transfer_request_pre(&hooks)
             .await?
             .map(DataAddress::from)
             .or(sink);
@@ -161,9 +161,21 @@ impl TransferRpcLoader {
             "callbackAddress": callback,
             "dataAddress": sink,
         }));
-        domain.outgoing =
-            Self::request_message(&message, members, body.auto_start == Some(true)).await?;
-        Ok(domain)
+        let outgoing = Self::request_message(&message, members, body.auto_start == Some(true)).await?;
+        Ok(TransferRpcDomain {
+            process: None,
+            process_id,
+            role: TransferRole::Consumer,
+            transfer_direction,
+            owner,
+            agreement,
+            peer_mate,
+            peer_id,
+            target_url,
+            outgoing,
+            is_restart: false,
+            typed,
+        })
     }
 
     /// The DSP 9.2.1 request; with `auto_start` it also carries `eunomia:autoStart`.
@@ -228,45 +240,45 @@ impl TransferRpcLoader {
             .agreement_id
             .as_ref()
             .ok_or_else(|| Errors::crazy("stored transfer process has no agreement", None))?;
-        let mut domain = TransferRpcDomain {
-            agreement: self
-                .ctx
-                .ports
-                .negotiation
-                .get_agreement(agreement_id)
-                .await?,
-            peer_mate: self.peer_mate(caller, &peer_id).await,
-            target_url: format!(
-                "{}/transfers/{peer_pid}/{}",
-                Self::base(&base),
-                Self::segment(&message)
-            ),
-            process_id: process.id().as_urn().clone(),
-            transfer_direction: process
-                .properties()
-                .get(DIRECTION_PROPERTY)
-                .and_then(|v| serde_json::from_value(v.clone()).ok())
-                .unwrap_or(TransferDirection::Pull),
-            owner: process.owner().clone(),
-            role,
-            peer_id,
-            outgoing: RdfMessage::<DspTransfer>::build(&message, Map::new()).await?,
-            is_restart,
-            process: Some(process),
-            typed,
-        };
+        let (agreement, peer_mate) = tokio::join!(
+            self.ctx.ports.negotiation.get_agreement(agreement_id),
+            self.peer_mate(caller, &peer_id),
+        );
+        let agreement = agreement?;
+        let process_id = process.id().as_urn().clone();
+        let transfer_direction = process
+            .properties()
+            .get(DIRECTION_PROPERTY)
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
+            .unwrap_or(TransferDirection::Pull);
+        let owner = process.owner().clone();
+        let target_url = format!(
+            "{}/transfers/{peer_pid}/{}",
+            Self::base(&base),
+            Self::segment(&message)
+        );
         // A provider starting a pull hands the consumer its endpoint in the start message.
         let endpoint = match (&message, role) {
-            (TransferDSPMessageType::TransferStartMessage, TransferRole::Provider) => self
-                .ctx
-                .ports
-                .dataplane
-                .on_transfer_start_pre(&domain.hooks(None))
-                .await?
-                .map(DataAddress::from),
+            (TransferDSPMessageType::TransferStartMessage, TransferRole::Provider) => {
+                let hooks = TransferRpcDomain::hook_context(
+                    &typed,
+                    &process_id,
+                    &owner,
+                    role,
+                    transfer_direction,
+                    is_restart,
+                    None,
+                );
+                self.ctx
+                    .ports
+                    .dataplane
+                    .on_transfer_start_pre(&hooks)
+                    .await?
+                    .map(DataAddress::from)
+            }
             _ => None,
         };
-        domain.outgoing = RdfMessage::<DspTransfer>::build(
+        let outgoing = RdfMessage::<DspTransfer>::build(
             &message,
             Self::members(json!({
                 "consumerPid": consumer_pid,
@@ -277,7 +289,20 @@ impl TransferRpcLoader {
             })),
         )
         .await?;
-        Ok(domain)
+        Ok(TransferRpcDomain {
+            agreement,
+            peer_mate,
+            target_url,
+            process_id,
+            transfer_direction,
+            owner,
+            role,
+            peer_id,
+            outgoing,
+            is_restart,
+            process: Some(process),
+            typed,
+        })
     }
 
     fn members(value: Value) -> Map<String, Value> {

@@ -44,7 +44,7 @@ impl AppContext {
     pub fn build(
         config: &CatalogConfig,
         root: &RootContext,
-        event_bus: Option<events::EventBus>,
+        events: Arc<dyn events::EventSinkTrait>,
         ports: &ConnectorPorts,
     ) -> Self {
         let repo = Arc::new(ConnectorRepoForSql::create_repo(root.db.clone()));
@@ -53,12 +53,12 @@ impl AppContext {
             ports.catalog.clone(),
             config.common().get_host(HostType::Http),
         )
-        .with_event_bus(event_bus.clone());
+        .with_event_sink(events.clone());
         if let Some(guard) = &ports.transfer_guard {
             instance_svc = instance_svc.with_transfer_guard(guard.clone());
         }
         let instance_svc = Arc::new(instance_svc);
-        let template_svc = Arc::new(ConnectorTemplateService::new(repo).with_event_bus(event_bus));
+        let template_svc = Arc::new(ConnectorTemplateService::new(repo).with_event_sink(events));
         Self {
             config: Arc::new(config.clone()),
             template_svc,

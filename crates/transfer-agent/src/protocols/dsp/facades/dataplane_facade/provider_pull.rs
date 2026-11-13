@@ -21,8 +21,8 @@ use crate::protocols::dsp::facades::dataplane_facade::DataplaneHookContext;
 use crate::protocols::dsp::entities::data_address::DataAddressDto;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
 use dataplane::{
-    DataplaneCommand, DataplaneCommandResponse, DataplaneContinuation,
-    DataplaneInitCommandDirection, DataplaneInitCommandTypes, DataplaneManager,
+    DataplaneCommand, DataplaneCommandResponse, DataplaneInitCommandDirection,
+    DataplaneInitCommandTypes, DataplaneManager,
 };
 use ymir::errors::{Errors, Outcome};
 
@@ -70,11 +70,8 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
         // First start and restart alike hand the consumer the process's pull endpoint.
-        let id = ctx.process_id.clone();
         let res = mgr
-            .execute_command(DataplaneCommand::GetAssociated(DataplaneContinuation {
-                transfer_dto_urn: id,
-            }))
+            .execute_command(DataplaneCommand::GetAssociated(ctx.continuation()))
             .await?;
         if let DataplaneCommandResponse::OkWithAddress(address) = res {
             Ok(Some(address.into()))
@@ -89,17 +86,14 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         ctx: &DataplaneHookContext,
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
-        let id = ctx.process_id.clone();
         if !ctx.is_restart && ctx.resolved_data_address.is_none() {
             return Err(Errors::crazy(
                 "Dataplane_address required for provider pull start_post",
                 None,
             ));
         }
-        mgr.execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
-            transfer_dto_urn: id,
-        }))
-        .await?;
+        mgr.execute_command(DataplaneCommand::SetStarted(ctx.continuation()))
+            .await?;
         Ok(None)
     }
 
@@ -118,10 +112,8 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         ctx: &DataplaneHookContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
-            transfer_dto_urn: ctx.process_id.clone(),
-        }))
-        .await?;
+        mgr.execute_command(DataplaneCommand::SetStopped(ctx.continuation()))
+            .await?;
         Ok(())
     }
 
@@ -140,12 +132,9 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         ctx: &DataplaneHookContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        let cont = DataplaneContinuation {
-            transfer_dto_urn: ctx.process_id.clone(),
-        };
-        mgr.execute_command(DataplaneCommand::SetStopped(cont.clone()))
+        mgr.execute_command(DataplaneCommand::SetStopped(ctx.stopping_continuation()))
             .await?;
-        mgr.execute_command(DataplaneCommand::SetTerminating(cont))
+        mgr.execute_command(DataplaneCommand::SetTerminating(ctx.continuation()))
             .await?;
         Ok(())
     }
@@ -165,12 +154,9 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         ctx: &DataplaneHookContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        let cont = DataplaneContinuation {
-            transfer_dto_urn: ctx.process_id.clone(),
-        };
-        mgr.execute_command(DataplaneCommand::SetStopped(cont.clone()))
+        mgr.execute_command(DataplaneCommand::SetStopped(ctx.stopping_continuation()))
             .await?;
-        mgr.execute_command(DataplaneCommand::SetTerminating(cont))
+        mgr.execute_command(DataplaneCommand::SetTerminating(ctx.continuation()))
             .await?;
         Ok(())
     }

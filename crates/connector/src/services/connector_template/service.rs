@@ -25,26 +25,50 @@ use crate::entities::parameters::template_parameters_extractor::TemplateParamete
 use crate::entities::parameters::template_parameters_validator::TemplateParametersValidator;
 use crate::entities::parameters::ParameterDefinition;
 use crate::services::connector_template::ConnectorTemplateServiceTrait;
+use events::schemas::dataspace::{ConnectorLifecyclePayload, ResourceAction};
+use events::{EventActor, EventContext, EventSinkTrait, NoopEventSink, TypedEventSink};
 use log::error;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
 
 pub struct ConnectorTemplateService {
     repo: Arc<dyn ConnectorRepoTrait>,
-    event_bus: Option<events::EventBus>,
+    events: Arc<dyn EventSinkTrait>,
 }
 
 impl ConnectorTemplateService {
     pub fn new(repo: Arc<dyn ConnectorRepoTrait>) -> Self {
         Self {
             repo,
-            event_bus: None,
+            events: Arc::new(NoopEventSink),
         }
     }
 
-    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
-        self.event_bus = event_bus;
+    /// Publishes template lifecycle events on `events`.
+    pub fn with_event_sink(mut self, events: Arc<dyn EventSinkTrait>) -> Self {
+        self.events = events;
         self
+    }
+
+    async fn emit_lifecycle(
+        &self,
+        ctx: EventContext,
+        action: ResourceAction,
+        connector_id: String,
+        name: String,
+        connector_type: Option<String>,
+    ) {
+        let payload = ConnectorLifecyclePayload {
+            action,
+            connector_kind: "template".to_string(),
+            connector_id,
+            name,
+            connector_type,
+            status: None,
+        };
+        if let Err(err) = TypedEventSink::emit(&*self.events, &ctx, &payload).await {
+            tracing::warn!(error = %err, "Failed to emit connector template lifecycle event");
+        }
     }
 
     fn map_model_to_dto(model: connector_templates::Model) -> Outcome<ConnectorTemplateDto> {
@@ -215,14 +239,20 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
         // create output
         let owner = saved_model.owner();
         let result = Self::map_model_to_dto(saved_model)?;
-        events::emit_action!(
-            self.event_bus,
-            &owner,
-            crate::EVENT_PREFIX,
-            "template",
-            "create",
-            &result
-        );
+        let template_name = result.metadata.name.clone().unwrap_or_default();
+        let template_version = result.metadata.version.clone().unwrap_or_default();
+        let connector_type = match &result.interaction {
+            InteractionConfig::Pull(_) => "pull",
+            InteractionConfig::Push(_) => "push",
+        };
+        self.emit_lifecycle(
+            EventContext::for_owner(owner).with_actor(EventActor::human(user)),
+            ResourceAction::Created,
+            format!("{template_name}:{template_version}"),
+            template_name,
+            Some(connector_type.to_string()),
+        )
+        .await;
         Ok(result)
     }
 
@@ -238,15 +268,14 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
             .delete_template_by_name_and_version(&OwnerScope::acting(user), name, version)
             .await?;
 
-        let deleted = events::EntityDeletedDto::new(format!("{name}:{version}"));
-        events::emit_action!(
-            self.event_bus,
-            &Owner::private(user),
-            crate::EVENT_PREFIX,
-            "template",
-            "delete",
-            &deleted
-        );
+        self.emit_lifecycle(
+            EventContext::for_user(user),
+            ResourceAction::Deleted,
+            format!("{name}:{version}"),
+            name.to_string(),
+            None,
+        )
+        .await;
 
         Ok(())
     }

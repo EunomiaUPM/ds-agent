@@ -19,8 +19,7 @@
 //!
 //! Secrets live in the database, or in Vault when a real Vault is configured. Other crates read
 //! them in-process through [`SecretStore`] and [`ParameterStore`]; [`KeystoreModule`] also serves
-//! them, together with the application config, under `{api}/keystore`. Its events use the
-//! `keystore:` prefix.
+//! them, together with the application config, under `{api}/keystore`.
 //!
 //! Modules: [`entities`] (keys, entries, versions, secret values), [`services`], [`data`],
 //! [`http`], [`setup`].
@@ -30,11 +29,6 @@ pub mod entities;
 pub mod http;
 pub mod services;
 pub mod setup;
-
-/// Domain name of the keystore's events.
-pub const EVENT_DOMAIN: &str = "keystore";
-/// Topic prefix of the keystore's events.
-pub const EVENT_PREFIX: &str = "keystore:";
 
 pub use data::sea_orm::migrations::get_keystore_migrations;
 pub use entities::entry::{Entry, SecretEntry};

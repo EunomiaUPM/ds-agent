@@ -36,6 +36,17 @@ pub enum DataplaneProxyIngress {
     },
 }
 
+impl DataplaneProxyIngress {
+    /// Builds an `HttpListener` protected by a per-transfer 256-bit Bearer capability token.
+    pub fn http_bearer(dataplane_id: &str) -> Self {
+        Self::HttpListener {
+            path: format!("{HTTP_LISTENER_PATH}{dataplane_id}"),
+            token_type: Some("Bearer".to_string()),
+            token: Some(generate_ingress_token()),
+        }
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum DataplaneProxyEgress {
     NoOp,

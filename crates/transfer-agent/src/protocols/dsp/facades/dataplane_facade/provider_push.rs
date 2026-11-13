@@ -21,8 +21,8 @@ use crate::protocols::dsp::facades::dataplane_facade::DataplaneHookContext;
 use crate::protocols::dsp::entities::data_address::DataAddressDto;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
 use dataplane::{
-    DataplaneAddress, DataplaneCommand, DataplaneCommandResponse, DataplaneContinuation,
-    DataplaneInitCommandDirection, DataplaneInitCommandTypes, DataplaneManager,
+    DataplaneAddress, DataplaneCommand, DataplaneCommandResponse, DataplaneInitCommandDirection,
+    DataplaneInitCommandTypes, DataplaneManager,
 };
 use ymir::errors::{Errors, Outcome};
 
@@ -95,11 +95,8 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
         // in this case restart works same
-        let id = ctx.process_id.clone();
-        mgr.execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
-            transfer_dto_urn: id,
-        }))
-        .await?;
+        mgr.execute_command(DataplaneCommand::SetSubscribing(ctx.continuation()))
+            .await?;
         Ok(None)
     }
 
@@ -119,11 +116,8 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         ctx: &DataplaneHookContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        let id = ctx.process_id.clone();
-        mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
-            transfer_dto_urn: id,
-        }))
-        .await?;
+        mgr.execute_command(DataplaneCommand::SetUnsubscribing(ctx.continuation()))
+            .await?;
         Ok(())
     }
 
@@ -143,10 +137,7 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         ctx: &DataplaneHookContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        let cont = DataplaneContinuation {
-            transfer_dto_urn: ctx.process_id.clone(),
-        };
-        mgr.execute_command(DataplaneCommand::SetTerminating(cont))
+        mgr.execute_command(DataplaneCommand::SetTerminating(ctx.continuation()))
             .await?;
         Ok(())
     }
@@ -167,10 +158,7 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         ctx: &DataplaneHookContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        let cont = DataplaneContinuation {
-            transfer_dto_urn: ctx.process_id.clone(),
-        };
-        mgr.execute_command(DataplaneCommand::SetTerminating(cont))
+        mgr.execute_command(DataplaneCommand::SetTerminating(ctx.continuation()))
             .await?;
         Ok(())
     }

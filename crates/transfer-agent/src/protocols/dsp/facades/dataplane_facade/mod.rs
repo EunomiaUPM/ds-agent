@@ -26,9 +26,10 @@ mod strategy;
 use crate::entities::protocol::{TransferDirection, TransferRole};
 use crate::protocols::dsp::entities::context_common::TransferContextConnectorRole;
 use crate::protocols::dsp::entities::data_address::{DataAddressDto, EndpointPropertyDto};
+use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
 use common::dsp_common::data_address::DataAddress;
 use ymir::oauth::Owner;
-use dataplane::DataplaneAddress;
+use dataplane::{DataplaneAddress, DataplaneContinuation};
 use urn::Urn;
 use ymir::errors::Outcome;
 
@@ -45,6 +46,8 @@ pub struct DataplaneHookContext {
     /// The address this side handed to the peer, once a start resolved it.
     pub resolved_data_address: Option<DataAddress>,
     pub is_restart: bool,
+    /// Diagnostic/lifecycle reason describing why this control-plane transition ran.
+    pub reason: Option<String>,
 }
 
 impl DataplaneHookContext {
@@ -57,6 +60,65 @@ impl DataplaneHookContext {
         self.data_address
             .clone()
             .map(|address| DataplaneAddress::from(DataAddressDto::from(address)))
+    }
+
+    /// Continuation carrying this hook's diagnostic reason.
+    pub fn continuation(&self) -> DataplaneContinuation {
+        DataplaneContinuation::with_reason(self.process_id.clone(), self.reason.clone())
+    }
+
+    /// Continuation for an intermediate stop immediately before completion or termination.
+    pub fn stopping_continuation(&self) -> DataplaneContinuation {
+        let reason = self
+            .reason
+            .as_ref()
+            .map(|r| format!("Stopping before final transition; {r}"));
+        DataplaneContinuation::with_reason(self.process_id.clone(), reason)
+    }
+
+    /// Formats a human-readable dataplane log reason from DSP/RPC message fields.
+    pub fn format_message_reason(
+        message: &TransferDSPMessageType,
+        origin: &str,
+        code: Option<&str>,
+        reasons: &[String],
+        is_restart: bool,
+    ) -> Option<String> {
+        let action = match message {
+            TransferDSPMessageType::TransferStartMessage if is_restart => {
+                format!("Transfer resumed ({origin}: TransferStartMessage)")
+            }
+            TransferDSPMessageType::TransferStartMessage => {
+                format!("Transfer started ({origin}: TransferStartMessage)")
+            }
+            TransferDSPMessageType::TransferSuspensionMessage => {
+                format!("Transfer suspended ({origin}: TransferSuspensionMessage)")
+            }
+            TransferDSPMessageType::TransferCompletionMessage => {
+                format!("Transfer completed ({origin}: TransferCompletionMessage)")
+            }
+            TransferDSPMessageType::TransferTerminationMessage => {
+                format!("Transfer terminated ({origin}: TransferTerminationMessage)")
+            }
+            TransferDSPMessageType::TransferRequestMessage => {
+                format!("Transfer requested ({origin}: TransferRequestMessage)")
+            }
+            _ => return None,
+        };
+
+        let clean_reasons: Vec<&str> = reasons
+            .iter()
+            .map(|r| r.trim())
+            .filter(|r| !r.is_empty())
+            .collect();
+        let code = code.map(str::trim).filter(|c| !c.is_empty());
+
+        match (code, clean_reasons.is_empty()) {
+            (Some(c), false) => Some(format!("{action} [code={c}]: {}", clean_reasons.join("; "))),
+            (Some(c), true) => Some(format!("{action} [code={c}]")),
+            (None, false) => Some(format!("{action}: {}", clean_reasons.join("; "))),
+            (None, true) => Some(action),
+        }
     }
 }
 

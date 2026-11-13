@@ -307,6 +307,7 @@ impl DataplaneSignalWorker {
             resolved_data_address: None,
             data_address: None,
             is_restart: false,
+            reason: Some(format!("Forced local termination [code={code}]: {reason}")),
         };
         let _ = app.ports.dataplane.on_transfer_termination_pre(&hooks).await;
         let _ = app.ports.dataplane.on_transfer_termination_post(&hooks).await;

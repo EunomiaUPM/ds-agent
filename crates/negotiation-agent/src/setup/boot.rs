@@ -44,10 +44,12 @@ impl BootstrapServiceTrait for NegotiationAgentBoot {
 
     async fn compose(config: &ContractsConfig, root: &RootContext) -> Outcome<ServiceComposer> {
         let ports = NegotiationPorts::remote(config, root);
-        let agent = NegotiationAgentModule::compose(config, root, None, &ports).await?;
+        let pipeline = events::EventsModule::build_standalone_pipeline(root, None)?;
+        let agent = NegotiationAgentModule::compose(config, root, pipeline.sink, &ports).await?;
         let public_refs = PublicRefsModule::new(config.common(), vec![agent.public_resolver()]);
         Ok(ServiceComposer::new()
             .register(agent)
+            .register(events::StandaloneEventsModule::new(pipeline.workers))
             .register(public_refs)
             .register(WellKnownModule::new(
                 config.common(),

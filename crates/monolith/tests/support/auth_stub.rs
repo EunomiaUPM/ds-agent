@@ -111,6 +111,14 @@ impl RegistryFacadeTrait for StubAuth {
     async fn sync_datasets(&self, _datasets: Vec<RegisteredDataset>) -> Outcome<()> {
         Ok(())
     }
+
+    async fn upsert_datasets(&self, _datasets: Vec<RegisteredDataset>) -> Outcome<()> {
+        Ok(())
+    }
+
+    async fn unregister_datasets(&self, _ids: Vec<String>) -> Outcome<()> {
+        Ok(())
+    }
 }
 
 #[async_trait::async_trait]

@@ -33,8 +33,10 @@ use crate::data::repo::negotiation_message::NegotiationMessageRepoTrait;
 use crate::entities::filters::NegotiationMessageFilter;
 use crate::entities::negotiation_message::NewNegotiationMessageDto;
 use crate::setup::context::AppContext;
+use crate::setup::NegotiationEvents;
 use crate::services::negotiation_message::NegotiationMessageServiceTrait;
 use crate::services::negotiation_message::views::NegotiationMessageView;
+use events::EventActor;
 
 /// Message service over the context's repos, emitting `negotiations:` events.
 pub struct NegotiationMessageService {
@@ -139,14 +141,12 @@ impl NegotiationMessageServiceTrait for NegotiationMessageService {
             .await?;
 
         let view = NegotiationMessageView::assemble(created);
-        events::emit_action!(
-            self.ctx.events,
-            &view.owner(),
-            crate::EVENT_PREFIX,
-            "message",
-            "create",
-            &view
-        );
+        NegotiationEvents::message(
+            self.ctx.events.as_ref(),
+            &view,
+            Some(EventActor::human(user)),
+        )
+        .await;
         Ok(view)
     }
 
@@ -161,14 +161,13 @@ impl NegotiationMessageServiceTrait for NegotiationMessageService {
             .message_repo()
             .delete_negotiation_message(&OwnerScope::acting(user), id)
             .await?;
-        events::emit_action!(
-            self.ctx.events,
-            &owner,
-            crate::EVENT_PREFIX,
-            "message",
-            "delete",
-            &events::EntityDeletedDto::new(id)
-        );
+        NegotiationEvents::message_deleted(
+            self.ctx.events.as_ref(),
+            owner,
+            id,
+            Some(EventActor::human(user)),
+        )
+        .await;
         Ok(())
     }
 }

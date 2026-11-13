@@ -33,7 +33,9 @@ use crate::entities::filters::TransferProcessFilter;
 use crate::entities::transfer_process_identifier::TransferProcessIdentifier;
 use crate::services::transfer_process::TransferProcessServiceTrait;
 use crate::setup::context::AppContext;
+use crate::setup::TransferEvents;
 use crate::services::transfer_process::views::TransferProcessView;
+use events::EventActor;
 
 pub struct TransferProcessService {
     ctx: Arc<AppContext>,
@@ -218,14 +220,14 @@ impl TransferProcessServiceTrait for TransferProcessService {
         // Assemble and serve view
         let owner = process.owner().clone();
         let view = TransferProcessView::assemble(process, extra);
-        events::emit_action!(
-            self.ctx.events,
-            &owner,
-            crate::EVENT_PREFIX,
-            "process",
+        TransferEvents::process(
+            self.ctx.events.as_ref(),
+            owner,
+            &view,
             "create",
-            &view
-        );
+            Some(EventActor::human(user)),
+        )
+        .await;
         Ok(view)
     }
 
@@ -269,14 +271,14 @@ impl TransferProcessServiceTrait for TransferProcessService {
         // Assemble and serve view
         let owner = process.owner().clone();
         let view = TransferProcessView::assemble(process, extra);
-        events::emit_action!(
-            self.ctx.events,
-            &owner,
-            crate::EVENT_PREFIX,
-            "process",
+        TransferEvents::process(
+            self.ctx.events.as_ref(),
+            owner,
+            &view,
             "edit",
-            &view
-        );
+            Some(EventActor::human(user)),
+        )
+        .await;
         Ok(view)
     }
 
@@ -293,14 +295,13 @@ impl TransferProcessServiceTrait for TransferProcessService {
             .process_repo()
             .delete_transfer_process(&OwnerScope::acting(user), id)
             .await?;
-        events::emit_action!(
-            self.ctx.events,
-            &owner,
-            crate::EVENT_PREFIX,
-            "process",
-            "delete",
-            &events::EntityDeletedDto::new(id)
-        );
+        TransferEvents::process_deleted(
+            self.ctx.events.as_ref(),
+            owner,
+            id,
+            Some(EventActor::human(user)),
+        )
+        .await;
         Ok(())
     }
 }

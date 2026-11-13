@@ -15,8 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::services::{HasGateKeeper, HasRepo, MayHaveEventBus};
-use crate::types::events::{recv_owner, GrantEvent, VerificationEvent};
+use crate::services::{HasEventSink, HasGateKeeper, HasRepo};
+use crate::types::events::AuthEvents;
+use events::schemas::identity::{GrantAction, VerificationAction};
 use async_trait::async_trait;
 use chrono::Utc;
 use ymir::data::entities::received::verification;
@@ -29,7 +30,7 @@ use ymir::types::verification::{VerificationStatus, VerifyPayload};
 /// Verifying the presentations peers send during onboarding.
 #[async_trait]
 pub trait VerifierModule:
-    HasGateKeeper + HasVerifier + HasRepo + MayHaveEventBus + Send + Sync + 'static
+    HasGateKeeper + HasVerifier + HasRepo + HasEventSink + Send + Sync + 'static
 {
     /// Presentation definition of the verification opened with `state`.
     #[tracing::instrument(level = "info", skip_all, err)]
@@ -71,12 +72,13 @@ pub trait VerifierModule:
             .get_latest_by_grant(&verification.grant_id)
             .await?;
 
-        let action = match verification_result {
-            Ok(_) => "verified",
-            Err(_) => "failed",
+        let (action, failure_reason) = match &verification_result {
+            Ok(_) => (VerificationAction::Verified, None),
+            Err(err) => (VerificationAction::Failed, Some(err.to_string())),
         };
         let verification = self.repo().recv_verification().update(verification).await?;
-        self.verifier_event(&verification, action).await;
+        self.verifier_event(&verification, action, failure_reason)
+            .await;
         if verification_result.is_err() {
             self.finalize_denied(&verification.grant_id).await?;
         }
@@ -94,23 +96,23 @@ pub trait VerifierModule:
         grant.status = GrantStatus::Finalized;
         grant.ended_at = Some(Utc::now());
         let grant = self.repo().recv_grant().update(grant).await?;
-        let owner = recv_owner(&grant);
-        let payload = GrantEvent::from(&grant);
-        events::emit_action!(
-            self.event_bus(),
-            &owner,
-            crate::EVENT_PREFIX,
-            "gate",
-            "finalized",
-            &payload
-        );
+        AuthEvents::recv_grant(
+            self.event_sink().as_ref(),
+            &grant,
+            GrantAction::Finalized,
+            None,
+            Some("verification failed".to_string()),
+        )
+        .await;
         Ok(())
     }
 
-    async fn verifier_event(&self, verification: &verification::Model, action: &str) {
-        if self.event_bus().is_none() {
-            return;
-        }
+    async fn verifier_event(
+        &self,
+        verification: &verification::Model,
+        action: VerificationAction,
+        failure_reason: Option<String>,
+    ) {
         let grant = match self.repo().recv_grant().get_by_id(&verification.grant_id).await {
             Ok(grant) => grant,
             Err(e) => {
@@ -118,15 +120,13 @@ pub trait VerifierModule:
                 return;
             }
         };
-        let owner = recv_owner(&grant);
-        let payload = VerificationEvent::from(verification);
-        events::emit_action!(
-            self.event_bus(),
-            &owner,
-            crate::EVENT_PREFIX,
-            "verifier",
+        AuthEvents::recv_verification(
+            self.event_sink().as_ref(),
+            &grant,
+            verification,
             action,
-            &payload
-        );
+            failure_reason,
+        )
+        .await;
     }
 }

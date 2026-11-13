@@ -372,6 +372,12 @@ async fn failed_signal_forces_local_termination_and_dataplane_cleanup_when_peer_
     dataplane
         .expect_on_transfer_termination_post()
         .times(1)
+        .withf(|ctx| {
+            ctx.reason.as_deref()
+                == Some(
+                    "Forced local termination [code=DATAPLANE_MAX_RETRIES_EXCEEDED]: Upstream 503 exceeded maxRetries",
+                )
+        })
         .returning(|_| Ok(None));
 
     let ctx = TestContext::new()

@@ -31,7 +31,7 @@ use ymir::module_loader::module_group::ModuleGroup;
 use ymir::module_loader::root_context::RootContext;
 use ymir::module_loader::service_module::ServiceModuleTrait;
 use connector::{ConnectorInstanceFacadeTrait, ConnectorModule, ConnectorPorts};
-use events::NoopEventSink;
+use events::EventSinkTrait;
 use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
 use ymir::errors::Outcome;
@@ -63,12 +63,11 @@ impl CatalogAgentModule {
     pub async fn compose(
         config: &CatalogConfig,
         root: &RootContext,
-        event_bus: Option<events::EventBus>,
+        events: std::sync::Arc<dyn EventSinkTrait>,
         ports: &CatalogPorts,
     ) -> Outcome<Self> {
         let cache = CatalogCacheFactory::from_config(config).await?;
-        let events = NoopEventSink::or_bus(event_bus.clone());
-        let ctx = AppContext::build(config, root, cache, events, ports.clone());
+        let ctx = AppContext::build(config, root, cache, events.clone(), ports.clone());
         let catalog_facade: Arc<dyn CatalogFacadeTrait> = Arc::new(CatalogLocalFacade::new(ctx.clone()));
         let mut connector_ports = ConnectorPorts::local(catalog_facade.clone());
         if let Some(guard) = &ports.transfer_guard {
@@ -77,7 +76,7 @@ impl CatalogAgentModule {
         let connector = ConnectorModule::compose(
             config,
             root,
-            event_bus,
+            events,
             &connector_ports,
         );
         let connector_instances = connector.local_connector_instances();

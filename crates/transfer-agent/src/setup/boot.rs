@@ -48,10 +48,17 @@ impl BootstrapServiceTrait for TransferBoot {
     }
 
     async fn compose(config: &TransferConfig, root: &RootContext) -> Outcome<ServiceComposer> {
-        let ports = TransferPorts::remote(config, root).await?;
+        let pipeline = events::EventsModule::build_standalone_pipeline(root, None)?;
+        let ports = TransferPorts::remote(config, root, pipeline.sink.clone()).await?;
         Ok(ServiceComposer::new()
             // .register(OAuthModule::compose(config.common(), root, None))
-            .register(TransferAgentModule::compose(config, root, None, &ports))
+            .register(TransferAgentModule::compose(
+                config,
+                root,
+                pipeline.sink,
+                &ports,
+            ))
+            .register(events::StandaloneEventsModule::new(pipeline.workers))
             .register(WellKnownModule::new(
                 config.common(),
                 Some(ports.auth.mates.clone()),

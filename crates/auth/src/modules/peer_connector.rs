@@ -16,9 +16,10 @@
  */
 
 use crate::entities::filters::SentGrantFilter;
-use crate::services::{HasCallback, HasPeerConnector, HasRepo, MayHaveEventBus};
+use crate::services::{HasCallback, HasEventSink, HasPeerConnector, HasRepo};
 use crate::types::entities::ReachProvider;
-use crate::types::events::{sent_owner, GrantEvent, VerificationEvent};
+use crate::types::events::AuthEvents;
+use events::schemas::identity::VerificationAction;
 use crate::types::response::{
     ResolvedPresentation, RotationOutcome, SentGrantView, TokenWhatResponse, VerifierCheck,
 };
@@ -45,7 +46,7 @@ use ymir::types::wallet::OidcUri;
 /// Onboarding with a peer through GNAP, presenting our credentials over OID4VP when asked.
 #[async_trait]
 pub trait PeerConnectorModule:
-    HasPeerConnector + HasRepo + HasCallback + HasWallet + MayHaveEventBus + Send + Sync + 'static
+    HasPeerConnector + HasRepo + HasCallback + HasWallet + HasEventSink + Send + Sync + 'static
 {
     // ==========================================================================================
     // Sent grants: queries
@@ -319,7 +320,7 @@ pub trait PeerConnectorModule:
         let grant = self.get_access_grant(id).await?;
         user.ensure_reaches(&grant.user_id, &grant.role, id)?;
         let verification = self.repo().sent_verification().get_latest_by_grant(id).await?;
-        self.manage_oid4vp(verification, &payload.uri).await
+        self.manage_oid4vp(&grant, verification, &payload.uri).await
     }
 
     /// The pending presentation request of grant `id`, unanswered, with who asks for it checked.
@@ -348,7 +349,7 @@ pub trait PeerConnectorModule:
         };
         verification.ended_at = Some(Utc::now());
         let verification = self.repo().sent_verification().update(verification).await?;
-        self.peer_presented_event(&verification).await;
+        self.peer_presented_event(&grant, &verification).await;
         Ok(verification)
     }
 
@@ -549,39 +550,17 @@ pub trait PeerConnectorModule:
     }
 
     async fn peer_event(&self, grant: &grant::Model, action: &str) {
-        let owner = sent_owner(grant);
-        let payload = GrantEvent::from(grant);
-        events::emit_action!(
-            self.event_bus(),
-            &owner,
-            crate::EVENT_PREFIX,
-            "peer",
-            action,
-            &payload
-        );
+        AuthEvents::sent_grant_action(self.event_sink().as_ref(), grant, action).await;
     }
 
-    async fn peer_presented_event(&self, verification: &verification::Model) {
-        if self.event_bus().is_none() {
-            return;
-        }
-        let grant = match self.repo().sent_grant().get_by_id(&verification.grant_id).await {
-            Ok(grant) => grant,
-            Err(e) => {
-                tracing::warn!("No grant for presentation {}: {e}", verification.id);
-                return;
-            }
+    async fn peer_presented_event(&self, grant: &grant::Model, verification: &verification::Model) {
+        let action = if verification.status == ymir::types::verification::VerificationStatus::Verified {
+            VerificationAction::Verified
+        } else {
+            VerificationAction::Failed
         };
-        let owner = sent_owner(&grant);
-        let payload = VerificationEvent::from(verification);
-        events::emit_action!(
-            self.event_bus(),
-            &owner,
-            crate::EVENT_PREFIX,
-            "peer",
-            "presented",
-            &payload
-        );
+        AuthEvents::sent_verification(self.event_sink().as_ref(), grant, verification, action)
+            .await;
     }
 
     /// Checks the callback, sends the GNAP continuation and follows its answer.
@@ -657,7 +636,9 @@ pub trait PeerConnectorModule:
         let verification = self.repo().sent_verification().create(verification).await?;
 
         if grant.auto {
-            self.manage_oid4vp(verification, uri).await.map(|_| ())
+            self.manage_oid4vp(grant, verification, uri)
+                .await
+                .map(|_| ())
         } else {
             Ok(())
         }
@@ -667,6 +648,7 @@ pub trait PeerConnectorModule:
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_oid4vp(
         &self,
+        grant: &grant::Model,
         mut verification: verification::Model,
         uri: &str,
     ) -> Outcome<verification::Model> {
@@ -679,7 +661,7 @@ pub trait PeerConnectorModule:
         }
         verification.ended_at = Some(Utc::now());
         let verification = self.repo().sent_verification().update(verification).await?;
-        self.peer_presented_event(&verification).await;
+        self.peer_presented_event(grant, &verification).await;
         Ok(verification)
     }
 

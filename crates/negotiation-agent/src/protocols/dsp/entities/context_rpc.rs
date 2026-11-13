@@ -105,17 +105,12 @@ impl NegotiationRpcRaw {
 pub struct NegotiationRpcRdf {
     pub raw: NegotiationRpcRaw,
     pub expanded: Value,
-    pub canonical_hash: [u8; 32],
 }
 
 impl NegotiationRpcRdf {
     pub async fn from_raw(raw: NegotiationRpcRaw) -> Outcome<Self> {
-        let expansion = EunomiaNegotiation::engine().expand(&raw.json).await?;
-        Ok(Self {
-            canonical_hash: expansion.canonical_hash(),
-            expanded: expansion.expanded,
-            raw,
-        })
+        let expanded = EunomiaNegotiation::engine().expand_only(&raw.json).await?;
+        Ok(Self { expanded, raw })
     }
 }
 

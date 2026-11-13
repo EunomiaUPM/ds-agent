@@ -35,6 +35,7 @@ use crate::relay::worker::{
     KafkaRelayTaskSpec, KafkaRelayWorker, DEFAULT_KAFKA_RELAY_BACKOFF_MS,
 };
 use crate::signals::DataplaneSignalSender;
+use events::{EventSinkTrait, NoopEventSink};
 
 const STOP_JOIN_TIMEOUT: Duration = Duration::from_secs(5);
 
@@ -51,6 +52,7 @@ pub struct KafkaRelaySupervisor {
     repo: Option<Arc<dyn DataplaneRepoTrait>>,
     tracker: Arc<DeliveryTracker>,
     signals: DataplaneSignalSender,
+    events: Arc<dyn EventSinkTrait>,
     allow_private_egress: bool,
     backoff_ms: Vec<u64>,
     active: Mutex<HashMap<String, ActiveRelay>>,
@@ -77,6 +79,7 @@ impl KafkaRelaySupervisor {
             repo: None,
             tracker: Arc::new(DeliveryTracker::in_memory()),
             signals: DataplaneSignalSender::noop(),
+            events: Arc::new(NoopEventSink),
             allow_private_egress: false,
             backoff_ms: DEFAULT_KAFKA_RELAY_BACKOFF_MS.to_vec(),
             active: Mutex::new(HashMap::new()),
@@ -95,6 +98,11 @@ impl KafkaRelaySupervisor {
 
     pub fn with_signals(mut self, signals: DataplaneSignalSender) -> Self {
         self.signals = signals;
+        self
+    }
+
+    pub fn with_events(mut self, events: Arc<dyn EventSinkTrait>) -> Self {
+        self.events = events;
         self
     }
 
@@ -168,6 +176,7 @@ impl KafkaRelaySupervisor {
             repo: self.repo.clone(),
             tracker: self.tracker.clone(),
             signals: self.signals.clone(),
+            events: self.events.clone(),
             allow_private_egress: self.allow_private_egress,
             backoff_ms: self.backoff_ms.clone(),
         };

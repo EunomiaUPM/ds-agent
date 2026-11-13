@@ -41,8 +41,10 @@ use crate::data::repo::negotiation_process::NegotiationProcessRepoTrait;
 use crate::entities::filters::NegotiationProcessFilter;
 use crate::entities::negotiation_process::{EditNegotiationProcessDto, NewNegotiationProcessDto};
 use crate::setup::context::AppContext;
+use crate::setup::NegotiationEvents;
 use crate::services::negotiation_process::NegotiationProcessServiceTrait;
 use crate::services::negotiation_process::views::NegotiationProcessView;
+use events::EventActor;
 
 /// Process service over the context's repos, emitting `negotiations:` events.
 pub struct NegotiationProcessService {
@@ -286,14 +288,13 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
 
         let identifiers = cmd.identifiers.clone().unwrap_or_default();
         let view = NegotiationProcessView::assemble(created_process, identifiers);
-        events::emit_action!(
-            self.ctx.events,
-            &view.owner(),
-            crate::EVENT_PREFIX,
-            "process",
-            "create",
-            &view
-        );
+        NegotiationEvents::process(
+            self.ctx.events.as_ref(),
+            &view,
+            "process.created",
+            Some(EventActor::human(user)),
+        )
+        .await;
         Ok(view)
     }
 
@@ -347,14 +348,13 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
         }
 
         let view = self.fetch_details(updated_process).await?;
-        events::emit_action!(
-            self.ctx.events,
-            &view.owner(),
-            crate::EVENT_PREFIX,
-            "process",
-            "edit",
-            &view
-        );
+        NegotiationEvents::process(
+            self.ctx.events.as_ref(),
+            &view,
+            "process.updated",
+            Some(EventActor::human(user)),
+        )
+        .await;
         Ok(view)
     }
 
@@ -369,14 +369,13 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
             .process_repo()
             .delete_negotiation_process(&OwnerScope::acting(user), id)
             .await?;
-        events::emit_action!(
-            self.ctx.events,
-            &owner,
-            crate::EVENT_PREFIX,
-            "process",
-            "delete",
-            &events::EntityDeletedDto::new(id)
-        );
+        NegotiationEvents::process_deleted(
+            self.ctx.events.as_ref(),
+            owner,
+            id,
+            Some(EventActor::human(user)),
+        )
+        .await;
         Ok(())
     }
 }

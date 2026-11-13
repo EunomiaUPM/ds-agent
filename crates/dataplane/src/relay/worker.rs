@@ -47,7 +47,9 @@ use crate::engine::dataplane_manager::dataplane_runtime::{DeliveryPolicy, Resolv
 use crate::proxy::DeliveryTracker;
 use crate::relay::consumer::{KafkaConsumerConfig, KafkaConsumerSession, KafkaRecord};
 use crate::relay::lease::KafkaLeaseManager;
+use crate::setup::DataplaneEvents;
 use crate::signals::{DataplaneSignal, DataplaneSignalSender};
+use events::EventSinkTrait;
 
 /// Default exponential backoff schedule (ms) applied between transient sink failures.
 pub const DEFAULT_KAFKA_RELAY_BACKOFF_MS: &[u64] = &[250, 500, 1000, 2000, 4000];
@@ -87,6 +89,7 @@ pub struct KafkaRelayWorker {
     pub repo: Option<Arc<dyn DataplaneRepoTrait>>,
     pub tracker: Arc<DeliveryTracker>,
     pub signals: DataplaneSignalSender,
+    pub events: Arc<dyn EventSinkTrait>,
     pub allow_private_egress: bool,
     pub backoff_ms: Vec<u64>,
 }
@@ -532,6 +535,18 @@ impl KafkaRelayWorker {
         sink_url: &str,
         status: Option<u16>,
     ) {
+        let allowed = level != LogLevel::Error;
+        let denial_reason = (!allowed).then(|| message.clone());
+        DataplaneEvents::kafka_data_access(
+            self.events.as_ref(),
+            &self.spec,
+            record,
+            status,
+            allowed,
+            denial_reason,
+        )
+        .await;
+
         let Some(repo) = &self.repo else {
             return;
         };

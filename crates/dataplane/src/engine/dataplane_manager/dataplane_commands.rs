@@ -92,6 +92,26 @@ pub enum DataplaneInitCommandDirection {
 #[derive(Clone, Debug)]
 pub struct DataplaneContinuation {
     pub transfer_dto_urn: Urn,
+    /// Optional diagnostic or lifecycle reason to store on resulting transition logs.
+    pub reason: Option<String>,
+}
+
+impl DataplaneContinuation {
+    /// Creates a continuation without an explicit caller reason.
+    pub fn new(transfer_dto_urn: Urn) -> Self {
+        Self {
+            transfer_dto_urn,
+            reason: None,
+        }
+    }
+
+    /// Creates a continuation carrying an optional transition reason.
+    pub fn with_reason(transfer_dto_urn: Urn, reason: Option<String>) -> Self {
+        Self {
+            transfer_dto_urn,
+            reason,
+        }
+    }
 }
 
 /// Answer to a command; some transitions return the address the peer must use.
@@ -180,6 +200,17 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         };
         context.set_driver(driver);
         context.set_runtime(runtime);
+        let caller_reason = context.take_transition_reason();
+        let mut reason = format!(
+            "Configured {} ingress -> {} egress (lifetime={:?}, max_retries={})",
+            context.describe_ingress(),
+            context.describe_egress(),
+            delivery_policy.lifetime,
+            delivery_policy.max_retries,
+        );
+        if let Some(caller) = caller_reason {
+            reason = format!("{reason}; {caller}");
+        }
         let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         let new_state = TransferState::Configuring;
         let dataplane_process = self
@@ -197,6 +228,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                         .proxy()
                         .map(|p| p.egress().clone())
                         .and_then(|p| serde_json::to_value(p).ok()),
+                    reason: Some(reason),
                     ..EditDataplaneTransferDto::default()
                 },
             )
@@ -235,6 +267,11 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
             }
         };
         let mut context = authenticator.authenticate(&context).await?;
+        let auth_summary = context.describe_auth();
+        let reason = match context.take_transition_reason() {
+            Some(r) => format!("Authentication completed ({auth_summary}); {r}"),
+            None => format!("Authentication completed ({auth_summary})"),
+        };
         let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         let new_state = TransferState::Auth;
         let flow_control = self.export_runtime_flow_control(&context).await?;
@@ -246,6 +283,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
                     flow_control,
+                    reason: Some(reason),
                     ..EditDataplaneTransferDto::default()
                 },
             )
@@ -291,6 +329,18 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         // state
         let new_state = TransferState::Ready;
+        let reason = match context.take_transition_reason() {
+            Some(r) => format!(
+                "Dataplane ready (handler={}, ingress={}); {r}",
+                self.handler_name(),
+                context.describe_ingress()
+            ),
+            None => format!(
+                "Dataplane ready (handler={}, ingress={})",
+                self.handler_name(),
+                context.describe_ingress()
+            ),
+        };
         // driver.auth
         let dataplane_process = self
             .dataplane_service()
@@ -299,6 +349,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
+                    reason: Some(reason),
                     ..EditDataplaneTransferDto::default()
                 },
             )
@@ -311,6 +362,31 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     async fn set_started(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         let new_state = TransferState::Started;
+        let previous_state = context.dataplane_process().inner.state.clone();
+        let caller_reason = context.take_transition_reason();
+        let reason = match (previous_state, caller_reason) {
+            (TransferState::Subscribing, Some(r)) => format!(
+                "Subscription active; transfer started (handler={}, egress={}); {r}",
+                self.handler_name(),
+                context.describe_egress()
+            ),
+            (TransferState::Subscribing, None) => format!(
+                "Subscription active; transfer started (handler={}, egress={})",
+                self.handler_name(),
+                context.describe_egress()
+            ),
+            (_, Some(r)) => r,
+            (TransferState::Stopped, None) => format!(
+                "Transfer resumed from STOPPED (handler={}, egress={})",
+                self.handler_name(),
+                context.describe_egress()
+            ),
+            (_, None) => format!(
+                "Transfer started (handler={}, egress={})",
+                self.handler_name(),
+                context.describe_egress()
+            ),
+        };
         let flow_control = self.export_runtime_flow_control(&context).await?;
         let dataplane_process = self
             .dataplane_service()
@@ -320,6 +396,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
                     flow_control,
+                    reason: Some(reason),
                     ..EditDataplaneTransferDto::default()
                 },
             )
@@ -337,6 +414,18 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         let Some(subscriber) = subscriber else {
             return Ok(context);
         };
+        let reason = match context.transition_reason() {
+            Some(r) => format!(
+                "Subscribing push delivery (handler={}, egress={}); {r}",
+                self.handler_name(),
+                context.describe_egress()
+            ),
+            None => format!(
+                "Subscribing push delivery (handler={}, egress={})",
+                self.handler_name(),
+                context.describe_egress()
+            ),
+        };
         let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         let dataplane_process = self
             .dataplane_service()
@@ -345,6 +434,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(TransferState::Subscribing),
+                    reason: Some(reason),
                     ..EditDataplaneTransferDto::default()
                 },
             )
@@ -356,8 +446,14 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 Ok(new_context)
             }
             Err(e) => {
-                self.emit_failed(&context, "DATAPLANE_SUBSCRIBE_FAILED", e.to_string());
-                let _ = self.terminate_process(context).await;
+                let err_msg = e.to_string();
+                self.emit_failed(&context, "DATAPLANE_SUBSCRIBE_FAILED", err_msg.clone());
+                let _ = self
+                    .terminate_process_with_reason(
+                        context,
+                        format!("Subscription failed [DATAPLANE_SUBSCRIBE_FAILED]: {err_msg}"),
+                    )
+                    .await;
                 Err(e)
             }
         }
@@ -373,6 +469,13 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         let Some(subscriber) = subscriber else {
             return Ok(context);
         };
+        let reason = match context.transition_reason() {
+            Some(r) => format!(
+                "Unsubscribing push delivery (handler={}); {r}",
+                self.handler_name()
+            ),
+            None => format!("Unsubscribing push delivery (handler={})", self.handler_name()),
+        };
         let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         let dataplane_process = self
             .dataplane_service()
@@ -381,6 +484,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(TransferState::Unsubscribing),
+                    reason: Some(reason),
                     ..EditDataplaneTransferDto::default()
                 },
             )
@@ -394,8 +498,14 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         match self.try_unsubscribe(context.clone()).await {
             Ok(new_context) => Ok(new_context),
             Err(e) => {
-                self.emit_failed(&context, "DATAPLANE_UNSUBSCRIBE_FAILED", e.to_string());
-                let _ = self.terminate_process(context).await;
+                let err_msg = e.to_string();
+                self.emit_failed(&context, "DATAPLANE_UNSUBSCRIBE_FAILED", err_msg.clone());
+                let _ = self
+                    .terminate_process_with_reason(
+                        context,
+                        format!("Unsubscribe failed [DATAPLANE_UNSUBSCRIBE_FAILED]: {err_msg}"),
+                    )
+                    .await;
                 Err(e)
             }
         }
@@ -410,6 +520,20 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         }
         let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         let new_state = TransferState::Stopped;
+        let previous_state = context.dataplane_process().inner.state.clone();
+        // Borrow transition_reason so Push::set_terminating still carries it into Terminated.
+        let reason = match (previous_state, context.transition_reason()) {
+            (TransferState::Unsubscribing, Some(r)) => format!(
+                "Stopped after unsubscribing push delivery (handler={}); {r}",
+                self.handler_name()
+            ),
+            (TransferState::Unsubscribing, None) => format!(
+                "Stopped after unsubscribing push delivery (handler={})",
+                self.handler_name()
+            ),
+            (_, Some(r)) => r.to_string(),
+            (_, None) => format!("Transfer stopped (handler={})", self.handler_name()),
+        };
         let flow_control = self.export_runtime_flow_control(&context).await?;
         let dataplane_process = self
             .dataplane_service()
@@ -419,6 +543,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
                     flow_control,
+                    reason: Some(reason),
                     ..EditDataplaneTransferDto::default()
                 },
             )
@@ -427,12 +552,24 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         Ok(context)
     }
 
+    async fn terminate_process_with_reason(
+        &self,
+        mut context: DataplaneContext,
+        reason: String,
+    ) -> Outcome<DataplaneContext> {
+        context.set_transition_reason(Some(reason));
+        self.terminate_process(context).await
+    }
+
     async fn terminate_process(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         if context.dataplane_process().inner.state == TransferState::Terminated {
             return Ok(context);
         }
         let dataplane_urn = Urn::from_str(&context.dataplane_process().inner.id)?;
         let new_state = TransferState::Terminated;
+        let reason = context
+            .take_transition_reason()
+            .unwrap_or_else(|| format!("Transfer terminated (handler={})", self.handler_name()));
         let dataplane_process = self
             .dataplane_service()
             .edit(
@@ -440,6 +577,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
+                    reason: Some(reason),
                     ..EditDataplaneTransferDto::default()
                 },
             )

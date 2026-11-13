@@ -18,6 +18,7 @@
 use crate::setup::composition::AuthModule;
 use common::config::services::SsiAuthConfig;
 use common::well_known::WellKnownModule;
+use events::{EventsModule, StandaloneEventsModule};
 use sea_orm_migration::MigrationTrait;
 use ymir::boot::BootstrapServiceTrait;
 use ymir::config::traits::CommonConfigTrait;
@@ -41,9 +42,11 @@ impl BootstrapServiceTrait for AuthBoot {
     }
 
     async fn compose(config: &SsiAuthConfig, root: &RootContext) -> Outcome<ServiceComposer> {
-        let auth = AuthModule::compose(config, root, None).await?;
+        let pipeline = EventsModule::build_standalone_pipeline(root, None)?;
+        let auth = AuthModule::compose(config, root, pipeline.sink).await?;
         let ports = auth.local_ports();
         Ok(ServiceComposer::new()
+            .register(StandaloneEventsModule::new(pipeline.workers))
             .register(auth)
             .register(WellKnownModule::new(
                 config.common(),

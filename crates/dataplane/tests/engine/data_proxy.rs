@@ -37,7 +37,9 @@ use dataplane::entities::dataplane_transfers::{
 };
 use dataplane::proxy::HttpDataProxy;
 use dataplane::services::dataplane_transfers::MockDataplaneTransferServiceTrait;
+use events::{DeliveryClass, EventCategory, EventEnvelope, EventOutcome, EventSinkTrait};
 use serde_json::{json, Value};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
 use tower::ServiceExt;
@@ -408,5 +410,224 @@ async fn redacts_sensitive_query_params_in_transfer_events() {
     assert!(
         !serialized.contains("super-secret-key") && !events[0].message.contains("super-secret-key"),
         "query API key must never appear in transfer events: {serialized}"
+    );
+}
+
+#[derive(Default)]
+struct CaptureSink(Mutex<Vec<EventEnvelope>>);
+
+#[async_trait::async_trait]
+impl EventSinkTrait for CaptureSink {
+    async fn emit_envelope(&self, envelope: EventEnvelope) -> ymir::errors::Outcome<()> {
+        self.0.lock().unwrap().push(envelope);
+        Ok(())
+    }
+}
+
+#[tokio::test]
+async fn proxy_emits_canonical_policy_decision_obligation_and_data_access_envelopes() {
+    let (upstream_url, _) = spawn_upstream().await;
+    let mut dto = build_transfer_dto(
+        TransferRole::Provider,
+        InteractionMode::Pull,
+        DataplaneProxyIngress::HttpListener {
+            path: "/data".to_string(),
+            token_type: Some("Bearer".to_string()),
+            token: Some("cap-secret-123".to_string()),
+        },
+        DataplaneProxyEgress::HttpProxy {
+            path: format!("{upstream_url}/items"),
+            token_type: None,
+            token: None,
+        },
+        None,
+    );
+    dto.fields = HashMap::from([
+        ("agreementId".to_string(), "urn:agreement:ag-42".to_string()),
+        ("datasetId".to_string(), "urn:dataset:ds-7".to_string()),
+    ]);
+
+    let mut svc = MockDataplaneTransferServiceTrait::new();
+    svc.expect_get_one().returning(move |_, _| Ok(dto.clone()));
+    let repo = mock_repo_recording_events(Arc::new(Mutex::new(Vec::new())));
+    let sink = Arc::new(CaptureSink::default());
+
+    let router = HttpDataProxy::new(Arc::new(svc), repo)
+        .with_allow_private_egress(true)
+        .with_events(sink.clone())
+        .router();
+
+    let denied = router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/{DP_ID}"))
+                .header("authorization", "Bearer wrong-cap")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(denied.status(), StatusCode::FORBIDDEN);
+
+    let allowed = router
+        .oneshot(
+            Request::builder()
+                .uri(format!("/{DP_ID}"))
+                .header("authorization", "Bearer cap-secret-123")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(allowed.status(), StatusCode::OK);
+
+    let captured = sink.0.lock().unwrap().clone();
+    assert!(
+        captured.len() >= 5,
+        "expected access+deny+permit+obligation+access events, got {}",
+        captured.len()
+    );
+    for env in &captured {
+        let json = serde_json::to_string(env).unwrap();
+        assert!(!json.contains("cap-secret-123"));
+        assert!(!json.contains("wrong-cap"));
+        assert_eq!(
+            env.correlation.flow_refs.agreement_id.as_deref(),
+            Some("urn:agreement:ag-42")
+        );
+        assert_eq!(
+            env.correlation.flow_refs.dataset_id.as_deref(),
+            Some("urn:dataset:ds-7")
+        );
+    }
+
+    assert_eq!(captured[0].event_type, EventCategory::DataAccess);
+    assert_eq!(captured[0].delivery_class, DeliveryClass::TelemetryStream);
+    assert_eq!(captured[0].outcome, Some(EventOutcome::Denied));
+    assert_eq!(captured[1].event_type, EventCategory::UsageControl);
+    assert_eq!(captured[1].outcome, Some(EventOutcome::Denied));
+    assert_eq!(captured[2].event_type, EventCategory::UsageControl);
+    assert_eq!(captured[2].outcome, Some(EventOutcome::Success));
+    assert_eq!(captured[3].topic.as_str(), "usage_control:obligation:executed");
+    assert_eq!(captured[4].event_type, EventCategory::DataAccess);
+    assert_eq!(captured[4].outcome, Some(EventOutcome::Success));
+}
+
+/// SSRF validation blocks private/loopback upstream URLs and persists a warning transfer event.
+#[tokio::test]
+async fn ssrf_rejection_records_warning_transfer_event_with_reason() {
+    let dto = build_transfer_dto(
+        TransferRole::Consumer,
+        InteractionMode::Pull,
+        DataplaneProxyIngress::HttpListener {
+            path: "/dataplane/proxy/urn:dataplane-transfer:proxy-sec-1".to_string(),
+            token_type: None,
+            token: None,
+        },
+        DataplaneProxyEgress::HttpProxy {
+            path: "http://127.0.0.1:1200/dataplane/proxy/urn:dataplane-transfer:upstream-1?ingress_token=secret"
+                .to_string(),
+            token_type: None,
+            token: None,
+        },
+        None,
+    );
+
+    let mut svc = MockDataplaneTransferServiceTrait::new();
+    svc.expect_get_one().returning(move |_, _| Ok(dto.clone()));
+
+    let recorded = Arc::new(Mutex::new(Vec::new()));
+    let repo = mock_repo_recording_events(recorded.clone());
+    let router = HttpDataProxy::new(Arc::new(svc), repo).router();
+
+    let res = router
+        .oneshot(
+            Request::builder()
+                .uri(format!("/{DP_ID}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::FORBIDDEN);
+
+    let events = recorded.lock().unwrap();
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0].level, dataplane::data::sea_orm::orm::transfer_event::LogLevel::Warn);
+    assert!(events[0].message.contains("private, loopback, or reserved target IP blocked"));
+    assert!(!events[0].message.contains("secret"));
+    let data = events[0].data.as_ref().unwrap();
+    assert_eq!(data["status"], json!(403));
+    assert_eq!(data["reason"], json!("private, loopback, or reserved target IP blocked"));
+}
+
+/// Consumer+Pull enforces its own Bearer ingress capability and replaces it with the provider's egress token.
+#[tokio::test]
+async fn consumer_pull_enforces_ingress_bearer_and_swaps_to_provider_egress_token() {
+    let (upstream_url, captured) = spawn_upstream().await;
+    let dto = build_transfer_dto(
+        TransferRole::Consumer,
+        InteractionMode::Pull,
+        DataplaneProxyIngress::HttpListener {
+            path: format!("/dataplane/proxy/{DP_ID}"),
+            token_type: Some("Bearer".to_string()),
+            token: Some("consumer-local-cap".to_string()),
+        },
+        DataplaneProxyEgress::HttpProxy {
+            path: format!("{upstream_url}/records"),
+            token_type: Some("Bearer".to_string()),
+            token: Some("provider-remote-cap".to_string()),
+        },
+        None,
+    );
+
+    let mut svc = MockDataplaneTransferServiceTrait::new();
+    svc.expect_get_one().returning(move |_, _| Ok(dto.clone()));
+    let repo = mock_repo_recording_events(Arc::new(Mutex::new(Vec::new())));
+
+    let router = HttpDataProxy::new(Arc::new(svc), repo)
+        .with_allow_private_egress(true)
+        .router();
+
+    let missing = router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/{DP_ID}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(missing.status(), StatusCode::UNAUTHORIZED);
+
+    let wrong = router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/{DP_ID}"))
+                .header("Authorization", "Bearer wrong-cap")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(wrong.status(), StatusCode::FORBIDDEN);
+
+    let allowed = router
+        .oneshot(
+            Request::builder()
+                .uri(format!("/{DP_ID}"))
+                .header("Authorization", "Bearer consumer-local-cap")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(allowed.status(), StatusCode::OK);
+    assert_eq!(
+        captured.auth_header.lock().unwrap().as_deref(),
+        Some("Bearer provider-remote-cap")
     );
 }

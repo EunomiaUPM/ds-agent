@@ -100,8 +100,11 @@ pub enum InteractionMode {
 }
 
 /// States of the dataplane state machine.
-#[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+    Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Display,
+)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
+#[strum(serialize_all = "UPPERCASE")]
 pub enum TransferState {
     #[sea_orm(string_value = "INIT")]
     Init,

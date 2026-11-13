@@ -58,6 +58,7 @@ impl DataplaneModule {
     pub async fn compose(
         config: &TransferConfig,
         root: &RootContext,
+        events: Arc<dyn events::EventSinkTrait>,
         ports: &DataplanePorts,
     ) -> Outcome<Self> {
         Ok(Self {
@@ -68,7 +69,7 @@ impl DataplaneModule {
             public_base_url: config.common().get_host(HostType::Http),
             proxy_accept_invalid_certs: config.proxy_accept_invalid_certs(),
             proxy_allow_private_egress: config.proxy_allow_private_egress(),
-            ctx: AppContext::build(config, root, ports).await?,
+            ctx: AppContext::build(config, root, events, ports).await?,
         })
     }
 
@@ -121,6 +122,8 @@ impl DataplaneModule {
             .with_allow_private_egress(self.proxy_allow_private_egress)
             .with_signals(ctx.signals.clone())
             .with_tracker(ctx.tracker.clone())
+            .with_events(ctx.events.clone())
+            .with_audit_sender(ctx.audit_tx.clone())
             .router()
     }
 }
@@ -147,12 +150,17 @@ impl ServiceModuleTrait for DataplaneModule {
 
     fn workers(&self) -> Vec<Box<dyn ymir::boot::workers::BackgroundWorker>> {
         let ks: Arc<dyn connector::KeystoreLookup> = self.ctx.keystore_lookup.clone();
-        vec![Box::new(KafkaRecoveryWorker::new(
-            self.ctx.repo.clone(),
-            self.ctx.connector.clone(),
-            Some(ks),
-            self.ctx.kafka_supervisor.clone(),
-        ))]
+        let mut workers: Vec<Box<dyn ymir::boot::workers::BackgroundWorker>> =
+            vec![Box::new(KafkaRecoveryWorker::new(
+                self.ctx.repo.clone(),
+                self.ctx.connector.clone(),
+                Some(ks),
+                self.ctx.kafka_supervisor.clone(),
+            ))];
+        if let Some(audit) = self.ctx.take_audit_worker() {
+            workers.push(Box::new(audit));
+        }
+        workers
     }
 }
 

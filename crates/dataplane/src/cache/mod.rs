@@ -18,5 +18,7 @@
 //! Redis cache of processes.
 
 pub mod cache_redis;
+pub mod l1;
 
+pub use l1::L1DataplaneTransferCache;
 pub use ymir::cache::{EntityCacheTrait, NoopCache};

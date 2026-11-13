@@ -17,6 +17,7 @@
 
 //! Dataplane services with mocked repositories.
 
+mod l1_cache;
 mod transfer_events;
 mod transfer_logs;
 mod transfers;

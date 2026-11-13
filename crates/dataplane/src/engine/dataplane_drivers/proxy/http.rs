@@ -108,6 +108,64 @@ impl HttpProxyDriver {
         Ok((headers, query_params))
     }
 
+    const REQUEST_HOP_BY_HOP: [&str; 6] = [
+        "host",
+        "connection",
+        "transfer-encoding",
+        "te",
+        "trailer",
+        "upgrade",
+    ];
+
+    /// Forward an HTTP request with owned headers and a streaming body, mutating
+    /// headers in place to strip hop-by-hop fields and inject credentials.
+    pub async fn forward_owned(
+        client: &ClientService,
+        method: Method,
+        target_url: &str,
+        mut headers: HeaderMap,
+        body: StreamBody,
+        credentials: &ResolvedAuthCredentials,
+    ) -> Outcome<Response> {
+        let (auth_headers, query_params) = Self::build_auth_artifacts(credentials)?;
+        let mut owned_url = String::new();
+        let final_url: &str = if query_params.is_empty() {
+            target_url
+        } else {
+            owned_url.push_str(target_url);
+            owned_url.push(if owned_url.contains('?') { '&' } else { '?' });
+            for (idx, (k, v)) in query_params.iter().enumerate() {
+                if idx > 0 {
+                    owned_url.push('&');
+                }
+                owned_url.push_str(k);
+                owned_url.push('=');
+                owned_url.push_str(v);
+            }
+            &owned_url
+        };
+
+        for name in Self::REQUEST_HOP_BY_HOP {
+            headers.remove(name);
+        }
+        for (name, value) in &auth_headers {
+            headers.insert(name.clone(), value.clone());
+        }
+
+        let method_str = method.as_str().to_string();
+        client
+            .stream(method, final_url, Some(headers), body, None)
+            .await
+            .map_err(|e| {
+                DataplaneError::ProxyRequestFailed {
+                    method: method_str,
+                    url: Self::redact_url_for_error(target_url),
+                    reason: e.to_string(),
+                }
+                .into()
+            })
+    }
+
     /// Forward an HTTP request to `target_url` (with optional sub-path appended),
     /// injecting auth artifacts derived from `credentials`.
     ///
@@ -122,57 +180,29 @@ impl HttpProxyDriver {
         body: Bytes,
         credentials: &ResolvedAuthCredentials,
     ) -> Outcome<Response> {
-        let mut url = target_url.to_string();
-        if let Some(p) = extra_path {
-            if !url.ends_with('/') {
-                url.push('/');
+        let owned;
+        let url: &str = if let Some(p) = extra_path {
+            let mut s = String::with_capacity(target_url.len() + p.len() + 1);
+            s.push_str(target_url);
+            if !s.ends_with('/') {
+                s.push('/');
             }
-            url.push_str(p);
-        }
+            s.push_str(p);
+            owned = s;
+            &owned
+        } else {
+            target_url
+        };
 
-        let (auth_headers, query_params) = Self::build_auth_artifacts(credentials)?;
-
-        // Append query-param API key to the URL if needed.
-        if !query_params.is_empty() {
-            let separator = if url.contains('?') { '&' } else { '?' };
-            let qs: String = query_params
-                .iter()
-                .map(|(k, v)| format!("{k}={v}"))
-                .collect::<Vec<_>>()
-                .join("&");
-            url.push(separator);
-            url.push_str(&qs);
-        }
-
-        // Copy incoming headers first, then let the auth headers override them.
-        let method_str = method.as_str().to_string();
-        let mut headers = HeaderMap::new();
-        for (name, value) in incoming_headers.iter() {
-            // Skip hop-by-hop headers that must not be forwarded.
-            let key = name.as_str().to_ascii_lowercase();
-            if matches!(
-                key.as_str(),
-                "host" | "connection" | "transfer-encoding" | "te" | "trailer" | "upgrade"
-            ) {
-                continue;
-            }
-            headers.append(name.clone(), value.clone());
-        }
-        for (name, value) in auth_headers.iter() {
-            headers.insert(name.clone(), value.clone());
-        }
-
-        client
-            .stream(method, &url, Some(headers), StreamBody::from(body), None)
-            .await
-            .map_err(|e| {
-                DataplaneError::ProxyRequestFailed {
-                    method: method_str,
-                    url: Self::redact_url_for_error(target_url),
-                    reason: e.to_string(),
-                }
-                .into()
-            })
+        Self::forward_owned(
+            client,
+            method,
+            url,
+            incoming_headers.clone(),
+            StreamBody::from(body),
+            credentials,
+        )
+        .await
     }
 
     fn redact_url_for_error(raw: &str) -> String {

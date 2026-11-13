@@ -29,34 +29,40 @@ use crate::engine::dataplane_manager::dataplane_runtime::{
 use crate::entities::dataplane_transfers::{
     DataplaneTransferDto, InteractionMode, TransferRole, TransferState,
 };
+use crate::proxy::audit::ProxyAuditSender;
 use crate::proxy::tracker::{DeliveryTracker, ReserveOutcome};
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
+use crate::setup::DataplaneEvents;
 use crate::signals::{DataplaneSignal, DataplaneSignalSender};
+use events::schemas::dataspace::PolicyDecisionOutcome;
+use events::{EventSinkTrait, NoopEventSink};
 use axum::body::{to_bytes, Body, Bytes};
 use axum::extract::{FromRef, Path, Request, State};
-use axum::http::header::AUTHORIZATION;
+use axum::http::header::{AUTHORIZATION, CONTENT_LENGTH, TRANSFER_ENCODING};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::any;
 use axum::{Json, Router};
+use chrono::{DateTime, FixedOffset};
 use common::routes::dataplane as routes;
 use connector::{KeystoreLookup, TransferLifetime};
 use futures_util::Stream;
 use hyper::Method;
-use serde_json::json;
+use serde_json::{json, Value};
+use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::pin::Pin;
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::task::{Context, Poll};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tracing::{debug, error, info};
-use url::Host;
+use url::{Host, Url};
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 use ymir::oauth::OwnedTrait;
 use ymir::services::client::ClientService;
-use ymir::types::http::Response as UpstreamResponse;
+use ymir::types::http::{Response as UpstreamResponse, StreamBody};
 use ymir::types::oauth::UserInfo;
 use ymir::utils::get_urn_from_string;
 
@@ -66,6 +72,16 @@ const MAX_BODY_BYTES: usize = 2 * 1024 * 1024;
 const UPSTREAM_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 /// Cap on the whole upstream request/response exchange.
 const UPSTREAM_TIMEOUT: Duration = Duration::from_secs(30);
+/// Maximum idle connections and in-flight requests on the data proxy client pool.
+const PROXY_CLIENT_CONCURRENCY: usize = 256;
+/// Maximum idle connections and concurrent streams to any single upstream host.
+const PROXY_PER_HOST_CONCURRENCY: usize = 128;
+/// L1 TTL for compiled ingress/egress/credentials metadata.
+const ROUTE_CACHE_TTL: Duration = Duration::from_secs(60);
+/// L1 TTL for SSRF DNS safety validations.
+const DNS_CACHE_TTL: Duration = Duration::from_secs(30);
+/// Hard cap for in-memory proxy route/DNS caches.
+const MAX_CACHE_ENTRIES: usize = 1024;
 /// Query parameter carrying per-transfer ingress tokens on webhook callbacks.
 const INGRESS_TOKEN_QUERY_PARAM: &str = "ingress_token";
 
@@ -154,7 +170,207 @@ impl IntoResponse for ProxyError {
 struct OutboundRequest {
     method: Method,
     headers: HeaderMap,
-    body: Bytes,
+    body: StreamBody,
+}
+
+#[derive(Clone, Copy)]
+enum DnsSafetyOutcome {
+    Allowed,
+    ForbiddenPrivate,
+    ResolutionFailed,
+}
+
+struct CachedDnsEntry {
+    checked_at: Instant,
+    outcome: DnsSafetyOutcome,
+}
+
+struct CompiledRoute {
+    updated_at: Option<DateTime<FixedOffset>>,
+    raw_ingress: Value,
+    raw_egress: Value,
+    raw_flow_control: Option<Value>,
+    ingress_auth: Option<(String, String)>,
+    ingress_label: &'static str,
+    delivery_policy: DeliveryPolicy,
+    runtime: Option<DataplaneRuntime>,
+    egress: Option<(DataplaneProxyEgress, &'static str)>,
+    cached_at: Instant,
+}
+
+impl CompiledRoute {
+    fn matches(&self, dp: &DataplaneTransferDto) -> bool {
+        if self.cached_at.elapsed() >= ROUTE_CACHE_TTL || self.updated_at != dp.inner.updated_at {
+            return false;
+        }
+        // Tests often set `updated_at: None`; validate structural equality there too.
+        if self.updated_at.is_some() {
+            return true;
+        }
+        self.raw_ingress == dp.inner.ingress_config
+            && self.raw_egress == dp.inner.egress_config
+            && self.raw_flow_control == dp.inner.flow_control
+    }
+}
+
+struct CachedCredentials {
+    updated_at: Option<DateTime<FixedOffset>>,
+    raw_egress: Value,
+    raw_flow_control: Option<Value>,
+    credentials: ResolvedAuthCredentials,
+    cached_at: Instant,
+}
+
+impl CachedCredentials {
+    fn is_valid(&self, dp: &DataplaneTransferDto) -> bool {
+        if self.cached_at.elapsed() >= ROUTE_CACHE_TTL || self.updated_at != dp.inner.updated_at {
+            return false;
+        }
+        if self.updated_at.is_none()
+            && (self.raw_egress != dp.inner.egress_config
+                || self.raw_flow_control != dp.inner.flow_control)
+        {
+            return false;
+        }
+        if let ResolvedAuthCredentials::OAuth2 {
+            expires_at: Some(exp),
+            ..
+        } = &self.credentials
+        {
+            let now = u64::try_from(chrono::Utc::now().timestamp().max(0)).unwrap_or(0);
+            return *exp > now.saturating_add(5);
+        }
+        true
+    }
+}
+
+#[derive(Default)]
+struct ProxyCaches {
+    routes: RwLock<HashMap<String, Arc<CompiledRoute>>>,
+    creds: RwLock<HashMap<String, CachedCredentials>>,
+    dns: RwLock<HashMap<(String, u16), CachedDnsEntry>>,
+}
+
+impl ProxyCaches {
+    fn get_or_compile_route(&self, dp: &DataplaneTransferDto) -> Arc<CompiledRoute> {
+        if let Ok(guard) = self.routes.read() {
+            if let Some(entry) = guard.get(&dp.inner.id) {
+                if entry.matches(dp) {
+                    return entry.clone();
+                }
+            }
+        }
+        let compiled = Arc::new(Self::compile_route(dp));
+        if let Ok(mut guard) = self.routes.write() {
+            if guard.len() >= MAX_CACHE_ENTRIES {
+                guard.retain(|_, v| v.cached_at.elapsed() < ROUTE_CACHE_TTL);
+                if guard.len() >= MAX_CACHE_ENTRIES {
+                    guard.clear();
+                }
+            }
+            guard.insert(dp.inner.id.clone(), compiled.clone());
+        }
+        compiled
+    }
+
+    fn compile_route(dp: &DataplaneTransferDto) -> CompiledRoute {
+        let parsed_ingress =
+            serde_json::from_value::<DataplaneProxyIngress>(dp.inner.ingress_config.clone()).ok();
+        let (ingress_label, ingress_auth) = match parsed_ingress {
+            Some(DataplaneProxyIngress::HttpListener {
+                token: Some(expected),
+                token_type,
+                ..
+            }) if !expected.is_empty() => {
+                let scheme = token_type
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or_else(|| "Bearer".to_string());
+                ("HttpListener", Some((scheme, expected)))
+            }
+            Some(DataplaneProxyIngress::HttpListener { .. }) => ("HttpListener", None),
+            Some(DataplaneProxyIngress::NoOp) => ("NoOp", None),
+            None => ("Unknown", None),
+        };
+        let runtime = dp
+            .inner
+            .flow_control
+            .as_ref()
+            .and_then(|v| serde_json::from_value::<DataplaneRuntime>(v.clone()).ok());
+        let delivery_policy = runtime
+            .as_ref()
+            .map(|rt| rt.delivery_policy)
+            .unwrap_or_default();
+        let egress = serde_json::from_value::<DataplaneProxyEgress>(dp.inner.egress_config.clone())
+            .ok()
+            .map(|parsed| {
+                let label = HttpDataProxy::egress_label(&parsed);
+                (parsed, label)
+            });
+
+        CompiledRoute {
+            updated_at: dp.inner.updated_at,
+            raw_ingress: dp.inner.ingress_config.clone(),
+            raw_egress: dp.inner.egress_config.clone(),
+            raw_flow_control: dp.inner.flow_control.clone(),
+            ingress_auth,
+            ingress_label,
+            delivery_policy,
+            runtime,
+            egress,
+            cached_at: Instant::now(),
+        }
+    }
+
+    fn get_credentials(&self, dp: &DataplaneTransferDto) -> Option<ResolvedAuthCredentials> {
+        let guard = self.creds.read().ok()?;
+        let entry = guard.get(&dp.inner.id)?;
+        entry.is_valid(dp).then(|| entry.credentials.clone())
+    }
+
+    fn put_credentials(&self, dp: &DataplaneTransferDto, credentials: ResolvedAuthCredentials) {
+        if let Ok(mut guard) = self.creds.write() {
+            if guard.len() >= MAX_CACHE_ENTRIES {
+                guard.retain(|_, v| v.cached_at.elapsed() < ROUTE_CACHE_TTL);
+                if guard.len() >= MAX_CACHE_ENTRIES {
+                    guard.clear();
+                }
+            }
+            guard.insert(
+                dp.inner.id.clone(),
+                CachedCredentials {
+                    updated_at: dp.inner.updated_at,
+                    raw_egress: dp.inner.egress_config.clone(),
+                    raw_flow_control: dp.inner.flow_control.clone(),
+                    credentials,
+                    cached_at: Instant::now(),
+                },
+            );
+        }
+    }
+
+    fn get_dns(&self, domain: &str, port: u16) -> Option<DnsSafetyOutcome> {
+        let guard = self.dns.read().ok()?;
+        let entry = guard.get(&(domain.to_string(), port))?;
+        (entry.checked_at.elapsed() < DNS_CACHE_TTL).then_some(entry.outcome)
+    }
+
+    fn put_dns(&self, domain: String, port: u16, outcome: DnsSafetyOutcome) {
+        if let Ok(mut guard) = self.dns.write() {
+            if guard.len() >= MAX_CACHE_ENTRIES {
+                guard.retain(|_, v| v.checked_at.elapsed() < DNS_CACHE_TTL);
+                if guard.len() >= MAX_CACHE_ENTRIES {
+                    guard.clear();
+                }
+            }
+            guard.insert(
+                (domain, port),
+                CachedDnsEntry {
+                    checked_at: Instant::now(),
+                    outcome,
+                },
+            );
+        }
+    }
 }
 
 /// Wraps an upstream response body stream for `(Provider, Pull)` `FINITE` transfers so
@@ -299,6 +515,9 @@ pub struct HttpDataProxy {
     allow_private_egress: bool,
     signals: DataplaneSignalSender,
     tracker: Arc<DeliveryTracker>,
+    events: Arc<dyn EventSinkTrait>,
+    audit_tx: Option<ProxyAuditSender>,
+    caches: Arc<ProxyCaches>,
 }
 
 impl FromRef<HttpDataProxy> for Arc<dyn DataplaneTransferServiceTrait> {
@@ -322,11 +541,16 @@ impl HttpDataProxy {
             allow_private_egress: false,
             signals: DataplaneSignalSender::noop(),
             tracker: Arc::new(DeliveryTracker::in_memory()),
+            events: Arc::new(NoopEventSink),
+            audit_tx: None,
+            caches: Arc::new(ProxyCaches::default()),
         }
     }
 
     fn build_client(accept_invalid_certs: bool) -> ClientService {
         ClientService::builder()
+            .concurrency(PROXY_CLIENT_CONCURRENCY)
+            .per_host_concurrency(PROXY_PER_HOST_CONCURRENCY)
             .accept_invalid_certs(accept_invalid_certs)
             .connect_timeout(UPSTREAM_CONNECT_TIMEOUT)
             .timeout(Some(UPSTREAM_TIMEOUT))
@@ -362,6 +586,18 @@ impl HttpDataProxy {
     /// Attaches a shared `DeliveryTracker` (e.g. Redis-backed across replicas).
     pub fn with_tracker(mut self, tracker: Arc<DeliveryTracker>) -> Self {
         self.tracker = tracker;
+        self
+    }
+
+    /// Attaches the canonical event sink for data-access telemetry.
+    pub fn with_events(mut self, events: Arc<dyn EventSinkTrait>) -> Self {
+        self.events = events;
+        self
+    }
+
+    /// Routes DB transfer audit logs through a non-blocking background batch worker.
+    pub fn with_audit_sender(mut self, audit_tx: ProxyAuditSender) -> Self {
+        self.audit_tx = Some(audit_tx);
         self
     }
 
@@ -411,17 +647,60 @@ impl HttpDataProxy {
         path: Option<&str>,
         req: Request,
     ) -> Result<Response, ProxyError> {
-        info!("* proxy /data/{data_plane_id} (path: {path:?})");
+        debug!("* proxy /data/{data_plane_id} (path: {path:?})");
 
         let urn = Self::parse_dataplane_id(data_plane_id)?;
         let dataplane = self.load_started_dataplane(&urn).await?;
+        let route = self.caches.get_or_compile_route(&dataplane);
 
         // Capture the query string before the body consumes the request.
+        let req_method = req.method().clone();
         let raw_query = req.uri().query().map(str::to_owned);
-        Self::verify_ingress_auth(&dataplane, req.headers(), raw_query.as_deref())?;
+        if let Err(err) = Self::verify_ingress_auth(
+            route.ingress_auth.as_ref(),
+            req.headers(),
+            raw_query.as_deref(),
+        ) {
+            let status_code = match err {
+                ProxyError::MissingIngressAuth => 401,
+                _ => 403,
+            };
+            DataplaneEvents::http_data_access(
+                self.events.as_ref(),
+                &dataplane,
+                req_method.as_str(),
+                path,
+                Some(status_code),
+                None,
+                false,
+                Some("ingress capability rejected".to_string()),
+            )
+            .await;
+            DataplaneEvents::policy_decision(
+                self.events.as_ref(),
+                &dataplane,
+                PolicyDecisionOutcome::Deny,
+                "ingress_access",
+                Some("ingress_capability"),
+                &[],
+                Some("ingress capability rejected".to_string()),
+            )
+            .await;
+            self.record_rejection_event(
+                &dataplane,
+                data_plane_id,
+                path,
+                &req_method,
+                status_code,
+                None,
+                "ingress capability rejected",
+            )
+            .await;
+            return Err(err);
+        }
         let clean_query = Self::strip_ingress_token_query(raw_query.as_deref());
 
-        let policy = Self::delivery_policy(&dataplane);
+        let policy = route.delivery_policy;
         let is_provider_finite = dataplane.inner.role == TransferRole::Provider
             && policy.lifetime == TransferLifetime::Finite;
 
@@ -429,19 +708,57 @@ impl HttpDataProxy {
             && self.tracker.reserve_finite_slot(&dataplane.inner.id).await
                 == ReserveOutcome::Exhausted
         {
+            DataplaneEvents::http_data_access(
+                self.events.as_ref(),
+                &dataplane,
+                req_method.as_str(),
+                path,
+                Some(410),
+                None,
+                false,
+                Some("finite transfer quota exhausted".to_string()),
+            )
+            .await;
+            DataplaneEvents::policy_decision(
+                self.events.as_ref(),
+                &dataplane,
+                PolicyDecisionOutcome::Deny,
+                "finite_delivery_quota",
+                Some("delivery_lifetime_finite"),
+                &[],
+                Some("finite transfer quota exhausted".to_string()),
+            )
+            .await;
+            self.record_rejection_event(
+                &dataplane,
+                data_plane_id,
+                path,
+                &req_method,
+                410,
+                None,
+                "finite transfer quota exhausted",
+            )
+            .await;
             return Err(ProxyError::TransferCompleted);
         }
 
-        let egress = match Self::parse_egress(&dataplane) {
-            Ok(egress) => egress,
-            Err(err) => {
-                self.emit_failed(
-                    &dataplane,
-                    "DATAPLANE_CONFIG_ERROR",
-                    "invalid or missing egress_config",
-                );
-                return Err(err);
-            }
+        let Some((egress, egress_label)) = route.egress.as_ref() else {
+            self.emit_failed(
+                &dataplane,
+                "DATAPLANE_CONFIG_ERROR",
+                "invalid or missing egress_config",
+            );
+            self.record_rejection_event(
+                &dataplane,
+                data_plane_id,
+                path,
+                &req_method,
+                500,
+                None,
+                "invalid or missing egress_config",
+            )
+            .await;
+            return Err(ProxyError::InvalidEgressConfig);
         };
         let outbound = match Self::extract_outbound(req).await {
             Ok(outbound) => outbound,
@@ -454,7 +771,7 @@ impl HttpDataProxy {
             }
         };
 
-        let target = match Self::build_target_url(&egress, path, clean_query.as_deref()) {
+        let target = match Self::build_target_url(egress, path, clean_query.as_deref()) {
             Ok(target) => target,
             Err(err) => {
                 self.emit_failed(
@@ -462,65 +779,112 @@ impl HttpDataProxy {
                     "DATAPLANE_CONFIG_ERROR",
                     "connector egress not handled by HTTP proxy",
                 );
+                self.record_rejection_event(
+                    &dataplane,
+                    data_plane_id,
+                    path,
+                    &outbound.method,
+                    500,
+                    None,
+                    "connector egress not handled by HTTP proxy",
+                )
+                .await;
                 return Err(err);
             }
         };
-        if let Err(err) = self.validate_target_url(&target).await {
-            match &err {
-                ProxyError::InvalidTargetUrl => {
-                    self.emit_failed(
-                        &dataplane,
-                        "DATAPLANE_INVALID_TARGET_URL",
-                        "invalid upstream target URL",
-                    );
-                }
-                ProxyError::ForbiddenTarget(reason) => {
-                    self.emit_failed(&dataplane, "DATAPLANE_FORBIDDEN_TARGET", *reason);
-                }
-                ProxyError::TargetResolutionFailed => {
-                    if self
-                        .tracker
-                        .record_transient_failure(&dataplane.inner.id, policy.max_retries)
-                        .await
-                    {
+        let safe_target = match self.validate_and_redact_target_url(&target).await {
+            Ok(safe_target) => safe_target,
+            Err(err) => {
+                let safe_target = Self::redact_url(&target);
+                let (status_code, reason) = match &err {
+                    ProxyError::InvalidTargetUrl => (400, "invalid upstream target URL"),
+                    ProxyError::ForbiddenTarget(reason) => (403, *reason),
+                    ProxyError::TargetResolutionFailed => {
+                        (502, "unable to resolve upstream target host")
+                    }
+                    _ => (403, "egress target validation failed"),
+                };
+                DataplaneEvents::http_data_access(
+                    self.events.as_ref(),
+                    &dataplane,
+                    outbound.method.as_str(),
+                    path,
+                    Some(status_code),
+                    None,
+                    false,
+                    Some(reason.to_string()),
+                )
+                .await;
+                DataplaneEvents::policy_decision(
+                    self.events.as_ref(),
+                    &dataplane,
+                    PolicyDecisionOutcome::Deny,
+                    "egress_ssrf_guard",
+                    Some("egress_target_validation"),
+                    &[],
+                    Some(reason.to_string()),
+                )
+                .await;
+                self.record_rejection_event(
+                    &dataplane,
+                    data_plane_id,
+                    path,
+                    &outbound.method,
+                    status_code,
+                    Some(&safe_target),
+                    reason,
+                )
+                .await;
+                match &err {
+                    ProxyError::InvalidTargetUrl => {
                         self.emit_failed(
                             &dataplane,
-                            "DATAPLANE_MAX_RETRIES_EXCEEDED",
-                            "unable to resolve upstream target host",
+                            "DATAPLANE_INVALID_TARGET_URL",
+                            "invalid upstream target URL",
                         );
-                    } else if is_provider_finite {
-                        self.tracker.release_finite_slot(&dataplane.inner.id).await;
                     }
+                    ProxyError::ForbiddenTarget(reason) => {
+                        self.emit_failed(&dataplane, "DATAPLANE_FORBIDDEN_TARGET", *reason);
+                    }
+                    ProxyError::TargetResolutionFailed => {
+                        if self
+                            .tracker
+                            .record_transient_failure(&dataplane.inner.id, policy.max_retries)
+                            .await
+                        {
+                            self.emit_failed(
+                                &dataplane,
+                                "DATAPLANE_MAX_RETRIES_EXCEEDED",
+                                "unable to resolve upstream target host",
+                            );
+                        } else if is_provider_finite {
+                            self.tracker.release_finite_slot(&dataplane.inner.id).await;
+                        }
+                    }
+                    _ => {}
                 }
-                _ => {}
+                return Err(err);
             }
-            return Err(err);
-        }
-        let credentials = self.resolve_credentials(&dataplane, &egress).await;
+        };
+        let credentials = self
+            .resolve_credentials_cached(&dataplane, egress, &route)
+            .await;
 
         Ok(self
             .forward_and_log(
                 &dataplane,
                 data_plane_id,
                 path,
-                &egress,
+                route.ingress_label,
+                egress_label,
                 &target,
+                safe_target,
                 outbound,
                 &credentials,
                 policy,
                 is_provider_finite,
             )
             .await)
-    }
-
-    fn delivery_policy(dataplane: &DataplaneTransferDto) -> DeliveryPolicy {
-        dataplane
-            .inner
-            .flow_control
-            .as_ref()
-            .and_then(|v| serde_json::from_value::<DataplaneRuntime>(v.clone()).ok())
-            .map(|rt| rt.delivery_policy)
-            .unwrap_or_default()
     }
 
     fn emit_completed(&self, dataplane: &DataplaneTransferDto) {
@@ -569,29 +933,13 @@ impl HttpDataProxy {
     /// header (`<token_type> <token>`, defaulting to `Bearer`) or an `ingress_token`
     /// query parameter (used by backend webhook callbacks).
     fn verify_ingress_auth(
-        dataplane: &DataplaneTransferDto,
+        ingress_auth: Option<&(String, String)>,
         headers: &HeaderMap,
         raw_query: Option<&str>,
     ) -> Result<(), ProxyError> {
-        let Ok(DataplaneProxyIngress::HttpListener {
-            token: Some(expected),
-            token_type,
-            ..
-        }) = serde_json::from_value::<DataplaneProxyIngress>(
-            dataplane.inner.ingress_config.clone(),
-        )
-        else {
+        let Some((expected_scheme, expected)) = ingress_auth else {
             return Ok(());
         };
-
-        if expected.is_empty() {
-            return Ok(());
-        }
-
-        let expected_scheme = token_type
-            .as_deref()
-            .filter(|s| !s.is_empty())
-            .unwrap_or("Bearer");
 
         if let Some(raw_header) = headers.get(AUTHORIZATION) {
             let header_str = raw_header
@@ -645,23 +993,38 @@ impl HttpDataProxy {
         }
     }
 
-    /// Reads the egress configuration the transfer was provisioned with.
-    fn parse_egress(dataplane: &DataplaneTransferDto) -> Result<DataplaneProxyEgress, ProxyError> {
-        serde_json::from_value(dataplane.inner.egress_config.clone())
-            .map_err(|_| ProxyError::InvalidEgressConfig)
-    }
-
-    /// Extracts the method, headers and size-limited body from the request.
-    async fn extract_outbound(mut req: Request) -> Result<OutboundRequest, ProxyError> {
-        let method = req.method().clone();
-        let headers = req.headers().clone();
-        let body = std::mem::take(req.body_mut());
-        let body = to_bytes(body, MAX_BODY_BYTES)
-            .await
-            .map_err(|_| ProxyError::BodyTooLarge)?;
+    /// Extracts method, owned headers, and streaming/size-bounded body without cloning headers.
+    async fn extract_outbound(req: Request) -> Result<OutboundRequest, ProxyError> {
+        let content_length = req
+            .headers()
+            .get(CONTENT_LENGTH)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|s| s.trim().parse::<usize>().ok());
+        if let Some(len) = content_length {
+            if len > MAX_BODY_BYTES {
+                return Err(ProxyError::BodyTooLarge);
+            }
+        }
+        let has_content_length = req.headers().contains_key(CONTENT_LENGTH);
+        let has_transfer_encoding = req.headers().contains_key(TRANSFER_ENCODING);
+        let (parts, body) = req.into_parts();
+        let bodyless = content_length == Some(0)
+            || (matches!(
+                parts.method,
+                Method::GET | Method::HEAD | Method::DELETE | Method::OPTIONS
+            ) && !has_content_length
+                && !has_transfer_encoding);
+        let body = if bodyless {
+            StreamBody::from(Bytes::new())
+        } else {
+            let bytes = to_bytes(body, MAX_BODY_BYTES)
+                .await
+                .map_err(|_| ProxyError::BodyTooLarge)?;
+            StreamBody::from(bytes)
+        };
         Ok(OutboundRequest {
-            method,
-            headers,
+            method: parts.method,
+            headers: parts.headers,
             body,
         })
     }
@@ -695,11 +1058,10 @@ impl HttpDataProxy {
         Ok(url)
     }
 
-    /// Validates the upstream target URL scheme and, unless `allow_private_egress`
-    /// is explicitly enabled, blocks SSRF against loopback, RFC1918 private networks,
-    /// link-local/cloud metadata (`169.254.169.254`), and `.localhost`/`.internal` hosts.
-    async fn validate_target_url(&self, target: &str) -> Result<(), ProxyError> {
-        let parsed = url::Url::parse(target).map_err(|_| ProxyError::InvalidTargetUrl)?;
+    /// Validates the target URL against SSRF rules (with L1 DNS caching) and returns a
+    /// redacted representation from the same parse pass.
+    async fn validate_and_redact_target_url(&self, target: &str) -> Result<String, ProxyError> {
+        let mut parsed = Url::parse(target).map_err(|_| ProxyError::InvalidTargetUrl)?;
         if !matches!(parsed.scheme(), "http" | "https") {
             return Err(ProxyError::ForbiddenTarget("unsupported target URL scheme"));
         }
@@ -707,51 +1069,89 @@ impl HttpDataProxy {
             return Err(ProxyError::InvalidTargetUrl);
         };
 
-        if self.allow_private_egress {
-            return Ok(());
+        if !self.allow_private_egress {
+            match host {
+                Host::Ipv4(ip) => {
+                    if !is_global_ipv4(ip) {
+                        return Err(ProxyError::ForbiddenTarget(
+                            "private, loopback, or reserved target IP blocked",
+                        ));
+                    }
+                }
+                Host::Ipv6(ip) => {
+                    if !is_global_ipv6(ip) {
+                        return Err(ProxyError::ForbiddenTarget(
+                            "private, loopback, or reserved target IP blocked",
+                        ));
+                    }
+                }
+                Host::Domain(domain) => {
+                    let lower = domain.trim_end_matches('.').to_ascii_lowercase();
+                    if lower == "localhost"
+                        || lower.ends_with(".localhost")
+                        || lower.ends_with(".internal")
+                    {
+                        return Err(ProxyError::ForbiddenTarget(
+                            "local or internal target host blocked",
+                        ));
+                    }
+                    let port = parsed.port_or_known_default().unwrap_or(80);
+                    let outcome = match self.caches.get_dns(&lower, port) {
+                        Some(cached) => cached,
+                        None => {
+                            let resolved = match tokio::net::lookup_host((domain, port)).await {
+                                Ok(addrs) => {
+                                    let mut iter = addrs.peekable();
+                                    if iter.peek().is_none() {
+                                        DnsSafetyOutcome::ResolutionFailed
+                                    } else if iter.any(|addr| !is_global_ip(addr.ip())) {
+                                        DnsSafetyOutcome::ForbiddenPrivate
+                                    } else {
+                                        DnsSafetyOutcome::Allowed
+                                    }
+                                }
+                                Err(_) => DnsSafetyOutcome::ResolutionFailed,
+                            };
+                            self.caches.put_dns(lower, port, resolved);
+                            resolved
+                        }
+                    };
+                    match outcome {
+                        DnsSafetyOutcome::Allowed => {}
+                        DnsSafetyOutcome::ResolutionFailed => {
+                            return Err(ProxyError::TargetResolutionFailed);
+                        }
+                        DnsSafetyOutcome::ForbiddenPrivate => {
+                            return Err(ProxyError::ForbiddenTarget(
+                                "target host resolves to private, loopback, or reserved IP",
+                            ));
+                        }
+                    }
+                }
+            }
         }
 
-        match host {
-            Host::Ipv4(ip) => {
-                if !is_global_ipv4(ip) {
-                    return Err(ProxyError::ForbiddenTarget(
-                        "private, loopback, or reserved target IP blocked",
-                    ));
-                }
-            }
-            Host::Ipv6(ip) => {
-                if !is_global_ipv6(ip) {
-                    return Err(ProxyError::ForbiddenTarget(
-                        "private, loopback, or reserved target IP blocked",
-                    ));
-                }
-            }
-            Host::Domain(domain) => {
-                let lower = domain.trim_end_matches('.').to_ascii_lowercase();
-                if lower == "localhost"
-                    || lower.ends_with(".localhost")
-                    || lower.ends_with(".internal")
-                {
-                    return Err(ProxyError::ForbiddenTarget(
-                        "local or internal target host blocked",
-                    ));
-                }
-                let port = parsed.port_or_known_default().unwrap_or(80);
-                let addrs: Vec<_> = tokio::net::lookup_host((domain, port))
-                    .await
-                    .map_err(|_| ProxyError::TargetResolutionFailed)?
-                    .collect();
-                if addrs.is_empty() {
-                    return Err(ProxyError::TargetResolutionFailed);
-                }
-                if addrs.iter().any(|addr| !is_global_ip(addr.ip())) {
-                    return Err(ProxyError::ForbiddenTarget(
-                        "target host resolves to private, loopback, or reserved IP",
-                    ));
-                }
-            }
+        if parsed.password().is_none() && parsed.query().is_none() {
+            Ok(target.to_string())
+        } else {
+            Ok(Self::redact_parsed(&mut parsed))
         }
-        Ok(())
+    }
+
+    async fn resolve_credentials_cached(
+        &self,
+        dataplane: &DataplaneTransferDto,
+        egress: &DataplaneProxyEgress,
+        route: &CompiledRoute,
+    ) -> ResolvedAuthCredentials {
+        if let Some(cached) = self.caches.get_credentials(dataplane) {
+            return cached;
+        }
+        let resolved = self
+            .resolve_credentials(dataplane, egress, route.runtime.clone())
+            .await;
+        self.caches.put_credentials(dataplane, resolved.clone());
+        resolved
     }
 
     /// Determines the credentials to present upstream.
@@ -765,6 +1165,7 @@ impl HttpDataProxy {
         &self,
         dataplane: &DataplaneTransferDto,
         egress: &DataplaneProxyEgress,
+        runtime: Option<DataplaneRuntime>,
     ) -> ResolvedAuthCredentials {
         let uses_connector_auth = dataplane.inner.role == TransferRole::Provider
             && dataplane.inner.interaction_mode == InteractionMode::Pull;
@@ -772,12 +1173,6 @@ impl HttpDataProxy {
         if !uses_connector_auth {
             return Self::egress_credentials(egress);
         }
-
-        let runtime = dataplane
-            .inner
-            .flow_control
-            .as_ref()
-            .and_then(|v| serde_json::from_value::<DataplaneRuntime>(v.clone()).ok());
 
         // Resolve vaulted placeholders when a keystore is configured.
         let runtime = match (runtime, &self.keystore) {
@@ -828,60 +1223,123 @@ impl HttpDataProxy {
         dataplane: &DataplaneTransferDto,
         data_plane_id: &str,
         path: Option<&str>,
-        egress: &DataplaneProxyEgress,
+        ingress_label: &'static str,
+        egress_label: &'static str,
         target: &str,
+        safe_target: String,
         outbound: OutboundRequest,
         credentials: &ResolvedAuthCredentials,
         policy: DeliveryPolicy,
         is_provider_finite: bool,
     ) -> Response {
-        let auth_preview = Self::preview_auth(credentials);
-        let safe_target = Self::redact_url(target);
-        debug!(
-            "Proxy {} {} | keystore={} | {}",
-            outbound.method,
-            safe_target,
-            self.keystore.is_some(),
-            auth_preview
-        );
+        let auth_preview = if tracing::enabled!(tracing::Level::DEBUG) {
+            Some(Self::preview_auth(credentials))
+        } else {
+            None
+        };
+        if let Some(preview) = &auth_preview {
+            debug!(
+                "Proxy {} {} | keystore={} | {}",
+                outbound.method,
+                safe_target,
+                self.keystore.is_some(),
+                preview
+            );
+        }
 
         // Drop the inbound Authorization header — the proxy injects its own
         // outbound credentials and must never relay its ingress capability token.
         let mut headers = outbound.headers;
-        headers.remove("authorization");
+        let had_inbound_auth = headers.remove("authorization").is_some();
 
-        let response = HttpProxyDriver::forward(
+        let mut obligations = Vec::new();
+        if had_inbound_auth {
+            obligations.push("ingress_auth_strip");
+        }
+        if is_provider_finite {
+            obligations.push("finite_quota_consume");
+        }
+        self.emit_telemetry_envelope(DataplaneEvents::build_policy_decision_envelope(
+            dataplane,
+            PolicyDecisionOutcome::Permit,
+            "data_transfer",
+            if is_provider_finite {
+                Some("delivery_lifetime_finite")
+            } else {
+                Some("ingress_capability")
+            },
+            &obligations,
+            None,
+        ))
+        .await;
+        if had_inbound_auth {
+            self.emit_telemetry_envelope(DataplaneEvents::build_obligation_executed_envelope(
+                dataplane,
+                "ingress_auth_strip",
+                "header_sanitization",
+                true,
+                None,
+                Some("stripped inbound Authorization header before upstream forward".to_string()),
+                None,
+            ))
+            .await;
+        }
+
+        let started = Instant::now();
+        let method = outbound.method;
+        let response = HttpProxyDriver::forward_owned(
             &self.client,
-            outbound.method.clone(),
+            method.clone(),
             target,
-            None, // the wildcard path is already baked into `target`
-            &headers,
+            headers,
             outbound.body,
             credentials,
         )
         .await;
+        let duration_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
 
         self.record_event(
             dataplane,
             data_plane_id,
             path,
-            egress,
+            ingress_label,
+            egress_label,
             &safe_target,
-            &outbound.method,
+            &method,
             &response,
+            duration_ms,
         )
         .await;
 
+        let auth_preview = auth_preview.unwrap_or_else(|| {
+            if matches!(&response, Ok(r) if r.status().is_client_error() || r.status().is_server_error())
+            {
+                Self::preview_auth(credentials)
+            } else {
+                String::new()
+            }
+        });
         self.evaluate_and_map_response(
             dataplane,
             policy,
             is_provider_finite,
             response,
-            &outbound.method,
+            &method,
             &safe_target,
             &auth_preview,
         )
         .await
+    }
+
+    async fn emit_telemetry_envelope(&self, envelope: Option<events::EventEnvelope>) {
+        let Some(envelope) = envelope else {
+            return;
+        };
+        if let Some(audit_tx) = &self.audit_tx {
+            audit_tx.try_send_envelope(envelope);
+            return;
+        }
+        DataplaneEvents::emit_envelope(self.events.as_ref(), envelope).await;
     }
 
     /// Persists a best-effort transfer event describing this proxied request.
@@ -891,16 +1349,35 @@ impl HttpDataProxy {
         dataplane: &DataplaneTransferDto,
         data_plane_id: &str,
         path: Option<&str>,
-        egress: &DataplaneProxyEgress,
+        ingress_type: &'static str,
+        egress_type: &'static str,
         safe_target: &str,
         method: &Method,
         response: &Outcome<UpstreamResponse>,
+        duration_ms: u64,
     ) {
-        let role = dataplane.inner.role.clone();
-        let mode = dataplane.inner.interaction_mode.clone();
-        let ingress_type = Self::ingress_label(dataplane);
-        let egress_type = Self::egress_label(egress);
+        let role = &dataplane.inner.role;
+        let mode = &dataplane.inner.interaction_mode;
         let status = response.as_ref().map(|r| r.status().as_u16()).unwrap_or(0);
+        let allowed = matches!(response, Ok(r) if r.status().as_u16() < 400);
+        let denial_reason = match response {
+            Ok(r) if r.status().as_u16() >= 400 => {
+                Some(format!("upstream HTTP {}", r.status().as_u16()))
+            }
+            Err(e) => Some(e.reason().to_string()),
+            _ => None,
+        };
+
+        self.emit_telemetry_envelope(DataplaneEvents::build_http_data_access_envelope(
+            dataplane,
+            method.as_str(),
+            path,
+            (status != 0).then_some(status),
+            Some(duration_ms),
+            allowed,
+            denial_reason,
+        ))
+        .await;
 
         let event = NewTransferEvent {
             owner: dataplane.inner.owner(),
@@ -916,20 +1393,68 @@ impl HttpDataProxy {
                 "ingress": ingress_type,
                 "egress": egress_type,
                 "origin_path": path,
-                "method": method.to_string(),
+                "method": method.as_str(),
                 "target": safe_target,
                 "status": status,
             })),
         };
 
-        // Fire-and-forget: a logging failure must not break the data path.
+        // Fire-and-forget: queue when background batch worker is active; sync in unit tests.
+        self.persist_transfer_event(event, "transfer").await;
+    }
+
+    /// Persists a best-effort warning event when a request is rejected before forwarding.
+    #[allow(clippy::too_many_arguments)]
+    async fn record_rejection_event(
+        &self,
+        dataplane: &DataplaneTransferDto,
+        data_plane_id: &str,
+        path: Option<&str>,
+        method: &Method,
+        status: u16,
+        safe_target: Option<&str>,
+        reason: &str,
+    ) {
+        let role = dataplane.inner.role.clone();
+        let mode = dataplane.inner.interaction_mode.clone();
+        let message = match safe_target {
+            Some(target) => {
+                format!("Rejected [{role}|{mode}] from {data_plane_id} to {target}: {reason}")
+            }
+            None => format!("Rejected [{role}|{mode}] for {data_plane_id}: {reason}"),
+        };
+        let event = NewTransferEvent {
+            owner: dataplane.inner.owner(),
+            transfer_id: dataplane.inner.id.clone(),
+            level: LogLevel::Warn,
+            component: "DataProxy".to_string(),
+            message,
+            data: Some(json!({
+                "role": role,
+                "mode": mode,
+                "origin_path": path,
+                "method": method.to_string(),
+                "target": safe_target,
+                "status": status,
+                "reason": reason,
+            })),
+        };
+
+        self.persist_transfer_event(event, "rejection transfer").await;
+    }
+
+    async fn persist_transfer_event(&self, event: NewTransferEvent, label: &'static str) {
+        if let Some(audit_tx) = &self.audit_tx {
+            audit_tx.try_send(event);
+            return;
+        }
         if let Err(e) = self
             .repo
             .get_transfer_events_repo()
             .create_transfer_event(&event)
             .await
         {
-            error!("Failed to log transfer event: {e:?}");
+            error!("Failed to log {label} event: {e:?}");
         }
     }
 
@@ -1005,6 +1530,17 @@ impl HttpDataProxy {
                         }
                         (TransferRole::Provider, InteractionMode::Push) => {
                             if self.tracker.complete_finite_slot(dp_id).await {
+                                DataplaneEvents::obligation_executed(
+                                    self.events.as_ref(),
+                                    dataplane,
+                                    "finite_quota_consume",
+                                    "finite_delivery_quota",
+                                    true,
+                                    None,
+                                    Some("finite push delivery quota consumed".to_string()),
+                                    None,
+                                )
+                                .await;
                                 self.emit_completed(dataplane);
                             }
                         }
@@ -1147,12 +1683,7 @@ impl HttpDataProxy {
 
         let mut response = Response::builder().status(status);
         if let Some(out_headers) = response.headers_mut() {
-            for (key, value) in headers.iter() {
-                if HOP_BY_HOP_HEADERS.contains(&key.as_str().to_ascii_lowercase().as_str()) {
-                    continue;
-                }
-                out_headers.insert(key, value.clone());
-            }
+            Self::copy_response_headers(&headers, out_headers);
         }
         response
             .body(body)
@@ -1168,26 +1699,22 @@ impl HttpDataProxy {
 
         let mut response = Response::builder().status(status);
         if let Some(out_headers) = response.headers_mut() {
-            for (key, value) in headers.iter() {
-                if HOP_BY_HOP_HEADERS.contains(&key.as_str().to_ascii_lowercase().as_str()) {
-                    continue;
-                }
-                out_headers.insert(key, value.clone());
-            }
+            Self::copy_response_headers(&headers, out_headers);
         }
         response
             .body(body)
             .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
     }
 
-    /// Human-readable label of the configured ingress kind.
-    fn ingress_label(dataplane: &DataplaneTransferDto) -> &'static str {
-        match serde_json::from_value::<DataplaneProxyIngress>(
-            dataplane.inner.ingress_config.clone(),
-        ) {
-            Ok(DataplaneProxyIngress::HttpListener { .. }) => "HttpListener",
-            Ok(DataplaneProxyIngress::NoOp) => "NoOp",
-            Err(_) => "Unknown",
+    fn copy_response_headers(src: &HeaderMap, dst: &mut HeaderMap) {
+        for (key, value) in src.iter() {
+            if HOP_BY_HOP_HEADERS
+                .iter()
+                .any(|h| key.as_str().eq_ignore_ascii_case(h))
+            {
+                continue;
+            }
+            dst.insert(key, value.clone());
         }
     }
 
@@ -1218,28 +1745,27 @@ impl HttpDataProxy {
         }
     }
 
-    /// Redacts sensitive query-string values (`token`, `key`, `secret`, `password`,
-    /// `auth`, `sig`, `credential`) before writing a URL to logs or transfer events.
-    pub fn redact_url(raw: &str) -> String {
-        let Ok(mut parsed) = url::Url::parse(raw) else {
-            return "<invalid-url>".to_string();
-        };
+    fn is_sensitive_key(key: &str) -> bool {
+        let lower = key.to_ascii_lowercase();
+        lower.contains("token")
+            || lower.contains("key")
+            || lower.contains("secret")
+            || lower.contains("password")
+            || lower.contains("auth")
+            || lower.contains("sig")
+            || lower.contains("credential")
+    }
+
+    fn redact_parsed(parsed: &mut Url) -> String {
         if parsed.password().is_some() {
             let _ = parsed.set_password(Some("[REDACTED]"));
         }
-        if parsed.query().is_some() {
+        if parsed.query().is_some() && parsed.query_pairs().any(|(k, _)| Self::is_sensitive_key(&k))
+        {
             let redacted: Vec<(String, String)> = parsed
                 .query_pairs()
                 .map(|(k, v)| {
-                    let lower = k.to_ascii_lowercase();
-                    if lower.contains("token")
-                        || lower.contains("key")
-                        || lower.contains("secret")
-                        || lower.contains("password")
-                        || lower.contains("auth")
-                        || lower.contains("sig")
-                        || lower.contains("credential")
-                    {
+                    if Self::is_sensitive_key(&k) {
                         (k.into_owned(), "[REDACTED]".to_string())
                     } else {
                         (k.into_owned(), v.into_owned())
@@ -1249,6 +1775,15 @@ impl HttpDataProxy {
             parsed.query_pairs_mut().clear().extend_pairs(redacted);
         }
         parsed.to_string()
+    }
+
+    /// Redacts sensitive query-string values (`token`, `key`, `secret`, `password`,
+    /// `auth`, `sig`, `credential`) before writing a URL to logs or transfer events.
+    pub fn redact_url(raw: &str) -> String {
+        let Ok(mut parsed) = Url::parse(raw) else {
+            return "<invalid-url>".to_string();
+        };
+        Self::redact_parsed(&mut parsed)
     }
 }
 

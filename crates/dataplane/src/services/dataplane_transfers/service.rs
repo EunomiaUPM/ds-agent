@@ -21,6 +21,8 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use futures_util::future::try_join_all;
+
 use ymir::oauth::{OwnedTrait, Owner, OwnerScope};
 use ymir::types::oauth::UserInfo;
 use ymir::batch_requests::BatchRequests;
@@ -39,16 +41,19 @@ use crate::data::sea_orm::orm::dataplane_transfers::{
     self as dataplane_transfers_model, EditDataplaneTransferModel, NewDataplaneTransfer,
 };
 use crate::entities::dataplane_transfers::{
-    DataplaneTransferDto, EditDataplaneTransferDto, NewDataplaneTransferDto,
+    DataplaneTransferDto, EditDataplaneTransferDto, NewDataplaneTransferDto, TransferState,
 };
 use crate::entities::filters::DataplaneTransferFilter;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
+use crate::setup::DataplaneEvents;
+use events::{EventActor, EventSinkTrait, NoopEventSink};
 use ymir::cache::EntityCacheTrait;
 
 /// Process service that writes through to the cache.
 pub struct DataplaneTransferService {
     data_plane_repo: Arc<dyn DataplaneRepoTrait>,
     cache: Arc<dyn EntityCacheTrait<DataplaneTransferDto>>,
+    events: Arc<dyn EventSinkTrait>,
 }
 
 impl DataplaneTransferService {
@@ -59,11 +64,50 @@ impl DataplaneTransferService {
         Self {
             data_plane_repo,
             cache,
+            events: Arc::new(NoopEventSink),
         }
+    }
+
+    /// Attaches the canonical event sink for dataplane state transitions.
+    pub fn with_events(mut self, events: Arc<dyn EventSinkTrait>) -> Self {
+        self.events = events;
+        self
     }
 
     fn repo(&self) -> Arc<dyn DataplaneTransfersRepo> {
         self.data_plane_repo.get_dataplane_transfers_repo()
+    }
+
+    fn normalize_reason(reason: Option<&str>) -> Option<String> {
+        reason
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_owned)
+    }
+
+    fn event_error_reason(state: &TransferState, reason: Option<&str>) -> Option<String> {
+        let text = reason?;
+        if *state == TransferState::Terminated && Self::looks_like_failure(text) {
+            Some(text.to_string())
+        } else {
+            None
+        }
+    }
+
+    fn looks_like_failure(reason: &str) -> bool {
+        let lower = reason.to_ascii_lowercase();
+        lower.contains("failed")
+            || lower.contains("error")
+            || lower.contains("forbidden")
+            || lower.contains("rejected")
+            || lower.contains("timeout")
+            || lower.contains("terminated (")
+            || lower.contains("forced local termination")
+            || reason.contains("DATAPLANE_")
+    }
+
+    fn process_cache_key(process_id: &str) -> String {
+        format!("process:{process_id}")
     }
 
     async fn enrich_process(
@@ -71,23 +115,18 @@ impl DataplaneTransferService {
         process: dataplane_transfers_model::Model,
     ) -> Outcome<DataplaneTransferDto> {
         let process_urn = Urn::from_str(&process.id)?;
+        let fields_repo = self.data_plane_repo.get_dataplane_fields_repo();
+        let logs_repo = self.data_plane_repo.get_dataplane_transfer_logs_repo();
 
-        let fields_models = self
-            .data_plane_repo
-            .get_dataplane_fields_repo()
-            .get_all_dataplane_fields_by_process_id(&OwnerScope::All, &process_urn)
-            .await?;
+        let (fields_models, logs) = tokio::try_join!(
+            fields_repo.get_all_dataplane_fields_by_process_id(&OwnerScope::All, &process_urn),
+            logs_repo.get_transfer_logs_by_dataplane_process_id(&OwnerScope::All, &process_urn),
+        )?;
 
         let fields = fields_models
             .into_iter()
             .map(|f| (f.key, f.value.unwrap_or_default()))
             .collect::<HashMap<String, String>>();
-
-        let logs = self
-            .data_plane_repo
-            .get_dataplane_transfer_logs_repo()
-            .get_transfer_logs_by_dataplane_process_id(&OwnerScope::All, &process_urn)
-            .await?;
 
         Ok(DataplaneTransferDto {
             inner: process,
@@ -118,10 +157,7 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
             repo.count_dataplane_transfers(&scope, filters),
         )?;
 
-        let mut items = Vec::with_capacity(transfers.len());
-        for t in transfers {
-            items.push(self.enrich_process(t).await?);
-        }
+        let items = try_join_all(transfers.into_iter().map(|t| self.enrich_process(t))).await?;
 
         Ok(Paginated::from_page(items, &page, Some(total), |e| {
             Cursor::encode_sorted(
@@ -158,6 +194,12 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
         user: &UserInfo,
         process_id: &Urn,
     ) -> Outcome<DataplaneTransferDto> {
+        let main_key = Self::process_cache_key(process_id.as_ref());
+        if let Some(cached) = self.cache.get_main(&main_key).await? {
+            if OwnerScope::seeing(user).admits_owner(&cached.inner.owner()) {
+                return Ok(cached);
+            }
+        }
 
         let process = self
             .repo()
@@ -166,6 +208,9 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
             .or_not_found(process_id, "dataplane transfer")?;
 
         let enriched = self.enrich_process(process).await?;
+        if let Ok(urn) = Urn::from_str(&enriched.inner.id) {
+            let _ = self.cache.set_main(&main_key, &urn, &enriched).await;
+        }
         Ok(enriched)
     }
 
@@ -193,12 +238,7 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
             .get_batch_dataplane_transfers(&OwnerScope::seeing(user), &req.ids)
             .await?;
 
-        let mut dtos = Vec::with_capacity(processes.len());
-        for p in processes {
-            dtos.push(self.enrich_process(p).await?);
-        }
-
-        Ok(dtos)
+        try_join_all(processes.into_iter().map(|p| self.enrich_process(p))).await
     }
 
     #[tracing::instrument(level = "info", skip_all, err, fields(user = %user.id()))]
@@ -211,13 +251,14 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
         let new_model: NewDataplaneTransfer = cmd.clone().into_model(owner);
         let created_process = self.repo().create_dataplane_transfers(&new_model).await?;
 
+        let reason = Self::normalize_reason(cmd.reason.as_deref());
         let log = NewTransferLog {
             owner: created_process.owner(),
             dataplane_process_id: created_process.id.clone(),
             previous_state: None,
             new_state: cmd.state.clone(),
             trigger: "Creation".to_string(),
-            reason: None,
+            reason: reason.clone(),
         };
         if let Err(e) = self
             .data_plane_repo
@@ -229,9 +270,21 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
         }
 
         let enriched = self.enrich_process(created_process).await?;
+        let error_reason = Self::event_error_reason(&cmd.state, reason.as_deref());
+        DataplaneEvents::state_changed(
+            self.events.as_ref(),
+            &enriched.inner,
+            None,
+            "Creation",
+            reason.as_deref(),
+            error_reason,
+            Some(EventActor::human(user)),
+        )
+        .await;
 
         if let Ok(urn) = Urn::from_str(&enriched.inner.id) {
-            let _ = self.cache.set_single(&urn, &enriched).await;
+            let main_key = Self::process_cache_key(&enriched.inner.transfer_process_id);
+            let _ = self.cache.set_main(&main_key, &urn, &enriched).await;
         }
 
         Ok(enriched)
@@ -259,14 +312,17 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
                 .delete_all_dataplane_fields_by_process_id(&OwnerScope::All, id)
                 .await?;
 
-            for (key, value) in fields {
-                let new_field = NewDataPlaneFieldModel {
-                    key: key.clone(),
-                    value: Some(value.clone()),
-                };
-                fields_repo
-                    .create_dataplane_field(&owner, id, &new_field)
-                    .await?;
+            if !fields.is_empty() {
+                try_join_all(fields.iter().map(|(key, value)| {
+                    let fields_repo = fields_repo.clone();
+                    let owner = owner.clone();
+                    let new_field = NewDataPlaneFieldModel {
+                        key: key.clone(),
+                        value: Some(value.clone()),
+                    };
+                    async move { fields_repo.create_dataplane_field(&owner, id, &new_field).await }
+                }))
+                .await?;
             }
         }
 
@@ -284,27 +340,53 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
             .await?;
 
         // The log keeps real transitions only, each with the state it left.
+        let mut appended_log = None;
         if let Some(new_state) = cmd.state.as_ref().filter(|s| **s != current.state) {
+            let reason = Self::normalize_reason(cmd.reason.as_deref());
             let log = NewTransferLog {
                 owner: updated_process.owner(),
                 dataplane_process_id: updated_process.id.clone(),
                 previous_state: Some(current.state.clone()),
                 new_state: new_state.clone(),
                 trigger: "Update".to_string(),
-                reason: None,
+                reason: reason.clone(),
             };
-            if let Err(e) = self
+            match self
                 .data_plane_repo
                 .get_dataplane_transfer_logs_repo()
                 .create_log(log)
                 .await
             {
-                error!("Failed to create dataplane transfer log: {:?}", e);
+                Ok(created_log) => appended_log = Some(created_log),
+                Err(e) => {
+                    error!("Failed to create dataplane transfer log: {:?}", e);
+                }
             }
+            let error_reason = Self::event_error_reason(new_state, reason.as_deref());
+            DataplaneEvents::state_changed(
+                self.events.as_ref(),
+                &updated_process,
+                Some(current.state.to_string()),
+                "Update",
+                reason.as_deref(),
+                error_reason,
+                Some(EventActor::human(user)),
+            )
+            .await;
         }
 
-        let enriched = self.enrich_process(updated_process).await?;
-        let _ = self.cache.set_single(id, &enriched).await;
+        let enriched = match (cmd.fields.as_ref(), self.cache.get_single(id).await.ok().flatten()) {
+            (None, Some(mut cached)) => {
+                cached.inner = updated_process;
+                if let Some(log) = appended_log {
+                    cached.logs.push(log);
+                }
+                cached
+            }
+            _ => self.enrich_process(updated_process).await?,
+        };
+        let main_key = Self::process_cache_key(&enriched.inner.transfer_process_id);
+        let _ = self.cache.set_main(&main_key, id, &enriched).await;
 
         Ok(enriched)
     }

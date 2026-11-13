@@ -21,6 +21,7 @@
 #[path = "../support/mod.rs"]
 mod support;
 
+mod audit_worker;
 mod auth_api_key;
 mod auth_basic;
 mod auth_bearer;

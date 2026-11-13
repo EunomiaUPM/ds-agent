@@ -17,8 +17,10 @@
 
 //! Data plane proxy adapters between external callers and configured egress targets.
 
+pub mod audit;
 pub mod http;
 pub mod tracker;
 
+pub use audit::{ProxyAuditSender, ProxyAuditWorker};
 pub use http::http::HttpDataProxy;
 pub use tracker::{DeliveryTracker, ReserveOutcome};

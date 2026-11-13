@@ -25,7 +25,9 @@ use crate::engine::dataplane_drivers::configuration::http_consumer_pull::HttpCon
 use crate::engine::dataplane_drivers::configuration::http_consumer_push::HttpConsumerPushConfigurator;
 use crate::engine::dataplane_drivers::configuration::http_provider_pull::HttpProviderPullConfigurator;
 use crate::engine::dataplane_drivers::configuration::http_provider_push::HttpProviderPushConfigurator;
+use crate::engine::dataplane_drivers::configuration::kafka_provider_push::KafkaProviderPushConfigurator;
 use crate::engine::dataplane_drivers::pubsub::http::HttpPubSubscriber;
+use crate::engine::dataplane_drivers::pubsub::kafka::KafkaPubSubscriber;
 use crate::engine::dataplane_drivers::pubsub::no_op::NoOpPubSubscriber;
 use crate::engine::dataplane_drivers::{
     DataplaneDriver, DriverAuthenticatorTrait, DriverProxyConfiguratorTrait, DriverPubSubTrait,
@@ -33,6 +35,7 @@ use crate::engine::dataplane_drivers::{
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::entities::dataplane_transfers::{InteractionMode, TransferRole};
 use crate::errors::DataplaneError;
+use crate::relay::KafkaRelaySupervisor;
 use connector::{
     AuthenticationConfig, ConnectorInstanceDto, InteractionConfig, KeystoreLookup, ProtocolSpec,
 };
@@ -41,6 +44,7 @@ use ymir::errors::Outcome;
 
 pub struct DataplaneDriverFactory {
     keystore: Option<Arc<dyn KeystoreLookup>>,
+    kafka_supervisor: Arc<KafkaRelaySupervisor>,
 }
 
 impl Default for DataplaneDriverFactory {
@@ -51,12 +55,21 @@ impl Default for DataplaneDriverFactory {
 
 impl DataplaneDriverFactory {
     pub fn new() -> Self {
-        Self { keystore: None }
+        Self {
+            keystore: None,
+            kafka_supervisor: Arc::new(KafkaRelaySupervisor::default()),
+        }
     }
 
     /// Attaches the keystore used to resolve driver credentials.
     pub fn with_keystore(mut self, keystore: Arc<dyn KeystoreLookup>) -> Self {
         self.keystore = Some(keystore);
+        self
+    }
+
+    /// Attaches the shared supervisor managing `KafkaRelayWorker` tasks across transfers.
+    pub fn with_kafka_supervisor(mut self, supervisor: Arc<KafkaRelaySupervisor>) -> Self {
+        self.kafka_supervisor = supervisor;
         self
     }
 }
@@ -116,6 +129,9 @@ impl DataplaneDriverFactory {
                 (ProtocolSpec::Http(_), TransferRole::Provider, InteractionMode::Push) => {
                     Ok(Arc::new(HttpProviderPushConfigurator))
                 }
+                (ProtocolSpec::Kafka(_), TransferRole::Provider, InteractionMode::Push) => {
+                    Ok(Arc::new(KafkaProviderPushConfigurator))
+                }
                 (_, _, _) => Err(DataplaneError::NoDriverForCombination {
                     role: role.to_string(),
                     mode: interaction_mode.to_string(),
@@ -150,10 +166,10 @@ impl DataplaneDriverFactory {
                     ProtocolSpec::Http(_) => Ok(Some(Arc::new(HttpPubSubscriber::new(
                         self.keystore.clone(),
                     )))),
-                    ProtocolSpec::Kafka(_) => Err(DataplaneError::FeatureNotImplemented {
-                        feature: "Kafka push subscriber".to_string(),
-                    }
-                    .into()),
+                    ProtocolSpec::Kafka(_) => Ok(Some(Arc::new(KafkaPubSubscriber::new(
+                        self.kafka_supervisor.clone(),
+                        self.keystore.clone(),
+                    )))),
                 },
             }
         } else {

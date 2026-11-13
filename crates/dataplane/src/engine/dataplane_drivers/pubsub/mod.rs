@@ -16,4 +16,5 @@
  */
 
 pub mod http;
+pub mod kafka;
 pub mod no_op;

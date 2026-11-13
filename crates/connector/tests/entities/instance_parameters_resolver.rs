@@ -172,6 +172,7 @@ fn resolves_kafka_topic() {
                 brokers: TemplateVecString::Value(vec!["localhost:9092".to_string()]),
                 topic: "{{__TOPIC__}}".to_string(),
                 group_id: None,
+                ..Default::default()
             }),
         }),
         ..pull_http("https://api.example.com")

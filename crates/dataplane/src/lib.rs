@@ -32,6 +32,7 @@ pub mod entities;
 pub mod errors;
 pub mod http;
 pub mod proxy;
+pub mod relay;
 pub mod services;
 pub mod setup;
 pub mod signals;

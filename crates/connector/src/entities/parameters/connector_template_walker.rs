@@ -122,6 +122,9 @@ pub trait ConnectorTemplateWalker {
         if let Some(group_id) = &mut spec.group_id {
             self.on_string(group_id)?;
         }
+        if let Some(props) = &mut spec.client_properties {
+            self.on_map_string(props)?;
+        }
         Ok(())
     }
 }

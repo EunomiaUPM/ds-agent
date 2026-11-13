@@ -47,7 +47,10 @@ pub use entities::interaction::{
     InteractionConfig, PullLifecycle, PushLifecycle, TransferLifetime, MAX_INTERACTION_RETRIES,
 };
 pub use entities::parameters::TemplateVecString;
-pub use entities::resource::{HttpSpec, ProtocolSpec};
+pub use entities::resource::{
+    HttpSpec, KafkaOffsetReset, KafkaSaslMechanism, KafkaSecurityProtocol, KafkaSpec, ProtocolSpec,
+    ALLOWED_KAFKA_CLIENT_PROPERTIES,
+};
 pub use facades::connector_instance_facade::local::ConnectorInstanceLocalFacade;
 pub use facades::connector_instance_facade::remote::ConnectorInstanceRemoteFacade;
 pub use facades::connector_instance_facade::{

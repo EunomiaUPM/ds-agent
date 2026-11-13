@@ -74,6 +74,7 @@ jaq-parse = "1.0.3"
 bytes = "1.10.1"
 serde_urlencoded = "0.7.1"
 tokio-util = "0.7.17"
+rdkafka = { version = "0.37", features = ["cmake-build", "tokio", "ssl"] }
 tonic = "0.14.2"
 prost = "0.14.1"
 tonic-prost = "0.14.2"

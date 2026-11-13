@@ -16,33 +16,28 @@
  */
 
 import React, { useState } from "react";
-import { CatalogViews, type CatalogDoc } from "shared/src/data/catalog";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowUpRight, Eye, EyeOff, Pencil, Trash2 } from "lucide-react";
+import { ArrowUpRight, Pencil, Plug, Sparkles, Trash2, Unplug } from "lucide-react";
+import { toast } from "sonner";
 import {
-  getGetConnectorInstanceByDistributionQueryOptions,
-  useGetConnectorInstanceByDistribution,
-} from "shared/src/data/orval/connector/connector";
-import {
-  getGetDistributionByIdQueryOptions,
-  useGetDistributionById,
-} from "shared/src/data/orval/distributions/distributions";
-import { PageLayout } from "@eunomia/ui";
-import { PageHeader } from "@eunomia/ui";
-import { PageSection } from "@eunomia/ui";
-import { FieldGrid } from "@eunomia/ui";
-import { Badge } from "@eunomia/ui";
-import { Button } from "@eunomia/ui";
-import { FormatDate } from "@eunomia/ui";
-import { Identifier } from "@eunomia/ui";
-import { DatasetLabel } from "shared/src/components/identity/DatasetLabel";
-import { JsonTable } from "@eunomia/ui";
-import { SchemaUrl } from "shared/src/components/schemas/SchemaPicker";
-import { PublicationBadge, PublicationToggle } from "shared/src/components/catalog/Publication";
-import { VisibilitySelect } from "shared/src/components/catalog/Visibility";
+  Badge,
+  Button,
+  ConfirmDialog,
+  FieldGrid,
+  FormatDate,
+  Identifier,
+  JsonViewer,
+  PageHeader,
+  PageLayout,
+  PageSection,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@eunomia/ui";
+import { CatalogViews, text, type CatalogDoc } from "shared/src/data/catalog";
 import { CatalogResources } from "shared/src/data/catalogResources";
-import { useGetDatasetById } from "shared/src/data/orval/datasets/datasets";
-import { text } from "shared/src/data/catalog";
 import {
   CatalogResourceEditor,
   type EditorTarget,
@@ -51,52 +46,79 @@ import {
   DeleteResourceDialog,
   type DeleteTarget,
 } from "shared/src/components/catalog/DeleteResourceDialog";
+import { PublicationBadge, PublicationToggle } from "shared/src/components/catalog/Publication";
+import { VisibilitySelect } from "shared/src/components/catalog/Visibility";
+import {
+  ConnectorParametersTable,
+  ConnectorSpecView,
+  extractInteractionMode,
+  extractPrimaryProtocol,
+} from "shared/src/components/connector/ConnectorSpecView";
+import { InstantiateConnectorDialog } from "shared/src/components/connector/InstantiateConnectorDialog";
+import { DatasetLabel } from "shared/src/components/identity/DatasetLabel";
+import { SchemaUrl } from "shared/src/components/schemas/SchemaPicker";
+import {
+  getGetConnectorInstanceByDistributionQueryKey,
+  getGetConnectorInstanceByDistributionQueryOptions,
+  useDeleteConnectorInstanceById,
+  useGetConnectorInstanceByDistribution,
+} from "shared/src/data/orval/connector/connector";
+import { useGetConnectorTemplateByNameVersion } from "shared/src/data/orval/connector-templates/connector-templates";
+import { useGetDatasetById } from "shared/src/data/orval/datasets/datasets";
+import {
+  getGetDistributionByIdQueryOptions,
+  useGetDistributionById,
+} from "shared/src/data/orval/distributions/distributions";
 
 export const Route = createFileRoute("/catalog/$catalogId/distribution-connector/$distributionId")({
   component: DistributionConnectorPage,
   loader: async ({ context: { queryClient }, params: { distributionId } }) => {
     await queryClient.ensureQueryData(getGetDistributionByIdQueryOptions(distributionId));
-    return queryClient.ensureQueryData(
-      getGetConnectorInstanceByDistributionQueryOptions(distributionId),
-    );
+    await queryClient
+      .ensureQueryData(getGetConnectorInstanceByDistributionQueryOptions(distributionId))
+      .catch(() => null);
   },
 });
-
-type Spec = {
-  protocol?: string;
-  urlTemplate?: string;
-  method?: string | string[];
-  headers?: Record<string, string> | null;
-  bodyTemplate?: unknown;
-};
-
-const AUTH_LABELS: Record<string, string> = {
-  NO_AUTH: "None",
-  BASIC_AUTH: "HTTP Basic",
-  BASIC: "HTTP Basic",
-  BEARER_TOKEN: "Bearer token",
-  BEARER: "Bearer token",
-  API_KEY: "API key",
-  OAUTH2: "OAuth 2.0",
-};
-const SECRET = /pass|secret|token|key/i;
 
 function DistributionConnectorPage() {
   const { catalogId, distributionId } = Route.useParams();
   const navigate = useNavigate();
-  const [reveal, setReveal] = useState(false);
+  const queryClient = useQueryClient();
+
   const [editing, setEditing] = useState<EditorTarget | null>(null);
   const [deleting, setDeleting] = useState<DeleteTarget | null>(null);
+  const [instantiateOpen, setInstantiateOpen] = useState(false);
+  const [unbindOpen, setUnbindOpen] = useState(false);
+
   const { data: distributionData } = useGetDistributionById(distributionId);
-  const { data: instanceData } = useGetConnectorInstanceByDistribution(distributionId);
+  const { data: instanceData } = useGetConnectorInstanceByDistribution(distributionId, {
+    query: { retry: false },
+  });
+
   const distribution =
     distributionData?.status === 200
       ? CatalogViews.distribution(distributionData.data as CatalogDoc)
       : undefined;
   const instance = instanceData?.status === 200 ? instanceData.data : undefined;
+
+  const { data: templateData, isLoading: loadingTemplate } = useGetConnectorTemplateByNameVersion(
+    instance?.name ?? "",
+    instance?.version ?? "",
+    {
+      query: {
+        enabled: !!(instance?.name && instance?.version),
+        retry: false,
+      },
+    },
+  );
+  const template = templateData?.status === 200 ? templateData.data : undefined;
+
   const { data: datasetData } = useGetDatasetById(distribution?.datasetId ?? "", {
     query: { enabled: !!distribution?.datasetId },
   });
+
+  const unbindMutation = useDeleteConnectorInstanceById();
+
   const ownSchema =
     distributionData?.status === 200 ? text((distributionData.data as CatalogDoc)?.schema) : "";
   const datasetSchema =
@@ -105,26 +127,39 @@ function DistributionConnectorPage() {
   const datasetDraft =
     datasetData?.status === 200 &&
     text((datasetData.data as CatalogDoc)?.publicationState) === "draft";
+
   if (!distribution) return null;
   const visibility = CatalogResources.visibilityOf(distributionData?.headers);
 
-  const interaction = instance?.interaction as
-    | { mode: string; dataAccess?: Spec; subscribe?: Spec; unsubscribe?: Spec | null }
-    | undefined;
-  const auth = (instance?.authenticationConfig ?? {}) as Record<string, unknown>;
-  const authType = String(auth.type ?? "NO_AUTH");
-  const authFields = Object.fromEntries(
-    Object.entries(auth)
-      .filter(([k]) => k !== "type")
-      .map(([k, v]) => [k, !reveal && SECRET.test(k) && v ? "••••••••" : v]),
-  );
-  const hasSecrets = Object.keys(auth).some((k) => SECRET.test(k));
-  const steps: [string, Spec | null | undefined][] = interaction?.dataAccess
-    ? [["Data access", interaction.dataAccess]]
-    : [
-        ["Subscribe", interaction?.subscribe],
-        ["Unsubscribe", interaction?.unsubscribe],
-      ];
+  const mode = instance ? extractInteractionMode(instance.interaction) : undefined;
+  const protocol = instance ? extractPrimaryProtocol(instance.interaction) : undefined;
+
+  const handleUnbind = async () => {
+    if (!instance?.id) return;
+    try {
+      const res = await unbindMutation.mutateAsync({ id: instance.id });
+      if (res.status !== 202) {
+        const msg =
+          (res.data as { message?: string; details?: string } | undefined)?.details ||
+          (res.data as { message?: string } | undefined)?.message ||
+          "Could not unbind connector instance.";
+        toast.error(msg);
+        return;
+      }
+      await queryClient.invalidateQueries({
+        queryKey: getGetConnectorInstanceByDistributionQueryKey(distributionId),
+      });
+      await queryClient.invalidateQueries({ queryKey: ["/doctor"] });
+      toast.success("Connector instance unbound from distribution.");
+      setUnbindOpen(false);
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Could not unbind connector instance (check if active transfers exist).",
+      );
+    }
+  };
 
   return (
     <PageLayout>
@@ -135,7 +170,11 @@ function DistributionConnectorPage() {
           <>
             <PublicationBadge draft={distribution.draft || datasetDraft} />
             {distribution.format && <Badge variant="outline">{distribution.format}</Badge>}
-            {interaction && <Badge variant="info">{interaction.mode}</Badge>}
+            {mode && protocol && (
+              <Badge variant="info">
+                {mode} · {protocol}
+              </Badge>
+            )}
           </>
         }
         description={
@@ -153,6 +192,15 @@ function DistributionConnectorPage() {
               title={distribution.title}
               size="sm"
             />
+            <Button size="sm" onClick={() => setInstantiateOpen(true)}>
+              <Sparkles />
+              {instance ? "Replace from template" : "Instantiate from template"}
+            </Button>
+            {instance && (
+              <Button variant="outline" size="sm" onClick={() => setUnbindOpen(true)}>
+                <Unplug /> Unbind connector
+              </Button>
+            )}
             <Button asChild variant="outline" size="sm">
               <Link
                 to="/catalog/$catalogId/dataset/$datasetId"
@@ -213,106 +261,223 @@ function DistributionConnectorPage() {
           },
           {
             label: ownSchema ? "Data schema" : "Data schema (inherited)",
-            span: 3,
+            span: 2,
             value:
               ownSchema || datasetSchema ? <SchemaUrl url={ownSchema || datasetSchema} /> : null,
           },
-          { label: "Distribution", value: <Identifier value={distribution.id} /> },
-          { label: "Connector instance", value: <Identifier value={instance?.id} /> },
+          { label: "Distribution ID", value: <Identifier value={distribution.id} /> },
           {
-            label: "Built from template",
-            value: instance && (
-              <span className="inline-flex items-center gap-1.5">
-                <Identifier value={instance.name} />
-                <span className="text-xs text-ink/50">v{instance.version}</span>
-              </span>
+            label: "Connector instance",
+            value: instance ? (
+              <Identifier value={instance.id} />
+            ) : (
+              <span className="text-xs text-ink/45">Unbound</span>
+            ),
+          },
+          {
+            label: "Source connector template",
+            value: instance?.name ? (
+              <Link
+                to="/my-catalog/connectors/$templateName"
+                params={{ templateName: instance.name }}
+                search={{ version: instance.version ?? undefined }}
+                className="inline-flex items-center gap-1.5 font-mono text-xs text-brand-sky hover:underline"
+              >
+                <span>{instance.name}</span>
+                {instance.version && <span className="text-ink/55">v{instance.version}</span>}
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            ) : (
+              <span className="text-xs text-ink/45">—</span>
             ),
           },
         ]}
       />
 
       {!instance ? (
-        <div className="rounded-lg border border-dashed border-ink/15 py-10 text-center text-sm text-ink/50">
-          No connector is bound to this distribution, so the dataplane cannot serve it.
+        <div className="rounded-xl border border-dashed border-ink/15 px-6 py-12 text-center">
+          <Plug className="mx-auto h-10 w-10 text-ink/30" />
+          <p className="mt-3 text-sm font-medium">
+            No connector instance is bound to this distribution
+          </p>
+          <p className="mx-auto mt-1 max-w-lg text-xs text-ink/55">
+            Bind a parameterized connector template (HTTP Pull, HTTP Push Webhook, or Kafka Push
+            Stream) so the dataplane knows how to serve or stream data for this distribution.
+          </p>
+          <div className="mt-5 flex items-center justify-center gap-2">
+            <Button size="sm" onClick={() => setInstantiateOpen(true)}>
+              <Sparkles /> Instantiate from template
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/my-catalog/connectors">Browse connector templates</Link>
+            </Button>
+          </div>
         </div>
       ) : (
-        <>
-          {steps
-            .filter((s): s is [string, Spec] => !!s[1])
-            .map(([title, spec]) => (
-              <PageSection key={title} title={title}>
+        <div className="space-y-8">
+          {/* 1. Resolved Connector Instance card */}
+          <section className="rounded-xl border border-ink/10 bg-ink/[0.012] p-5">
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-ink/[0.07] pb-3.5">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-semibold">Connector Instance (Resolved Binding)</h2>
+                  <Badge variant="info">Active binding</Badge>
+                </div>
+                <p className="mt-0.5 text-xs text-ink/55">
+                  Concrete configuration resolved for this distribution and consumed by the
+                  dataplane during DSP transfers.
+                </p>
+              </div>
+              <Button size="xs" variant="outline" onClick={() => setInstantiateOpen(true)}>
+                <Sparkles /> Re-instantiate / update parameters
+              </Button>
+            </div>
+
+            <FieldGrid
+              columns={4}
+              className="mb-5"
+              fields={[
+                { label: "Instance ID", value: <Identifier value={instance.id} /> },
+                {
+                  label: "Template & version",
+                  value: instance.name ? (
+                    <span className="font-mono text-xs">
+                      {instance.name} {instance.version ? `v${instance.version}` : ""}
+                    </span>
+                  ) : (
+                    "—"
+                  ),
+                },
+                {
+                  label: "Bound at",
+                  value: <FormatDate date={instance.createdAt ?? undefined} />,
+                },
+                {
+                  label: "Instance notes",
+                  value: instance.description || <span className="text-ink/40">—</span>,
+                },
+              ]}
+            />
+
+            <ConnectorSpecView
+              interaction={instance.interaction}
+              authentication={instance.authenticationConfig}
+            />
+          </section>
+
+          {/* 2. Source Connector Template card alongside the distribution */}
+          <section className="rounded-xl border border-ink/10 bg-ink/[0.012] p-5">
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-ink/[0.07] pb-3.5">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-semibold">Connector Template (Source Blueprint)</h2>
+                  {instance.name && (
+                    <Badge variant="outline" className="font-mono text-xs">
+                      {instance.name}
+                      {instance.version ? `@${instance.version}` : ""}
+                    </Badge>
+                  )}
+                </div>
+                <p className="mt-0.5 text-xs text-ink/55">
+                  Reusable template definition from which this connector instance was instantiated.
+                </p>
+              </div>
+              {instance.name && (
+                <div className="flex items-center gap-2">
+                  <Button asChild size="xs" variant="outline">
+                    <Link
+                      to="/my-catalog/connectors/$templateName"
+                      params={{ templateName: instance.name }}
+                      search={{ version: instance.version ?? undefined }}
+                    >
+                      Open template <ArrowUpRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {loadingTemplate ? (
+              <p className="text-xs text-ink/50">Loading connector template blueprint…</p>
+            ) : !template ? (
+              <p className="text-xs text-ink/55">
+                {instance.name
+                  ? `Template ${instance.name} (v${instance.version ?? "?"}) is no longer in the template library, though the resolved connector instance above remains intact.`
+                  : "This connector instance has no linked template metadata."}
+              </p>
+            ) : (
+              <>
                 <FieldGrid
-                  columns={3}
+                  columns={4}
+                  className="mb-4"
                   fields={[
-                    { label: "Protocol", value: spec.protocol },
                     {
-                      label: "Methods",
-                      value: (
-                        <span className="flex flex-wrap gap-1">
-                          {[spec.method ?? []].flat().map((m) => (
-                            <span
-                              key={m}
-                              className="rounded bg-ink/[0.07] px-1.5 py-0.5 font-mono text-xs"
-                            >
-                              {m}
-                            </span>
-                          ))}
-                        </span>
-                      ),
+                      label: "Template name",
+                      value: <span className="font-mono text-xs">{template.name}</span>,
                     },
                     {
-                      label: "Transport",
-                      value: spec.urlTemplate?.startsWith("https") ? "TLS (HTTPS)" : "Plain HTTP",
+                      label: "Version",
+                      value: <span className="font-mono text-xs">v{template.version}</span>,
                     },
                     {
-                      label: "Endpoint",
-                      span: 3,
-                      value: (
-                        <span className="break-all font-mono text-xs">{spec.urlTemplate}</span>
-                      ),
+                      label: "Author",
+                      value: template.author || <span className="text-ink/40">—</span>,
+                    },
+                    {
+                      label: "Description",
+                      value: template.description || <span className="text-ink/40">—</span>,
                     },
                   ]}
                 />
-                {(!!spec.headers || !!spec.bodyTemplate) && (
-                  <div className="mt-3 grid grid-cols-1 gap-4 xl:grid-cols-2">
-                    {spec.headers && (
-                      <div>
-                        <p className="mb-1.5 text-xs font-medium text-ink/50">Request headers</p>
-                        <JsonTable value={spec.headers} rawToggle={false} />
-                      </div>
-                    )}
-                    {!!spec.bodyTemplate && (
-                      <div>
-                        <p className="mb-1.5 text-xs font-medium text-ink/50">Body template</p>
-                        <JsonTable value={spec.bodyTemplate} />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </PageSection>
-            ))}
 
-          <PageSection
-            title="Authentication"
-            action={
-              hasSecrets && (
-                <Button variant="ghost" size="xs" onClick={() => setReveal(!reveal)}>
-                  {reveal ? <EyeOff /> : <Eye />}
-                  {reveal ? "Hide secrets" : "Show secrets"}
-                </Button>
-              )
-            }
-          >
-            <FieldGrid
-              columns={3}
-              fields={[{ label: "Method", value: AUTH_LABELS[authType] ?? authType }]}
-            />
-            {Object.keys(authFields).length > 0 && (
-              <JsonTable value={authFields} rawToggle={false} className="mt-3" />
+                <Tabs defaultValue="parameters">
+                  <TabsList>
+                    <TabsTrigger value="parameters">
+                      Declared parameters ({template.parameters?.length ?? 0})
+                    </TabsTrigger>
+                    <TabsTrigger value="blueprint">Unexpanded blueprint</TabsTrigger>
+                    <TabsTrigger value="json">Raw template JSON</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="parameters" className="pt-4">
+                    <PageSection title="Template parameters">
+                      <ConnectorParametersTable parameters={template.parameters ?? []} />
+                    </PageSection>
+                  </TabsContent>
+                  <TabsContent value="blueprint" className="pt-4">
+                    <ConnectorSpecView
+                      interaction={template.interaction}
+                      authentication={template.authentication}
+                    />
+                  </TabsContent>
+                  <TabsContent value="json" className="pt-4">
+                    <JsonViewer value={template} />
+                  </TabsContent>
+                </Tabs>
+              </>
             )}
-          </PageSection>
-        </>
+          </section>
+        </div>
       )}
+
+      <InstantiateConnectorDialog
+        open={instantiateOpen}
+        onOpenChange={setInstantiateOpen}
+        distributionId={distributionId}
+        distributionTitle={distribution.title}
+        initialTemplateName={instance?.name ?? undefined}
+        initialTemplateVersion={instance?.version ?? undefined}
+      />
+
+      <ConfirmDialog
+        open={unbindOpen}
+        onOpenChange={setUnbindOpen}
+        title="Unbind connector instance?"
+        description="The resolved connector instance will be deleted from this distribution. The underlying connector template is preserved."
+        confirmLabel="Unbind"
+        onConfirm={handleUnbind}
+      >
+        Active DSP transfers using this connector instance will prevent deletion (HTTP 409).
+      </ConfirmDialog>
 
       <CatalogResourceEditor
         target={editing}

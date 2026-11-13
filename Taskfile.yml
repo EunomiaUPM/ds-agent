@@ -58,7 +58,13 @@ tasks:
     cmds:
       - ./examples/scripts/push-demo.sh
 
+  examples:kafka:
+    desc: Start the optional Redpanda broker and run the end-to-end Kafka -> HTTP PUSH relay demo
+    cmds:
+      - docker compose -f examples/docker-compose.yaml --profile kafka up -d --wait redpanda
+      - ./examples/scripts/kafka-push-demo.sh
+
   examples:down:
     desc: Stop and remove the reproducible examples stack and volumes
     cmds:
-      - docker compose -f examples/docker-compose.yaml down -v
+      - docker compose -f examples/docker-compose.yaml --profile kafka down -v

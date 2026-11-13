@@ -20,8 +20,10 @@
 use std::sync::Arc;
 
 use ymir::services::token_validator::OauthTokenValidatorTrait;
+use common::config::services::traits::TransferConfigTrait;
 use common::config::services::TransferConfig;
 use common::config::types::traits::CacheConfigTrait;
+use connector::{ConnectorInstanceFacadeTrait, KeystoreLookup};
 use ymir::module_loader::root_context::RootContext;
 use keystore::KeystoreModule;
 use ymir::errors::{Errors, Outcome};
@@ -33,6 +35,7 @@ use crate::engine::dataplane_drivers::keystore_lookup::KeystoreClientImpl;
 use crate::engine::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactory;
 use crate::engine::dataplane_manager::dataplane_manager::DataplaneManager;
 use crate::proxy::DeliveryTracker;
+use crate::relay::{KafkaLeaseManager, KafkaRelaySupervisor, RdkafkaConsumerFactory};
 use crate::services::dataplane_transfer_logs::service::DataplaneTransferLogsService;
 use crate::services::dataplane_transfers::service::DataplaneTransferService;
 use crate::services::transfer_events::service::TransferEventsService;
@@ -46,10 +49,12 @@ pub struct AppContext {
     pub logs_svc: Arc<DataplaneTransferLogsService>,
     pub events_svc: Arc<TransferEventsService>,
     pub keystore_lookup: Arc<KeystoreClientImpl>,
+    pub connector: Arc<dyn ConnectorInstanceFacadeTrait>,
     pub manager: Arc<DataplaneManager>,
     pub oauth_validator: Arc<dyn OauthTokenValidatorTrait>,
     pub signals: DataplaneSignalSender,
     pub tracker: Arc<DeliveryTracker>,
+    pub kafka_supervisor: Arc<KafkaRelaySupervisor>,
 }
 
 impl AppContext {
@@ -62,6 +67,7 @@ impl AppContext {
             Arc::new(SeaOrmDataFactory::create_repo(root.db.clone()));
         let redis_conn = Self::redis_connection(config).await?;
         let tracker = Arc::new(DeliveryTracker::with_redis(redis_conn.clone()));
+        let kafka_lease = Arc::new(KafkaLeaseManager::with_redis(redis_conn.clone()));
         let cache = Arc::new(DataplaneTransferCacheForRedis::new(redis_conn));
         let transfer_svc = Arc::new(DataplaneTransferService::new(repo.clone(), cache));
 
@@ -71,13 +77,25 @@ impl AppContext {
             parameter_store,
             secret_store.clone(),
         ));
+        let keystore_dyn: Arc<dyn KeystoreLookup> = keystore_lookup.clone();
+        let kafka_supervisor = Arc::new(
+            KafkaRelaySupervisor::new(kafka_lease, Arc::new(RdkafkaConsumerFactory::new()))
+                .with_repo(repo.clone())
+                .with_tracker(tracker.clone())
+                .with_signals(ports.signals.clone())
+                .with_accept_invalid_certs(config.proxy_accept_invalid_certs())
+                .with_allow_private_egress(config.proxy_allow_private_egress()),
+        );
+
         let manager = DataplaneManager::new(
             transfer_svc.clone(),
             ports.connector.clone(),
             Arc::new(config.clone()),
         )
         .with_driver_factory(Arc::new(
-            DataplaneDriverFactory::new().with_keystore(keystore_lookup.clone()),
+            DataplaneDriverFactory::new()
+                .with_keystore(keystore_dyn)
+                .with_kafka_supervisor(kafka_supervisor.clone()),
         ))
         .with_secret_store(secret_store)
         .with_signals(ports.signals.clone());
@@ -88,10 +106,12 @@ impl AppContext {
             repo,
             transfer_svc,
             keystore_lookup,
+            connector: ports.connector.clone(),
             manager: Arc::new(manager),
             oauth_validator: root.validator.clone(),
             signals: ports.signals.clone(),
             tracker,
+            kafka_supervisor,
         })
     }
 

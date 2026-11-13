@@ -12,6 +12,7 @@ import {
   Archive,
   FileJson,
   Library,
+  Plug,
   ArrowLeftRight,
   Feather,
   Handshake,
@@ -111,6 +112,12 @@ export function AppSidebar() {
           title: "Policy Library",
           url: "/admin/my-catalog/policies",
           icon: Library,
+        },
+        {
+          title: "Connector Templates",
+          url: "/admin/my-catalog/connectors",
+          section: "/admin/my-catalog/connectors",
+          icon: Plug,
         },
         {
           title: "Events",

@@ -19,4 +19,5 @@ pub mod http_consumer_pull;
 pub mod http_consumer_push;
 pub mod http_provider_pull;
 pub mod http_provider_push;
+pub mod kafka_provider_push;
 pub mod no_op;

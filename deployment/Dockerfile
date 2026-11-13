@@ -34,7 +34,7 @@ WORKDIR /app
 
 # System dependencies
 RUN apt-get update && \
-    apt-get install -y pkg-config libssl-dev curl protobuf-compiler && \
+    apt-get install -y pkg-config libssl-dev curl protobuf-compiler cmake g++ && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy Rust workspace manifests

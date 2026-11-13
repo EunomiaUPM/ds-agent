@@ -12,8 +12,12 @@ are calls the GUI still makes to routes the backend no longer serves.
 
  * OpenAPI spec version: 1.0.0
  */
-import type { TemplateVecString } from './templateVecString';
+import type { KafkaOffsetReset } from './kafkaOffsetReset';
+import type { KafkaSaslMechanism } from './kafkaSaslMechanism';
+import type { KafkaSecurityProtocol } from './kafkaSecurityProtocol';
 import { KafkaSpecProtocol } from './kafkaSpecProtocol';
+import type { TemplateMapString } from './templateMapString';
+import type { TemplateVecString } from './templateVecString';
 
 export interface KafkaSpec {
   protocol: KafkaSpecProtocol;
@@ -21,4 +25,10 @@ export interface KafkaSpec {
   topic: string;
   /** @nullable */
   groupId?: string | null;
+  securityProtocol?: KafkaSecurityProtocol;
+  /** @nullable */
+  saslMechanism?: KafkaSaslMechanism | null;
+  autoOffsetReset?: KafkaOffsetReset;
+  /** @nullable */
+  clientProperties?: TemplateMapString | null;
 }

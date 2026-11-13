@@ -31,6 +31,7 @@ mod handlers_consumer_push;
 mod handlers_provider_pull;
 mod handlers_provider_push;
 mod handlers_strategy;
+mod kafka_relay;
 mod manager;
 mod proxy_http;
 mod pubsub_http;

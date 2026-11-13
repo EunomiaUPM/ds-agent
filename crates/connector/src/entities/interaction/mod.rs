@@ -31,6 +31,7 @@ pub mod push;
 pub use pull::*;
 pub use push::*;
 
+use crate::entities::resource::ProtocolSpec;
 use serde::{Deserialize, Serialize};
 use ymir::errors::{Errors, Outcome};
 
@@ -84,6 +85,24 @@ impl InteractionConfig {
                     ),
                     None,
                 ));
+            }
+        }
+        match self {
+            Self::Pull(lc) => {
+                if matches!(lc.data_access, ProtocolSpec::Kafka(_)) {
+                    return Err(Errors::validation(
+                        "KAFKA protocol is not supported in PULL mode; use PUSH mode (subscribe)",
+                        None,
+                    ));
+                }
+            }
+            Self::Push(lc) => {
+                if matches!(lc.unsubscribe, Some(ProtocolSpec::Kafka(_))) {
+                    return Err(Errors::validation(
+                        "KAFKA push interactions stop the managed consumer automatically; unsubscribe must be null",
+                        None,
+                    ));
+                }
             }
         }
         Ok(())

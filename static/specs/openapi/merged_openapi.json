@@ -20446,6 +20446,33 @@
         "description": "A JSON Schema (draft 2020-12 unless it names another dialect).",
         "additionalProperties": true
       },
+      "KafkaOffsetReset": {
+        "type": "string",
+        "enum": [
+          "LATEST",
+          "EARLIEST"
+        ],
+        "default": "LATEST"
+      },
+      "KafkaSaslMechanism": {
+        "type": "string",
+        "enum": [
+          "PLAIN",
+          "SCRAM_SHA_256",
+          "SCRAM_SHA_512",
+          "OAUTHBEARER"
+        ]
+      },
+      "KafkaSecurityProtocol": {
+        "type": "string",
+        "enum": [
+          "PLAINTEXT",
+          "SSL",
+          "SASL_PLAINTEXT",
+          "SASL_SSL"
+        ],
+        "default": "PLAINTEXT"
+      },
       "KafkaSpec": {
         "type": "object",
         "required": [
@@ -20468,6 +20495,32 @@
             "type": [
               "string",
               "null"
+            ]
+          },
+          "securityProtocol": {
+            "$ref": "#/components/schemas/KafkaSecurityProtocol"
+          },
+          "saslMechanism": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/KafkaSaslMechanism"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "autoOffsetReset": {
+            "$ref": "#/components/schemas/KafkaOffsetReset"
+          },
+          "clientProperties": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TemplateMapString"
+              },
+              {
+                "type": "null"
+              }
             ]
           }
         }

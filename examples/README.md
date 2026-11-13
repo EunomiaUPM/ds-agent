@@ -1,22 +1,24 @@
-# Reproducible End-to-End Examples (`HTTP PULL` & `HTTP PUSH`)
+# Reproducible End-to-End Examples (`HTTP PULL`, `HTTP PUSH`, & `Kafka PUSH Relay`)
 
-This directory provides a self-contained Docker Compose playground that reproduces both interaction modes of the **Eunomia `ds-protocol` connector and governed HTTP data plane** in under 15 minutes, with **zero external authority or cloud dependencies**.
+This directory provides a self-contained Docker Compose playground that reproduces the interaction modes of the **Eunomia `ds-protocol` connector and governed HTTP & Kafka data plane** in under 15 minutes, with **zero external authority or cloud dependencies**.
 
 ## Architecture
 
 ```text
-Host CLI (onboard.sh / pull-demo.sh / push-demo.sh)
+Host CLI (onboard.sh / pull-demo.sh / push-demo.sh / kafka-push-demo.sh)
    │
    ├──► Provider Agent (:1200)  ◄──── DSP 2025-1 + GNAP/OID4VP ────►  Consumer Agent (:1100)
    │      ├─ connector (templates & instances)                          ├─ transfer-agent
    │      ├─ keystore  (/edaccit/*, /ecostars/*)                        └─ HttpDataProxy (/dataplane/proxy/{id})
-   │      └─ HttpDataProxy (/dataplane/proxy/{id})
-   │              │                                                            │
-   │              ▼                                                            ▼
-   └────► Mock Backend & Sink (:18080, Python 3 stdlib) ◄──────────────────────┘
+   │      ├─ HttpDataProxy (/dataplane/proxy/{id})
+   │      └─ KafkaRelaySupervisor (librdkafka -> HTTP POST sink + Redis lease)
+   │              ▲                  │                                           │
+   │              │ (--profile kafka)▼                                           ▼
+   │      Redpanda Broker (:19092 / redpanda:9092)                               │
+   └────► Mock Backend & Sink (:18080, Python 3 stdlib) ◄────────────────────────┘
             ├─ GET    /arcgis/rest/services/edaccit/FeatureServer/0/query  (API_KEY in QUERY)
             ├─ POST   /esg/webhooks + POST /esg/emit + DELETE /esg/webhooks/{id} (BEARER_TOKEN)
-            └─ POST   /consumer-sink/events                                (Consumer push sink)
+            └─ POST   /consumer-sink/events                                (Consumer push sink + X-Kafka-* headers)
 ```
 
 Both participants use self-attested **Gaia-X `LegalPerson` Verifiable Credentials** stored in their local Fafnir wallets (`POST /api/v1/gaia/generate`), enabling real **GNAP + OID4VP** mutual authentication without spinning up a third SSI authority stack.
@@ -44,6 +46,10 @@ docker compose -f examples/docker-compose.yaml up -d --build --wait
 
 # 4. Run the ECOSTARS-inspired HTTP PUSH scenario
 ./examples/scripts/push-demo.sh
+
+# 5. (Optional) Start Redpanda and run the Kafka -> HTTP PUSH relay scenario
+docker compose -f examples/docker-compose.yaml --profile kafka up -d --wait redpanda
+./examples/scripts/kafka-push-demo.sh
 ```
 
 Or via `Taskfile.yml`:
@@ -53,6 +59,7 @@ task examples:up
 task examples:pull
 task examples:pull-finite
 task examples:push
+task examples:kafka
 task examples:down
 ```
 
@@ -88,8 +95,16 @@ task examples:down
 2. Negotiates an agreement and starts the `http+pull` transfer (`STARTED`).
 3. Pulls the GeoJSON snapshot once via the Consumer's local `HttpDataProxy` (`200 OK`, 3 features) and verifies that `DataplaneSignal::Completed` emitted at stream EOF automatically sends `TransferCompletionMessage` over DSP 2025-1, transitioning **both** Provider and Consumer to `COMPLETED` and rejecting any second pull (`403` / `410`).
 
+### 4. `./examples/scripts/kafka-push-demo.sh` (`Kafka -> HTTP PUSH` Supervised Relay)
+
+1. Creates a topic on the optional `redpanda` broker (`--profile kafka`).
+2. Registers `kafka-telemetry-push` (`ConnectorTemplate` with `protocol: "KAFKA"`, `VEC<STRING>` `KAFKA_BROKERS`, `STRING` `KAFKA_TOPIC`, `autoOffsetReset: "EARLIEST"`) and binds a `ConnectorInstance` (`redpanda:9092`) to an `http+push` distribution.
+3. Negotiates an agreement (`FINALIZED`) and starts the `PUSH` transfer (`STARTED`), spawning a supervised `KafkaRelayWorker` under a Redis distributed lease (`15 s` TTL).
+4. Produces 3 keyed JSON sensor events via `rpk topic produce` and verifies ordered delivery to `/consumer-sink/events` (`offsets 0..2`) alongside `X-Kafka-Topic`, `X-Kafka-Partition`, `X-Kafka-Offset`, `X-Kafka-Timestamp`, and `X-Kafka-Key` headers.
+5. Suspends (`SUSPENDED`), produces a 4th event while paused (verifying zero sink delivery while suspended), resumes (`STARTED`, verifying automatic continuation from committed offset `3` without duplicate replay), and terminates (`TERMINATED`).
+
 ## Tear Down
 
 ```bash
-docker compose -f examples/docker-compose.yaml down -v
+docker compose -f examples/docker-compose.yaml --profile kafka down -v
 ```

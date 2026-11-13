@@ -75,11 +75,16 @@ impl ConnectorTemplateService {
         )
         .map_err(|e| Errors::parse(format!("Error deserializing parameters: {e}"), None))?;
 
+        let description = spec
+            .get("description")
+            .and_then(|v| v.as_str())
+            .map(ToString::to_string);
+
         Ok(ConnectorTemplateDto {
             metadata: ConnectorMetadata {
                 name: Option::from(model.name),
                 author: Option::from(model.author),
-                description: None,
+                description,
                 version: Option::from(model.version),
                 created_at: Some(model.created_at),
             },
@@ -180,7 +185,7 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
         new_template: &mut ConnectorTemplateDto,
     ) -> Outcome<ConnectorTemplateDto> {
         // extract parameters and validate
-        new_template.interaction.validate()?;
+        new_template.validate_semantics()?;
         let mut extractor = TemplateParametersExtractor::new();
         extractor.walk(new_template)?;
         let parameters_found = extractor.found_parameters();

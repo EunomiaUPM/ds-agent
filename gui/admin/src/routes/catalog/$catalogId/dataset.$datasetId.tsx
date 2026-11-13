@@ -18,7 +18,7 @@
 import React, { useState } from "react";
 import { CatalogViews, type CatalogDoc, type DistributionView } from "shared/src/data/catalog";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowUpRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowUpRight, Pencil, Plug, Plus, Trash2 } from "lucide-react";
 import {
   useGetDatasetById,
   getGetDatasetByIdQueryOptions,
@@ -27,11 +27,12 @@ import {
   useGetDistributionsByDatasetId,
   getGetDistributionsByDatasetIdQueryOptions,
 } from "shared/src/data/orval/distributions/distributions";
+import { useGetConnectorInstanceByDistribution } from "shared/src/data/orval/connector/connector";
 import { useGetPoliciesByEntityId } from "shared/src/data/orval/odrl-policies/odrl-policies";
 import { useGetCatalogById } from "shared/src/data/orval/catalogs/catalogs";
 import { useDoctorDataset } from "shared/src/data/orval/doctor/doctor";
 import { OdrlPolicyDto } from "shared/src/data/orval/model";
-import { PageLayout } from "@eunomia/ui";
+import { Badge, PageLayout } from "@eunomia/ui";
 import { PageHeader } from "@eunomia/ui";
 import { FieldGrid } from "@eunomia/ui";
 import { DataTable } from "@eunomia/ui";
@@ -43,6 +44,11 @@ import { Dialog, DialogTrigger } from "@eunomia/ui";
 import { Identifier } from "@eunomia/ui";
 import { ParticipantLabel } from "@eunomia/ui";
 import { JsonTable } from "@eunomia/ui";
+import {
+  extractInteractionMode,
+  extractPrimaryProtocol,
+} from "shared/src/components/connector/ConnectorSpecView";
+import { InstantiateConnectorDialog } from "shared/src/components/connector/InstantiateConnectorDialog";
 import { PolicyCard } from "shared/src/components/policy/PolicyCard";
 import { PolicyComposer } from "shared/src/components/policy/PolicyComposer";
 import { PolicyDetailDialog } from "shared/src/components/policy/PolicyDetailDialog";
@@ -71,6 +77,68 @@ export const Route = createFileRoute("/catalog/$catalogId/dataset/$datasetId")({
   },
 });
 
+interface InstantiateTarget {
+  distributionId: string;
+  distributionTitle?: string;
+  templateName?: string;
+  templateVersion?: string;
+}
+
+function DistributionConnectorCell({
+  distribution,
+  onInstantiate,
+}: {
+  distribution: DistributionView;
+  onInstantiate: (target: InstantiateTarget) => void;
+}) {
+  const { data, isLoading } = useGetConnectorInstanceByDistribution(distribution.id, {
+    query: { retry: false },
+  });
+
+  if (isLoading) {
+    return <span className="text-xs text-ink/40">…</span>;
+  }
+
+  const instance = data?.status === 200 ? data.data : undefined;
+  if (!instance) {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5"
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+      >
+        <Badge variant="outline">Unbound</Badge>
+        <Button
+          size="xs"
+          variant="outline"
+          onClick={() =>
+            onInstantiate({
+              distributionId: distribution.id,
+              distributionTitle: distribution.title,
+            })
+          }
+        >
+          <Plug className="h-3 w-3" /> Instantiate
+        </Button>
+      </span>
+    );
+  }
+
+  const mode = extractInteractionMode(instance.interaction);
+  const protocol = extractPrimaryProtocol(instance.interaction);
+  return (
+    <span className="flex flex-col gap-0.5">
+      <span className="inline-flex items-center gap-1.5">
+        <Badge variant="info">
+          {mode} · {protocol}
+        </Badge>
+      </span>
+      <span className="font-mono text-[11px] text-ink/60">
+        {instance.name ? `${instance.name} v${instance.version ?? ""}` : instance.id}
+      </span>
+    </span>
+  );
+}
+
 function DatasetPage() {
   const { catalogId, datasetId } = Route.useParams();
   const navigate = useNavigate();
@@ -78,6 +146,7 @@ function DatasetPage() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [editing, setEditing] = useState<EditorTarget | null>(null);
   const [deleting, setDeleting] = useState<DeleteTarget | null>(null);
+  const [instantiating, setInstantiating] = useState<InstantiateTarget | null>(null);
 
   const { data: catalogData } = useGetCatalogById(catalogId);
   const { data: datasetData } = useGetDatasetById(datasetId);
@@ -294,6 +363,15 @@ function DatasetPage() {
                 ),
               },
               {
+                header: "Connector (Instance & Template)",
+                cell: (d) => (
+                  <DistributionConnectorCell
+                    distribution={d}
+                    onInstantiate={setInstantiating}
+                  />
+                ),
+              },
+              {
                 header: "Data service",
                 cell: (d) => (
                   <Link
@@ -320,6 +398,19 @@ function DatasetPage() {
                     className="inline-flex items-center gap-1"
                     onClick={(e: React.MouseEvent) => e.stopPropagation()}
                   >
+                    <Button
+                      size="icon_sm"
+                      variant="ghost"
+                      title="Instantiate or replace connector from template"
+                      onClick={() =>
+                        setInstantiating({
+                          distributionId: d.id,
+                          distributionTitle: d.title,
+                        })
+                      }
+                    >
+                      <Plug />
+                    </Button>
                     <Button
                       size="icon_sm"
                       variant="ghost"
@@ -368,6 +459,15 @@ function DatasetPage() {
           });
           await refetchPolicies();
         }}
+      />
+
+      <InstantiateConnectorDialog
+        open={!!instantiating}
+        onOpenChange={(open) => !open && setInstantiating(null)}
+        distributionId={instantiating?.distributionId}
+        distributionTitle={instantiating?.distributionTitle}
+        initialTemplateName={instantiating?.templateName}
+        initialTemplateVersion={instantiating?.templateVersion}
       />
 
       <CatalogResourceEditor

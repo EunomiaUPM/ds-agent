@@ -75,21 +75,48 @@ impl JsonLdType for ConnectorTemplateDto {
 }
 
 impl ConnectorTemplateDto {
+    /// Validates cross-section semantics (interaction constraints and `AuthenticationConfig` ×
+    /// `KafkaSpec` SASL compatibility) prior to persisting a template.
+    pub fn validate_semantics(&self) -> Outcome<()> {
+        self.interaction.validate()?;
+        if let InteractionConfig::Push(lc) = &self.interaction {
+            if let crate::ProtocolSpec::Kafka(kafka) = &lc.subscribe {
+                kafka.validate_with_auth(&self.authentication)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Validates concrete values after instance-time placeholder resolution.
+    pub fn validate_resolved(&self) -> Outcome<()> {
+        self.validate_semantics()?;
+        if let InteractionConfig::Push(lc) = &self.interaction {
+            if let crate::ProtocolSpec::Kafka(kafka) = &lc.subscribe {
+                kafka.validate_resolved()?;
+            }
+        }
+        Ok(())
+    }
+
     /// Serializes the auth, interaction and parameter sections into a row of `owner`.
     pub fn into_model(self, owner: Owner) -> Outcome<NewConnectorTemplateModel> {
         let authentication = serde_json::to_value(self.authentication)?;
         let interaction = serde_json::to_value(self.interaction)?;
         let parameters = serde_json::to_value(self.parameters)?;
+        let mut spec = json!({
+            "authentication": authentication,
+            "interaction": interaction,
+            "parameters": parameters,
+        });
+        if let Some(desc) = self.metadata.description {
+            spec["description"] = json!(desc);
+        }
         Ok(NewConnectorTemplateModel {
             owner,
             name: self.metadata.name,
             version: self.metadata.version,
             author: self.metadata.author,
-            spec: json!({
-                "authentication": authentication,
-                "interaction": interaction,
-                "parameters": parameters,
-            }),
+            spec,
         })
     }
 }

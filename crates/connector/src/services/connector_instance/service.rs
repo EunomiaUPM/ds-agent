@@ -186,6 +186,16 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
             })?;
         let mut connector_template_dto: ConnectorTemplateDto =
             serde_json::from_value(template_model.spec.clone())?;
+        connector_template_dto.metadata.name = Some(template_model.name.clone());
+        connector_template_dto.metadata.version = Some(template_model.version.clone());
+        connector_template_dto.metadata.author = Some(template_model.author.clone());
+        if connector_template_dto.metadata.description.is_none() {
+            connector_template_dto.metadata.description = template_model
+                .spec
+                .get("description")
+                .and_then(|v| v.as_str())
+                .map(ToString::to_string);
+        }
 
         // fetch distribution or error
         let distribution_id = instance_dto.distribution_id.to_string();
@@ -209,8 +219,14 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
             .collect();
 
         // resolve values in template
-        let connector_resolved =
+        let mut connector_resolved =
             InstanceParametersResolver::new(&connector_template_dto, &params).resolve()?;
+        connector_resolved.validate_resolved()?;
+        if let Some(instance_meta) = &instance_dto.metadata {
+            if instance_meta.description.is_some() {
+                connector_resolved.metadata.description = instance_meta.description.clone();
+            }
+        }
 
         // prepare data
         let metadata_json = connector_resolved.metadata.clone();

@@ -85,9 +85,17 @@ every declaration must be used, with a type that fits where it appears (`STRING`
 `BOOLEAN`, `VEC<STRING>`, `MAP<STRING,STRING>`). Both `PULL` and `PUSH` interactions optionally
 declare `"lifetime": "INFINITE"` (default) or `"FINITE"` (single-shot transfer that completes
 after one `2xx` delivery) and `"maxRetries"` (`0..=20` consecutive transient failures before
-signalling termination). Secret fields (`SecretString`) can come as
-`PLAIN`, `BASE64`, or from `ENV_VAR`, and their content can hold placeholders (including
-`{{__RUNTIME_SECRET_{/key}__}}` backed by the keystore/Vault) too.
+signalling termination).
+
+`ProtocolSpec` supports both `HTTP` (`PULL.dataAccess`, `PUSH.subscribe`, `PUSH.unsubscribe`) and
+`KAFKA` (`PUSH.subscribe` only; rejected in `PULL` and `PUSH.unsubscribe`). `KafkaSpec` validates
+`securityProtocol` (`PLAINTEXT`, `SSL`, `SASL_PLAINTEXT`, `SASL_SSL`), `saslMechanism` (`PLAIN`,
+`SCRAM_SHA_256`, `SCRAM_SHA_512`, `OAUTHBEARER`), `autoOffsetReset` (`LATEST`, `EARLIEST`), an
+allowlist of safe `librdkafka` `clientProperties`, and cross-validates `AuthenticationConfig`
+(`NO_AUTH` for non-SASL, `BASIC_AUTH` for `PLAIN`/`SCRAM_SHA_*`, `BEARER_TOKEN`/`OAUTH2` for
+`OAUTHBEARER`), plus resolved `host:port` brokers and Kafka topic syntax on instantiation. Secret
+fields (`SecretString`) can come as `PLAIN`, `BASE64`, or from `ENV_VAR`, and their content can
+hold placeholders (including `{{__RUNTIME_SECRET_{/key}__}}` backed by the keystore/Vault) too.
 
 ## Instances
 

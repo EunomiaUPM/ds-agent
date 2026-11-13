@@ -28,6 +28,8 @@ sea-orm = { workspace = true }
 sea-orm-migration = { workspace = true }
 hyper = { workspace = true }
 tokio = { workspace = true }
+tokio-util = { workspace = true }
+rdkafka = { workspace = true }
 async-trait = { workspace = true }
 uuid = { workspace = true }
 url = { workspace = true }

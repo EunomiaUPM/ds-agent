@@ -204,11 +204,20 @@ class MockHandler(BaseHTTPRequestHandler):
             return
 
         if parsed.path == "/consumer-sink/events":
-            body = self._read_json_body()
+            length = int(self.headers.get("Content-Length", "0"))
+            raw_bytes = self.rfile.read(length) if length > 0 else b""
+            if raw_bytes:
+                try:
+                    body: object = json.loads(raw_bytes.decode("utf-8"))
+                except Exception:  # noqa: BLE001
+                    body = raw_bytes.decode("utf-8", errors="replace")
+            else:
+                body = {}
             captured_headers = {
                 k.lower(): v
                 for k, v in self.headers.items()
                 if k.lower() in ("authorization", "content-type", "x-forwarded-for")
+                or k.lower().startswith("x-kafka-")
             }
             record = {
                 "path": self.path,

@@ -23,7 +23,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends pkg-config libssl-dev protobuf-compiler python3-yaml
+          sudo apt-get install -y --no-install-recommends pkg-config libssl-dev protobuf-compiler python3-yaml cmake g++
 
       - name: Check OpenAPI specs are up to date
         run: python3 scripts/tools/build-openapi.py --check

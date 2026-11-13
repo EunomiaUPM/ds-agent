@@ -37,6 +37,7 @@ use crate::http::dataplane_info::DataPlaneProcessesRouter;
 use crate::http::dataplane_transfer_logs::DataplaneTransferLogsRouter;
 use crate::http::transfer_events::TransferEventsRouter;
 use crate::proxy::HttpDataProxy;
+use crate::relay::KafkaRecoveryWorker;
 use crate::setup::context::AppContext;
 use crate::setup::ports::DataplanePorts;
 use common::routes::dataplane as routes;
@@ -142,6 +143,16 @@ impl ServiceModuleTrait for DataplaneModule {
                 self.proxy_router(),
             );
         Some((String::new(), router))
+    }
+
+    fn workers(&self) -> Vec<Box<dyn ymir::boot::workers::BackgroundWorker>> {
+        let ks: Arc<dyn connector::KeystoreLookup> = self.ctx.keystore_lookup.clone();
+        vec![Box::new(KafkaRecoveryWorker::new(
+            self.ctx.repo.clone(),
+            self.ctx.connector.clone(),
+            Some(ks),
+            self.ctx.kafka_supervisor.clone(),
+        ))]
     }
 }
 

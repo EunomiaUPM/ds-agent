@@ -22,6 +22,8 @@ src/
 │   └── dataplane_drivers/   Authenticators, proxy configurators, pub/sub subscribers,
 │                            KeystoreClientImpl
 ├── proxy/           HttpDataProxy + Redis/in-memory DeliveryTracker (ingress auth, anti-SSRF, FINITE/maxRetries)
+├── relay/           Supervised Kafka -> HTTP PUSH relay (KafkaLeaseManager, RdkafkaConsumerFactory,
+│                    KafkaRelayWorker, KafkaRelaySupervisor, KafkaRecoveryWorker)
 ├── cache/           Redis cache of dataplane processes
 ├── data/            Repository traits, SeaORM repositories and migrations
 ├── http/            Control API: processes, logs and events
@@ -61,17 +63,18 @@ The driver factory picks three parts per process from its role, mode and connect
 
 | Part | Provider | Consumer |
 |---|---|---|
-| Authenticator | From the connector's `authentication`: none, basic, bearer, API key, OAuth 2.0 | None |
-| Proxy configurator | HTTP pull or push; any other protocol is rejected | HTTP pull or push |
-| Subscriber | Push over HTTP; Kafka is not implemented | Push: no-op |
+| Authenticator | From the connector's `authentication`: none, basic (HTTP Basic / Kafka SASL `PLAIN` & `SCRAM-SHA-*`), bearer / OAuth 2.0 (HTTP Bearer / Kafka `OAUTHBEARER`), API key | None |
+| Proxy configurator | HTTP pull, HTTP push, or Kafka push (`KafkaProviderPushConfigurator`) | HTTP pull or push |
+| Subscriber | Push over HTTP (`HttpPubSubscriber`) or Kafka (`KafkaPubSubscriber`) | Push: no-op |
 
-Every process gets an ingress at `/dataplane/proxy/{dataplane_id}` on the agent's HTTP host.
+Every HTTP process gets an ingress at `/dataplane/proxy/{dataplane_id}` on the agent's HTTP host (`KafkaProviderPushConfigurator` sets `ingress: None` because the dataplane actively consumes from the Kafka cluster rather than exposing a webhook listener).
 The egress depends on the case:
 
 | Case | Egress |
 |---|---|
 | Provider pull | The connector's `urlTemplate`, with the connector's credentials |
-| Provider push | The consumer's address; the back end pushes to the provider's ingress |
+| Provider push (HTTP) | The consumer's address; the back end pushes to the provider's ingress |
+| Provider push (Kafka) | The consumer's `DataAddress` sink; `KafkaRelayWorker` consumes from Kafka and POSTs records directly to the consumer sink |
 | Consumer pull | The provider's address and token |
 | Consumer push | The consumer's sink address, required |
 
@@ -111,6 +114,30 @@ static credentials are kept as resolved.
 
 The proxy's HTTP client verifies upstream TLS certificates by default
 (`proxy_accept_invalid_certs: false`).
+
+## Kafka PUSH relay
+
+When a provider `PUSH` connector declares `"protocol": "KAFKA"`, `KafkaPubSubscriber` drives
+`KafkaRelaySupervisor` instead of exposing an HTTP webhook listener:
+
+- `SetSubscribing` runs a 5 s broker/topic metadata preflight (`RdkafkaConsumerFactory::preflight`)
+  and spawns a supervised `KafkaRelayWorker` task.
+- Each worker acquires and renews (`5 s` tick, `15 s` TTL) a Redis Lua distributed lease
+  (`dataplane:kafka:lease:{dataplane_id}`) via `KafkaLeaseManager` (with an in-memory fallback for
+  unit tests), ensuring single-worker ownership across replicas.
+- Records are consumed with `enable.auto.commit=false` and `enable.auto.offset.store=false` (consumer
+  group `ds-{dataplane_id}` by default), forwarded as `HTTP POST` requests to the consumer's
+  `DataAddress` sink (checked against the same SSRF rules and authenticated with the consumer's
+  `DataAddress` capability token, never leaking provider SASL secrets) alongside `X-Kafka-Topic`,
+  `X-Kafka-Partition`, `X-Kafka-Offset`, `X-Kafka-Timestamp`, and `X-Kafka-Key` headers, and logged
+  as `TransferEvent` entries.
+- Offsets (`offset + 1`) are committed manually only after a `2xx` sink response. `FINITE` transfers
+  emit `DataplaneSignal::Completed` after committing the first delivered record; permanent auth/sink
+  errors or consecutive transient errors exceeding `maxRetries` emit `DataplaneSignal::Failed`.
+- `SetUnsubscribing` / `SetTerminating` cancels the worker and releases its lease immediately.
+- `KafkaRecoveryWorker` (`BackgroundWorker` registered by `DataplaneModule::workers()`) sweeps
+  `Started` provider `PUSH` Kafka transfers every `5 s` to re-adopt orphaned relays after restarts
+  or replica failovers.
 
 ## Setup
 

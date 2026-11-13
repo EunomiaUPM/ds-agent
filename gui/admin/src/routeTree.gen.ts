@@ -8,528 +8,881 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-// Import Routes
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgreementsRouteRouteImport } from './routes/agreements/route'
+import { Route as AuthorityRouteRouteImport } from './routes/authority/route'
+import { Route as CatalogRouteRouteImport } from './routes/catalog/route'
+import { Route as ConnectionsRouteRouteImport } from './routes/connections/route'
+import { Route as ContractNegotiationRouteRouteImport } from './routes/contract-negotiation/route'
+import { Route as EventsRouteRouteImport } from './routes/events/route'
+import { Route as KeystoreRouteRouteImport } from './routes/keystore/route'
+import { Route as MyCatalogRouteRouteImport } from './routes/my-catalog/route'
+import { Route as ParticipantsRouteRouteImport } from './routes/participants/route'
+import { Route as TransferProcessRouteRouteImport } from './routes/transfer-process/route'
+import { Route as WalletRouteRouteImport } from './routes/wallet/route'
+import { Route as AgreementsIndexRouteImport } from './routes/agreements/index'
+import { Route as AgreementsAgreementIdRouteImport } from './routes/agreements/$agreementId'
+import { Route as AuthorityIndexRouteImport } from './routes/authority/index'
+import { Route as AuthorityNewRouteImport } from './routes/authority/new'
+import { Route as AuthorityRequestDetailsRouteImport } from './routes/authority/request-details'
+import { Route as CatalogIndexRouteImport } from './routes/catalog/index'
+import { Route as CatalogCatalogIdRouteRouteImport } from './routes/catalog/$catalogId/route'
+import { Route as CatalogParticipantRouteRouteImport } from './routes/catalog/participant/route'
+import { Route as ConnectionsIndexRouteImport } from './routes/connections/index'
+import { Route as ConnectionsReceivedRouteRouteImport } from './routes/connections/received/route'
+import { Route as ConnectionsSentRouteRouteImport } from './routes/connections/sent/route'
+import { Route as ContractNegotiationIndexRouteImport } from './routes/contract-negotiation/index'
+import { Route as ContractNegotiationCnProcessRouteRouteImport } from './routes/contract-negotiation/$cnProcess/route'
+import { Route as EventsIndexRouteImport } from './routes/events/index'
+import { Route as EventsDlqRouteImport } from './routes/events/dlq'
+import { Route as EventsFeedRouteImport } from './routes/events/feed'
+import { Route as EventsSubscriptionsRouteImport } from './routes/events/subscriptions'
+import { Route as KeystoreIndexRouteImport } from './routes/keystore/index'
+import { Route as KeystoreConfigRouteImport } from './routes/keystore/config'
+import { Route as KeystoreParametersRouteImport } from './routes/keystore/parameters'
+import { Route as KeystoreSecretsRouteImport } from './routes/keystore/secrets'
+import { Route as MyCatalogIndexRouteImport } from './routes/my-catalog/index'
+import { Route as MyCatalogImportRouteImport } from './routes/my-catalog/import'
+import { Route as MyCatalogNewRouteImport } from './routes/my-catalog/new'
+import { Route as ParticipantsIndexRouteImport } from './routes/participants/index'
+import { Route as ParticipantsParticipantIdRouteRouteImport } from './routes/participants/$participantId/route'
+import { Route as TransferProcessIndexRouteImport } from './routes/transfer-process/index'
+import { Route as TransferProcessTransferProcessIdRouteRouteImport } from './routes/transfer-process/$transferProcessId/route'
+import { Route as WalletIndexRouteImport } from './routes/wallet/index'
+import { Route as WalletCredentialsRouteImport } from './routes/wallet/credentials'
+import { Route as WalletDidRouteImport } from './routes/wallet/did'
+import { Route as WalletInfoRouteImport } from './routes/wallet/info'
+import { Route as WalletKeysRouteImport } from './routes/wallet/keys'
+import { Route as WalletOidc4vciRouteImport } from './routes/wallet/oidc4vci'
+import { Route as WalletOidc4vpRouteImport } from './routes/wallet/oidc4vp'
+import { Route as CatalogCatalogIdIndexRouteImport } from './routes/catalog/$catalogId/index'
+import { Route as ConnectionsReceivedIndexRouteImport } from './routes/connections/received/index'
+import { Route as ConnectionsReceivedRequestDetailsRouteImport } from './routes/connections/received/request-details'
+import { Route as ConnectionsSentIndexRouteImport } from './routes/connections/sent/index'
+import { Route as ConnectionsSentNewRouteImport } from './routes/connections/sent/new'
+import { Route as ConnectionsSentRequestDetailsRouteImport } from './routes/connections/sent/request-details'
+import { Route as ContractNegotiationCnProcessIndexRouteImport } from './routes/contract-negotiation/$cnProcess/index'
+import { Route as MyCatalogConnectorsIndexRouteImport } from './routes/my-catalog/connectors/index'
+import { Route as MyCatalogConnectorsTemplateNameRouteImport } from './routes/my-catalog/connectors/$templateName'
+import { Route as MyCatalogConnectorsNewRouteImport } from './routes/my-catalog/connectors/new'
+import { Route as MyCatalogPoliciesIndexRouteImport } from './routes/my-catalog/policies/index'
+import { Route as MyCatalogPoliciesTemplateIdRouteImport } from './routes/my-catalog/policies/$templateId'
+import { Route as MyCatalogPoliciesNewRouteImport } from './routes/my-catalog/policies/new'
+import { Route as MyCatalogSchemasIndexRouteImport } from './routes/my-catalog/schemas/index'
+import { Route as MyCatalogSchemasSchemaIdRouteImport } from './routes/my-catalog/schemas/$schemaId'
+import { Route as MyCatalogSchemasNewRouteImport } from './routes/my-catalog/schemas/new'
+import { Route as ParticipantsParticipantIdIndexRouteImport } from './routes/participants/$participantId/index'
+import { Route as TransferProcessTransferProcessIdIndexRouteImport } from './routes/transfer-process/$transferProcessId/index'
+import { Route as CatalogCatalogIdDataServiceDataServiceIdRouteImport } from './routes/catalog/$catalogId/data-service.$dataServiceId'
+import { Route as CatalogCatalogIdDatasetDatasetIdRouteImport } from './routes/catalog/$catalogId/dataset.$datasetId'
+import { Route as CatalogCatalogIdDistributionConnectorDistributionIdRouteImport } from './routes/catalog/$catalogId/distribution-connector.$distributionId'
+import { Route as CatalogParticipantParticipantIdIndexRouteImport } from './routes/catalog/participant/$participantId/index'
+import { Route as TransferProcessTransferProcessIdTransferMessageTransferMessageIdRouteImport } from './routes/transfer-process/$transferProcessId/transfer-message.$transferMessageId'
+import { Route as CatalogParticipantParticipantIdDatasetDatasetIdRouteImport } from './routes/catalog/participant/$participantId/dataset.$datasetId'
 
-import { Route as rootRoute } from './routes/__root'
-import { Route as WalletRouteImport } from './routes/wallet/route'
-import { Route as TransferProcessRouteImport } from './routes/transfer-process/route'
-import { Route as ParticipantsRouteImport } from './routes/participants/route'
-import { Route as MyCatalogRouteImport } from './routes/my-catalog/route'
-import { Route as KeystoreRouteImport } from './routes/keystore/route'
-import { Route as EventsRouteImport } from './routes/events/route'
-import { Route as ContractNegotiationRouteImport } from './routes/contract-negotiation/route'
-import { Route as ConnectionsRouteImport } from './routes/connections/route'
-import { Route as CatalogRouteImport } from './routes/catalog/route'
-import { Route as AuthorityRouteImport } from './routes/authority/route'
-import { Route as AgreementsRouteImport } from './routes/agreements/route'
-import { Route as IndexImport } from './routes/index'
-import { Route as WalletIndexImport } from './routes/wallet/index'
-import { Route as TransferProcessIndexImport } from './routes/transfer-process/index'
-import { Route as ParticipantsIndexImport } from './routes/participants/index'
-import { Route as MyCatalogIndexImport } from './routes/my-catalog/index'
-import { Route as KeystoreIndexImport } from './routes/keystore/index'
-import { Route as EventsIndexImport } from './routes/events/index'
-import { Route as ContractNegotiationIndexImport } from './routes/contract-negotiation/index'
-import { Route as ConnectionsIndexImport } from './routes/connections/index'
-import { Route as CatalogIndexImport } from './routes/catalog/index'
-import { Route as AuthorityIndexImport } from './routes/authority/index'
-import { Route as AgreementsIndexImport } from './routes/agreements/index'
-import { Route as WalletOidc4vpImport } from './routes/wallet/oidc4vp'
-import { Route as WalletOidc4vciImport } from './routes/wallet/oidc4vci'
-import { Route as WalletKeysImport } from './routes/wallet/keys'
-import { Route as WalletInfoImport } from './routes/wallet/info'
-import { Route as WalletDidImport } from './routes/wallet/did'
-import { Route as WalletCredentialsImport } from './routes/wallet/credentials'
-import { Route as MyCatalogNewImport } from './routes/my-catalog/new'
-import { Route as MyCatalogImportImport } from './routes/my-catalog/import'
-import { Route as KeystoreSecretsImport } from './routes/keystore/secrets'
-import { Route as KeystoreParametersImport } from './routes/keystore/parameters'
-import { Route as KeystoreConfigImport } from './routes/keystore/config'
-import { Route as EventsSubscriptionsImport } from './routes/events/subscriptions'
-import { Route as EventsFeedImport } from './routes/events/feed'
-import { Route as EventsDlqImport } from './routes/events/dlq'
-import { Route as AuthorityRequestDetailsImport } from './routes/authority/request-details'
-import { Route as AuthorityNewImport } from './routes/authority/new'
-import { Route as AgreementsAgreementIdImport } from './routes/agreements/$agreementId'
-import { Route as TransferProcessTransferProcessIdRouteImport } from './routes/transfer-process/$transferProcessId/route'
-import { Route as ParticipantsParticipantIdRouteImport } from './routes/participants/$participantId/route'
-import { Route as ContractNegotiationCnProcessRouteImport } from './routes/contract-negotiation/$cnProcess/route'
-import { Route as ConnectionsSentRouteImport } from './routes/connections/sent/route'
-import { Route as ConnectionsReceivedRouteImport } from './routes/connections/received/route'
-import { Route as CatalogParticipantRouteImport } from './routes/catalog/participant/route'
-import { Route as CatalogCatalogIdRouteImport } from './routes/catalog/$catalogId/route'
-import { Route as TransferProcessTransferProcessIdIndexImport } from './routes/transfer-process/$transferProcessId/index'
-import { Route as ParticipantsParticipantIdIndexImport } from './routes/participants/$participantId/index'
-import { Route as MyCatalogSchemasIndexImport } from './routes/my-catalog/schemas/index'
-import { Route as MyCatalogPoliciesIndexImport } from './routes/my-catalog/policies/index'
-import { Route as MyCatalogConnectorsIndexImport } from './routes/my-catalog/connectors/index'
-import { Route as ContractNegotiationCnProcessIndexImport } from './routes/contract-negotiation/$cnProcess/index'
-import { Route as ConnectionsSentIndexImport } from './routes/connections/sent/index'
-import { Route as ConnectionsReceivedIndexImport } from './routes/connections/received/index'
-import { Route as CatalogCatalogIdIndexImport } from './routes/catalog/$catalogId/index'
-import { Route as MyCatalogSchemasNewImport } from './routes/my-catalog/schemas/new'
-import { Route as MyCatalogSchemasSchemaIdImport } from './routes/my-catalog/schemas/$schemaId'
-import { Route as MyCatalogPoliciesNewImport } from './routes/my-catalog/policies/new'
-import { Route as MyCatalogPoliciesTemplateIdImport } from './routes/my-catalog/policies/$templateId'
-import { Route as MyCatalogConnectorsNewImport } from './routes/my-catalog/connectors/new'
-import { Route as MyCatalogConnectorsTemplateNameImport } from './routes/my-catalog/connectors/$templateName'
-import { Route as ConnectionsSentRequestDetailsImport } from './routes/connections/sent/request-details'
-import { Route as ConnectionsSentNewImport } from './routes/connections/sent/new'
-import { Route as ConnectionsReceivedRequestDetailsImport } from './routes/connections/received/request-details'
-import { Route as CatalogParticipantParticipantIdIndexImport } from './routes/catalog/participant/$participantId/index'
-import { Route as TransferProcessTransferProcessIdTransferMessageTransferMessageIdImport } from './routes/transfer-process/$transferProcessId/transfer-message.$transferMessageId'
-import { Route as CatalogCatalogIdDistributionConnectorDistributionIdImport } from './routes/catalog/$catalogId/distribution-connector.$distributionId'
-import { Route as CatalogCatalogIdDatasetDatasetIdImport } from './routes/catalog/$catalogId/dataset.$datasetId'
-import { Route as CatalogCatalogIdDataServiceDataServiceIdImport } from './routes/catalog/$catalogId/data-service.$dataServiceId'
-import { Route as CatalogParticipantParticipantIdDatasetDatasetIdImport } from './routes/catalog/participant/$participantId/dataset.$datasetId'
-
-// Create/Update Routes
-
-const WalletRouteRoute = WalletRouteImport.update({
-  id: '/wallet',
-  path: '/wallet',
-  getParentRoute: () => rootRoute,
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const TransferProcessRouteRoute = TransferProcessRouteImport.update({
-  id: '/transfer-process',
-  path: '/transfer-process',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const ParticipantsRouteRoute = ParticipantsRouteImport.update({
-  id: '/participants',
-  path: '/participants',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const MyCatalogRouteRoute = MyCatalogRouteImport.update({
-  id: '/my-catalog',
-  path: '/my-catalog',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const KeystoreRouteRoute = KeystoreRouteImport.update({
-  id: '/keystore',
-  path: '/keystore',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const EventsRouteRoute = EventsRouteImport.update({
-  id: '/events',
-  path: '/events',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const ContractNegotiationRouteRoute = ContractNegotiationRouteImport.update({
-  id: '/contract-negotiation',
-  path: '/contract-negotiation',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const ConnectionsRouteRoute = ConnectionsRouteImport.update({
-  id: '/connections',
-  path: '/connections',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const CatalogRouteRoute = CatalogRouteImport.update({
-  id: '/catalog',
-  path: '/catalog',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const AuthorityRouteRoute = AuthorityRouteImport.update({
-  id: '/authority',
-  path: '/authority',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const AgreementsRouteRoute = AgreementsRouteImport.update({
+const AgreementsRouteRoute = AgreementsRouteRouteImport.update({
   id: '/agreements',
   path: '/agreements',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const IndexRoute = IndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRoute,
+const AuthorityRouteRoute = AuthorityRouteRouteImport.update({
+  id: '/authority',
+  path: '/authority',
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const WalletIndexRoute = WalletIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => WalletRouteRoute,
+const CatalogRouteRoute = CatalogRouteRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const TransferProcessIndexRoute = TransferProcessIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => TransferProcessRouteRoute,
+const ConnectionsRouteRoute = ConnectionsRouteRouteImport.update({
+  id: '/connections',
+  path: '/connections',
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const ParticipantsIndexRoute = ParticipantsIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ParticipantsRouteRoute,
+const ContractNegotiationRouteRoute =
+  ContractNegotiationRouteRouteImport.update({
+    id: '/contract-negotiation',
+    path: '/contract-negotiation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const EventsRouteRoute = EventsRouteRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const MyCatalogIndexRoute = MyCatalogIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => MyCatalogRouteRoute,
+const KeystoreRouteRoute = KeystoreRouteRouteImport.update({
+  id: '/keystore',
+  path: '/keystore',
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const KeystoreIndexRoute = KeystoreIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => KeystoreRouteRoute,
+const MyCatalogRouteRoute = MyCatalogRouteRouteImport.update({
+  id: '/my-catalog',
+  path: '/my-catalog',
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const EventsIndexRoute = EventsIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => EventsRouteRoute,
+const ParticipantsRouteRoute = ParticipantsRouteRouteImport.update({
+  id: '/participants',
+  path: '/participants',
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const ContractNegotiationIndexRoute = ContractNegotiationIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ContractNegotiationRouteRoute,
+const TransferProcessRouteRoute = TransferProcessRouteRouteImport.update({
+  id: '/transfer-process',
+  path: '/transfer-process',
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const ConnectionsIndexRoute = ConnectionsIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ConnectionsRouteRoute,
+const WalletRouteRoute = WalletRouteRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const CatalogIndexRoute = CatalogIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => CatalogRouteRoute,
-} as any)
-
-const AuthorityIndexRoute = AuthorityIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthorityRouteRoute,
-} as any)
-
-const AgreementsIndexRoute = AgreementsIndexImport.update({
+const AgreementsIndexRoute = AgreementsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AgreementsRouteRoute,
 } as any)
-
-const WalletOidc4vpRoute = WalletOidc4vpImport.update({
-  id: '/oidc4vp',
-  path: '/oidc4vp',
-  getParentRoute: () => WalletRouteRoute,
-} as any)
-
-const WalletOidc4vciRoute = WalletOidc4vciImport.update({
-  id: '/oidc4vci',
-  path: '/oidc4vci',
-  getParentRoute: () => WalletRouteRoute,
-} as any)
-
-const WalletKeysRoute = WalletKeysImport.update({
-  id: '/keys',
-  path: '/keys',
-  getParentRoute: () => WalletRouteRoute,
-} as any)
-
-const WalletInfoRoute = WalletInfoImport.update({
-  id: '/info',
-  path: '/info',
-  getParentRoute: () => WalletRouteRoute,
-} as any)
-
-const WalletDidRoute = WalletDidImport.update({
-  id: '/did',
-  path: '/did',
-  getParentRoute: () => WalletRouteRoute,
-} as any)
-
-const WalletCredentialsRoute = WalletCredentialsImport.update({
-  id: '/credentials',
-  path: '/credentials',
-  getParentRoute: () => WalletRouteRoute,
-} as any)
-
-const MyCatalogNewRoute = MyCatalogNewImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => MyCatalogRouteRoute,
-} as any)
-
-const MyCatalogImportRoute = MyCatalogImportImport.update({
-  id: '/import',
-  path: '/import',
-  getParentRoute: () => MyCatalogRouteRoute,
-} as any)
-
-const KeystoreSecretsRoute = KeystoreSecretsImport.update({
-  id: '/secrets',
-  path: '/secrets',
-  getParentRoute: () => KeystoreRouteRoute,
-} as any)
-
-const KeystoreParametersRoute = KeystoreParametersImport.update({
-  id: '/parameters',
-  path: '/parameters',
-  getParentRoute: () => KeystoreRouteRoute,
-} as any)
-
-const KeystoreConfigRoute = KeystoreConfigImport.update({
-  id: '/config',
-  path: '/config',
-  getParentRoute: () => KeystoreRouteRoute,
-} as any)
-
-const EventsSubscriptionsRoute = EventsSubscriptionsImport.update({
-  id: '/subscriptions',
-  path: '/subscriptions',
-  getParentRoute: () => EventsRouteRoute,
-} as any)
-
-const EventsFeedRoute = EventsFeedImport.update({
-  id: '/feed',
-  path: '/feed',
-  getParentRoute: () => EventsRouteRoute,
-} as any)
-
-const EventsDlqRoute = EventsDlqImport.update({
-  id: '/dlq',
-  path: '/dlq',
-  getParentRoute: () => EventsRouteRoute,
-} as any)
-
-const AuthorityRequestDetailsRoute = AuthorityRequestDetailsImport.update({
-  id: '/request-details',
-  path: '/request-details',
-  getParentRoute: () => AuthorityRouteRoute,
-} as any)
-
-const AuthorityNewRoute = AuthorityNewImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AuthorityRouteRoute,
-} as any)
-
-const AgreementsAgreementIdRoute = AgreementsAgreementIdImport.update({
+const AgreementsAgreementIdRoute = AgreementsAgreementIdRouteImport.update({
   id: '/$agreementId',
   path: '/$agreementId',
   getParentRoute: () => AgreementsRouteRoute,
 } as any)
-
-const TransferProcessTransferProcessIdRouteRoute =
-  TransferProcessTransferProcessIdRouteImport.update({
-    id: '/$transferProcessId',
-    path: '/$transferProcessId',
-    getParentRoute: () => TransferProcessRouteRoute,
-  } as any)
-
-const ParticipantsParticipantIdRouteRoute =
-  ParticipantsParticipantIdRouteImport.update({
-    id: '/$participantId',
-    path: '/$participantId',
-    getParentRoute: () => ParticipantsRouteRoute,
-  } as any)
-
-const ContractNegotiationCnProcessRouteRoute =
-  ContractNegotiationCnProcessRouteImport.update({
-    id: '/$cnProcess',
-    path: '/$cnProcess',
-    getParentRoute: () => ContractNegotiationRouteRoute,
-  } as any)
-
-const ConnectionsSentRouteRoute = ConnectionsSentRouteImport.update({
-  id: '/sent',
-  path: '/sent',
-  getParentRoute: () => ConnectionsRouteRoute,
+const AuthorityIndexRoute = AuthorityIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthorityRouteRoute,
 } as any)
-
-const ConnectionsReceivedRouteRoute = ConnectionsReceivedRouteImport.update({
-  id: '/received',
-  path: '/received',
-  getParentRoute: () => ConnectionsRouteRoute,
+const AuthorityNewRoute = AuthorityNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AuthorityRouteRoute,
 } as any)
-
-const CatalogParticipantRouteRoute = CatalogParticipantRouteImport.update({
-  id: '/participant',
-  path: '/participant',
+const AuthorityRequestDetailsRoute = AuthorityRequestDetailsRouteImport.update({
+  id: '/request-details',
+  path: '/request-details',
+  getParentRoute: () => AuthorityRouteRoute,
+} as any)
+const CatalogIndexRoute = CatalogIndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => CatalogRouteRoute,
 } as any)
-
-const CatalogCatalogIdRouteRoute = CatalogCatalogIdRouteImport.update({
+const CatalogCatalogIdRouteRoute = CatalogCatalogIdRouteRouteImport.update({
   id: '/$catalogId',
   path: '/$catalogId',
   getParentRoute: () => CatalogRouteRoute,
 } as any)
-
-const TransferProcessTransferProcessIdIndexRoute =
-  TransferProcessTransferProcessIdIndexImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => TransferProcessTransferProcessIdRouteRoute,
-  } as any)
-
-const ParticipantsParticipantIdIndexRoute =
-  ParticipantsParticipantIdIndexImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => ParticipantsParticipantIdRouteRoute,
-  } as any)
-
-const MyCatalogSchemasIndexRoute = MyCatalogSchemasIndexImport.update({
-  id: '/schemas/',
-  path: '/schemas/',
-  getParentRoute: () => MyCatalogRouteRoute,
+const CatalogParticipantRouteRoute = CatalogParticipantRouteRouteImport.update({
+  id: '/participant',
+  path: '/participant',
+  getParentRoute: () => CatalogRouteRoute,
 } as any)
-
-const MyCatalogPoliciesIndexRoute = MyCatalogPoliciesIndexImport.update({
-  id: '/policies/',
-  path: '/policies/',
-  getParentRoute: () => MyCatalogRouteRoute,
-} as any)
-
-const MyCatalogConnectorsIndexRoute = MyCatalogConnectorsIndexImport.update({
-  id: '/connectors/',
-  path: '/connectors/',
-  getParentRoute: () => MyCatalogRouteRoute,
-} as any)
-
-const ContractNegotiationCnProcessIndexRoute =
-  ContractNegotiationCnProcessIndexImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => ContractNegotiationCnProcessRouteRoute,
-  } as any)
-
-const ConnectionsSentIndexRoute = ConnectionsSentIndexImport.update({
+const ConnectionsIndexRoute = ConnectionsIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => ConnectionsSentRouteRoute,
+  getParentRoute: () => ConnectionsRouteRoute,
 } as any)
-
-const ConnectionsReceivedIndexRoute = ConnectionsReceivedIndexImport.update({
+const ConnectionsReceivedRouteRoute =
+  ConnectionsReceivedRouteRouteImport.update({
+    id: '/received',
+    path: '/received',
+    getParentRoute: () => ConnectionsRouteRoute,
+  } as any)
+const ConnectionsSentRouteRoute = ConnectionsSentRouteRouteImport.update({
+  id: '/sent',
+  path: '/sent',
+  getParentRoute: () => ConnectionsRouteRoute,
+} as any)
+const ContractNegotiationIndexRoute =
+  ContractNegotiationIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => ContractNegotiationRouteRoute,
+  } as any)
+const ContractNegotiationCnProcessRouteRoute =
+  ContractNegotiationCnProcessRouteRouteImport.update({
+    id: '/$cnProcess',
+    path: '/$cnProcess',
+    getParentRoute: () => ContractNegotiationRouteRoute,
+  } as any)
+const EventsIndexRoute = EventsIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => ConnectionsReceivedRouteRoute,
+  getParentRoute: () => EventsRouteRoute,
 } as any)
-
-const CatalogCatalogIdIndexRoute = CatalogCatalogIdIndexImport.update({
+const EventsDlqRoute = EventsDlqRouteImport.update({
+  id: '/dlq',
+  path: '/dlq',
+  getParentRoute: () => EventsRouteRoute,
+} as any)
+const EventsFeedRoute = EventsFeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
+  getParentRoute: () => EventsRouteRoute,
+} as any)
+const EventsSubscriptionsRoute = EventsSubscriptionsRouteImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
+  getParentRoute: () => EventsRouteRoute,
+} as any)
+const KeystoreIndexRoute = KeystoreIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => KeystoreRouteRoute,
+} as any)
+const KeystoreConfigRoute = KeystoreConfigRouteImport.update({
+  id: '/config',
+  path: '/config',
+  getParentRoute: () => KeystoreRouteRoute,
+} as any)
+const KeystoreParametersRoute = KeystoreParametersRouteImport.update({
+  id: '/parameters',
+  path: '/parameters',
+  getParentRoute: () => KeystoreRouteRoute,
+} as any)
+const KeystoreSecretsRoute = KeystoreSecretsRouteImport.update({
+  id: '/secrets',
+  path: '/secrets',
+  getParentRoute: () => KeystoreRouteRoute,
+} as any)
+const MyCatalogIndexRoute = MyCatalogIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MyCatalogRouteRoute,
+} as any)
+const MyCatalogImportRoute = MyCatalogImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => MyCatalogRouteRoute,
+} as any)
+const MyCatalogNewRoute = MyCatalogNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => MyCatalogRouteRoute,
+} as any)
+const ParticipantsIndexRoute = ParticipantsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ParticipantsRouteRoute,
+} as any)
+const ParticipantsParticipantIdRouteRoute =
+  ParticipantsParticipantIdRouteRouteImport.update({
+    id: '/$participantId',
+    path: '/$participantId',
+    getParentRoute: () => ParticipantsRouteRoute,
+  } as any)
+const TransferProcessIndexRoute = TransferProcessIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TransferProcessRouteRoute,
+} as any)
+const TransferProcessTransferProcessIdRouteRoute =
+  TransferProcessTransferProcessIdRouteRouteImport.update({
+    id: '/$transferProcessId',
+    path: '/$transferProcessId',
+    getParentRoute: () => TransferProcessRouteRoute,
+  } as any)
+const WalletIndexRoute = WalletIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WalletRouteRoute,
+} as any)
+const WalletCredentialsRoute = WalletCredentialsRouteImport.update({
+  id: '/credentials',
+  path: '/credentials',
+  getParentRoute: () => WalletRouteRoute,
+} as any)
+const WalletDidRoute = WalletDidRouteImport.update({
+  id: '/did',
+  path: '/did',
+  getParentRoute: () => WalletRouteRoute,
+} as any)
+const WalletInfoRoute = WalletInfoRouteImport.update({
+  id: '/info',
+  path: '/info',
+  getParentRoute: () => WalletRouteRoute,
+} as any)
+const WalletKeysRoute = WalletKeysRouteImport.update({
+  id: '/keys',
+  path: '/keys',
+  getParentRoute: () => WalletRouteRoute,
+} as any)
+const WalletOidc4vciRoute = WalletOidc4vciRouteImport.update({
+  id: '/oidc4vci',
+  path: '/oidc4vci',
+  getParentRoute: () => WalletRouteRoute,
+} as any)
+const WalletOidc4vpRoute = WalletOidc4vpRouteImport.update({
+  id: '/oidc4vp',
+  path: '/oidc4vp',
+  getParentRoute: () => WalletRouteRoute,
+} as any)
+const CatalogCatalogIdIndexRoute = CatalogCatalogIdIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => CatalogCatalogIdRouteRoute,
 } as any)
-
-const MyCatalogSchemasNewRoute = MyCatalogSchemasNewImport.update({
-  id: '/schemas/new',
-  path: '/schemas/new',
-  getParentRoute: () => MyCatalogRouteRoute,
-} as any)
-
-const MyCatalogSchemasSchemaIdRoute = MyCatalogSchemasSchemaIdImport.update({
-  id: '/schemas/$schemaId',
-  path: '/schemas/$schemaId',
-  getParentRoute: () => MyCatalogRouteRoute,
-} as any)
-
-const MyCatalogPoliciesNewRoute = MyCatalogPoliciesNewImport.update({
-  id: '/policies/new',
-  path: '/policies/new',
-  getParentRoute: () => MyCatalogRouteRoute,
-} as any)
-
-const MyCatalogPoliciesTemplateIdRoute =
-  MyCatalogPoliciesTemplateIdImport.update({
-    id: '/policies/$templateId',
-    path: '/policies/$templateId',
-    getParentRoute: () => MyCatalogRouteRoute,
+const ConnectionsReceivedIndexRoute =
+  ConnectionsReceivedIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => ConnectionsReceivedRouteRoute,
   } as any)
-
-const MyCatalogConnectorsNewRoute = MyCatalogConnectorsNewImport.update({
-  id: '/connectors/new',
-  path: '/connectors/new',
-  getParentRoute: () => MyCatalogRouteRoute,
-} as any)
-
-const MyCatalogConnectorsTemplateNameRoute =
-  MyCatalogConnectorsTemplateNameImport.update({
-    id: '/connectors/$templateName',
-    path: '/connectors/$templateName',
-    getParentRoute: () => MyCatalogRouteRoute,
-  } as any)
-
-const ConnectionsSentRequestDetailsRoute =
-  ConnectionsSentRequestDetailsImport.update({
-    id: '/request-details',
-    path: '/request-details',
-    getParentRoute: () => ConnectionsSentRouteRoute,
-  } as any)
-
-const ConnectionsSentNewRoute = ConnectionsSentNewImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => ConnectionsSentRouteRoute,
-} as any)
-
 const ConnectionsReceivedRequestDetailsRoute =
-  ConnectionsReceivedRequestDetailsImport.update({
+  ConnectionsReceivedRequestDetailsRouteImport.update({
     id: '/request-details',
     path: '/request-details',
     getParentRoute: () => ConnectionsReceivedRouteRoute,
   } as any)
-
+const ConnectionsSentIndexRoute = ConnectionsSentIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ConnectionsSentRouteRoute,
+} as any)
+const ConnectionsSentNewRoute = ConnectionsSentNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => ConnectionsSentRouteRoute,
+} as any)
+const ConnectionsSentRequestDetailsRoute =
+  ConnectionsSentRequestDetailsRouteImport.update({
+    id: '/request-details',
+    path: '/request-details',
+    getParentRoute: () => ConnectionsSentRouteRoute,
+  } as any)
+const ContractNegotiationCnProcessIndexRoute =
+  ContractNegotiationCnProcessIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => ContractNegotiationCnProcessRouteRoute,
+  } as any)
+const MyCatalogConnectorsIndexRoute =
+  MyCatalogConnectorsIndexRouteImport.update({
+    id: '/connectors/',
+    path: '/connectors/',
+    getParentRoute: () => MyCatalogRouteRoute,
+  } as any)
+const MyCatalogConnectorsTemplateNameRoute =
+  MyCatalogConnectorsTemplateNameRouteImport.update({
+    id: '/connectors/$templateName',
+    path: '/connectors/$templateName',
+    getParentRoute: () => MyCatalogRouteRoute,
+  } as any)
+const MyCatalogConnectorsNewRoute = MyCatalogConnectorsNewRouteImport.update({
+  id: '/connectors/new',
+  path: '/connectors/new',
+  getParentRoute: () => MyCatalogRouteRoute,
+} as any)
+const MyCatalogPoliciesIndexRoute = MyCatalogPoliciesIndexRouteImport.update({
+  id: '/policies/',
+  path: '/policies/',
+  getParentRoute: () => MyCatalogRouteRoute,
+} as any)
+const MyCatalogPoliciesTemplateIdRoute =
+  MyCatalogPoliciesTemplateIdRouteImport.update({
+    id: '/policies/$templateId',
+    path: '/policies/$templateId',
+    getParentRoute: () => MyCatalogRouteRoute,
+  } as any)
+const MyCatalogPoliciesNewRoute = MyCatalogPoliciesNewRouteImport.update({
+  id: '/policies/new',
+  path: '/policies/new',
+  getParentRoute: () => MyCatalogRouteRoute,
+} as any)
+const MyCatalogSchemasIndexRoute = MyCatalogSchemasIndexRouteImport.update({
+  id: '/schemas/',
+  path: '/schemas/',
+  getParentRoute: () => MyCatalogRouteRoute,
+} as any)
+const MyCatalogSchemasSchemaIdRoute =
+  MyCatalogSchemasSchemaIdRouteImport.update({
+    id: '/schemas/$schemaId',
+    path: '/schemas/$schemaId',
+    getParentRoute: () => MyCatalogRouteRoute,
+  } as any)
+const MyCatalogSchemasNewRoute = MyCatalogSchemasNewRouteImport.update({
+  id: '/schemas/new',
+  path: '/schemas/new',
+  getParentRoute: () => MyCatalogRouteRoute,
+} as any)
+const ParticipantsParticipantIdIndexRoute =
+  ParticipantsParticipantIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => ParticipantsParticipantIdRouteRoute,
+  } as any)
+const TransferProcessTransferProcessIdIndexRoute =
+  TransferProcessTransferProcessIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => TransferProcessTransferProcessIdRouteRoute,
+  } as any)
+const CatalogCatalogIdDataServiceDataServiceIdRoute =
+  CatalogCatalogIdDataServiceDataServiceIdRouteImport.update({
+    id: '/data-service/$dataServiceId',
+    path: '/data-service/$dataServiceId',
+    getParentRoute: () => CatalogCatalogIdRouteRoute,
+  } as any)
+const CatalogCatalogIdDatasetDatasetIdRoute =
+  CatalogCatalogIdDatasetDatasetIdRouteImport.update({
+    id: '/dataset/$datasetId',
+    path: '/dataset/$datasetId',
+    getParentRoute: () => CatalogCatalogIdRouteRoute,
+  } as any)
+const CatalogCatalogIdDistributionConnectorDistributionIdRoute =
+  CatalogCatalogIdDistributionConnectorDistributionIdRouteImport.update({
+    id: '/distribution-connector/$distributionId',
+    path: '/distribution-connector/$distributionId',
+    getParentRoute: () => CatalogCatalogIdRouteRoute,
+  } as any)
 const CatalogParticipantParticipantIdIndexRoute =
-  CatalogParticipantParticipantIdIndexImport.update({
+  CatalogParticipantParticipantIdIndexRouteImport.update({
     id: '/$participantId/',
     path: '/$participantId/',
     getParentRoute: () => CatalogParticipantRouteRoute,
   } as any)
-
 const TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute =
-  TransferProcessTransferProcessIdTransferMessageTransferMessageIdImport.update(
+  TransferProcessTransferProcessIdTransferMessageTransferMessageIdRouteImport.update(
     {
       id: '/transfer-message/$transferMessageId',
       path: '/transfer-message/$transferMessageId',
       getParentRoute: () => TransferProcessTransferProcessIdRouteRoute,
     } as any,
   )
-
-const CatalogCatalogIdDistributionConnectorDistributionIdRoute =
-  CatalogCatalogIdDistributionConnectorDistributionIdImport.update({
-    id: '/distribution-connector/$distributionId',
-    path: '/distribution-connector/$distributionId',
-    getParentRoute: () => CatalogCatalogIdRouteRoute,
-  } as any)
-
-const CatalogCatalogIdDatasetDatasetIdRoute =
-  CatalogCatalogIdDatasetDatasetIdImport.update({
-    id: '/dataset/$datasetId',
-    path: '/dataset/$datasetId',
-    getParentRoute: () => CatalogCatalogIdRouteRoute,
-  } as any)
-
-const CatalogCatalogIdDataServiceDataServiceIdRoute =
-  CatalogCatalogIdDataServiceDataServiceIdImport.update({
-    id: '/data-service/$dataServiceId',
-    path: '/data-service/$dataServiceId',
-    getParentRoute: () => CatalogCatalogIdRouteRoute,
-  } as any)
-
 const CatalogParticipantParticipantIdDatasetDatasetIdRoute =
-  CatalogParticipantParticipantIdDatasetDatasetIdImport.update({
+  CatalogParticipantParticipantIdDatasetDatasetIdRouteImport.update({
     id: '/$participantId/dataset/$datasetId',
     path: '/$participantId/dataset/$datasetId',
     getParentRoute: () => CatalogParticipantRouteRoute,
   } as any)
 
-// Populate the FileRoutesByPath interface
+export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
+  '/agreements': typeof AgreementsRouteRouteWithChildren
+  '/authority': typeof AuthorityRouteRouteWithChildren
+  '/catalog': typeof CatalogRouteRouteWithChildren
+  '/connections': typeof ConnectionsRouteRouteWithChildren
+  '/contract-negotiation': typeof ContractNegotiationRouteRouteWithChildren
+  '/events': typeof EventsRouteRouteWithChildren
+  '/keystore': typeof KeystoreRouteRouteWithChildren
+  '/my-catalog': typeof MyCatalogRouteRouteWithChildren
+  '/participants': typeof ParticipantsRouteRouteWithChildren
+  '/transfer-process': typeof TransferProcessRouteRouteWithChildren
+  '/wallet': typeof WalletRouteRouteWithChildren
+  '/catalog/$catalogId': typeof CatalogCatalogIdRouteRouteWithChildren
+  '/catalog/participant': typeof CatalogParticipantRouteRouteWithChildren
+  '/connections/received': typeof ConnectionsReceivedRouteRouteWithChildren
+  '/connections/sent': typeof ConnectionsSentRouteRouteWithChildren
+  '/contract-negotiation/$cnProcess': typeof ContractNegotiationCnProcessRouteRouteWithChildren
+  '/participants/$participantId': typeof ParticipantsParticipantIdRouteRouteWithChildren
+  '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdRouteRouteWithChildren
+  '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
+  '/authority/new': typeof AuthorityNewRoute
+  '/authority/request-details': typeof AuthorityRequestDetailsRoute
+  '/events/dlq': typeof EventsDlqRoute
+  '/events/feed': typeof EventsFeedRoute
+  '/events/subscriptions': typeof EventsSubscriptionsRoute
+  '/keystore/config': typeof KeystoreConfigRoute
+  '/keystore/parameters': typeof KeystoreParametersRoute
+  '/keystore/secrets': typeof KeystoreSecretsRoute
+  '/my-catalog/import': typeof MyCatalogImportRoute
+  '/my-catalog/new': typeof MyCatalogNewRoute
+  '/wallet/credentials': typeof WalletCredentialsRoute
+  '/wallet/did': typeof WalletDidRoute
+  '/wallet/info': typeof WalletInfoRoute
+  '/wallet/keys': typeof WalletKeysRoute
+  '/wallet/oidc4vci': typeof WalletOidc4vciRoute
+  '/wallet/oidc4vp': typeof WalletOidc4vpRoute
+  '/agreements/': typeof AgreementsIndexRoute
+  '/authority/': typeof AuthorityIndexRoute
+  '/catalog/': typeof CatalogIndexRoute
+  '/connections/': typeof ConnectionsIndexRoute
+  '/contract-negotiation/': typeof ContractNegotiationIndexRoute
+  '/events/': typeof EventsIndexRoute
+  '/keystore/': typeof KeystoreIndexRoute
+  '/my-catalog/': typeof MyCatalogIndexRoute
+  '/participants/': typeof ParticipantsIndexRoute
+  '/transfer-process/': typeof TransferProcessIndexRoute
+  '/wallet/': typeof WalletIndexRoute
+  '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
+  '/connections/sent/new': typeof ConnectionsSentNewRoute
+  '/connections/sent/request-details': typeof ConnectionsSentRequestDetailsRoute
+  '/my-catalog/connectors/$templateName': typeof MyCatalogConnectorsTemplateNameRoute
+  '/my-catalog/connectors/new': typeof MyCatalogConnectorsNewRoute
+  '/my-catalog/policies/$templateId': typeof MyCatalogPoliciesTemplateIdRoute
+  '/my-catalog/policies/new': typeof MyCatalogPoliciesNewRoute
+  '/my-catalog/schemas/$schemaId': typeof MyCatalogSchemasSchemaIdRoute
+  '/my-catalog/schemas/new': typeof MyCatalogSchemasNewRoute
+  '/catalog/$catalogId/': typeof CatalogCatalogIdIndexRoute
+  '/connections/received/': typeof ConnectionsReceivedIndexRoute
+  '/connections/sent/': typeof ConnectionsSentIndexRoute
+  '/contract-negotiation/$cnProcess/': typeof ContractNegotiationCnProcessIndexRoute
+  '/my-catalog/connectors/': typeof MyCatalogConnectorsIndexRoute
+  '/my-catalog/policies/': typeof MyCatalogPoliciesIndexRoute
+  '/my-catalog/schemas/': typeof MyCatalogSchemasIndexRoute
+  '/participants/$participantId/': typeof ParticipantsParticipantIdIndexRoute
+  '/transfer-process/$transferProcessId/': typeof TransferProcessTransferProcessIdIndexRoute
+  '/catalog/$catalogId/data-service/$dataServiceId': typeof CatalogCatalogIdDataServiceDataServiceIdRoute
+  '/catalog/$catalogId/dataset/$datasetId': typeof CatalogCatalogIdDatasetDatasetIdRoute
+  '/catalog/$catalogId/distribution-connector/$distributionId': typeof CatalogCatalogIdDistributionConnectorDistributionIdRoute
+  '/transfer-process/$transferProcessId/transfer-message/$transferMessageId': typeof TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute
+  '/catalog/participant/$participantId/': typeof CatalogParticipantParticipantIdIndexRoute
+  '/catalog/participant/$participantId/dataset/$datasetId': typeof CatalogParticipantParticipantIdDatasetDatasetIdRoute
+}
+export interface FileRoutesByTo {
+  '/': typeof IndexRoute
+  '/catalog/participant': typeof CatalogParticipantRouteRouteWithChildren
+  '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
+  '/authority/new': typeof AuthorityNewRoute
+  '/authority/request-details': typeof AuthorityRequestDetailsRoute
+  '/events/dlq': typeof EventsDlqRoute
+  '/events/feed': typeof EventsFeedRoute
+  '/events/subscriptions': typeof EventsSubscriptionsRoute
+  '/keystore/config': typeof KeystoreConfigRoute
+  '/keystore/parameters': typeof KeystoreParametersRoute
+  '/keystore/secrets': typeof KeystoreSecretsRoute
+  '/my-catalog/import': typeof MyCatalogImportRoute
+  '/my-catalog/new': typeof MyCatalogNewRoute
+  '/wallet/credentials': typeof WalletCredentialsRoute
+  '/wallet/did': typeof WalletDidRoute
+  '/wallet/info': typeof WalletInfoRoute
+  '/wallet/keys': typeof WalletKeysRoute
+  '/wallet/oidc4vci': typeof WalletOidc4vciRoute
+  '/wallet/oidc4vp': typeof WalletOidc4vpRoute
+  '/agreements': typeof AgreementsIndexRoute
+  '/authority': typeof AuthorityIndexRoute
+  '/catalog': typeof CatalogIndexRoute
+  '/connections': typeof ConnectionsIndexRoute
+  '/contract-negotiation': typeof ContractNegotiationIndexRoute
+  '/events': typeof EventsIndexRoute
+  '/keystore': typeof KeystoreIndexRoute
+  '/my-catalog': typeof MyCatalogIndexRoute
+  '/participants': typeof ParticipantsIndexRoute
+  '/transfer-process': typeof TransferProcessIndexRoute
+  '/wallet': typeof WalletIndexRoute
+  '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
+  '/connections/sent/new': typeof ConnectionsSentNewRoute
+  '/connections/sent/request-details': typeof ConnectionsSentRequestDetailsRoute
+  '/my-catalog/connectors/$templateName': typeof MyCatalogConnectorsTemplateNameRoute
+  '/my-catalog/connectors/new': typeof MyCatalogConnectorsNewRoute
+  '/my-catalog/policies/$templateId': typeof MyCatalogPoliciesTemplateIdRoute
+  '/my-catalog/policies/new': typeof MyCatalogPoliciesNewRoute
+  '/my-catalog/schemas/$schemaId': typeof MyCatalogSchemasSchemaIdRoute
+  '/my-catalog/schemas/new': typeof MyCatalogSchemasNewRoute
+  '/catalog/$catalogId': typeof CatalogCatalogIdIndexRoute
+  '/connections/received': typeof ConnectionsReceivedIndexRoute
+  '/connections/sent': typeof ConnectionsSentIndexRoute
+  '/contract-negotiation/$cnProcess': typeof ContractNegotiationCnProcessIndexRoute
+  '/my-catalog/connectors': typeof MyCatalogConnectorsIndexRoute
+  '/my-catalog/policies': typeof MyCatalogPoliciesIndexRoute
+  '/my-catalog/schemas': typeof MyCatalogSchemasIndexRoute
+  '/participants/$participantId': typeof ParticipantsParticipantIdIndexRoute
+  '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdIndexRoute
+  '/catalog/$catalogId/data-service/$dataServiceId': typeof CatalogCatalogIdDataServiceDataServiceIdRoute
+  '/catalog/$catalogId/dataset/$datasetId': typeof CatalogCatalogIdDatasetDatasetIdRoute
+  '/catalog/$catalogId/distribution-connector/$distributionId': typeof CatalogCatalogIdDistributionConnectorDistributionIdRoute
+  '/transfer-process/$transferProcessId/transfer-message/$transferMessageId': typeof TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute
+  '/catalog/participant/$participantId': typeof CatalogParticipantParticipantIdIndexRoute
+  '/catalog/participant/$participantId/dataset/$datasetId': typeof CatalogParticipantParticipantIdDatasetDatasetIdRoute
+}
+export interface FileRoutesById {
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/agreements': typeof AgreementsRouteRouteWithChildren
+  '/authority': typeof AuthorityRouteRouteWithChildren
+  '/catalog': typeof CatalogRouteRouteWithChildren
+  '/connections': typeof ConnectionsRouteRouteWithChildren
+  '/contract-negotiation': typeof ContractNegotiationRouteRouteWithChildren
+  '/events': typeof EventsRouteRouteWithChildren
+  '/keystore': typeof KeystoreRouteRouteWithChildren
+  '/my-catalog': typeof MyCatalogRouteRouteWithChildren
+  '/participants': typeof ParticipantsRouteRouteWithChildren
+  '/transfer-process': typeof TransferProcessRouteRouteWithChildren
+  '/wallet': typeof WalletRouteRouteWithChildren
+  '/catalog/$catalogId': typeof CatalogCatalogIdRouteRouteWithChildren
+  '/catalog/participant': typeof CatalogParticipantRouteRouteWithChildren
+  '/connections/received': typeof ConnectionsReceivedRouteRouteWithChildren
+  '/connections/sent': typeof ConnectionsSentRouteRouteWithChildren
+  '/contract-negotiation/$cnProcess': typeof ContractNegotiationCnProcessRouteRouteWithChildren
+  '/participants/$participantId': typeof ParticipantsParticipantIdRouteRouteWithChildren
+  '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdRouteRouteWithChildren
+  '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
+  '/authority/new': typeof AuthorityNewRoute
+  '/authority/request-details': typeof AuthorityRequestDetailsRoute
+  '/events/dlq': typeof EventsDlqRoute
+  '/events/feed': typeof EventsFeedRoute
+  '/events/subscriptions': typeof EventsSubscriptionsRoute
+  '/keystore/config': typeof KeystoreConfigRoute
+  '/keystore/parameters': typeof KeystoreParametersRoute
+  '/keystore/secrets': typeof KeystoreSecretsRoute
+  '/my-catalog/import': typeof MyCatalogImportRoute
+  '/my-catalog/new': typeof MyCatalogNewRoute
+  '/wallet/credentials': typeof WalletCredentialsRoute
+  '/wallet/did': typeof WalletDidRoute
+  '/wallet/info': typeof WalletInfoRoute
+  '/wallet/keys': typeof WalletKeysRoute
+  '/wallet/oidc4vci': typeof WalletOidc4vciRoute
+  '/wallet/oidc4vp': typeof WalletOidc4vpRoute
+  '/agreements/': typeof AgreementsIndexRoute
+  '/authority/': typeof AuthorityIndexRoute
+  '/catalog/': typeof CatalogIndexRoute
+  '/connections/': typeof ConnectionsIndexRoute
+  '/contract-negotiation/': typeof ContractNegotiationIndexRoute
+  '/events/': typeof EventsIndexRoute
+  '/keystore/': typeof KeystoreIndexRoute
+  '/my-catalog/': typeof MyCatalogIndexRoute
+  '/participants/': typeof ParticipantsIndexRoute
+  '/transfer-process/': typeof TransferProcessIndexRoute
+  '/wallet/': typeof WalletIndexRoute
+  '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
+  '/connections/sent/new': typeof ConnectionsSentNewRoute
+  '/connections/sent/request-details': typeof ConnectionsSentRequestDetailsRoute
+  '/my-catalog/connectors/$templateName': typeof MyCatalogConnectorsTemplateNameRoute
+  '/my-catalog/connectors/new': typeof MyCatalogConnectorsNewRoute
+  '/my-catalog/policies/$templateId': typeof MyCatalogPoliciesTemplateIdRoute
+  '/my-catalog/policies/new': typeof MyCatalogPoliciesNewRoute
+  '/my-catalog/schemas/$schemaId': typeof MyCatalogSchemasSchemaIdRoute
+  '/my-catalog/schemas/new': typeof MyCatalogSchemasNewRoute
+  '/catalog/$catalogId/': typeof CatalogCatalogIdIndexRoute
+  '/connections/received/': typeof ConnectionsReceivedIndexRoute
+  '/connections/sent/': typeof ConnectionsSentIndexRoute
+  '/contract-negotiation/$cnProcess/': typeof ContractNegotiationCnProcessIndexRoute
+  '/my-catalog/connectors/': typeof MyCatalogConnectorsIndexRoute
+  '/my-catalog/policies/': typeof MyCatalogPoliciesIndexRoute
+  '/my-catalog/schemas/': typeof MyCatalogSchemasIndexRoute
+  '/participants/$participantId/': typeof ParticipantsParticipantIdIndexRoute
+  '/transfer-process/$transferProcessId/': typeof TransferProcessTransferProcessIdIndexRoute
+  '/catalog/$catalogId/data-service/$dataServiceId': typeof CatalogCatalogIdDataServiceDataServiceIdRoute
+  '/catalog/$catalogId/dataset/$datasetId': typeof CatalogCatalogIdDatasetDatasetIdRoute
+  '/catalog/$catalogId/distribution-connector/$distributionId': typeof CatalogCatalogIdDistributionConnectorDistributionIdRoute
+  '/transfer-process/$transferProcessId/transfer-message/$transferMessageId': typeof TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute
+  '/catalog/participant/$participantId/': typeof CatalogParticipantParticipantIdIndexRoute
+  '/catalog/participant/$participantId/dataset/$datasetId': typeof CatalogParticipantParticipantIdDatasetDatasetIdRoute
+}
+export interface FileRouteTypes {
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
+    | '/'
+    | '/agreements'
+    | '/authority'
+    | '/catalog'
+    | '/connections'
+    | '/contract-negotiation'
+    | '/events'
+    | '/keystore'
+    | '/my-catalog'
+    | '/participants'
+    | '/transfer-process'
+    | '/wallet'
+    | '/catalog/$catalogId'
+    | '/catalog/participant'
+    | '/connections/received'
+    | '/connections/sent'
+    | '/contract-negotiation/$cnProcess'
+    | '/participants/$participantId'
+    | '/transfer-process/$transferProcessId'
+    | '/agreements/$agreementId'
+    | '/authority/new'
+    | '/authority/request-details'
+    | '/events/dlq'
+    | '/events/feed'
+    | '/events/subscriptions'
+    | '/keystore/config'
+    | '/keystore/parameters'
+    | '/keystore/secrets'
+    | '/my-catalog/import'
+    | '/my-catalog/new'
+    | '/wallet/credentials'
+    | '/wallet/did'
+    | '/wallet/info'
+    | '/wallet/keys'
+    | '/wallet/oidc4vci'
+    | '/wallet/oidc4vp'
+    | '/agreements/'
+    | '/authority/'
+    | '/catalog/'
+    | '/connections/'
+    | '/contract-negotiation/'
+    | '/events/'
+    | '/keystore/'
+    | '/my-catalog/'
+    | '/participants/'
+    | '/transfer-process/'
+    | '/wallet/'
+    | '/connections/received/request-details'
+    | '/connections/sent/new'
+    | '/connections/sent/request-details'
+    | '/my-catalog/connectors/$templateName'
+    | '/my-catalog/connectors/new'
+    | '/my-catalog/policies/$templateId'
+    | '/my-catalog/policies/new'
+    | '/my-catalog/schemas/$schemaId'
+    | '/my-catalog/schemas/new'
+    | '/catalog/$catalogId/'
+    | '/connections/received/'
+    | '/connections/sent/'
+    | '/contract-negotiation/$cnProcess/'
+    | '/my-catalog/connectors/'
+    | '/my-catalog/policies/'
+    | '/my-catalog/schemas/'
+    | '/participants/$participantId/'
+    | '/transfer-process/$transferProcessId/'
+    | '/catalog/$catalogId/data-service/$dataServiceId'
+    | '/catalog/$catalogId/dataset/$datasetId'
+    | '/catalog/$catalogId/distribution-connector/$distributionId'
+    | '/transfer-process/$transferProcessId/transfer-message/$transferMessageId'
+    | '/catalog/participant/$participantId/'
+    | '/catalog/participant/$participantId/dataset/$datasetId'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/catalog/participant'
+    | '/agreements/$agreementId'
+    | '/authority/new'
+    | '/authority/request-details'
+    | '/events/dlq'
+    | '/events/feed'
+    | '/events/subscriptions'
+    | '/keystore/config'
+    | '/keystore/parameters'
+    | '/keystore/secrets'
+    | '/my-catalog/import'
+    | '/my-catalog/new'
+    | '/wallet/credentials'
+    | '/wallet/did'
+    | '/wallet/info'
+    | '/wallet/keys'
+    | '/wallet/oidc4vci'
+    | '/wallet/oidc4vp'
+    | '/agreements'
+    | '/authority'
+    | '/catalog'
+    | '/connections'
+    | '/contract-negotiation'
+    | '/events'
+    | '/keystore'
+    | '/my-catalog'
+    | '/participants'
+    | '/transfer-process'
+    | '/wallet'
+    | '/connections/received/request-details'
+    | '/connections/sent/new'
+    | '/connections/sent/request-details'
+    | '/my-catalog/connectors/$templateName'
+    | '/my-catalog/connectors/new'
+    | '/my-catalog/policies/$templateId'
+    | '/my-catalog/policies/new'
+    | '/my-catalog/schemas/$schemaId'
+    | '/my-catalog/schemas/new'
+    | '/catalog/$catalogId'
+    | '/connections/received'
+    | '/connections/sent'
+    | '/contract-negotiation/$cnProcess'
+    | '/my-catalog/connectors'
+    | '/my-catalog/policies'
+    | '/my-catalog/schemas'
+    | '/participants/$participantId'
+    | '/transfer-process/$transferProcessId'
+    | '/catalog/$catalogId/data-service/$dataServiceId'
+    | '/catalog/$catalogId/dataset/$datasetId'
+    | '/catalog/$catalogId/distribution-connector/$distributionId'
+    | '/transfer-process/$transferProcessId/transfer-message/$transferMessageId'
+    | '/catalog/participant/$participantId'
+    | '/catalog/participant/$participantId/dataset/$datasetId'
+  id:
+    | '__root__'
+    | '/'
+    | '/agreements'
+    | '/authority'
+    | '/catalog'
+    | '/connections'
+    | '/contract-negotiation'
+    | '/events'
+    | '/keystore'
+    | '/my-catalog'
+    | '/participants'
+    | '/transfer-process'
+    | '/wallet'
+    | '/catalog/$catalogId'
+    | '/catalog/participant'
+    | '/connections/received'
+    | '/connections/sent'
+    | '/contract-negotiation/$cnProcess'
+    | '/participants/$participantId'
+    | '/transfer-process/$transferProcessId'
+    | '/agreements/$agreementId'
+    | '/authority/new'
+    | '/authority/request-details'
+    | '/events/dlq'
+    | '/events/feed'
+    | '/events/subscriptions'
+    | '/keystore/config'
+    | '/keystore/parameters'
+    | '/keystore/secrets'
+    | '/my-catalog/import'
+    | '/my-catalog/new'
+    | '/wallet/credentials'
+    | '/wallet/did'
+    | '/wallet/info'
+    | '/wallet/keys'
+    | '/wallet/oidc4vci'
+    | '/wallet/oidc4vp'
+    | '/agreements/'
+    | '/authority/'
+    | '/catalog/'
+    | '/connections/'
+    | '/contract-negotiation/'
+    | '/events/'
+    | '/keystore/'
+    | '/my-catalog/'
+    | '/participants/'
+    | '/transfer-process/'
+    | '/wallet/'
+    | '/connections/received/request-details'
+    | '/connections/sent/new'
+    | '/connections/sent/request-details'
+    | '/my-catalog/connectors/$templateName'
+    | '/my-catalog/connectors/new'
+    | '/my-catalog/policies/$templateId'
+    | '/my-catalog/policies/new'
+    | '/my-catalog/schemas/$schemaId'
+    | '/my-catalog/schemas/new'
+    | '/catalog/$catalogId/'
+    | '/connections/received/'
+    | '/connections/sent/'
+    | '/contract-negotiation/$cnProcess/'
+    | '/my-catalog/connectors/'
+    | '/my-catalog/policies/'
+    | '/my-catalog/schemas/'
+    | '/participants/$participantId/'
+    | '/transfer-process/$transferProcessId/'
+    | '/catalog/$catalogId/data-service/$dataServiceId'
+    | '/catalog/$catalogId/dataset/$datasetId'
+    | '/catalog/$catalogId/distribution-connector/$distributionId'
+    | '/transfer-process/$transferProcessId/transfer-message/$transferMessageId'
+    | '/catalog/participant/$participantId/'
+    | '/catalog/participant/$participantId/dataset/$datasetId'
+  fileRoutesById: FileRoutesById
+}
+export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
+  AgreementsRouteRoute: typeof AgreementsRouteRouteWithChildren
+  AuthorityRouteRoute: typeof AuthorityRouteRouteWithChildren
+  CatalogRouteRoute: typeof CatalogRouteRouteWithChildren
+  ConnectionsRouteRoute: typeof ConnectionsRouteRouteWithChildren
+  ContractNegotiationRouteRoute: typeof ContractNegotiationRouteRouteWithChildren
+  EventsRouteRoute: typeof EventsRouteRouteWithChildren
+  KeystoreRouteRoute: typeof KeystoreRouteRouteWithChildren
+  MyCatalogRouteRoute: typeof MyCatalogRouteRouteWithChildren
+  ParticipantsRouteRoute: typeof ParticipantsRouteRouteWithChildren
+  TransferProcessRouteRoute: typeof TransferProcessRouteRouteWithChildren
+  WalletRouteRoute: typeof WalletRouteRouteWithChildren
+}
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
@@ -537,503 +890,501 @@ declare module '@tanstack/react-router' {
       id: '/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/agreements': {
       id: '/agreements'
       path: '/agreements'
       fullPath: '/agreements'
-      preLoaderRoute: typeof AgreementsRouteImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof AgreementsRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/authority': {
       id: '/authority'
       path: '/authority'
       fullPath: '/authority'
-      preLoaderRoute: typeof AuthorityRouteImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof AuthorityRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/catalog': {
       id: '/catalog'
       path: '/catalog'
       fullPath: '/catalog'
-      preLoaderRoute: typeof CatalogRouteImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof CatalogRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/connections': {
       id: '/connections'
       path: '/connections'
       fullPath: '/connections'
-      preLoaderRoute: typeof ConnectionsRouteImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ConnectionsRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/contract-negotiation': {
       id: '/contract-negotiation'
       path: '/contract-negotiation'
       fullPath: '/contract-negotiation'
-      preLoaderRoute: typeof ContractNegotiationRouteImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ContractNegotiationRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/events': {
       id: '/events'
       path: '/events'
       fullPath: '/events'
-      preLoaderRoute: typeof EventsRouteImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof EventsRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/keystore': {
       id: '/keystore'
       path: '/keystore'
       fullPath: '/keystore'
-      preLoaderRoute: typeof KeystoreRouteImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof KeystoreRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/my-catalog': {
       id: '/my-catalog'
       path: '/my-catalog'
       fullPath: '/my-catalog'
-      preLoaderRoute: typeof MyCatalogRouteImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof MyCatalogRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/participants': {
       id: '/participants'
       path: '/participants'
       fullPath: '/participants'
-      preLoaderRoute: typeof ParticipantsRouteImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ParticipantsRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/transfer-process': {
       id: '/transfer-process'
       path: '/transfer-process'
       fullPath: '/transfer-process'
-      preLoaderRoute: typeof TransferProcessRouteImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof TransferProcessRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/wallet': {
       id: '/wallet'
       path: '/wallet'
       fullPath: '/wallet'
-      preLoaderRoute: typeof WalletRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/catalog/$catalogId': {
-      id: '/catalog/$catalogId'
-      path: '/$catalogId'
-      fullPath: '/catalog/$catalogId'
-      preLoaderRoute: typeof CatalogCatalogIdRouteImport
-      parentRoute: typeof CatalogRouteImport
-    }
-    '/catalog/participant': {
-      id: '/catalog/participant'
-      path: '/participant'
-      fullPath: '/catalog/participant'
-      preLoaderRoute: typeof CatalogParticipantRouteImport
-      parentRoute: typeof CatalogRouteImport
-    }
-    '/connections/received': {
-      id: '/connections/received'
-      path: '/received'
-      fullPath: '/connections/received'
-      preLoaderRoute: typeof ConnectionsReceivedRouteImport
-      parentRoute: typeof ConnectionsRouteImport
-    }
-    '/connections/sent': {
-      id: '/connections/sent'
-      path: '/sent'
-      fullPath: '/connections/sent'
-      preLoaderRoute: typeof ConnectionsSentRouteImport
-      parentRoute: typeof ConnectionsRouteImport
-    }
-    '/contract-negotiation/$cnProcess': {
-      id: '/contract-negotiation/$cnProcess'
-      path: '/$cnProcess'
-      fullPath: '/contract-negotiation/$cnProcess'
-      preLoaderRoute: typeof ContractNegotiationCnProcessRouteImport
-      parentRoute: typeof ContractNegotiationRouteImport
-    }
-    '/participants/$participantId': {
-      id: '/participants/$participantId'
-      path: '/$participantId'
-      fullPath: '/participants/$participantId'
-      preLoaderRoute: typeof ParticipantsParticipantIdRouteImport
-      parentRoute: typeof ParticipantsRouteImport
-    }
-    '/transfer-process/$transferProcessId': {
-      id: '/transfer-process/$transferProcessId'
-      path: '/$transferProcessId'
-      fullPath: '/transfer-process/$transferProcessId'
-      preLoaderRoute: typeof TransferProcessTransferProcessIdRouteImport
-      parentRoute: typeof TransferProcessRouteImport
-    }
-    '/agreements/$agreementId': {
-      id: '/agreements/$agreementId'
-      path: '/$agreementId'
-      fullPath: '/agreements/$agreementId'
-      preLoaderRoute: typeof AgreementsAgreementIdImport
-      parentRoute: typeof AgreementsRouteImport
-    }
-    '/authority/new': {
-      id: '/authority/new'
-      path: '/new'
-      fullPath: '/authority/new'
-      preLoaderRoute: typeof AuthorityNewImport
-      parentRoute: typeof AuthorityRouteImport
-    }
-    '/authority/request-details': {
-      id: '/authority/request-details'
-      path: '/request-details'
-      fullPath: '/authority/request-details'
-      preLoaderRoute: typeof AuthorityRequestDetailsImport
-      parentRoute: typeof AuthorityRouteImport
-    }
-    '/events/dlq': {
-      id: '/events/dlq'
-      path: '/dlq'
-      fullPath: '/events/dlq'
-      preLoaderRoute: typeof EventsDlqImport
-      parentRoute: typeof EventsRouteImport
-    }
-    '/events/feed': {
-      id: '/events/feed'
-      path: '/feed'
-      fullPath: '/events/feed'
-      preLoaderRoute: typeof EventsFeedImport
-      parentRoute: typeof EventsRouteImport
-    }
-    '/events/subscriptions': {
-      id: '/events/subscriptions'
-      path: '/subscriptions'
-      fullPath: '/events/subscriptions'
-      preLoaderRoute: typeof EventsSubscriptionsImport
-      parentRoute: typeof EventsRouteImport
-    }
-    '/keystore/config': {
-      id: '/keystore/config'
-      path: '/config'
-      fullPath: '/keystore/config'
-      preLoaderRoute: typeof KeystoreConfigImport
-      parentRoute: typeof KeystoreRouteImport
-    }
-    '/keystore/parameters': {
-      id: '/keystore/parameters'
-      path: '/parameters'
-      fullPath: '/keystore/parameters'
-      preLoaderRoute: typeof KeystoreParametersImport
-      parentRoute: typeof KeystoreRouteImport
-    }
-    '/keystore/secrets': {
-      id: '/keystore/secrets'
-      path: '/secrets'
-      fullPath: '/keystore/secrets'
-      preLoaderRoute: typeof KeystoreSecretsImport
-      parentRoute: typeof KeystoreRouteImport
-    }
-    '/my-catalog/import': {
-      id: '/my-catalog/import'
-      path: '/import'
-      fullPath: '/my-catalog/import'
-      preLoaderRoute: typeof MyCatalogImportImport
-      parentRoute: typeof MyCatalogRouteImport
-    }
-    '/my-catalog/new': {
-      id: '/my-catalog/new'
-      path: '/new'
-      fullPath: '/my-catalog/new'
-      preLoaderRoute: typeof MyCatalogNewImport
-      parentRoute: typeof MyCatalogRouteImport
-    }
-    '/wallet/credentials': {
-      id: '/wallet/credentials'
-      path: '/credentials'
-      fullPath: '/wallet/credentials'
-      preLoaderRoute: typeof WalletCredentialsImport
-      parentRoute: typeof WalletRouteImport
-    }
-    '/wallet/did': {
-      id: '/wallet/did'
-      path: '/did'
-      fullPath: '/wallet/did'
-      preLoaderRoute: typeof WalletDidImport
-      parentRoute: typeof WalletRouteImport
-    }
-    '/wallet/info': {
-      id: '/wallet/info'
-      path: '/info'
-      fullPath: '/wallet/info'
-      preLoaderRoute: typeof WalletInfoImport
-      parentRoute: typeof WalletRouteImport
-    }
-    '/wallet/keys': {
-      id: '/wallet/keys'
-      path: '/keys'
-      fullPath: '/wallet/keys'
-      preLoaderRoute: typeof WalletKeysImport
-      parentRoute: typeof WalletRouteImport
-    }
-    '/wallet/oidc4vci': {
-      id: '/wallet/oidc4vci'
-      path: '/oidc4vci'
-      fullPath: '/wallet/oidc4vci'
-      preLoaderRoute: typeof WalletOidc4vciImport
-      parentRoute: typeof WalletRouteImport
-    }
-    '/wallet/oidc4vp': {
-      id: '/wallet/oidc4vp'
-      path: '/oidc4vp'
-      fullPath: '/wallet/oidc4vp'
-      preLoaderRoute: typeof WalletOidc4vpImport
-      parentRoute: typeof WalletRouteImport
+      preLoaderRoute: typeof WalletRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/agreements/': {
       id: '/agreements/'
       path: '/'
       fullPath: '/agreements/'
-      preLoaderRoute: typeof AgreementsIndexImport
-      parentRoute: typeof AgreementsRouteImport
+      preLoaderRoute: typeof AgreementsIndexRouteImport
+      parentRoute: typeof AgreementsRouteRoute
+    }
+    '/agreements/$agreementId': {
+      id: '/agreements/$agreementId'
+      path: '/$agreementId'
+      fullPath: '/agreements/$agreementId'
+      preLoaderRoute: typeof AgreementsAgreementIdRouteImport
+      parentRoute: typeof AgreementsRouteRoute
     }
     '/authority/': {
       id: '/authority/'
       path: '/'
       fullPath: '/authority/'
-      preLoaderRoute: typeof AuthorityIndexImport
-      parentRoute: typeof AuthorityRouteImport
+      preLoaderRoute: typeof AuthorityIndexRouteImport
+      parentRoute: typeof AuthorityRouteRoute
+    }
+    '/authority/new': {
+      id: '/authority/new'
+      path: '/new'
+      fullPath: '/authority/new'
+      preLoaderRoute: typeof AuthorityNewRouteImport
+      parentRoute: typeof AuthorityRouteRoute
+    }
+    '/authority/request-details': {
+      id: '/authority/request-details'
+      path: '/request-details'
+      fullPath: '/authority/request-details'
+      preLoaderRoute: typeof AuthorityRequestDetailsRouteImport
+      parentRoute: typeof AuthorityRouteRoute
     }
     '/catalog/': {
       id: '/catalog/'
       path: '/'
       fullPath: '/catalog/'
-      preLoaderRoute: typeof CatalogIndexImport
-      parentRoute: typeof CatalogRouteImport
+      preLoaderRoute: typeof CatalogIndexRouteImport
+      parentRoute: typeof CatalogRouteRoute
+    }
+    '/catalog/$catalogId': {
+      id: '/catalog/$catalogId'
+      path: '/$catalogId'
+      fullPath: '/catalog/$catalogId'
+      preLoaderRoute: typeof CatalogCatalogIdRouteRouteImport
+      parentRoute: typeof CatalogRouteRoute
+    }
+    '/catalog/participant': {
+      id: '/catalog/participant'
+      path: '/participant'
+      fullPath: '/catalog/participant'
+      preLoaderRoute: typeof CatalogParticipantRouteRouteImport
+      parentRoute: typeof CatalogRouteRoute
     }
     '/connections/': {
       id: '/connections/'
       path: '/'
       fullPath: '/connections/'
-      preLoaderRoute: typeof ConnectionsIndexImport
-      parentRoute: typeof ConnectionsRouteImport
+      preLoaderRoute: typeof ConnectionsIndexRouteImport
+      parentRoute: typeof ConnectionsRouteRoute
+    }
+    '/connections/received': {
+      id: '/connections/received'
+      path: '/received'
+      fullPath: '/connections/received'
+      preLoaderRoute: typeof ConnectionsReceivedRouteRouteImport
+      parentRoute: typeof ConnectionsRouteRoute
+    }
+    '/connections/sent': {
+      id: '/connections/sent'
+      path: '/sent'
+      fullPath: '/connections/sent'
+      preLoaderRoute: typeof ConnectionsSentRouteRouteImport
+      parentRoute: typeof ConnectionsRouteRoute
     }
     '/contract-negotiation/': {
       id: '/contract-negotiation/'
       path: '/'
       fullPath: '/contract-negotiation/'
-      preLoaderRoute: typeof ContractNegotiationIndexImport
-      parentRoute: typeof ContractNegotiationRouteImport
+      preLoaderRoute: typeof ContractNegotiationIndexRouteImport
+      parentRoute: typeof ContractNegotiationRouteRoute
+    }
+    '/contract-negotiation/$cnProcess': {
+      id: '/contract-negotiation/$cnProcess'
+      path: '/$cnProcess'
+      fullPath: '/contract-negotiation/$cnProcess'
+      preLoaderRoute: typeof ContractNegotiationCnProcessRouteRouteImport
+      parentRoute: typeof ContractNegotiationRouteRoute
     }
     '/events/': {
       id: '/events/'
       path: '/'
       fullPath: '/events/'
-      preLoaderRoute: typeof EventsIndexImport
-      parentRoute: typeof EventsRouteImport
+      preLoaderRoute: typeof EventsIndexRouteImport
+      parentRoute: typeof EventsRouteRoute
+    }
+    '/events/dlq': {
+      id: '/events/dlq'
+      path: '/dlq'
+      fullPath: '/events/dlq'
+      preLoaderRoute: typeof EventsDlqRouteImport
+      parentRoute: typeof EventsRouteRoute
+    }
+    '/events/feed': {
+      id: '/events/feed'
+      path: '/feed'
+      fullPath: '/events/feed'
+      preLoaderRoute: typeof EventsFeedRouteImport
+      parentRoute: typeof EventsRouteRoute
+    }
+    '/events/subscriptions': {
+      id: '/events/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/events/subscriptions'
+      preLoaderRoute: typeof EventsSubscriptionsRouteImport
+      parentRoute: typeof EventsRouteRoute
     }
     '/keystore/': {
       id: '/keystore/'
       path: '/'
       fullPath: '/keystore/'
-      preLoaderRoute: typeof KeystoreIndexImport
-      parentRoute: typeof KeystoreRouteImport
+      preLoaderRoute: typeof KeystoreIndexRouteImport
+      parentRoute: typeof KeystoreRouteRoute
+    }
+    '/keystore/config': {
+      id: '/keystore/config'
+      path: '/config'
+      fullPath: '/keystore/config'
+      preLoaderRoute: typeof KeystoreConfigRouteImport
+      parentRoute: typeof KeystoreRouteRoute
+    }
+    '/keystore/parameters': {
+      id: '/keystore/parameters'
+      path: '/parameters'
+      fullPath: '/keystore/parameters'
+      preLoaderRoute: typeof KeystoreParametersRouteImport
+      parentRoute: typeof KeystoreRouteRoute
+    }
+    '/keystore/secrets': {
+      id: '/keystore/secrets'
+      path: '/secrets'
+      fullPath: '/keystore/secrets'
+      preLoaderRoute: typeof KeystoreSecretsRouteImport
+      parentRoute: typeof KeystoreRouteRoute
     }
     '/my-catalog/': {
       id: '/my-catalog/'
       path: '/'
       fullPath: '/my-catalog/'
-      preLoaderRoute: typeof MyCatalogIndexImport
-      parentRoute: typeof MyCatalogRouteImport
+      preLoaderRoute: typeof MyCatalogIndexRouteImport
+      parentRoute: typeof MyCatalogRouteRoute
+    }
+    '/my-catalog/import': {
+      id: '/my-catalog/import'
+      path: '/import'
+      fullPath: '/my-catalog/import'
+      preLoaderRoute: typeof MyCatalogImportRouteImport
+      parentRoute: typeof MyCatalogRouteRoute
+    }
+    '/my-catalog/new': {
+      id: '/my-catalog/new'
+      path: '/new'
+      fullPath: '/my-catalog/new'
+      preLoaderRoute: typeof MyCatalogNewRouteImport
+      parentRoute: typeof MyCatalogRouteRoute
     }
     '/participants/': {
       id: '/participants/'
       path: '/'
       fullPath: '/participants/'
-      preLoaderRoute: typeof ParticipantsIndexImport
-      parentRoute: typeof ParticipantsRouteImport
+      preLoaderRoute: typeof ParticipantsIndexRouteImport
+      parentRoute: typeof ParticipantsRouteRoute
+    }
+    '/participants/$participantId': {
+      id: '/participants/$participantId'
+      path: '/$participantId'
+      fullPath: '/participants/$participantId'
+      preLoaderRoute: typeof ParticipantsParticipantIdRouteRouteImport
+      parentRoute: typeof ParticipantsRouteRoute
     }
     '/transfer-process/': {
       id: '/transfer-process/'
       path: '/'
       fullPath: '/transfer-process/'
-      preLoaderRoute: typeof TransferProcessIndexImport
-      parentRoute: typeof TransferProcessRouteImport
+      preLoaderRoute: typeof TransferProcessIndexRouteImport
+      parentRoute: typeof TransferProcessRouteRoute
+    }
+    '/transfer-process/$transferProcessId': {
+      id: '/transfer-process/$transferProcessId'
+      path: '/$transferProcessId'
+      fullPath: '/transfer-process/$transferProcessId'
+      preLoaderRoute: typeof TransferProcessTransferProcessIdRouteRouteImport
+      parentRoute: typeof TransferProcessRouteRoute
     }
     '/wallet/': {
       id: '/wallet/'
       path: '/'
       fullPath: '/wallet/'
-      preLoaderRoute: typeof WalletIndexImport
-      parentRoute: typeof WalletRouteImport
+      preLoaderRoute: typeof WalletIndexRouteImport
+      parentRoute: typeof WalletRouteRoute
     }
-    '/connections/received/request-details': {
-      id: '/connections/received/request-details'
-      path: '/request-details'
-      fullPath: '/connections/received/request-details'
-      preLoaderRoute: typeof ConnectionsReceivedRequestDetailsImport
-      parentRoute: typeof ConnectionsReceivedRouteImport
+    '/wallet/credentials': {
+      id: '/wallet/credentials'
+      path: '/credentials'
+      fullPath: '/wallet/credentials'
+      preLoaderRoute: typeof WalletCredentialsRouteImport
+      parentRoute: typeof WalletRouteRoute
     }
-    '/connections/sent/new': {
-      id: '/connections/sent/new'
-      path: '/new'
-      fullPath: '/connections/sent/new'
-      preLoaderRoute: typeof ConnectionsSentNewImport
-      parentRoute: typeof ConnectionsSentRouteImport
+    '/wallet/did': {
+      id: '/wallet/did'
+      path: '/did'
+      fullPath: '/wallet/did'
+      preLoaderRoute: typeof WalletDidRouteImport
+      parentRoute: typeof WalletRouteRoute
     }
-    '/connections/sent/request-details': {
-      id: '/connections/sent/request-details'
-      path: '/request-details'
-      fullPath: '/connections/sent/request-details'
-      preLoaderRoute: typeof ConnectionsSentRequestDetailsImport
-      parentRoute: typeof ConnectionsSentRouteImport
+    '/wallet/info': {
+      id: '/wallet/info'
+      path: '/info'
+      fullPath: '/wallet/info'
+      preLoaderRoute: typeof WalletInfoRouteImport
+      parentRoute: typeof WalletRouteRoute
     }
-    '/my-catalog/connectors/$templateName': {
-      id: '/my-catalog/connectors/$templateName'
-      path: '/connectors/$templateName'
-      fullPath: '/my-catalog/connectors/$templateName'
-      preLoaderRoute: typeof MyCatalogConnectorsTemplateNameImport
-      parentRoute: typeof MyCatalogRouteImport
+    '/wallet/keys': {
+      id: '/wallet/keys'
+      path: '/keys'
+      fullPath: '/wallet/keys'
+      preLoaderRoute: typeof WalletKeysRouteImport
+      parentRoute: typeof WalletRouteRoute
     }
-    '/my-catalog/connectors/new': {
-      id: '/my-catalog/connectors/new'
-      path: '/connectors/new'
-      fullPath: '/my-catalog/connectors/new'
-      preLoaderRoute: typeof MyCatalogConnectorsNewImport
-      parentRoute: typeof MyCatalogRouteImport
+    '/wallet/oidc4vci': {
+      id: '/wallet/oidc4vci'
+      path: '/oidc4vci'
+      fullPath: '/wallet/oidc4vci'
+      preLoaderRoute: typeof WalletOidc4vciRouteImport
+      parentRoute: typeof WalletRouteRoute
     }
-    '/my-catalog/policies/$templateId': {
-      id: '/my-catalog/policies/$templateId'
-      path: '/policies/$templateId'
-      fullPath: '/my-catalog/policies/$templateId'
-      preLoaderRoute: typeof MyCatalogPoliciesTemplateIdImport
-      parentRoute: typeof MyCatalogRouteImport
-    }
-    '/my-catalog/policies/new': {
-      id: '/my-catalog/policies/new'
-      path: '/policies/new'
-      fullPath: '/my-catalog/policies/new'
-      preLoaderRoute: typeof MyCatalogPoliciesNewImport
-      parentRoute: typeof MyCatalogRouteImport
-    }
-    '/my-catalog/schemas/$schemaId': {
-      id: '/my-catalog/schemas/$schemaId'
-      path: '/schemas/$schemaId'
-      fullPath: '/my-catalog/schemas/$schemaId'
-      preLoaderRoute: typeof MyCatalogSchemasSchemaIdImport
-      parentRoute: typeof MyCatalogRouteImport
-    }
-    '/my-catalog/schemas/new': {
-      id: '/my-catalog/schemas/new'
-      path: '/schemas/new'
-      fullPath: '/my-catalog/schemas/new'
-      preLoaderRoute: typeof MyCatalogSchemasNewImport
-      parentRoute: typeof MyCatalogRouteImport
+    '/wallet/oidc4vp': {
+      id: '/wallet/oidc4vp'
+      path: '/oidc4vp'
+      fullPath: '/wallet/oidc4vp'
+      preLoaderRoute: typeof WalletOidc4vpRouteImport
+      parentRoute: typeof WalletRouteRoute
     }
     '/catalog/$catalogId/': {
       id: '/catalog/$catalogId/'
       path: '/'
       fullPath: '/catalog/$catalogId/'
-      preLoaderRoute: typeof CatalogCatalogIdIndexImport
-      parentRoute: typeof CatalogCatalogIdRouteImport
+      preLoaderRoute: typeof CatalogCatalogIdIndexRouteImport
+      parentRoute: typeof CatalogCatalogIdRouteRoute
     }
     '/connections/received/': {
       id: '/connections/received/'
       path: '/'
       fullPath: '/connections/received/'
-      preLoaderRoute: typeof ConnectionsReceivedIndexImport
-      parentRoute: typeof ConnectionsReceivedRouteImport
+      preLoaderRoute: typeof ConnectionsReceivedIndexRouteImport
+      parentRoute: typeof ConnectionsReceivedRouteRoute
+    }
+    '/connections/received/request-details': {
+      id: '/connections/received/request-details'
+      path: '/request-details'
+      fullPath: '/connections/received/request-details'
+      preLoaderRoute: typeof ConnectionsReceivedRequestDetailsRouteImport
+      parentRoute: typeof ConnectionsReceivedRouteRoute
     }
     '/connections/sent/': {
       id: '/connections/sent/'
       path: '/'
       fullPath: '/connections/sent/'
-      preLoaderRoute: typeof ConnectionsSentIndexImport
-      parentRoute: typeof ConnectionsSentRouteImport
+      preLoaderRoute: typeof ConnectionsSentIndexRouteImport
+      parentRoute: typeof ConnectionsSentRouteRoute
+    }
+    '/connections/sent/new': {
+      id: '/connections/sent/new'
+      path: '/new'
+      fullPath: '/connections/sent/new'
+      preLoaderRoute: typeof ConnectionsSentNewRouteImport
+      parentRoute: typeof ConnectionsSentRouteRoute
+    }
+    '/connections/sent/request-details': {
+      id: '/connections/sent/request-details'
+      path: '/request-details'
+      fullPath: '/connections/sent/request-details'
+      preLoaderRoute: typeof ConnectionsSentRequestDetailsRouteImport
+      parentRoute: typeof ConnectionsSentRouteRoute
     }
     '/contract-negotiation/$cnProcess/': {
       id: '/contract-negotiation/$cnProcess/'
       path: '/'
       fullPath: '/contract-negotiation/$cnProcess/'
-      preLoaderRoute: typeof ContractNegotiationCnProcessIndexImport
-      parentRoute: typeof ContractNegotiationCnProcessRouteImport
+      preLoaderRoute: typeof ContractNegotiationCnProcessIndexRouteImport
+      parentRoute: typeof ContractNegotiationCnProcessRouteRoute
     }
     '/my-catalog/connectors/': {
       id: '/my-catalog/connectors/'
       path: '/connectors'
-      fullPath: '/my-catalog/connectors'
-      preLoaderRoute: typeof MyCatalogConnectorsIndexImport
-      parentRoute: typeof MyCatalogRouteImport
+      fullPath: '/my-catalog/connectors/'
+      preLoaderRoute: typeof MyCatalogConnectorsIndexRouteImport
+      parentRoute: typeof MyCatalogRouteRoute
+    }
+    '/my-catalog/connectors/$templateName': {
+      id: '/my-catalog/connectors/$templateName'
+      path: '/connectors/$templateName'
+      fullPath: '/my-catalog/connectors/$templateName'
+      preLoaderRoute: typeof MyCatalogConnectorsTemplateNameRouteImport
+      parentRoute: typeof MyCatalogRouteRoute
+    }
+    '/my-catalog/connectors/new': {
+      id: '/my-catalog/connectors/new'
+      path: '/connectors/new'
+      fullPath: '/my-catalog/connectors/new'
+      preLoaderRoute: typeof MyCatalogConnectorsNewRouteImport
+      parentRoute: typeof MyCatalogRouteRoute
     }
     '/my-catalog/policies/': {
       id: '/my-catalog/policies/'
       path: '/policies'
-      fullPath: '/my-catalog/policies'
-      preLoaderRoute: typeof MyCatalogPoliciesIndexImport
-      parentRoute: typeof MyCatalogRouteImport
+      fullPath: '/my-catalog/policies/'
+      preLoaderRoute: typeof MyCatalogPoliciesIndexRouteImport
+      parentRoute: typeof MyCatalogRouteRoute
+    }
+    '/my-catalog/policies/$templateId': {
+      id: '/my-catalog/policies/$templateId'
+      path: '/policies/$templateId'
+      fullPath: '/my-catalog/policies/$templateId'
+      preLoaderRoute: typeof MyCatalogPoliciesTemplateIdRouteImport
+      parentRoute: typeof MyCatalogRouteRoute
+    }
+    '/my-catalog/policies/new': {
+      id: '/my-catalog/policies/new'
+      path: '/policies/new'
+      fullPath: '/my-catalog/policies/new'
+      preLoaderRoute: typeof MyCatalogPoliciesNewRouteImport
+      parentRoute: typeof MyCatalogRouteRoute
     }
     '/my-catalog/schemas/': {
       id: '/my-catalog/schemas/'
       path: '/schemas'
-      fullPath: '/my-catalog/schemas'
-      preLoaderRoute: typeof MyCatalogSchemasIndexImport
-      parentRoute: typeof MyCatalogRouteImport
+      fullPath: '/my-catalog/schemas/'
+      preLoaderRoute: typeof MyCatalogSchemasIndexRouteImport
+      parentRoute: typeof MyCatalogRouteRoute
+    }
+    '/my-catalog/schemas/$schemaId': {
+      id: '/my-catalog/schemas/$schemaId'
+      path: '/schemas/$schemaId'
+      fullPath: '/my-catalog/schemas/$schemaId'
+      preLoaderRoute: typeof MyCatalogSchemasSchemaIdRouteImport
+      parentRoute: typeof MyCatalogRouteRoute
+    }
+    '/my-catalog/schemas/new': {
+      id: '/my-catalog/schemas/new'
+      path: '/schemas/new'
+      fullPath: '/my-catalog/schemas/new'
+      preLoaderRoute: typeof MyCatalogSchemasNewRouteImport
+      parentRoute: typeof MyCatalogRouteRoute
     }
     '/participants/$participantId/': {
       id: '/participants/$participantId/'
       path: '/'
       fullPath: '/participants/$participantId/'
-      preLoaderRoute: typeof ParticipantsParticipantIdIndexImport
-      parentRoute: typeof ParticipantsParticipantIdRouteImport
+      preLoaderRoute: typeof ParticipantsParticipantIdIndexRouteImport
+      parentRoute: typeof ParticipantsParticipantIdRouteRoute
     }
     '/transfer-process/$transferProcessId/': {
       id: '/transfer-process/$transferProcessId/'
       path: '/'
       fullPath: '/transfer-process/$transferProcessId/'
-      preLoaderRoute: typeof TransferProcessTransferProcessIdIndexImport
-      parentRoute: typeof TransferProcessTransferProcessIdRouteImport
+      preLoaderRoute: typeof TransferProcessTransferProcessIdIndexRouteImport
+      parentRoute: typeof TransferProcessTransferProcessIdRouteRoute
     }
     '/catalog/$catalogId/data-service/$dataServiceId': {
       id: '/catalog/$catalogId/data-service/$dataServiceId'
       path: '/data-service/$dataServiceId'
       fullPath: '/catalog/$catalogId/data-service/$dataServiceId'
-      preLoaderRoute: typeof CatalogCatalogIdDataServiceDataServiceIdImport
-      parentRoute: typeof CatalogCatalogIdRouteImport
+      preLoaderRoute: typeof CatalogCatalogIdDataServiceDataServiceIdRouteImport
+      parentRoute: typeof CatalogCatalogIdRouteRoute
     }
     '/catalog/$catalogId/dataset/$datasetId': {
       id: '/catalog/$catalogId/dataset/$datasetId'
       path: '/dataset/$datasetId'
       fullPath: '/catalog/$catalogId/dataset/$datasetId'
-      preLoaderRoute: typeof CatalogCatalogIdDatasetDatasetIdImport
-      parentRoute: typeof CatalogCatalogIdRouteImport
+      preLoaderRoute: typeof CatalogCatalogIdDatasetDatasetIdRouteImport
+      parentRoute: typeof CatalogCatalogIdRouteRoute
     }
     '/catalog/$catalogId/distribution-connector/$distributionId': {
       id: '/catalog/$catalogId/distribution-connector/$distributionId'
       path: '/distribution-connector/$distributionId'
       fullPath: '/catalog/$catalogId/distribution-connector/$distributionId'
-      preLoaderRoute: typeof CatalogCatalogIdDistributionConnectorDistributionIdImport
-      parentRoute: typeof CatalogCatalogIdRouteImport
+      preLoaderRoute: typeof CatalogCatalogIdDistributionConnectorDistributionIdRouteImport
+      parentRoute: typeof CatalogCatalogIdRouteRoute
+    }
+    '/catalog/participant/$participantId/': {
+      id: '/catalog/participant/$participantId/'
+      path: '/$participantId'
+      fullPath: '/catalog/participant/$participantId/'
+      preLoaderRoute: typeof CatalogParticipantParticipantIdIndexRouteImport
+      parentRoute: typeof CatalogParticipantRouteRoute
     }
     '/transfer-process/$transferProcessId/transfer-message/$transferMessageId': {
       id: '/transfer-process/$transferProcessId/transfer-message/$transferMessageId'
       path: '/transfer-message/$transferMessageId'
       fullPath: '/transfer-process/$transferProcessId/transfer-message/$transferMessageId'
-      preLoaderRoute: typeof TransferProcessTransferProcessIdTransferMessageTransferMessageIdImport
-      parentRoute: typeof TransferProcessTransferProcessIdRouteImport
-    }
-    '/catalog/participant/$participantId/': {
-      id: '/catalog/participant/$participantId/'
-      path: '/$participantId'
-      fullPath: '/catalog/participant/$participantId'
-      preLoaderRoute: typeof CatalogParticipantParticipantIdIndexImport
-      parentRoute: typeof CatalogParticipantRouteImport
+      preLoaderRoute: typeof TransferProcessTransferProcessIdTransferMessageTransferMessageIdRouteImport
+      parentRoute: typeof TransferProcessTransferProcessIdRouteRoute
     }
     '/catalog/participant/$participantId/dataset/$datasetId': {
       id: '/catalog/participant/$participantId/dataset/$datasetId'
       path: '/$participantId/dataset/$datasetId'
       fullPath: '/catalog/participant/$participantId/dataset/$datasetId'
-      preLoaderRoute: typeof CatalogParticipantParticipantIdDatasetDatasetIdImport
-      parentRoute: typeof CatalogParticipantRouteImport
+      preLoaderRoute: typeof CatalogParticipantParticipantIdDatasetDatasetIdRouteImport
+      parentRoute: typeof CatalogParticipantRouteRoute
     }
   }
 }
-
-// Create and export the route tree
 
 interface AgreementsRouteRouteChildren {
   AgreementsAgreementIdRoute: typeof AgreementsAgreementIdRoute
@@ -1353,433 +1704,6 @@ const WalletRouteRouteWithChildren = WalletRouteRoute._addFileChildren(
   WalletRouteRouteChildren,
 )
 
-export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/agreements': typeof AgreementsRouteRouteWithChildren
-  '/authority': typeof AuthorityRouteRouteWithChildren
-  '/catalog': typeof CatalogRouteRouteWithChildren
-  '/connections': typeof ConnectionsRouteRouteWithChildren
-  '/contract-negotiation': typeof ContractNegotiationRouteRouteWithChildren
-  '/events': typeof EventsRouteRouteWithChildren
-  '/keystore': typeof KeystoreRouteRouteWithChildren
-  '/my-catalog': typeof MyCatalogRouteRouteWithChildren
-  '/participants': typeof ParticipantsRouteRouteWithChildren
-  '/transfer-process': typeof TransferProcessRouteRouteWithChildren
-  '/wallet': typeof WalletRouteRouteWithChildren
-  '/catalog/$catalogId': typeof CatalogCatalogIdRouteRouteWithChildren
-  '/catalog/participant': typeof CatalogParticipantRouteRouteWithChildren
-  '/connections/received': typeof ConnectionsReceivedRouteRouteWithChildren
-  '/connections/sent': typeof ConnectionsSentRouteRouteWithChildren
-  '/contract-negotiation/$cnProcess': typeof ContractNegotiationCnProcessRouteRouteWithChildren
-  '/participants/$participantId': typeof ParticipantsParticipantIdRouteRouteWithChildren
-  '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdRouteRouteWithChildren
-  '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
-  '/authority/new': typeof AuthorityNewRoute
-  '/authority/request-details': typeof AuthorityRequestDetailsRoute
-  '/events/dlq': typeof EventsDlqRoute
-  '/events/feed': typeof EventsFeedRoute
-  '/events/subscriptions': typeof EventsSubscriptionsRoute
-  '/keystore/config': typeof KeystoreConfigRoute
-  '/keystore/parameters': typeof KeystoreParametersRoute
-  '/keystore/secrets': typeof KeystoreSecretsRoute
-  '/my-catalog/import': typeof MyCatalogImportRoute
-  '/my-catalog/new': typeof MyCatalogNewRoute
-  '/wallet/credentials': typeof WalletCredentialsRoute
-  '/wallet/did': typeof WalletDidRoute
-  '/wallet/info': typeof WalletInfoRoute
-  '/wallet/keys': typeof WalletKeysRoute
-  '/wallet/oidc4vci': typeof WalletOidc4vciRoute
-  '/wallet/oidc4vp': typeof WalletOidc4vpRoute
-  '/agreements/': typeof AgreementsIndexRoute
-  '/authority/': typeof AuthorityIndexRoute
-  '/catalog/': typeof CatalogIndexRoute
-  '/connections/': typeof ConnectionsIndexRoute
-  '/contract-negotiation/': typeof ContractNegotiationIndexRoute
-  '/events/': typeof EventsIndexRoute
-  '/keystore/': typeof KeystoreIndexRoute
-  '/my-catalog/': typeof MyCatalogIndexRoute
-  '/participants/': typeof ParticipantsIndexRoute
-  '/transfer-process/': typeof TransferProcessIndexRoute
-  '/wallet/': typeof WalletIndexRoute
-  '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
-  '/connections/sent/new': typeof ConnectionsSentNewRoute
-  '/connections/sent/request-details': typeof ConnectionsSentRequestDetailsRoute
-  '/my-catalog/connectors/$templateName': typeof MyCatalogConnectorsTemplateNameRoute
-  '/my-catalog/connectors/new': typeof MyCatalogConnectorsNewRoute
-  '/my-catalog/policies/$templateId': typeof MyCatalogPoliciesTemplateIdRoute
-  '/my-catalog/policies/new': typeof MyCatalogPoliciesNewRoute
-  '/my-catalog/schemas/$schemaId': typeof MyCatalogSchemasSchemaIdRoute
-  '/my-catalog/schemas/new': typeof MyCatalogSchemasNewRoute
-  '/catalog/$catalogId/': typeof CatalogCatalogIdIndexRoute
-  '/connections/received/': typeof ConnectionsReceivedIndexRoute
-  '/connections/sent/': typeof ConnectionsSentIndexRoute
-  '/contract-negotiation/$cnProcess/': typeof ContractNegotiationCnProcessIndexRoute
-  '/my-catalog/connectors': typeof MyCatalogConnectorsIndexRoute
-  '/my-catalog/policies': typeof MyCatalogPoliciesIndexRoute
-  '/my-catalog/schemas': typeof MyCatalogSchemasIndexRoute
-  '/participants/$participantId/': typeof ParticipantsParticipantIdIndexRoute
-  '/transfer-process/$transferProcessId/': typeof TransferProcessTransferProcessIdIndexRoute
-  '/catalog/$catalogId/data-service/$dataServiceId': typeof CatalogCatalogIdDataServiceDataServiceIdRoute
-  '/catalog/$catalogId/dataset/$datasetId': typeof CatalogCatalogIdDatasetDatasetIdRoute
-  '/catalog/$catalogId/distribution-connector/$distributionId': typeof CatalogCatalogIdDistributionConnectorDistributionIdRoute
-  '/transfer-process/$transferProcessId/transfer-message/$transferMessageId': typeof TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute
-  '/catalog/participant/$participantId': typeof CatalogParticipantParticipantIdIndexRoute
-  '/catalog/participant/$participantId/dataset/$datasetId': typeof CatalogParticipantParticipantIdDatasetDatasetIdRoute
-}
-
-export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/catalog/participant': typeof CatalogParticipantRouteRouteWithChildren
-  '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
-  '/authority/new': typeof AuthorityNewRoute
-  '/authority/request-details': typeof AuthorityRequestDetailsRoute
-  '/events/dlq': typeof EventsDlqRoute
-  '/events/feed': typeof EventsFeedRoute
-  '/events/subscriptions': typeof EventsSubscriptionsRoute
-  '/keystore/config': typeof KeystoreConfigRoute
-  '/keystore/parameters': typeof KeystoreParametersRoute
-  '/keystore/secrets': typeof KeystoreSecretsRoute
-  '/my-catalog/import': typeof MyCatalogImportRoute
-  '/my-catalog/new': typeof MyCatalogNewRoute
-  '/wallet/credentials': typeof WalletCredentialsRoute
-  '/wallet/did': typeof WalletDidRoute
-  '/wallet/info': typeof WalletInfoRoute
-  '/wallet/keys': typeof WalletKeysRoute
-  '/wallet/oidc4vci': typeof WalletOidc4vciRoute
-  '/wallet/oidc4vp': typeof WalletOidc4vpRoute
-  '/agreements': typeof AgreementsIndexRoute
-  '/authority': typeof AuthorityIndexRoute
-  '/catalog': typeof CatalogIndexRoute
-  '/connections': typeof ConnectionsIndexRoute
-  '/contract-negotiation': typeof ContractNegotiationIndexRoute
-  '/events': typeof EventsIndexRoute
-  '/keystore': typeof KeystoreIndexRoute
-  '/my-catalog': typeof MyCatalogIndexRoute
-  '/participants': typeof ParticipantsIndexRoute
-  '/transfer-process': typeof TransferProcessIndexRoute
-  '/wallet': typeof WalletIndexRoute
-  '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
-  '/connections/sent/new': typeof ConnectionsSentNewRoute
-  '/connections/sent/request-details': typeof ConnectionsSentRequestDetailsRoute
-  '/my-catalog/connectors/$templateName': typeof MyCatalogConnectorsTemplateNameRoute
-  '/my-catalog/connectors/new': typeof MyCatalogConnectorsNewRoute
-  '/my-catalog/policies/$templateId': typeof MyCatalogPoliciesTemplateIdRoute
-  '/my-catalog/policies/new': typeof MyCatalogPoliciesNewRoute
-  '/my-catalog/schemas/$schemaId': typeof MyCatalogSchemasSchemaIdRoute
-  '/my-catalog/schemas/new': typeof MyCatalogSchemasNewRoute
-  '/catalog/$catalogId': typeof CatalogCatalogIdIndexRoute
-  '/connections/received': typeof ConnectionsReceivedIndexRoute
-  '/connections/sent': typeof ConnectionsSentIndexRoute
-  '/contract-negotiation/$cnProcess': typeof ContractNegotiationCnProcessIndexRoute
-  '/my-catalog/connectors': typeof MyCatalogConnectorsIndexRoute
-  '/my-catalog/policies': typeof MyCatalogPoliciesIndexRoute
-  '/my-catalog/schemas': typeof MyCatalogSchemasIndexRoute
-  '/participants/$participantId': typeof ParticipantsParticipantIdIndexRoute
-  '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdIndexRoute
-  '/catalog/$catalogId/data-service/$dataServiceId': typeof CatalogCatalogIdDataServiceDataServiceIdRoute
-  '/catalog/$catalogId/dataset/$datasetId': typeof CatalogCatalogIdDatasetDatasetIdRoute
-  '/catalog/$catalogId/distribution-connector/$distributionId': typeof CatalogCatalogIdDistributionConnectorDistributionIdRoute
-  '/transfer-process/$transferProcessId/transfer-message/$transferMessageId': typeof TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute
-  '/catalog/participant/$participantId': typeof CatalogParticipantParticipantIdIndexRoute
-  '/catalog/participant/$participantId/dataset/$datasetId': typeof CatalogParticipantParticipantIdDatasetDatasetIdRoute
-}
-
-export interface FileRoutesById {
-  __root__: typeof rootRoute
-  '/': typeof IndexRoute
-  '/agreements': typeof AgreementsRouteRouteWithChildren
-  '/authority': typeof AuthorityRouteRouteWithChildren
-  '/catalog': typeof CatalogRouteRouteWithChildren
-  '/connections': typeof ConnectionsRouteRouteWithChildren
-  '/contract-negotiation': typeof ContractNegotiationRouteRouteWithChildren
-  '/events': typeof EventsRouteRouteWithChildren
-  '/keystore': typeof KeystoreRouteRouteWithChildren
-  '/my-catalog': typeof MyCatalogRouteRouteWithChildren
-  '/participants': typeof ParticipantsRouteRouteWithChildren
-  '/transfer-process': typeof TransferProcessRouteRouteWithChildren
-  '/wallet': typeof WalletRouteRouteWithChildren
-  '/catalog/$catalogId': typeof CatalogCatalogIdRouteRouteWithChildren
-  '/catalog/participant': typeof CatalogParticipantRouteRouteWithChildren
-  '/connections/received': typeof ConnectionsReceivedRouteRouteWithChildren
-  '/connections/sent': typeof ConnectionsSentRouteRouteWithChildren
-  '/contract-negotiation/$cnProcess': typeof ContractNegotiationCnProcessRouteRouteWithChildren
-  '/participants/$participantId': typeof ParticipantsParticipantIdRouteRouteWithChildren
-  '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdRouteRouteWithChildren
-  '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
-  '/authority/new': typeof AuthorityNewRoute
-  '/authority/request-details': typeof AuthorityRequestDetailsRoute
-  '/events/dlq': typeof EventsDlqRoute
-  '/events/feed': typeof EventsFeedRoute
-  '/events/subscriptions': typeof EventsSubscriptionsRoute
-  '/keystore/config': typeof KeystoreConfigRoute
-  '/keystore/parameters': typeof KeystoreParametersRoute
-  '/keystore/secrets': typeof KeystoreSecretsRoute
-  '/my-catalog/import': typeof MyCatalogImportRoute
-  '/my-catalog/new': typeof MyCatalogNewRoute
-  '/wallet/credentials': typeof WalletCredentialsRoute
-  '/wallet/did': typeof WalletDidRoute
-  '/wallet/info': typeof WalletInfoRoute
-  '/wallet/keys': typeof WalletKeysRoute
-  '/wallet/oidc4vci': typeof WalletOidc4vciRoute
-  '/wallet/oidc4vp': typeof WalletOidc4vpRoute
-  '/agreements/': typeof AgreementsIndexRoute
-  '/authority/': typeof AuthorityIndexRoute
-  '/catalog/': typeof CatalogIndexRoute
-  '/connections/': typeof ConnectionsIndexRoute
-  '/contract-negotiation/': typeof ContractNegotiationIndexRoute
-  '/events/': typeof EventsIndexRoute
-  '/keystore/': typeof KeystoreIndexRoute
-  '/my-catalog/': typeof MyCatalogIndexRoute
-  '/participants/': typeof ParticipantsIndexRoute
-  '/transfer-process/': typeof TransferProcessIndexRoute
-  '/wallet/': typeof WalletIndexRoute
-  '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
-  '/connections/sent/new': typeof ConnectionsSentNewRoute
-  '/connections/sent/request-details': typeof ConnectionsSentRequestDetailsRoute
-  '/my-catalog/connectors/$templateName': typeof MyCatalogConnectorsTemplateNameRoute
-  '/my-catalog/connectors/new': typeof MyCatalogConnectorsNewRoute
-  '/my-catalog/policies/$templateId': typeof MyCatalogPoliciesTemplateIdRoute
-  '/my-catalog/policies/new': typeof MyCatalogPoliciesNewRoute
-  '/my-catalog/schemas/$schemaId': typeof MyCatalogSchemasSchemaIdRoute
-  '/my-catalog/schemas/new': typeof MyCatalogSchemasNewRoute
-  '/catalog/$catalogId/': typeof CatalogCatalogIdIndexRoute
-  '/connections/received/': typeof ConnectionsReceivedIndexRoute
-  '/connections/sent/': typeof ConnectionsSentIndexRoute
-  '/contract-negotiation/$cnProcess/': typeof ContractNegotiationCnProcessIndexRoute
-  '/my-catalog/connectors/': typeof MyCatalogConnectorsIndexRoute
-  '/my-catalog/policies/': typeof MyCatalogPoliciesIndexRoute
-  '/my-catalog/schemas/': typeof MyCatalogSchemasIndexRoute
-  '/participants/$participantId/': typeof ParticipantsParticipantIdIndexRoute
-  '/transfer-process/$transferProcessId/': typeof TransferProcessTransferProcessIdIndexRoute
-  '/catalog/$catalogId/data-service/$dataServiceId': typeof CatalogCatalogIdDataServiceDataServiceIdRoute
-  '/catalog/$catalogId/dataset/$datasetId': typeof CatalogCatalogIdDatasetDatasetIdRoute
-  '/catalog/$catalogId/distribution-connector/$distributionId': typeof CatalogCatalogIdDistributionConnectorDistributionIdRoute
-  '/transfer-process/$transferProcessId/transfer-message/$transferMessageId': typeof TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute
-  '/catalog/participant/$participantId/': typeof CatalogParticipantParticipantIdIndexRoute
-  '/catalog/participant/$participantId/dataset/$datasetId': typeof CatalogParticipantParticipantIdDatasetDatasetIdRoute
-}
-
-export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/agreements'
-    | '/authority'
-    | '/catalog'
-    | '/connections'
-    | '/contract-negotiation'
-    | '/events'
-    | '/keystore'
-    | '/my-catalog'
-    | '/participants'
-    | '/transfer-process'
-    | '/wallet'
-    | '/catalog/$catalogId'
-    | '/catalog/participant'
-    | '/connections/received'
-    | '/connections/sent'
-    | '/contract-negotiation/$cnProcess'
-    | '/participants/$participantId'
-    | '/transfer-process/$transferProcessId'
-    | '/agreements/$agreementId'
-    | '/authority/new'
-    | '/authority/request-details'
-    | '/events/dlq'
-    | '/events/feed'
-    | '/events/subscriptions'
-    | '/keystore/config'
-    | '/keystore/parameters'
-    | '/keystore/secrets'
-    | '/my-catalog/import'
-    | '/my-catalog/new'
-    | '/wallet/credentials'
-    | '/wallet/did'
-    | '/wallet/info'
-    | '/wallet/keys'
-    | '/wallet/oidc4vci'
-    | '/wallet/oidc4vp'
-    | '/agreements/'
-    | '/authority/'
-    | '/catalog/'
-    | '/connections/'
-    | '/contract-negotiation/'
-    | '/events/'
-    | '/keystore/'
-    | '/my-catalog/'
-    | '/participants/'
-    | '/transfer-process/'
-    | '/wallet/'
-    | '/connections/received/request-details'
-    | '/connections/sent/new'
-    | '/connections/sent/request-details'
-    | '/my-catalog/connectors/$templateName'
-    | '/my-catalog/connectors/new'
-    | '/my-catalog/policies/$templateId'
-    | '/my-catalog/policies/new'
-    | '/my-catalog/schemas/$schemaId'
-    | '/my-catalog/schemas/new'
-    | '/catalog/$catalogId/'
-    | '/connections/received/'
-    | '/connections/sent/'
-    | '/contract-negotiation/$cnProcess/'
-    | '/my-catalog/connectors'
-    | '/my-catalog/policies'
-    | '/my-catalog/schemas'
-    | '/participants/$participantId/'
-    | '/transfer-process/$transferProcessId/'
-    | '/catalog/$catalogId/data-service/$dataServiceId'
-    | '/catalog/$catalogId/dataset/$datasetId'
-    | '/catalog/$catalogId/distribution-connector/$distributionId'
-    | '/transfer-process/$transferProcessId/transfer-message/$transferMessageId'
-    | '/catalog/participant/$participantId'
-    | '/catalog/participant/$participantId/dataset/$datasetId'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/catalog/participant'
-    | '/agreements/$agreementId'
-    | '/authority/new'
-    | '/authority/request-details'
-    | '/events/dlq'
-    | '/events/feed'
-    | '/events/subscriptions'
-    | '/keystore/config'
-    | '/keystore/parameters'
-    | '/keystore/secrets'
-    | '/my-catalog/import'
-    | '/my-catalog/new'
-    | '/wallet/credentials'
-    | '/wallet/did'
-    | '/wallet/info'
-    | '/wallet/keys'
-    | '/wallet/oidc4vci'
-    | '/wallet/oidc4vp'
-    | '/agreements'
-    | '/authority'
-    | '/catalog'
-    | '/connections'
-    | '/contract-negotiation'
-    | '/events'
-    | '/keystore'
-    | '/my-catalog'
-    | '/participants'
-    | '/transfer-process'
-    | '/wallet'
-    | '/connections/received/request-details'
-    | '/connections/sent/new'
-    | '/connections/sent/request-details'
-    | '/my-catalog/connectors/$templateName'
-    | '/my-catalog/connectors/new'
-    | '/my-catalog/policies/$templateId'
-    | '/my-catalog/policies/new'
-    | '/my-catalog/schemas/$schemaId'
-    | '/my-catalog/schemas/new'
-    | '/catalog/$catalogId'
-    | '/connections/received'
-    | '/connections/sent'
-    | '/contract-negotiation/$cnProcess'
-    | '/my-catalog/connectors'
-    | '/my-catalog/policies'
-    | '/my-catalog/schemas'
-    | '/participants/$participantId'
-    | '/transfer-process/$transferProcessId'
-    | '/catalog/$catalogId/data-service/$dataServiceId'
-    | '/catalog/$catalogId/dataset/$datasetId'
-    | '/catalog/$catalogId/distribution-connector/$distributionId'
-    | '/transfer-process/$transferProcessId/transfer-message/$transferMessageId'
-    | '/catalog/participant/$participantId'
-    | '/catalog/participant/$participantId/dataset/$datasetId'
-  id:
-    | '__root__'
-    | '/'
-    | '/agreements'
-    | '/authority'
-    | '/catalog'
-    | '/connections'
-    | '/contract-negotiation'
-    | '/events'
-    | '/keystore'
-    | '/my-catalog'
-    | '/participants'
-    | '/transfer-process'
-    | '/wallet'
-    | '/catalog/$catalogId'
-    | '/catalog/participant'
-    | '/connections/received'
-    | '/connections/sent'
-    | '/contract-negotiation/$cnProcess'
-    | '/participants/$participantId'
-    | '/transfer-process/$transferProcessId'
-    | '/agreements/$agreementId'
-    | '/authority/new'
-    | '/authority/request-details'
-    | '/events/dlq'
-    | '/events/feed'
-    | '/events/subscriptions'
-    | '/keystore/config'
-    | '/keystore/parameters'
-    | '/keystore/secrets'
-    | '/my-catalog/import'
-    | '/my-catalog/new'
-    | '/wallet/credentials'
-    | '/wallet/did'
-    | '/wallet/info'
-    | '/wallet/keys'
-    | '/wallet/oidc4vci'
-    | '/wallet/oidc4vp'
-    | '/agreements/'
-    | '/authority/'
-    | '/catalog/'
-    | '/connections/'
-    | '/contract-negotiation/'
-    | '/events/'
-    | '/keystore/'
-    | '/my-catalog/'
-    | '/participants/'
-    | '/transfer-process/'
-    | '/wallet/'
-    | '/connections/received/request-details'
-    | '/connections/sent/new'
-    | '/connections/sent/request-details'
-    | '/my-catalog/connectors/$templateName'
-    | '/my-catalog/connectors/new'
-    | '/my-catalog/policies/$templateId'
-    | '/my-catalog/policies/new'
-    | '/my-catalog/schemas/$schemaId'
-    | '/my-catalog/schemas/new'
-    | '/catalog/$catalogId/'
-    | '/connections/received/'
-    | '/connections/sent/'
-    | '/contract-negotiation/$cnProcess/'
-    | '/my-catalog/connectors/'
-    | '/my-catalog/policies/'
-    | '/my-catalog/schemas/'
-    | '/participants/$participantId/'
-    | '/transfer-process/$transferProcessId/'
-    | '/catalog/$catalogId/data-service/$dataServiceId'
-    | '/catalog/$catalogId/dataset/$datasetId'
-    | '/catalog/$catalogId/distribution-connector/$distributionId'
-    | '/transfer-process/$transferProcessId/transfer-message/$transferMessageId'
-    | '/catalog/participant/$participantId/'
-    | '/catalog/participant/$participantId/dataset/$datasetId'
-  fileRoutesById: FileRoutesById
-}
-
-export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AgreementsRouteRoute: typeof AgreementsRouteRouteWithChildren
-  AuthorityRouteRoute: typeof AuthorityRouteRouteWithChildren
-  CatalogRouteRoute: typeof CatalogRouteRouteWithChildren
-  ConnectionsRouteRoute: typeof ConnectionsRouteRouteWithChildren
-  ContractNegotiationRouteRoute: typeof ContractNegotiationRouteRouteWithChildren
-  EventsRouteRoute: typeof EventsRouteRouteWithChildren
-  KeystoreRouteRoute: typeof KeystoreRouteRouteWithChildren
-  MyCatalogRouteRoute: typeof MyCatalogRouteRouteWithChildren
-  ParticipantsRouteRoute: typeof ParticipantsRouteRouteWithChildren
-  TransferProcessRouteRoute: typeof TransferProcessRouteRouteWithChildren
-  WalletRouteRoute: typeof WalletRouteRouteWithChildren
-}
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgreementsRouteRoute: AgreementsRouteRouteWithChildren,
@@ -1794,398 +1718,6 @@ const rootRouteChildren: RootRouteChildren = {
   TransferProcessRouteRoute: TransferProcessRouteRouteWithChildren,
   WalletRouteRoute: WalletRouteRouteWithChildren,
 }
-
-export const routeTree = rootRoute
+export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-/* ROUTE_MANIFEST_START
-{
-  "routes": {
-    "__root__": {
-      "filePath": "__root.tsx",
-      "children": [
-        "/",
-        "/agreements",
-        "/authority",
-        "/catalog",
-        "/connections",
-        "/contract-negotiation",
-        "/events",
-        "/keystore",
-        "/my-catalog",
-        "/participants",
-        "/transfer-process",
-        "/wallet"
-      ]
-    },
-    "/": {
-      "filePath": "index.tsx"
-    },
-    "/agreements": {
-      "filePath": "agreements/route.tsx",
-      "children": [
-        "/agreements/$agreementId",
-        "/agreements/"
-      ]
-    },
-    "/authority": {
-      "filePath": "authority/route.tsx",
-      "children": [
-        "/authority/new",
-        "/authority/request-details",
-        "/authority/"
-      ]
-    },
-    "/catalog": {
-      "filePath": "catalog/route.tsx",
-      "children": [
-        "/catalog/$catalogId",
-        "/catalog/participant",
-        "/catalog/"
-      ]
-    },
-    "/connections": {
-      "filePath": "connections/route.tsx",
-      "children": [
-        "/connections/received",
-        "/connections/sent",
-        "/connections/"
-      ]
-    },
-    "/contract-negotiation": {
-      "filePath": "contract-negotiation/route.tsx",
-      "children": [
-        "/contract-negotiation/$cnProcess",
-        "/contract-negotiation/"
-      ]
-    },
-    "/events": {
-      "filePath": "events/route.tsx",
-      "children": [
-        "/events/dlq",
-        "/events/feed",
-        "/events/subscriptions",
-        "/events/"
-      ]
-    },
-    "/keystore": {
-      "filePath": "keystore/route.tsx",
-      "children": [
-        "/keystore/config",
-        "/keystore/parameters",
-        "/keystore/secrets",
-        "/keystore/"
-      ]
-    },
-    "/my-catalog": {
-      "filePath": "my-catalog/route.tsx",
-      "children": [
-        "/my-catalog/import",
-        "/my-catalog/new",
-        "/my-catalog/",
-        "/my-catalog/connectors/$templateName",
-        "/my-catalog/connectors/new",
-        "/my-catalog/policies/$templateId",
-        "/my-catalog/policies/new",
-        "/my-catalog/schemas/$schemaId",
-        "/my-catalog/schemas/new",
-        "/my-catalog/connectors/",
-        "/my-catalog/policies/",
-        "/my-catalog/schemas/"
-      ]
-    },
-    "/participants": {
-      "filePath": "participants/route.tsx",
-      "children": [
-        "/participants/$participantId",
-        "/participants/"
-      ]
-    },
-    "/transfer-process": {
-      "filePath": "transfer-process/route.tsx",
-      "children": [
-        "/transfer-process/$transferProcessId",
-        "/transfer-process/"
-      ]
-    },
-    "/wallet": {
-      "filePath": "wallet/route.tsx",
-      "children": [
-        "/wallet/credentials",
-        "/wallet/did",
-        "/wallet/info",
-        "/wallet/keys",
-        "/wallet/oidc4vci",
-        "/wallet/oidc4vp",
-        "/wallet/"
-      ]
-    },
-    "/catalog/$catalogId": {
-      "filePath": "catalog/$catalogId/route.tsx",
-      "parent": "/catalog",
-      "children": [
-        "/catalog/$catalogId/",
-        "/catalog/$catalogId/data-service/$dataServiceId",
-        "/catalog/$catalogId/dataset/$datasetId",
-        "/catalog/$catalogId/distribution-connector/$distributionId"
-      ]
-    },
-    "/catalog/participant": {
-      "filePath": "catalog/participant/route.tsx",
-      "parent": "/catalog",
-      "children": [
-        "/catalog/participant/$participantId/",
-        "/catalog/participant/$participantId/dataset/$datasetId"
-      ]
-    },
-    "/connections/received": {
-      "filePath": "connections/received/route.tsx",
-      "parent": "/connections",
-      "children": [
-        "/connections/received/request-details",
-        "/connections/received/"
-      ]
-    },
-    "/connections/sent": {
-      "filePath": "connections/sent/route.tsx",
-      "parent": "/connections",
-      "children": [
-        "/connections/sent/new",
-        "/connections/sent/request-details",
-        "/connections/sent/"
-      ]
-    },
-    "/contract-negotiation/$cnProcess": {
-      "filePath": "contract-negotiation/$cnProcess/route.tsx",
-      "parent": "/contract-negotiation",
-      "children": [
-        "/contract-negotiation/$cnProcess/"
-      ]
-    },
-    "/participants/$participantId": {
-      "filePath": "participants/$participantId/route.tsx",
-      "parent": "/participants",
-      "children": [
-        "/participants/$participantId/"
-      ]
-    },
-    "/transfer-process/$transferProcessId": {
-      "filePath": "transfer-process/$transferProcessId/route.tsx",
-      "parent": "/transfer-process",
-      "children": [
-        "/transfer-process/$transferProcessId/",
-        "/transfer-process/$transferProcessId/transfer-message/$transferMessageId"
-      ]
-    },
-    "/agreements/$agreementId": {
-      "filePath": "agreements/$agreementId.tsx",
-      "parent": "/agreements"
-    },
-    "/authority/new": {
-      "filePath": "authority/new.tsx",
-      "parent": "/authority"
-    },
-    "/authority/request-details": {
-      "filePath": "authority/request-details.tsx",
-      "parent": "/authority"
-    },
-    "/events/dlq": {
-      "filePath": "events/dlq.tsx",
-      "parent": "/events"
-    },
-    "/events/feed": {
-      "filePath": "events/feed.tsx",
-      "parent": "/events"
-    },
-    "/events/subscriptions": {
-      "filePath": "events/subscriptions.tsx",
-      "parent": "/events"
-    },
-    "/keystore/config": {
-      "filePath": "keystore/config.tsx",
-      "parent": "/keystore"
-    },
-    "/keystore/parameters": {
-      "filePath": "keystore/parameters.tsx",
-      "parent": "/keystore"
-    },
-    "/keystore/secrets": {
-      "filePath": "keystore/secrets.tsx",
-      "parent": "/keystore"
-    },
-    "/my-catalog/import": {
-      "filePath": "my-catalog/import.tsx",
-      "parent": "/my-catalog"
-    },
-    "/my-catalog/new": {
-      "filePath": "my-catalog/new.tsx",
-      "parent": "/my-catalog"
-    },
-    "/wallet/credentials": {
-      "filePath": "wallet/credentials.tsx",
-      "parent": "/wallet"
-    },
-    "/wallet/did": {
-      "filePath": "wallet/did.tsx",
-      "parent": "/wallet"
-    },
-    "/wallet/info": {
-      "filePath": "wallet/info.tsx",
-      "parent": "/wallet"
-    },
-    "/wallet/keys": {
-      "filePath": "wallet/keys.tsx",
-      "parent": "/wallet"
-    },
-    "/wallet/oidc4vci": {
-      "filePath": "wallet/oidc4vci.tsx",
-      "parent": "/wallet"
-    },
-    "/wallet/oidc4vp": {
-      "filePath": "wallet/oidc4vp.tsx",
-      "parent": "/wallet"
-    },
-    "/agreements/": {
-      "filePath": "agreements/index.tsx",
-      "parent": "/agreements"
-    },
-    "/authority/": {
-      "filePath": "authority/index.tsx",
-      "parent": "/authority"
-    },
-    "/catalog/": {
-      "filePath": "catalog/index.tsx",
-      "parent": "/catalog"
-    },
-    "/connections/": {
-      "filePath": "connections/index.tsx",
-      "parent": "/connections"
-    },
-    "/contract-negotiation/": {
-      "filePath": "contract-negotiation/index.tsx",
-      "parent": "/contract-negotiation"
-    },
-    "/events/": {
-      "filePath": "events/index.tsx",
-      "parent": "/events"
-    },
-    "/keystore/": {
-      "filePath": "keystore/index.tsx",
-      "parent": "/keystore"
-    },
-    "/my-catalog/": {
-      "filePath": "my-catalog/index.tsx",
-      "parent": "/my-catalog"
-    },
-    "/participants/": {
-      "filePath": "participants/index.tsx",
-      "parent": "/participants"
-    },
-    "/transfer-process/": {
-      "filePath": "transfer-process/index.tsx",
-      "parent": "/transfer-process"
-    },
-    "/wallet/": {
-      "filePath": "wallet/index.tsx",
-      "parent": "/wallet"
-    },
-    "/connections/received/request-details": {
-      "filePath": "connections/received/request-details.tsx",
-      "parent": "/connections/received"
-    },
-    "/connections/sent/new": {
-      "filePath": "connections/sent/new.tsx",
-      "parent": "/connections/sent"
-    },
-    "/connections/sent/request-details": {
-      "filePath": "connections/sent/request-details.tsx",
-      "parent": "/connections/sent"
-    },
-    "/my-catalog/connectors/$templateName": {
-      "filePath": "my-catalog/connectors/$templateName.tsx",
-      "parent": "/my-catalog"
-    },
-    "/my-catalog/connectors/new": {
-      "filePath": "my-catalog/connectors/new.tsx",
-      "parent": "/my-catalog"
-    },
-    "/my-catalog/policies/$templateId": {
-      "filePath": "my-catalog/policies/$templateId.tsx",
-      "parent": "/my-catalog"
-    },
-    "/my-catalog/policies/new": {
-      "filePath": "my-catalog/policies/new.tsx",
-      "parent": "/my-catalog"
-    },
-    "/my-catalog/schemas/$schemaId": {
-      "filePath": "my-catalog/schemas/$schemaId.tsx",
-      "parent": "/my-catalog"
-    },
-    "/my-catalog/schemas/new": {
-      "filePath": "my-catalog/schemas/new.tsx",
-      "parent": "/my-catalog"
-    },
-    "/catalog/$catalogId/": {
-      "filePath": "catalog/$catalogId/index.tsx",
-      "parent": "/catalog/$catalogId"
-    },
-    "/connections/received/": {
-      "filePath": "connections/received/index.tsx",
-      "parent": "/connections/received"
-    },
-    "/connections/sent/": {
-      "filePath": "connections/sent/index.tsx",
-      "parent": "/connections/sent"
-    },
-    "/contract-negotiation/$cnProcess/": {
-      "filePath": "contract-negotiation/$cnProcess/index.tsx",
-      "parent": "/contract-negotiation/$cnProcess"
-    },
-    "/my-catalog/connectors/": {
-      "filePath": "my-catalog/connectors/index.tsx",
-      "parent": "/my-catalog"
-    },
-    "/my-catalog/policies/": {
-      "filePath": "my-catalog/policies/index.tsx",
-      "parent": "/my-catalog"
-    },
-    "/my-catalog/schemas/": {
-      "filePath": "my-catalog/schemas/index.tsx",
-      "parent": "/my-catalog"
-    },
-    "/participants/$participantId/": {
-      "filePath": "participants/$participantId/index.tsx",
-      "parent": "/participants/$participantId"
-    },
-    "/transfer-process/$transferProcessId/": {
-      "filePath": "transfer-process/$transferProcessId/index.tsx",
-      "parent": "/transfer-process/$transferProcessId"
-    },
-    "/catalog/$catalogId/data-service/$dataServiceId": {
-      "filePath": "catalog/$catalogId/data-service.$dataServiceId.tsx",
-      "parent": "/catalog/$catalogId"
-    },
-    "/catalog/$catalogId/dataset/$datasetId": {
-      "filePath": "catalog/$catalogId/dataset.$datasetId.tsx",
-      "parent": "/catalog/$catalogId"
-    },
-    "/catalog/$catalogId/distribution-connector/$distributionId": {
-      "filePath": "catalog/$catalogId/distribution-connector.$distributionId.tsx",
-      "parent": "/catalog/$catalogId"
-    },
-    "/transfer-process/$transferProcessId/transfer-message/$transferMessageId": {
-      "filePath": "transfer-process/$transferProcessId/transfer-message.$transferMessageId.tsx",
-      "parent": "/transfer-process/$transferProcessId"
-    },
-    "/catalog/participant/$participantId/": {
-      "filePath": "catalog/participant/$participantId/index.tsx",
-      "parent": "/catalog/participant"
-    },
-    "/catalog/participant/$participantId/dataset/$datasetId": {
-      "filePath": "catalog/participant/$participantId/dataset.$datasetId.tsx",
-      "parent": "/catalog/participant"
-    }
-  }
-}
-ROUTE_MANIFEST_END */

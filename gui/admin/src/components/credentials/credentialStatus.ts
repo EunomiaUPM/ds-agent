@@ -127,13 +127,13 @@ async function fetchStatusList(url: string): Promise<StatusList> {
   };
 }
 
-function base64UrlBytes(text: string): Uint8Array {
+function base64UrlBytes(text: string): Uint8Array<ArrayBuffer> {
   const base64 = text.replace(/-/g, "+").replace(/_/g, "/");
   const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
   return Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
 }
 
-async function gunzip(bytes: Uint8Array): Promise<Uint8Array> {
+async function gunzip(bytes: Uint8Array<ArrayBuffer>): Promise<Uint8Array<ArrayBuffer>> {
   const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }

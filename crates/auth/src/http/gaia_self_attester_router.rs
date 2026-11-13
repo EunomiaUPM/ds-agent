@@ -20,10 +20,14 @@ use std::sync::Arc;
 use crate::modules::GaiaSelfAttesterModule;
 use axum::extract::State;
 use axum::routing::post;
-use axum::Router;
+use axum::{Json, Router};
 use common::routes::auth::gaia;
+use ymir::data::entities::wallet::vc;
 use ymir::errors::AppResult;
 use ymir::types::oauth::UserInfo;
+use ymir::types::wallet::OidcUri;
+
+use crate::types::gaia::{ComplianceForm, DispatcherOutcome};
 
 /// Routes of the Gaia-X self-attestation.
 pub struct GaiaSelfAttesterRouter {
@@ -43,6 +47,8 @@ impl GaiaSelfAttesterRouter {
     pub fn internal(self) -> Router {
         Router::new()
             .route(gaia::GENERATE, post(Self::generate))
+            .route(gaia::COMPLIANCE, post(Self::compliance))
+            .route(gaia::DISPATCHER, post(Self::dispatcher))
             .with_state(self.gaia)
     }
 
@@ -55,5 +61,21 @@ impl GaiaSelfAttesterRouter {
         user: UserInfo,
     ) -> AppResult<()> {
         gaia.generate_gaia_vcs(&user).await
+    }
+
+    async fn compliance(
+        State(gaia): State<Arc<dyn GaiaSelfAttesterModule>>,
+        user: UserInfo,
+        Json(form): Json<ComplianceForm>,
+    ) -> AppResult<Json<vc::Model>> {
+        Ok(Json(gaia.request_compliance(&user, form).await?))
+    }
+
+    async fn dispatcher(
+        State(gaia): State<Arc<dyn GaiaSelfAttesterModule>>,
+        user: UserInfo,
+        Json(payload): Json<OidcUri>,
+    ) -> AppResult<Json<DispatcherOutcome>> {
+        Ok(Json(gaia.present_to_dispatcher(&user, &payload.uri).await?))
     }
 }

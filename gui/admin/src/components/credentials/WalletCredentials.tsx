@@ -12,7 +12,9 @@ import {
   ChevronUp,
   FileJson,
   Fingerprint,
+  Globe,
   Loader2,
+  QrCode,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
@@ -23,7 +25,14 @@ import {
   Badge,
   Button,
   DATE_FORMAT,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   FormatDate,
+  Input,
   PageSection,
   Skeleton,
   cn,
@@ -109,6 +118,8 @@ export function WalletCredentials({
   });
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [complianceOpen, setComplianceOpen] = useState(false);
+  const refreshWallet = () => queryClient.invalidateQueries({ queryKey: ["wallet-vcs-custom"] });
 
   const credentials = response?.status === 200 ? response.data : [];
   const entries = credentials.map((vc) => statusEntries(vc.parsed_document));
@@ -181,8 +192,15 @@ export function WalletCredentials({
             step={step}
             isGenerating={isGenerating}
             onGenerate={handleGenerateGaia}
+            onRequestCompliance={() => setComplianceOpen(true)}
             requestVcHref={requestVcHref}
             flags={{ hasRegistration, hasLegalPerson, hasTermsAndConditions, hasLabel }}
+          />
+          <ComplianceDialog
+            open={complianceOpen}
+            onClose={() => setComplianceOpen(false)}
+            eunomiaHref={requestVcHref(RECOMMENDED_COMPLIANCE_VC)}
+            onReceived={refreshWallet}
           />
         </PageSection>
       )}
@@ -370,12 +388,14 @@ const ComplianceStepCard = ({
   step,
   isGenerating,
   onGenerate,
+  onRequestCompliance,
   requestVcHref,
   flags,
 }: {
   step: 1 | 2 | 3 | 4;
   isGenerating: boolean;
   onGenerate: () => void;
+  onRequestCompliance: () => void;
   requestVcHref: (recommended: string) => string;
   flags: ComplianceFlags;
 }) => {
@@ -415,6 +435,7 @@ const ComplianceStepCard = ({
           step={step}
           isGenerating={isGenerating}
           onGenerate={onGenerate}
+          onRequestCompliance={onRequestCompliance}
           requestVcHref={requestVcHref}
         />
       </div>
@@ -434,7 +455,7 @@ const ComplianceStepCard = ({
       {step === 3 && (
         <Hint
           tone="primary"
-          text="Ask a clearing house to issue a LabelCredential signing your self-attested data."
+          text="Ask a clearing house, ours or a Gaia-X one, to issue a compliance credential over your self-attested data."
         />
       )}
     </div>
@@ -445,11 +466,13 @@ const StepCta = ({
   step,
   isGenerating,
   onGenerate,
+  onRequestCompliance,
   requestVcHref,
 }: {
   step: 1 | 2 | 3 | 4;
   isGenerating: boolean;
   onGenerate: () => void;
+  onRequestCompliance: () => void;
   requestVcHref: (recommended: string) => string;
 }) => {
   const Link = useLink();
@@ -482,12 +505,10 @@ const StepCta = ({
   }
   if (step === 3) {
     return (
-      <Link to={requestVcHref(RECOMMENDED_COMPLIANCE_VC)}>
-        <Button className="md:min-w-[220px]">
-          Request Compliance
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      </Link>
+      <Button className="md:min-w-[220px]" onClick={onRequestCompliance}>
+        Request Compliance
+        <ArrowRight className="ml-2 h-4 w-4" />
+      </Button>
     );
   }
   return (
@@ -495,6 +516,183 @@ const StepCta = ({
       <Check className="mr-2 h-4 w-4 text-green-500" />
       Compliance Active
     </Button>
+  );
+};
+
+type ComplianceChannel = "eunomia" | "direct" | "dispatcher";
+
+const CHANNELS: Array<{
+  id: ComplianceChannel;
+  icon: React.ElementType;
+  title: string;
+  text: string;
+}> = [
+  {
+    id: "eunomia",
+    icon: Building2,
+    title: "EUNOMIA clearing house",
+    text: "Heimdall, through a GNAP request.",
+  },
+  {
+    id: "direct",
+    icon: Globe,
+    title: "Gaia-X compliance service",
+    text: "A POST of your credentials, such as Loire's standard compliance.",
+  },
+  {
+    id: "dispatcher",
+    icon: QrCode,
+    title: "Gaia-X Dispatcher",
+    text: "The wallet flow: paste the openid4vp:// request the Dispatcher shows.",
+  },
+];
+
+/** Where to get the compliance credential: our clearing house, or a Gaia-X one by POST or OID. */
+const ComplianceDialog = ({
+  open,
+  onClose,
+  eunomiaHref,
+  onReceived,
+}: {
+  open: boolean;
+  onClose: () => void;
+  eunomiaHref: string;
+  onReceived: () => Promise<unknown>;
+}) => {
+  const Link = useLink();
+  const [channel, setChannel] = useState<ComplianceChannel>("eunomia");
+  const [url, setUrl] = useState("");
+  const [vcid, setVcid] = useState("");
+  const [uri, setUri] = useState("");
+  const [isSending, setIsSending] = useState(false);
+
+  const ready =
+    channel === "direct" ? url.trim() !== "" : channel === "dispatcher" ? uri.trim() !== "" : true;
+
+  const send = async () => {
+    setIsSending(true);
+    try {
+      if (channel === "direct") {
+        await customInstance("/gaia/compliance", {
+          method: "POST",
+          data: { url: url.trim(), vcid: vcid.trim() || undefined },
+        });
+        toast.success("Compliance credential received");
+      } else {
+        const res = await customInstance<{
+          status: number;
+          data: { received: boolean; redirect_uri?: string };
+        }>("/gaia/dispatcher", { method: "POST", data: { uri: uri.trim() } });
+        if (res.data?.received) {
+          toast.success("Compliance credential received");
+        } else if (res.data?.redirect_uri) {
+          toast.info(`Presented. The Dispatcher continues at ${res.data.redirect_uri}`);
+        } else {
+          toast.info("Presented. The Dispatcher sent no credential offer");
+        }
+      }
+      await onReceived();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "The compliance request failed");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Request compliance</DialogTitle>
+          <DialogDescription>
+            Your legal person, terms and registration number go to the clearing house you choose.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-2 py-2">
+          {CHANNELS.map(({ id, icon: Icon, title, text }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setChannel(id)}
+              className={cn(
+                "flex items-start gap-3 rounded-xl border p-3 text-left transition-colors",
+                channel === id ? "border-primary bg-primary/5" : "border-ink/10 hover:bg-ink/5",
+              )}
+            >
+              <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <div>
+                <p className="text-sm font-medium">{title}</p>
+                <p className="text-xs text-muted-foreground">{text}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {channel === "direct" && (
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Compliance service URL
+              </label>
+              <Input
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://compliance.lab.gaia-x.eu/main/api/credential-offers/standard-compliance"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Credential id (optional)
+              </label>
+              <Input
+                value={vcid}
+                onChange={(e) => setVcid(e.target.value)}
+                placeholder="A new urn:uuid: when empty"
+              />
+            </div>
+          </div>
+        )}
+        {channel === "dispatcher" && (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Presentation request
+            </label>
+            <Input
+              value={uri}
+              onChange={(e) => setUri(e.target.value)}
+              placeholder="openid4vp://?client_id=...&request_uri=..."
+            />
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isSending}>
+            Cancel
+          </Button>
+          {channel === "eunomia" ? (
+            <Link to={eunomiaHref}>
+              <Button>
+                Continue
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          ) : (
+            <Button onClick={send} disabled={!ready || isSending}>
+              {isSending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Request"
+              )}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

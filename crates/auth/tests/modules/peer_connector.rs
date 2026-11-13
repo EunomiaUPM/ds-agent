@@ -142,7 +142,7 @@ async fn automatic_grant_presents_through_the_wallet() {
         .expect_process_oid4vp()
         .withf(|uri| uri == "openid4vp://peer")
         .times(1)
-        .returning(|_| Ok(()));
+        .returning(|_| Ok(None));
     d.repos
         .sent_verification
         .expect_update()

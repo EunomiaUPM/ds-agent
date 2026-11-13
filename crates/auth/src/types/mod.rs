@@ -19,6 +19,7 @@
 
 pub mod entities;
 pub mod events;
+pub mod gaia;
 pub mod response;
 pub mod token;
 pub mod token_lifetimes;

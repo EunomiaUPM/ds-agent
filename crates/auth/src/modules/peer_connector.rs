@@ -339,7 +339,7 @@ pub trait PeerConnectorModule:
             return Err(Errors::security("The presentation request is not the peer's", None));
         }
         verification.status = match self.wallet().present_oid4vp(&verification.uri).await {
-            Ok(()) => VerificationStatus::Verified,
+            Ok(_) => VerificationStatus::Verified,
             Err(e) => {
                 e.log();
                 verification.reason = Some(e.reason().to_string());

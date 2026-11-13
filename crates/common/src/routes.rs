@@ -101,6 +101,8 @@ pub mod auth {
     pub mod gaia {
         pub const PREFIX: &str = "/gaia";
         pub const GENERATE: &str = "/generate";
+        pub const COMPLIANCE: &str = "/compliance";
+        pub const DISPATCHER: &str = "/dispatcher";
     }
 
     /// API documentation; its routes are ymir's ([`ymir::http::routes::openapi`]).

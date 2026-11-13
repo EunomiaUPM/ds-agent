@@ -28,30 +28,30 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Dataspace",
     items: [
-      { title: "Catalog Browser", url: "/admin/catalog", icon: Search },
-      { title: "Participants", url: "/admin/participants", icon: Users },
-      { title: "Connections", url: "/admin/connections", icon: Link2 },
-      { title: "VC Requests", url: "/admin/authority", icon: ShieldCheck },
+      { title: "Catalog Browser", url: "/catalog", icon: Search },
+      { title: "Participants", url: "/participants", icon: Users },
+      { title: "Connections", url: "/connections", icon: Link2 },
+      { title: "VC Requests", url: "/authority", icon: ShieldCheck },
     ],
   },
   {
     title: "Contracts",
     items: [
-      { title: "Negotiations", url: "/admin/contract-negotiation", icon: Feather },
-      { title: "Agreements", url: "/admin/agreements", icon: Handshake },
-      { title: "Transfers", url: "/admin/transfer-process", icon: ArrowLeftRight },
+      { title: "Negotiations", url: "/contract-negotiation", icon: Feather },
+      { title: "Agreements", url: "/agreements", icon: Handshake },
+      { title: "Transfers", url: "/transfer-process", icon: ArrowLeftRight },
     ],
   },
   {
     title: "Publishing",
     items: [
-      { title: "My Catalog", url: "/admin/my-catalog", icon: Archive },
-      { title: "Data Schemas", url: "/admin/my-catalog/schemas", icon: FileJson },
-      { title: "Policy Library", url: "/admin/my-catalog/policies", icon: Library },
+      { title: "My Catalog", url: "/my-catalog", icon: Archive },
+      { title: "Data Schemas", url: "/my-catalog/schemas", icon: FileJson },
+      { title: "Policy Library", url: "/my-catalog/policies", icon: Library },
       {
         title: "Connector Templates",
-        url: "/admin/my-catalog/connectors",
-        section: "/admin/my-catalog/connectors",
+        url: "/my-catalog/connectors",
+        section: "/my-catalog/connectors",
         icon: Plug,
       },
     ],
@@ -59,14 +59,14 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Agent",
     items: [
-      { title: "Wallet", url: "/admin/wallet/info", section: "/admin/wallet", icon: Wallet },
+      { title: "Wallet", url: "/wallet/info", section: "/wallet", icon: Wallet },
       {
         title: "Keystore",
-        url: "/admin/keystore/parameters",
-        section: "/admin/keystore",
+        url: "/keystore/parameters",
+        section: "/keystore",
         icon: KeyRound,
       },
-      { title: "Events", url: "/admin/events/feed", section: "/admin/events", icon: Radio },
+      { title: "Events", url: "/events/feed", section: "/events", icon: Radio },
     ],
   },
 ];
@@ -75,7 +75,7 @@ export function AppSidebar() {
   return (
     <AppShellSidebar
       productName="DS-Agent"
-      homeTo="/admin/"
+      homeTo="/"
       navGroups={NAV_GROUPS}
       footerSlot={<DevMode />}
       footerClassName="p-2 pb-12 border-t border-sidebar-border/40"

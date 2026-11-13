@@ -34,13 +34,7 @@ import { Button } from "@eunomia/ui";
 import { Badge } from "@eunomia/ui";
 import { Input } from "@eunomia/ui";
 import { SegmentedControl } from "@eunomia/ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@eunomia/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@eunomia/ui";
 import { ControlPointChips } from "../ControlPointChips";
 import { TemplateParameterFields } from "../TemplateParameterFields";
 import { leftOperands, odrlActions, operators } from "shared/src/odrl_actions";
@@ -92,6 +86,7 @@ const LOGICAL_LABEL: Record<LogicalOp, string> = {
   and: "All of",
   or: "Any of",
   xone: "Exactly one of",
+  andSequence: "In sequence",
 };
 
 const PALETTE_KINDS: { value: PolicyTemplateKind; label: string; hint: string }[] = [
@@ -680,25 +675,36 @@ PolicyBuilder.LogicalCard = function LogicalCard({ node }: { node: LogicalNode }
   );
 };
 
+/** Derives a safe `$param` identifier from an operand name (e.g. `odrl:spatial` → `spatial`). */
+function suggestParamName(leftOperand: string): string {
+  const local = leftOperand.split(/[:/]/).pop() ?? "";
+  const cleaned = local.replace(/[^A-Za-z0-9_-]/g, "");
+  return /^[A-Za-z]/.test(cleaned) ? cleaned : "value";
+}
+
 /** A condition written by hand; a value like `$region` becomes a parameter of the template. */
 PolicyBuilder.AtomicCard = function AtomicCard({ node }: { node: AtomicNode }) {
-  const { tree, set } = useBuilder();
+  const { mode, tree, set } = useBuilder();
   const drag = PolicyBuilder.useCardDrag(node, node.leftOperand || "Condition");
   const change = (c: Partial<AtomicNode>) =>
     set(PolicyTreeOps.update<AtomicNode>(tree, node.id, (a) => ({ ...a, ...c })));
+  const authoring = mode !== "offer";
+  const asked = /^\$[A-Za-z][\w-]*$/.test(node.rightOperand);
+
   return (
     <div
       ref={drag.ref}
       style={drag.style}
       className={cn(
-        "flex items-center gap-1.5 rounded-lg border border-ink/10 bg-background p-1.5",
+        "flex flex-wrap items-center gap-1.5 rounded-lg border border-ink/10 bg-background p-1.5 sm:flex-nowrap",
         drag.className,
       )}
     >
       {drag.handle}
       <Input
         list="policy-builder-operands"
-        className="h-7 w-40 text-xs"
+        containerClassName="w-40 shrink-0"
+        className="h-7 font-mono text-xs"
         placeholder="leftOperand"
         value={node.leftOperand}
         onChange={(e) => change({ leftOperand: e.target.value })}
@@ -709,7 +715,7 @@ PolicyBuilder.AtomicCard = function AtomicCard({ node }: { node: AtomicNode }) {
         ))}
       </datalist>
       <Select value={node.operator} onValueChange={(operator) => change({ operator })}>
-        <SelectTrigger className="h-7 w-32 text-xs">
+        <SelectTrigger className="h-7 w-36 shrink-0 text-xs">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -721,11 +727,36 @@ PolicyBuilder.AtomicCard = function AtomicCard({ node }: { node: AtomicNode }) {
         </SelectContent>
       </Select>
       <Input
-        className="h-7 min-w-0 flex-1 text-xs"
-        placeholder="value or $parameter"
+        containerClassName="min-w-0 flex-1"
+        className={cn(
+          "h-7 text-xs",
+          asked && "border-brand-sky/40 bg-brand-sky/[0.04] font-mono text-brand-sky",
+        )}
+        placeholder={authoring ? "value or $parameter" : "value"}
         value={node.rightOperand}
         onChange={(e) => change({ rightOperand: e.target.value })}
       />
+      {authoring && (
+        <button
+          type="button"
+          title={
+            asked ? "Switch back to a fixed value" : "Mark value as a template parameter ($name)"
+          }
+          onClick={() =>
+            change({
+              rightOperand: asked
+                ? node.rightOperand.slice(1)
+                : `$${suggestParamName(node.leftOperand)}`,
+            })
+          }
+          className={cn(
+            "flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-[10px] font-medium",
+            asked ? "bg-brand-sky/15 text-brand-sky" : "text-ink/45 hover:bg-ink/[0.05]",
+          )}
+        >
+          <Link2 className="h-3 w-3" /> {asked ? "asked" : "ask"}
+        </button>
+      )}
       <PolicyBuilder.RemoveButton id={node.id} label="condition" />
     </div>
   );

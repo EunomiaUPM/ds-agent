@@ -15,28 +15,6 @@
   }
 }
 
-.overlayContainer {
-  @apply z-50 fixed top-0 left-0 w-full h-full;
-  @apply flex items-center justify-center;
-  @apply bg-black/80;
-
-  .overlayContent {
-    @apply absolute p-6;
-    @apply h-fit min-h-[480px];
-    @apply w-[80dvw] max-w-4xl min-w-[560px];
-    @apply flex flex-col justify-between items-center gap-8;
-    @apply text-center bg-background;
-
-    .contentLogo {
-      @apply h-[40px] pr-4;
-      @apply flex justify-center object-contain;
-    }
-    .contentMessage {
-      @apply flex flex-col gap-4;
-    }
-  }
-}
-
 .policy-item-create {
   @apply first:mt-3 border-t pt-3 pb-5 border-ink/20 last:pb-2;
 }
@@ -48,4 +26,11 @@
 }
 .constraint-template-group {
   @apply flex flex-col gap-2 mb-3 last:mb-0;
+}
+
+/* @eunomia/ui's TabsList and RouteTabs combine overflow-x-auto with -mb-px tab
+   triggers; per CSS overflow rules that promotes overflow-y to auto and paints a
+   spurious vertical scrollbar for the 1px trigger overhang. */
+[role="tablist"] {
+  overflow-y: hidden;
 }

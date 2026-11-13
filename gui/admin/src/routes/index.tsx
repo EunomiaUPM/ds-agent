@@ -15,9 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowLeftRight,
+  ArrowRight,
   BellDot,
   BookOpen,
   FileSignature,
@@ -30,7 +31,7 @@ import { PageLayout } from "@eunomia/ui";
 import { PageHeader } from "@eunomia/ui";
 import { PageSection } from "@eunomia/ui";
 import { StatTile } from "@eunomia/ui";
-import { FeatureCard, FeatureCardProps } from "@eunomia/ui";
+import type { FeatureCardProps } from "@eunomia/ui";
 import {
   useGetAgreements,
   useGetNegotiationProcesses,
@@ -90,6 +91,31 @@ const FEATURES: FeatureCardProps[] = [
   },
 ];
 
+/** One capability per line: what it is, its standards and where to go. */
+function CapabilityRow({ icon: Icon, title, description, tags, to, action }: FeatureCardProps) {
+  return (
+    <Link
+      to={to}
+      title={action}
+      className="group flex items-center gap-3 px-3 py-2 transition-colors hover:bg-ink/[0.04]"
+    >
+      <Icon className="h-4 w-4 shrink-0 text-brand-sky" />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-medium text-ink/90">{title}</div>
+        <div className="truncate text-xs text-ink/55">{description}</div>
+      </div>
+      <div className="hidden shrink-0 gap-1 lg:flex">
+        {tags?.map((t) => (
+          <span key={t} className="rounded bg-ink/[0.06] px-1.5 py-0.5 text-xs text-ink/60">
+            {t}
+          </span>
+        ))}
+      </div>
+      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-ink/30 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-sky" />
+    </Link>
+  );
+}
+
 function Overview() {
   const total = (r: { status: number; data: unknown } | undefined) =>
     r?.status === 200 ? (r.data as { total?: number }).total : undefined;
@@ -138,9 +164,9 @@ function Overview() {
       </PageSection>
 
       <PageSection title="Capabilities">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="divide-y divide-ink/[0.06] overflow-hidden rounded-lg border border-ink/10">
           {FEATURES.map((f) => (
-            <FeatureCard key={f.title} {...f} />
+            <CapabilityRow key={f.title} {...f} />
           ))}
         </div>
       </PageSection>

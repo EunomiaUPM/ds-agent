@@ -1,24 +1,15 @@
 /**
  * participants/index.tsx
  *
- * Participants listing page with different layouts based on participant type:
- * - My agent: InfoList from /mates/myself (it is not a stored participant)
- * - Other agents: DataTable
- * - Authority: InfoList (authority info)
- *
- * @example
- * Used as the index route for /participants/
+ * This agent, read from /mates/myself, and the participants it has stored.
  */
 
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { FormatDate } from "@eunomia/ui";
 
 import { DataTable } from "@eunomia/ui";
-import { Button } from "@eunomia/ui";
 import { Badge, BadgeRole } from "@eunomia/ui";
 
-// Icons
-import { ArrowRight } from "lucide-react";
 import { PageLayout } from "@eunomia/ui";
 import { PageHeader } from "@eunomia/ui";
 import { PageSection } from "@eunomia/ui";
@@ -68,17 +59,14 @@ function RouteComponent() {
     },
   });
   const myAgent = useMyself();
+  const navigate = useNavigate();
 
   if (isLoading && !participants) {
     return (
       <PageLayout>
         <PageHeader title="Participants" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-32 w-full rounded-xl" />
-          ))}
-        </div>
-        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-16 w-full rounded-lg" />
+        <Skeleton className="h-48 w-full rounded-lg" />
       </PageLayout>
     );
   }
@@ -119,10 +107,15 @@ function RouteComponent() {
         </PageSection>
       )}
 
-      <PageSection title="Network Participants">
+      <PageSection title="Known participants">
         <DataTable
-          className="text-sm"
           data={participants?.data}
+          onRowClick={(p) =>
+            navigate({
+              to: "/participants/$participantId",
+              params: { participantId: p.participant_id! },
+            })
+          }
           serverSide={true}
           loading={isFetching}
           queryParams={queryParams}
@@ -145,55 +138,31 @@ function RouteComponent() {
               header: "Participant",
               accessorKey: "participant_nick",
               cell: (p) => (
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs bg-background-200 text-muted-foreground">
-                    {(p.participant_nick || "U").charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-medium capitalize">
-                      {p.participant_nick || "Unknown"}
-                    </span>
-                  </div>
-                </div>
+                <span className="font-medium capitalize">{p.participant_nick || "Unknown"}</span>
               ),
             },
             {
-              header: "Participant Type",
+              header: "Type",
               accessorKey: "participant_type",
+              className: "w-32",
               cell: (p) => (
-                <Badge variant="role" dsrole={p.participant_type as BadgeRole}>
+                <Badge variant="role" dsrole={p.participant_type as BadgeRole} size="sm">
                   {p.participant_type}
                 </Badge>
               ),
             },
             {
-              header: "Participant DID",
+              header: "DID",
               accessorKey: "participant_id",
-              cell: (p) => (
-                <Identifier value={p.participant_id} tail={12} />
-              ),
+              cell: (p) => <Identifier value={p.participant_id} tail={12} />,
             },
             {
               header: "Last interaction",
               accessorKey: "last_interaction",
               sortKey: "last_interaction",
-              cell: (p: Participant) => (
-                <p>{p.last_interaction ? <FormatDate date={p.last_interaction} /> : "Never"}</p>
-              ),
-            },
-            {
-              header: "Actions",
-              cell: (p) => (
-                <Link
-                  to="/participants/$participantId"
-                  params={{ participantId: p.participant_id! }}
-                >
-                  <Button variant="link">
-                    See agent
-                    <ArrowRight />
-                  </Button>
-                </Link>
-              ),
+              className: "w-44 whitespace-nowrap",
+              cell: (p: Participant) =>
+                p.last_interaction ? <FormatDate date={p.last_interaction} /> : "Never",
             },
           ]}
         />

@@ -115,7 +115,8 @@ function ConnectorTemplatesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onClear={() => setSearch("")}
-          className="h-8 w-72 text-xs"
+          containerClassName="w-72"
+          className="h-8 text-xs"
         />
       </div>
 
@@ -167,9 +168,7 @@ function ConnectorTemplatesPage() {
               header: "Protocol",
               cell: (g) => {
                 const proto = extractPrimaryProtocol(g.latest.interaction);
-                return (
-                  <Badge variant={proto === "KAFKA" ? "info" : "outline"}>{proto}</Badge>
-                );
+                return <Badge variant={proto === "KAFKA" ? "info" : "outline"}>{proto}</Badge>;
               },
             },
             {

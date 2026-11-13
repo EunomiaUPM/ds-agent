@@ -88,7 +88,7 @@ function RootComponent() {
           <AppSidebar />
           <SidebarInset>
             <Header user={user} onSignOut={signOut} />
-            <div className="flex flex-1 flex-col gap-4 p-8 items-start justify-start w-full h-full min-w-0">
+            <div className="flex flex-1 flex-col gap-4 px-3 pt-1 pb-4 items-start justify-start w-full h-full min-w-0">
               <Outlet />
             </div>
           </SidebarInset>

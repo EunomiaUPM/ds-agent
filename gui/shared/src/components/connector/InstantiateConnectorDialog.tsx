@@ -17,12 +17,13 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Eye, Plus, Sparkles, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, Plus, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Badge,
   Button,
   Checkbox,
+  cn,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -31,11 +32,16 @@ import {
   DialogTitle,
   Identifier,
   Input,
+  JsonViewer,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   TagInput,
 } from "@eunomia/ui";
 import { CatalogViews, type CatalogDoc } from "shared/src/data/catalog";
@@ -44,6 +50,7 @@ import { useGetDatasetsByCatalogId } from "shared/src/data/orval/datasets/datase
 import { useGetDistributionsByDatasetId } from "shared/src/data/orval/distributions/distributions";
 import {
   getGetConnectorInstanceByDistributionQueryKey,
+  useGetConnectorInstanceByDistribution,
   useUpsertConnectorInstance,
 } from "shared/src/data/orval/connector/connector";
 import { useGetConnectorTemplates } from "shared/src/data/orval/connector-templates/connector-templates";
@@ -58,6 +65,7 @@ import {
   extractPrimaryProtocol,
   groupConnectorTemplates,
 } from "./ConnectorSpecView";
+import { ConnectorTemplateModel } from "./connectorTemplateModel";
 
 export interface InstantiateConnectorDialogProps {
   open: boolean;
@@ -68,6 +76,7 @@ export interface InstantiateConnectorDialogProps {
   /** Pre-selected template name (when opened from Connector Templates or Replace). */
   initialTemplateName?: string;
   initialTemplateVersion?: string;
+  initialDescription?: string;
   onInstantiated?: (instance: ConnectorInstanceDto) => void;
 }
 
@@ -128,17 +137,22 @@ function parseInitialParamValue(def: ConnectorParameterDefinition): unknown {
 function serializeParameterPayload(
   defs: ConnectorParameterDefinition[],
   values: Record<string, unknown>,
-): { payload: Record<string, unknown>; missing: string[] } {
+): { payload: Record<string, unknown>; missing: string[]; fieldErrors: Record<string, string> } {
   const payload: Record<string, unknown> = {};
   const missing: string[] = [];
+  const fieldErrors: Record<string, string> = {};
 
   for (const def of defs) {
+    const label = def.title || def.name;
     const raw = values[def.name];
     switch (def.paramType) {
       case "STRING": {
         const str = typeof raw === "string" ? raw : "";
         if (!str.trim()) {
-          if (def.required && def.defaultValue == null) missing.push(def.title || def.name);
+          if (def.required && def.defaultValue == null) {
+            missing.push(label);
+            fieldErrors[def.name] = "Required";
+          }
         } else {
           payload[def.name] = str;
         }
@@ -147,11 +161,18 @@ function serializeParameterPayload(
       case "INT": {
         const str = typeof raw === "string" ? raw.trim() : String(raw ?? "").trim();
         if (!str) {
-          if (def.required && def.defaultValue == null) missing.push(def.title || def.name);
+          if (def.required && def.defaultValue == null) {
+            missing.push(label);
+            fieldErrors[def.name] = "Required";
+          }
+        } else if (!/^-?\d+$/.test(str)) {
+          missing.push(`${label} (integer)`);
+          fieldErrors[def.name] = "Must be a whole number";
         } else {
           const parsed = Number.parseInt(str, 10);
-          if (Number.isNaN(parsed)) {
-            missing.push(`${def.title || def.name} (must be integer)`);
+          if (!Number.isSafeInteger(parsed)) {
+            missing.push(`${label} (integer)`);
+            fieldErrors[def.name] = "Out of integer range";
           } else {
             payload[def.name] = parsed;
           }
@@ -165,7 +186,10 @@ function serializeParameterPayload(
       case "VEC<STRING>": {
         const arr = Array.isArray(raw) ? raw.map(String).filter(Boolean) : [];
         if (arr.length === 0) {
-          if (def.required && def.defaultValue == null) missing.push(def.title || def.name);
+          if (def.required && def.defaultValue == null) {
+            missing.push(label);
+            fieldErrors[def.name] = "Add at least one item";
+          }
         } else {
           payload[def.name] = arr;
         }
@@ -174,13 +198,22 @@ function serializeParameterPayload(
       case "MAP<STRING,STRING>": {
         const entries = Array.isArray(raw) ? (raw as MapEntry[]) : [];
         const mapObj: Record<string, string> = {};
+        let hasEmptyKey = false;
         for (const e of entries) {
           if (e.key.trim()) {
             mapObj[e.key.trim()] = e.value;
+          } else if (e.value.trim()) {
+            hasEmptyKey = true;
           }
         }
-        if (Object.keys(mapObj).length === 0) {
-          if (def.required && def.defaultValue == null) missing.push(def.title || def.name);
+        if (hasEmptyKey) {
+          missing.push(`${label} (empty key)`);
+          fieldErrors[def.name] = "Every map row needs a non-empty key";
+        } else if (Object.keys(mapObj).length === 0) {
+          if (def.required && def.defaultValue == null) {
+            missing.push(label);
+            fieldErrors[def.name] = "Add at least one entry";
+          }
         } else {
           payload[def.name] = mapObj;
         }
@@ -189,7 +222,7 @@ function serializeParameterPayload(
     }
   }
 
-  return { payload, missing };
+  return { payload, missing, fieldErrors };
 }
 
 function extractApiError(err: unknown, fallback: string): string {
@@ -217,6 +250,7 @@ export function InstantiateConnectorDialog({
   distributionTitle,
   initialTemplateName,
   initialTemplateVersion,
+  initialDescription,
   onInstantiated,
 }: InstantiateConnectorDialogProps) {
   const queryClient = useQueryClient();
@@ -236,10 +270,20 @@ export function InstantiateConnectorDialog({
   const [selectedDistributionId, setSelectedDistributionId] = useState<string>(
     fixedDistributionId ?? "",
   );
-  const [instanceDescription, setInstanceDescription] = useState<string>("");
+  const [instanceDescription, setInstanceDescription] = useState<string>(initialDescription ?? "");
   const [paramValues, setParamValues] = useState<Record<string, unknown>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [showBlueprint, setShowBlueprint] = useState(false);
   const [previewInstance, setPreviewInstance] = useState<ConnectorInstanceDto | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const effectiveDistributionId = fixedDistributionId || selectedDistributionId;
+  const { data: existingInstanceRes, isLoading: loadingExisting } =
+    useGetConnectorInstanceByDistribution(effectiveDistributionId, {
+      query: { enabled: open && !!effectiveDistributionId, retry: false },
+    });
+  const existingInstance =
+    existingInstanceRes?.status === 200 ? existingInstanceRes.data : undefined;
 
   // Only fetch catalog/datasets/distributions when `distributionId` was NOT passed in.
   const needTargetPicker = open && !fixedDistributionId;
@@ -269,20 +313,48 @@ export function InstantiateConnectorDialog({
     [distributionsData],
   );
 
-  // Synchronise defaults when dialog opens or template selection changes.
+  // Reset transient state whenever the dialog opens.
   useEffect(() => {
     if (!open) return;
     setErrorMessage(null);
+    setFieldErrors({});
     setPreviewInstance(null);
+    setShowBlueprint(false);
+    setSelectedDatasetId("");
     setSelectedDistributionId(fixedDistributionId ?? "");
-    if (initialTemplateName) {
-      setSelectedName(initialTemplateName);
-      setSelectedVersion(initialTemplateVersion ?? "");
-    } else if (!selectedName && groups.length > 0) {
-      setSelectedName(groups[0].name);
-      setSelectedVersion(groups[0].latest.version ?? "");
+    setInstanceDescription(initialDescription ?? "");
+    setSelectedName(initialTemplateName ?? "");
+    setSelectedVersion(initialTemplateVersion ?? "");
+  }, [open, fixedDistributionId, initialTemplateName, initialTemplateVersion, initialDescription]);
+
+  // Apply existing instance metadata or first catalog template once loaded.
+  useEffect(() => {
+    if (!open) return;
+    if (fixedDistributionId && !initialTemplateName && loadingExisting) return;
+    if (!initialTemplateName) {
+      const preferredName = existingInstance?.name ?? groups[0]?.name ?? "";
+      const preferredVer =
+        existingInstance?.name != null
+          ? (existingInstance.version ?? "")
+          : (groups[0]?.latest.version ?? "");
+      if (preferredName) {
+        setSelectedName((prev) => prev || preferredName);
+        setSelectedVersion((prev) => prev || preferredVer);
+      }
     }
-  }, [open, fixedDistributionId, initialTemplateName, initialTemplateVersion, groups.length]);
+    if (!initialDescription && existingInstance?.description) {
+      const desc = existingInstance.description;
+      setInstanceDescription((prev) => prev || desc);
+    }
+  }, [
+    open,
+    fixedDistributionId,
+    initialTemplateName,
+    initialDescription,
+    loadingExisting,
+    existingInstance,
+    groups,
+  ]);
 
   useEffect(() => {
     if (!needTargetPicker) return;
@@ -314,10 +386,19 @@ export function InstantiateConnectorDialog({
   }, [activeGroup, selectedVersion]);
 
   const activeTemplate: ConnectorTemplateDto | undefined = useMemo(
-    () =>
-      activeGroup?.versions.find((v) => v.version === selectedVersion) ?? activeGroup?.latest,
+    () => activeGroup?.versions.find((v) => v.version === selectedVersion) ?? activeGroup?.latest,
     [activeGroup, selectedVersion],
   );
+
+  const paramUsage = useMemo(() => {
+    if (!activeTemplate) return new Map<string, string[]>();
+    const used = ConnectorTemplateModel.usedPlaceholders({
+      authentication: activeTemplate.authentication,
+      interaction: activeTemplate.interaction,
+      parameters: activeTemplate.parameters ?? [],
+    });
+    return new Map(used.map((u) => [u.name, u.where]));
+  }, [activeTemplate]);
 
   useEffect(() => {
     if (!activeTemplate) {
@@ -329,16 +410,16 @@ export function InstantiateConnectorDialog({
       next[def.name] = parseInitialParamValue(def);
     }
     setParamValues(next);
+    setFieldErrors({});
     setPreviewInstance(null);
     setErrorMessage(null);
-  }, [activeTemplate?.name, activeTemplate?.version]);
+  }, [activeTemplate]);
 
   const upsertMutation = useUpsertConnectorInstance();
 
-  const effectiveDistributionId = fixedDistributionId || selectedDistributionId;
-
   const submit = async (dryRun: boolean) => {
     setErrorMessage(null);
+    setFieldErrors({});
     if (!activeTemplate?.name || !activeTemplate?.version) {
       setErrorMessage("Select a connector template and version first.");
       return;
@@ -348,12 +429,14 @@ export function InstantiateConnectorDialog({
       return;
     }
 
-    const { payload, missing } = serializeParameterPayload(
-      activeTemplate.parameters ?? [],
-      paramValues,
-    );
+    const {
+      payload,
+      missing,
+      fieldErrors: nextErrors,
+    } = serializeParameterPayload(activeTemplate.parameters ?? [], paramValues);
     if (missing.length > 0) {
-      setErrorMessage(`Missing or invalid required parameters: ${missing.join(", ")}`);
+      setFieldErrors(nextErrors);
+      setErrorMessage(`Fix parameter inputs: ${missing.join(", ")}`);
       return;
     }
 
@@ -397,6 +480,11 @@ export function InstantiateConnectorDialog({
 
   const setParam = (name: string, val: unknown) => {
     setPreviewInstance(null);
+    setFieldErrors((prev) => {
+      if (!(name in prev)) return prev;
+      const { [name]: _removed, ...rest } = prev;
+      return rest;
+    });
     setParamValues((prev) => ({ ...prev, [name]: val }));
   };
 
@@ -404,32 +492,44 @@ export function InstantiateConnectorDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Instantiate connector from template</DialogTitle>
+          <DialogTitle>
+            {existingInstance
+              ? "Replace connector instance"
+              : "Instantiate connector from template"}
+          </DialogTitle>
           <DialogDescription>
             {fixedDistributionId ? (
               <>
-                Bind a parameterized connector template to distribution{" "}
+                Bind a connector template to distribution{" "}
                 <span className="font-medium text-ink">
                   {distributionTitle || fixedDistributionId}
                 </span>
-                . Any previous connector instance on this distribution is replaced.
+                .
               </>
             ) : (
-              "Choose a target distribution and fill in the template parameters to create and bind a resolved connector instance."
+              "Pick a distribution and fill template parameters to bind a resolved connector instance."
             )}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5 py-2">
+        <div className="space-y-4 py-1">
+          {existingInstance && (
+            <div className="rounded-md border border-warn-500/30 bg-warn-500/[0.06] px-3 py-2 text-xs text-warn-800 dark:text-warn-300">
+              This distribution already has an active instance
+              {existingInstance.name
+                ? ` (${existingInstance.name}@${existingInstance.version ?? "?"})`
+                : ""}
+              . Submitting will replace its configuration.
+            </div>
+          )}
+
           {/* 1. Target distribution selector when launched from the template library */}
           {!fixedDistributionId && (
-            <div className="rounded-lg border border-ink/10 bg-ink/[0.02] p-3.5">
-              <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-ink/55">
-                Target distribution
-              </p>
+            <div className="rounded-lg border border-ink/10 p-3">
+              <p className="mb-2 text-xs font-semibold text-ink/75">Target distribution</p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs font-medium">Dataset</span>
+                  <span className="text-xs font-medium text-ink/80">Dataset</span>
                   <Select value={selectedDatasetId} onValueChange={setSelectedDatasetId}>
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue placeholder="Select dataset…" />
@@ -445,7 +545,7 @@ export function InstantiateConnectorDialog({
                 </label>
 
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs font-medium">Distribution</span>
+                  <span className="text-xs font-medium text-ink/80">Distribution</span>
                   <Select
                     value={selectedDistributionId}
                     onValueChange={setSelectedDistributionId}
@@ -479,21 +579,19 @@ export function InstantiateConnectorDialog({
           )}
 
           {/* 2. Connector template & version selector */}
-          <div className="rounded-lg border border-ink/10 bg-ink/[0.02] p-3.5">
-            <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-ink/55">
-              Connector template
-            </p>
+          <div className="rounded-lg border border-ink/10 p-3">
+            <p className="mb-2 text-xs font-semibold text-ink/75">Connector template</p>
             {loadingTemplates ? (
               <p className="text-xs text-ink/50">Loading connector templates…</p>
             ) : groups.length === 0 ? (
               <p className="text-xs text-ink/55">
-                No connector templates exist yet. Create one under My area → Connector Templates.
+                No connector templates exist yet. Create one under Publishing → Connector templates.
               </p>
             ) : (
               <>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <label className="flex flex-col gap-1 sm:col-span-2">
-                    <span className="text-xs font-medium">Template name</span>
+                    <span className="text-xs font-medium text-ink/80">Template</span>
                     <Select value={selectedName} onValueChange={setSelectedName}>
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue placeholder="Choose template…" />
@@ -510,7 +608,7 @@ export function InstantiateConnectorDialog({
                   </label>
 
                   <label className="flex flex-col gap-1">
-                    <span className="text-xs font-medium">Version</span>
+                    <span className="text-xs font-medium text-ink/80">Version</span>
                     <Select
                       value={selectedVersion}
                       onValueChange={setSelectedVersion}
@@ -531,18 +629,42 @@ export function InstantiateConnectorDialog({
                 </div>
 
                 {activeTemplate && (
-                  <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-ink/65">
-                    <Badge variant="info">
-                      {extractInteractionMode(activeTemplate.interaction)}
-                    </Badge>
-                    <Badge variant="outline">
-                      {extractPrimaryProtocol(activeTemplate.interaction)}
-                    </Badge>
-                    {activeTemplate.author && <span>by {activeTemplate.author}</span>}
-                    {activeTemplate.description && (
-                      <span className="text-ink/55">— {activeTemplate.description}</span>
+                  <>
+                    <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-ink/65">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="info">
+                          {extractInteractionMode(activeTemplate.interaction)}
+                        </Badge>
+                        <Badge variant="outline">
+                          {extractPrimaryProtocol(activeTemplate.interaction)}
+                        </Badge>
+                        {activeTemplate.author && <span>by {activeTemplate.author}</span>}
+                        {activeTemplate.description && (
+                          <span className="text-ink/55">— {activeTemplate.description}</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowBlueprint((v) => !v)}
+                        className="inline-flex items-center gap-1 text-xs text-brand-sky hover:underline"
+                      >
+                        {showBlueprint ? (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        )}
+                        {showBlueprint ? "Hide blueprint" : "View blueprint"}
+                      </button>
+                    </div>
+                    {showBlueprint && (
+                      <div className="mt-3 border-t border-ink/[0.07] pt-3">
+                        <ConnectorSpecView
+                          interaction={activeTemplate.interaction}
+                          authentication={activeTemplate.authentication}
+                        />
+                      </div>
                     )}
-                  </div>
+                  </>
                 )}
               </>
             )}
@@ -550,37 +672,43 @@ export function InstantiateConnectorDialog({
 
           {/* 3. Dynamic parameter form */}
           {activeTemplate && (
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-lg border border-ink/10 p-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wide text-ink/55">
+                <p className="text-xs font-semibold text-ink/75">
                   Parameters ({activeTemplate.parameters?.length ?? 0})
                 </p>
               </div>
 
               {(activeTemplate.parameters?.length ?? 0) === 0 ? (
                 <p className="rounded-md border border-dashed border-ink/15 px-3 py-3 text-xs text-ink/55">
-                  This template requires no user-supplied parameters (all values are static or
-                  injected at runtime).
+                  This template requires no instantiation inputs (all values are fixed or resolved
+                  at runtime).
                 </p>
               ) : (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {activeTemplate.parameters.map((def) => {
                     const val = paramValues[def.name];
+                    const err = fieldErrors[def.name];
+                    const places = paramUsage.get(def.name);
                     const isWide =
                       def.paramType === "VEC<STRING>" || def.paramType === "MAP<STRING,STRING>";
                     return (
                       <div
                         key={def.name}
-                        className={`flex flex-col gap-1 ${isWide ? "sm:col-span-2" : ""}`}
+                        className={cn("flex flex-col gap-1", isWide && "sm:col-span-2")}
                       >
-                        <div className="flex items-center gap-1.5 text-xs font-medium">
-                          <span>{def.title || def.name}</span>
+                        <div className="flex flex-wrap items-baseline justify-between gap-1 text-xs">
+                          <span className="font-medium text-ink/90">
+                            {def.title || def.name}
+                            {def.required && (
+                              <span className="ml-0.5 text-[11px] font-semibold text-danger-600">
+                                *
+                              </span>
+                            )}
+                          </span>
                           <span className="font-mono text-[10px] text-ink/45">
                             {`{{__${def.name}__}}`} · {def.paramType}
                           </span>
-                          {def.required && (
-                            <span className="text-[10px] font-semibold text-danger-600">*</span>
-                          )}
                         </div>
 
                         {def.paramType === "BOOLEAN" ? (
@@ -595,7 +723,7 @@ export function InstantiateConnectorDialog({
                           </span>
                         ) : def.paramType === "INT" ? (
                           <Input
-                            className="h-8 text-xs"
+                            className={cn("h-8 text-xs font-mono", err && "border-danger-500/60")}
                             type="number"
                             step={1}
                             placeholder={def.defaultValue ?? "0"}
@@ -603,19 +731,26 @@ export function InstantiateConnectorDialog({
                             onChange={(e) => setParam(def.name, e.target.value)}
                           />
                         ) : def.paramType === "VEC<STRING>" ? (
-                          <TagInput
-                            value={Array.isArray(val) ? (val as string[]) : []}
-                            onChange={(next) => setParam(def.name, next)}
-                            placeholder={
-                              def.defaultValue ?? "Type item (e.g. redpanda:9092) and press Enter"
-                            }
-                          />
+                          <div className={cn(err && "rounded-md ring-1 ring-danger-500/60")}>
+                            <TagInput
+                              value={Array.isArray(val) ? (val as string[]) : []}
+                              onChange={(next) => setParam(def.name, next)}
+                              placeholder={
+                                def.defaultValue ?? "Type item (e.g. redpanda:9092) and press Enter"
+                              }
+                            />
+                          </div>
                         ) : def.paramType === "MAP<STRING,STRING>" ? (
-                          <div className="space-y-1.5 rounded-md border border-ink/10 p-2">
+                          <div
+                            className={cn(
+                              "space-y-1.5 rounded-md border p-2",
+                              err ? "border-danger-500/60" : "border-ink/10",
+                            )}
+                          >
                             {(Array.isArray(val) ? (val as MapEntry[]) : []).map((entry, idx) => (
                               <div key={idx} className="flex items-center gap-2">
                                 <Input
-                                  className="h-7 text-xs font-mono"
+                                  className="h-8 text-xs font-mono"
                                   placeholder="Key"
                                   value={entry.key}
                                   onChange={(e) => {
@@ -625,7 +760,7 @@ export function InstantiateConnectorDialog({
                                   }}
                                 />
                                 <Input
-                                  className="h-7 text-xs font-mono"
+                                  className="h-8 text-xs font-mono"
                                   placeholder="Value"
                                   value={entry.value}
                                   onChange={(e) => {
@@ -663,15 +798,24 @@ export function InstantiateConnectorDialog({
                           </div>
                         ) : (
                           <Input
-                            className="h-8 text-xs"
+                            className={cn("h-8 text-xs", err && "border-danger-500/60")}
                             placeholder={def.defaultValue ?? `Enter ${def.title || def.name}…`}
                             value={typeof val === "string" ? val : ""}
                             onChange={(e) => setParam(def.name, e.target.value)}
                           />
                         )}
 
-                        {def.description && (
-                          <span className="text-[11px] text-ink/50">{def.description}</span>
+                        {err ? (
+                          <span className="text-[11px] text-danger-600 dark:text-danger-400">
+                            {err}
+                          </span>
+                        ) : (
+                          <div className="flex flex-wrap items-center gap-x-2 text-[11px] text-ink/50">
+                            {def.description && <span>{def.description}</span>}
+                            {places && places.length > 0 && (
+                              <span className="text-ink/40">Fills {places.join(", ")}</span>
+                            )}
+                          </div>
                         )}
                       </div>
                     );
@@ -679,8 +823,8 @@ export function InstantiateConnectorDialog({
                 </div>
               )}
 
-              <label className="flex flex-col gap-1 pt-1">
-                <span className="text-xs font-medium">Instance notes (optional)</span>
+              <label className="flex flex-col gap-1 border-t border-ink/[0.07] pt-2.5">
+                <span className="text-xs font-medium text-ink/80">Instance notes (optional)</span>
                 <Input
                   className="h-8 text-xs"
                   placeholder="e.g. Production telemetry feed bound to Redpanda cluster"
@@ -698,17 +842,28 @@ export function InstantiateConnectorDialog({
           )}
 
           {previewInstance && (
-            <div className="rounded-lg border border-brand-sky/30 bg-brand-sky/[0.04] p-3.5">
+            <div className="rounded-lg border border-brand-sky/30 bg-brand-sky/[0.04] p-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-xs font-semibold text-brand-sky">
-                  Resolved instance preview (dryRun)
+                  Resolved dry-run preview
                 </span>
                 <Badge variant="outline">Not saved yet</Badge>
               </div>
-              <ConnectorSpecView
-                interaction={previewInstance.interaction}
-                authentication={previewInstance.authenticationConfig}
-              />
+              <Tabs defaultValue="structure">
+                <TabsList>
+                  <TabsTrigger value="structure">Resolved view</TabsTrigger>
+                  <TabsTrigger value="json">Raw JSON</TabsTrigger>
+                </TabsList>
+                <TabsContent value="structure" className="pt-3">
+                  <ConnectorSpecView
+                    interaction={previewInstance.interaction}
+                    authentication={previewInstance.authenticationConfig}
+                  />
+                </TabsContent>
+                <TabsContent value="json" className="pt-3">
+                  <JsonViewer value={previewInstance} />
+                </TabsContent>
+              </Tabs>
             </div>
           )}
         </div>
@@ -720,15 +875,17 @@ export function InstantiateConnectorDialog({
           <Button
             variant="outline"
             disabled={!activeTemplate || upsertMutation.isPending}
+            isLoading={upsertMutation.isPending}
             onClick={() => submit(true)}
           >
             <Eye /> Preview (dryRun)
           </Button>
           <Button
             disabled={!activeTemplate || !effectiveDistributionId || upsertMutation.isPending}
+            isLoading={upsertMutation.isPending}
             onClick={() => submit(false)}
           >
-            <Sparkles /> Instantiate connector
+            <Sparkles /> {existingInstance ? "Replace instance" : "Instantiate connector"}
           </Button>
         </DialogFooter>
       </DialogContent>

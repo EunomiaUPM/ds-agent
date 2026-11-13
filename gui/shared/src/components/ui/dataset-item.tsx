@@ -71,7 +71,7 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
       variant="interactive"
       className="h-full flex flex-col justify-between group transition-all duration-200"
     >
-      <CardHeader className="pb-3 space-y-2">
+      <CardHeader className="p-4 pb-2.5 space-y-1.5">
         <Link to={datasetUrl}>
           <div className="flex items-start justify-between gap-2">
             <Heading
@@ -88,12 +88,14 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
             </span>
           </div>
         </Link>
-        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-          {description || "No description provided for this dataset."}
-        </p>
+        {description && (
+          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+            {description}
+          </p>
+        )}
       </CardHeader>
 
-      <CardContent className="space-y-3">
+      <CardContent className="px-4 pb-3 space-y-2.5">
         {(dataset?.keywords?.length > 0 || dataset?.themes?.length > 0) && (
           <div className="flex flex-wrap gap-1">
             {(dataset.themes ?? []).map((t: string) => (
@@ -182,7 +184,7 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
         )}
       </CardContent>
 
-      <CardFooter className="pt-2.5 flex items-center justify-between text-xs border-t border-ink/5 bg-background-800/10 rounded-b-xl">
+      <CardFooter className="px-4 py-2 flex items-center justify-between text-xs border-t border-ink/5 bg-background-800/10 rounded-b-xl">
         <span className="font-mono text-muted-foreground/80 truncate max-w-[140px]">
           {datasetId ? `#${datasetId.slice(-8)}` : ""}
         </span>

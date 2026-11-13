@@ -11,8 +11,8 @@ import type {
 
 export type ListKey = "permission" | "prohibition" | "obligation";
 export const LISTS: ListKey[] = ["permission", "prohibition", "obligation"];
-export type LogicalOp = "and" | "or" | "xone";
-export const LOGICAL_OPS: LogicalOp[] = ["and", "or", "xone"];
+export type LogicalOp = "and" | "or" | "xone" | "andSequence";
+export const LOGICAL_OPS: LogicalOp[] = ["and", "or", "xone", "andSequence"];
 
 /** A library piece placed on the canvas, with its values; `exposed` maps a parameter of the
  * piece to a parameter of the template being written. */
@@ -279,8 +279,17 @@ export const PolicyTreeOps = {
     if (rules.some((r) => r.type === "rule" && !r.action)) out.push("Every rule needs an action.");
     const walk = (list: ConstraintNode[]) =>
       list.forEach((c) => {
-        if (c.type === "atomic" && (!c.leftOperand || !c.operator || !c.rightOperand))
-          out.push("Complete or remove the empty conditions.");
+        if (c.type === "atomic") {
+          if (!c.leftOperand || !c.operator || !c.rightOperand) {
+            out.push("Complete or remove the empty conditions.");
+          } else if (c.rightOperand.startsWith("$")) {
+            if (mode === "offer") {
+              out.push(`Replace placeholder ${c.rightOperand} with a value.`);
+            } else if (!/^\$[A-Za-z][\w-]*$/.test(c.rightOperand)) {
+              out.push(`Invalid parameter name "${c.rightOperand}" (use $letters_and_digits).`);
+            }
+          }
+        }
         if (c.type === "logical") {
           if (c.children.length === 0) out.push(`An empty "${c.op}" group needs conditions.`);
           walk(c.children);
@@ -352,13 +361,16 @@ export const PolicyTreeOps = {
   },
 
   /** Parameters of the template being written: each exposed parameter, defined as in its piece
-   * with the current value as default, and each `$name` typed in a condition, as a string. */
-  parameters(tree: PolicyTree): Record<string, PolicyTemplateParameterDefinition> {
+   * with the current value as default, and each `$name` typed in a condition, preserving overrides. */
+  parameters(
+    tree: PolicyTree,
+    overrides?: Record<string, PolicyTemplateParameterDefinition>,
+  ): Record<string, PolicyTemplateParameterDefinition> {
     const out: Record<string, PolicyTemplateParameterDefinition> = {};
     const walk = (list: ConstraintNode[]) =>
       list.forEach((c) => {
         if (c.type === "atomic" && /^\$[A-Za-z][\w-]*$/.test(c.rightOperand))
-          out[c.rightOperand] ??= { dataType: "string" };
+          out[c.rightOperand] ??= overrides?.[c.rightOperand] ?? { dataType: "string" };
         if (c.type === "logical") walk(c.children);
       });
     LISTS.forEach((l) => tree[l].forEach((r) => r.type === "rule" && walk(r.constraints)));
@@ -366,12 +378,16 @@ export const PolicyTreeOps = {
     for (const r of PolicyTreeOps.refs(tree)) {
       for (const [child, parent] of Object.entries(r.exposed)) {
         const def = r.template?.parameters[child];
-        if (!def) continue;
+        if (!def || !parent.trim()) continue;
+        const key = `$${parent}`;
+        const custom = overrides?.[key];
         const current = r.values[child];
-        out[`$${parent}`] = {
-          ...def,
-          ...(current !== undefined && current !== "" && { defaultValue: current }),
-        };
+        out[key] = custom
+          ? { ...def, ...custom }
+          : {
+              ...def,
+              ...(current !== undefined && current !== "" && { defaultValue: current }),
+            };
       }
     }
     return out;

@@ -29,22 +29,30 @@ export const odrlActions = [
 ];
 
 export const leftOperands = [
+  "purpose",
+  "spatial",
+  "elapsedTime",
+  "count",
+  "dateTime",
   "date",
   "user",
   "location",
-  "dateTime",
-  "purpose",
   "recipient",
   "legalBasis",
   "language",
   "industry",
-  "spatial",
-  "elapsedTime",
-  "count",
   "event",
   "meter",
   "version",
   "hash",
+  "odrl:purpose",
+  "odrl:spatial",
+  "odrl:elapsedTime",
+  "odrl:count",
+  "odrl:dateTime",
+  "eunomia:participant",
+  "ovc:credentialSubjectType",
+  "ovc:leftOperand",
 ];
 
 export const operators = [

@@ -9,13 +9,7 @@ import { Badge } from "@eunomia/ui";
 import { Input } from "@eunomia/ui";
 import { FormatDate } from "@eunomia/ui";
 import { SegmentedControl } from "@eunomia/ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@eunomia/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@eunomia/ui";
 import { ControlPointChips } from "shared/src/components/policy/ControlPointChips";
 import { useGetAllPolicyTemplates } from "shared/src/data/orval/policy-templates/policy-templates";
 import {
@@ -96,7 +90,8 @@ function PolicyLibraryPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onClear={() => setSearch("")}
-          className="h-8 w-64 text-xs"
+          containerClassName="w-64"
+          className="h-8 text-xs"
         />
       </div>
 
@@ -142,7 +137,14 @@ function PolicyLibraryPage() {
             },
             {
               header: "Latest",
-              cell: (g) => <span className="font-mono text-xs">{g.latest.version}</span>,
+              cell: (g) => (
+                <span className="inline-flex items-center gap-1.5 font-mono text-xs">
+                  <span>v{g.latest.version}</span>
+                  {g.versions.length > 1 && (
+                    <span className="text-ink/45">({g.versions.length})</span>
+                  )}
+                </span>
+              ),
             },
             {
               header: "Pieces used",

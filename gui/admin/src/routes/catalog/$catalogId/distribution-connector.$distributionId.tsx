@@ -18,7 +18,7 @@
 import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowUpRight, Pencil, Plug, Sparkles, Trash2, Unplug } from "lucide-react";
+import { ArrowUpRight, KeyRound, Pencil, Plug, Sparkles, Trash2, Unplug } from "lucide-react";
 import { toast } from "sonner";
 import {
   Badge,
@@ -30,7 +30,6 @@ import {
   JsonViewer,
   PageHeader,
   PageLayout,
-  PageSection,
   Tabs,
   TabsContent,
   TabsList,
@@ -54,6 +53,7 @@ import {
   extractInteractionMode,
   extractPrimaryProtocol,
 } from "shared/src/components/connector/ConnectorSpecView";
+import { ConnectorTemplateModel } from "shared/src/components/connector/connectorTemplateModel";
 import { InstantiateConnectorDialog } from "shared/src/components/connector/InstantiateConnectorDialog";
 import { DatasetLabel } from "shared/src/components/identity/DatasetLabel";
 import { SchemaUrl } from "shared/src/components/schemas/SchemaPicker";
@@ -133,6 +133,13 @@ function DistributionConnectorPage() {
 
   const mode = instance ? extractInteractionMode(instance.interaction) : undefined;
   const protocol = instance ? extractPrimaryProtocol(instance.interaction) : undefined;
+  const runtimeBuiltIns = instance
+    ? ConnectorTemplateModel.builtInPlaceholders({
+        authentication: instance.authenticationConfig,
+        interaction: instance.interaction,
+        parameters: [],
+      })
+    : [];
 
   const handleUnbind = async () => {
     if (!instance?.id) return;
@@ -183,7 +190,7 @@ function DistributionConnectorPage() {
             : distribution.description || undefined
         }
         actions={
-          <>
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
             <VisibilitySelect kind="distribution" id={distributionId} visibility={visibility} />
             <PublicationToggle
               kind="distribution"
@@ -192,23 +199,6 @@ function DistributionConnectorPage() {
               title={distribution.title}
               size="sm"
             />
-            <Button size="sm" onClick={() => setInstantiateOpen(true)}>
-              <Sparkles />
-              {instance ? "Replace from template" : "Instantiate from template"}
-            </Button>
-            {instance && (
-              <Button variant="outline" size="sm" onClick={() => setUnbindOpen(true)}>
-                <Unplug /> Unbind connector
-              </Button>
-            )}
-            <Button asChild variant="outline" size="sm">
-              <Link
-                to="/catalog/$catalogId/dataset/$datasetId"
-                params={{ catalogId, datasetId: distribution.datasetId }}
-              >
-                Open dataset
-              </Link>
-            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -225,15 +215,30 @@ function DistributionConnectorPage() {
             >
               <Trash2 /> Delete
             </Button>
-          </>
+          </div>
         }
       />
 
       <FieldGrid
         columns={3}
-        className="mb-6"
+        className="mb-4"
         fields={[
-          { label: "Dataset", value: <DatasetLabel id={distribution.datasetId} /> },
+          {
+            label: "Dataset",
+            value: (
+              <div className="flex items-start justify-between gap-2">
+                <DatasetLabel id={distribution.datasetId} />
+                <Link
+                  to="/catalog/$catalogId/dataset/$datasetId"
+                  params={{ catalogId, datasetId: distribution.datasetId }}
+                  className="inline-flex shrink-0 items-center gap-0.5 text-xs text-brand-sky hover:underline"
+                >
+                  Open
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            ),
+          },
           {
             label: "Data service",
             value: (
@@ -275,7 +280,7 @@ function DistributionConnectorPage() {
             ),
           },
           {
-            label: "Source connector template",
+            label: "Source template",
             value: instance?.name ? (
               <Link
                 to="/my-catalog/connectors/$templateName"
@@ -295,165 +300,146 @@ function DistributionConnectorPage() {
       />
 
       {!instance ? (
-        <div className="rounded-xl border border-dashed border-ink/15 px-6 py-12 text-center">
-          <Plug className="mx-auto h-10 w-10 text-ink/30" />
-          <p className="mt-3 text-sm font-medium">
+        <div className="rounded-lg border border-dashed border-ink/15 px-6 py-10 text-center">
+          <Plug className="mx-auto h-9 w-9 text-ink/30" />
+          <p className="mt-2.5 text-sm font-medium">
             No connector instance is bound to this distribution
           </p>
-          <p className="mx-auto mt-1 max-w-lg text-xs text-ink/55">
-            Bind a parameterized connector template (HTTP Pull, HTTP Push Webhook, or Kafka Push
-            Stream) so the dataplane knows how to serve or stream data for this distribution.
+          <p className="mx-auto mt-1 max-w-md text-xs text-ink/55">
+            Instantiate a HTTP or Kafka connector template so the dataplane can serve or stream this
+            distribution.
           </p>
-          <div className="mt-5 flex items-center justify-center gap-2">
+          <div className="mt-4 flex items-center justify-center gap-2">
             <Button size="sm" onClick={() => setInstantiateOpen(true)}>
               <Sparkles /> Instantiate from template
             </Button>
             <Button asChild size="sm" variant="outline">
-              <Link to="/my-catalog/connectors">Browse connector templates</Link>
+              <Link to="/my-catalog/connectors">Browse templates</Link>
             </Button>
           </div>
         </div>
       ) : (
-        <div className="space-y-8">
-          {/* 1. Resolved Connector Instance card */}
-          <section className="rounded-xl border border-ink/10 bg-ink/[0.012] p-5">
-            <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-ink/[0.07] pb-3.5">
+        <div className="space-y-4">
+          <section className="rounded-lg border border-ink/10 p-4">
+            <div className="mb-3 flex flex-wrap items-start justify-between gap-2 border-b border-ink/[0.07] pb-2.5">
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-semibold">Connector Instance (Resolved Binding)</h2>
-                  <Badge variant="info">Active binding</Badge>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-sm font-semibold">Resolved connector</h2>
+                  <Badge variant="info">Active</Badge>
+                  {instance.createdAt && (
+                    <span className="text-xs text-ink/50">
+                      Bound <FormatDate date={instance.createdAt} />
+                    </span>
+                  )}
                 </div>
-                <p className="mt-0.5 text-xs text-ink/55">
-                  Concrete configuration resolved for this distribution and consumed by the
-                  dataplane during DSP transfers.
-                </p>
+                {instance.description && (
+                  <p className="mt-0.5 text-xs text-ink/60">{instance.description}</p>
+                )}
               </div>
-              <Button size="xs" variant="outline" onClick={() => setInstantiateOpen(true)}>
-                <Sparkles /> Re-instantiate / update parameters
-              </Button>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Button size="xs" variant="outline" onClick={() => setInstantiateOpen(true)}>
+                  <Sparkles /> Update / replace
+                </Button>
+                <Button size="xs" variant="outline" onClick={() => setUnbindOpen(true)}>
+                  <Unplug /> Unbind
+                </Button>
+              </div>
             </div>
 
-            <FieldGrid
-              columns={4}
-              className="mb-5"
-              fields={[
-                { label: "Instance ID", value: <Identifier value={instance.id} /> },
-                {
-                  label: "Template & version",
-                  value: instance.name ? (
-                    <span className="font-mono text-xs">
-                      {instance.name} {instance.version ? `v${instance.version}` : ""}
-                    </span>
-                  ) : (
-                    "—"
-                  ),
-                },
-                {
-                  label: "Bound at",
-                  value: <FormatDate date={instance.createdAt ?? undefined} />,
-                },
-                {
-                  label: "Instance notes",
-                  value: instance.description || <span className="text-ink/40">—</span>,
-                },
-              ]}
-            />
+            {runtimeBuiltIns.length > 0 && (
+              <div className="mb-3 flex flex-wrap items-center gap-1.5 rounded-md border border-ink/10 bg-ink/[0.02] px-2.5 py-1.5 text-xs">
+                <KeyRound className="h-3.5 w-3.5 shrink-0 text-ink/45" />
+                <span className="text-ink/60">Runtime bindings:</span>
+                {runtimeBuiltIns.map((name) => (
+                  <code
+                    key={name}
+                    className="rounded bg-ink/[0.06] px-1.5 py-0.5 font-mono text-[11px] text-ink/80"
+                  >
+                    {`{{__${name}__}}`}
+                  </code>
+                ))}
+              </div>
+            )}
 
-            <ConnectorSpecView
-              interaction={instance.interaction}
-              authentication={instance.authenticationConfig}
-            />
+            <Tabs defaultValue="spec">
+              <TabsList>
+                <TabsTrigger value="spec">Resolved configuration</TabsTrigger>
+                <TabsTrigger value="json">Raw JSON</TabsTrigger>
+              </TabsList>
+              <TabsContent value="spec" className="pt-3">
+                <ConnectorSpecView
+                  interaction={instance.interaction}
+                  authentication={instance.authenticationConfig}
+                />
+              </TabsContent>
+              <TabsContent value="json" className="pt-3">
+                <JsonViewer value={instance} />
+              </TabsContent>
+            </Tabs>
           </section>
 
-          {/* 2. Source Connector Template card alongside the distribution */}
-          <section className="rounded-xl border border-ink/10 bg-ink/[0.012] p-5">
-            <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-ink/[0.07] pb-3.5">
+          <section className="rounded-lg border border-ink/10 p-4">
+            <div className="mb-3 flex flex-wrap items-start justify-between gap-2 border-b border-ink/[0.07] pb-2.5">
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-semibold">Connector Template (Source Blueprint)</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-sm font-semibold">Source template</h2>
                   {instance.name && (
                     <Badge variant="outline" className="font-mono text-xs">
                       {instance.name}
                       {instance.version ? `@${instance.version}` : ""}
                     </Badge>
                   )}
+                  {template?.author && (
+                    <span className="text-xs text-ink/50">by {template.author}</span>
+                  )}
                 </div>
-                <p className="mt-0.5 text-xs text-ink/55">
-                  Reusable template definition from which this connector instance was instantiated.
-                </p>
+                {template?.description && (
+                  <p className="mt-0.5 text-xs text-ink/55">{template.description}</p>
+                )}
               </div>
               {instance.name && (
-                <div className="flex items-center gap-2">
-                  <Button asChild size="xs" variant="outline">
-                    <Link
-                      to="/my-catalog/connectors/$templateName"
-                      params={{ templateName: instance.name }}
-                      search={{ version: instance.version ?? undefined }}
-                    >
-                      Open template <ArrowUpRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </Button>
-                </div>
+                <Button asChild size="xs" variant="outline">
+                  <Link
+                    to="/my-catalog/connectors/$templateName"
+                    params={{ templateName: instance.name }}
+                    search={{ version: instance.version ?? undefined }}
+                  >
+                    Open template <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
               )}
             </div>
 
             {loadingTemplate ? (
-              <p className="text-xs text-ink/50">Loading connector template blueprint…</p>
+              <p className="text-xs text-ink/50">Loading template…</p>
             ) : !template ? (
               <p className="text-xs text-ink/55">
                 {instance.name
-                  ? `Template ${instance.name} (v${instance.version ?? "?"}) is no longer in the template library, though the resolved connector instance above remains intact.`
+                  ? `Template ${instance.name} (v${instance.version ?? "?"}) is no longer in the library; the resolved instance above stays active.`
                   : "This connector instance has no linked template metadata."}
               </p>
             ) : (
-              <>
-                <FieldGrid
-                  columns={4}
-                  className="mb-4"
-                  fields={[
-                    {
-                      label: "Template name",
-                      value: <span className="font-mono text-xs">{template.name}</span>,
-                    },
-                    {
-                      label: "Version",
-                      value: <span className="font-mono text-xs">v{template.version}</span>,
-                    },
-                    {
-                      label: "Author",
-                      value: template.author || <span className="text-ink/40">—</span>,
-                    },
-                    {
-                      label: "Description",
-                      value: template.description || <span className="text-ink/40">—</span>,
-                    },
-                  ]}
-                />
-
-                <Tabs defaultValue="parameters">
-                  <TabsList>
-                    <TabsTrigger value="parameters">
-                      Declared parameters ({template.parameters?.length ?? 0})
-                    </TabsTrigger>
-                    <TabsTrigger value="blueprint">Unexpanded blueprint</TabsTrigger>
-                    <TabsTrigger value="json">Raw template JSON</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="parameters" className="pt-4">
-                    <PageSection title="Template parameters">
-                      <ConnectorParametersTable parameters={template.parameters ?? []} />
-                    </PageSection>
-                  </TabsContent>
-                  <TabsContent value="blueprint" className="pt-4">
-                    <ConnectorSpecView
-                      interaction={template.interaction}
-                      authentication={template.authentication}
-                    />
-                  </TabsContent>
-                  <TabsContent value="json" className="pt-4">
-                    <JsonViewer value={template} />
-                  </TabsContent>
-                </Tabs>
-              </>
+              <Tabs defaultValue="parameters">
+                <TabsList>
+                  <TabsTrigger value="parameters">
+                    Parameters ({template.parameters?.length ?? 0})
+                  </TabsTrigger>
+                  <TabsTrigger value="blueprint">Unexpanded blueprint</TabsTrigger>
+                  <TabsTrigger value="json">Template JSON</TabsTrigger>
+                </TabsList>
+                <TabsContent value="parameters" className="pt-3">
+                  <ConnectorParametersTable parameters={template.parameters ?? []} />
+                </TabsContent>
+                <TabsContent value="blueprint" className="pt-3">
+                  <ConnectorSpecView
+                    interaction={template.interaction}
+                    authentication={template.authentication}
+                  />
+                </TabsContent>
+                <TabsContent value="json" className="pt-3">
+                  <JsonViewer value={template} />
+                </TabsContent>
+              </Tabs>
             )}
           </section>
         </div>
@@ -466,6 +452,7 @@ function DistributionConnectorPage() {
         distributionTitle={distribution.title}
         initialTemplateName={instance?.name ?? undefined}
         initialTemplateVersion={instance?.version ?? undefined}
+        initialDescription={instance?.description ?? undefined}
       />
 
       <ConfirmDialog

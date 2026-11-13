@@ -19,21 +19,8 @@ import { Badge } from "@eunomia/ui";
 import { FormatDate } from "@eunomia/ui";
 import { ConfirmDialog } from "@eunomia/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@eunomia/ui";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@eunomia/ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@eunomia/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@eunomia/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@eunomia/ui";
 import { JsonViewer } from "@eunomia/ui";
 import { Identifier } from "@eunomia/ui";
 import { OdrlRulesView } from "shared/src/components/policy/OdrlRulesView";
@@ -163,42 +150,35 @@ function TemplatePage() {
 
       <Summary template={shown} />
 
-      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_21rem]">
-        <div className="min-w-0 space-y-6">
-          <Panel
-            title="Definition"
-            hint="What the template stands for, with its references unexpanded."
-          >
+      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_19rem]">
+        <div className="min-w-0 space-y-4">
+          <Panel title="Definition">
             <Tabs defaultValue="structure">
               <TabsList>
                 <TabsTrigger value="structure">Structure</TabsTrigger>
                 <TabsTrigger value="json">JSON</TabsTrigger>
               </TabsList>
-              <TabsContent value="structure" className="pt-4">
+              <TabsContent value="structure" className="pt-3">
                 <TemplateContentView
                   kind={kind}
                   content={shown.content}
                   renderRef={(r) => <RefLink reference={r} />}
                 />
               </TabsContent>
-              <TabsContent value="json" className="pt-4">
+              <TabsContent value="json" className="pt-3">
                 <JsonViewer value={{ content: shown.content, parameters: shown.parameters }} />
               </TabsContent>
             </Tabs>
           </Panel>
 
-          <Panel
-            title="Parameters"
-            count={Object.keys(shown.parameters).length}
-            hint="Asked whenever the template is used; a default fills in for an answer not given."
-          >
+          <Panel title="Parameters" count={Object.keys(shown.parameters).length}>
             <ParameterTable parameters={shown.parameters} />
           </Panel>
 
           <TryIt template={shown} />
         </div>
 
-        <aside className="space-y-6">
+        <aside className="space-y-4">
           <Panel
             title="Uses"
             icon={<ArrowDownToLine className="h-4 w-4 text-ink/45" />}
@@ -322,8 +302,8 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-ink/10 bg-ink/[0.012]">
-      <header className="border-b border-ink/[0.07] px-4 py-3">
+    <section className="rounded-lg border border-ink/10">
+      <header className="border-b border-ink/[0.07] px-3.5 py-2.5">
         <h2 className="flex items-center gap-2 text-sm font-semibold">
           {icon}
           {title}
@@ -335,7 +315,7 @@ function Panel({
         </h2>
         {hint && <p className="mt-0.5 text-xs text-ink/50">{hint}</p>}
       </header>
-      <div className="p-4">{children}</div>
+      <div className="p-3.5">{children}</div>
     </section>
   );
 }
@@ -376,9 +356,9 @@ function Summary({ template }: { template: PolicyTemplateDto }) {
     },
   ];
   return (
-    <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-ink/10 md:grid-cols-7 md:divide-x md:divide-ink/[0.07]">
+    <dl className="grid grid-cols-2 overflow-hidden rounded-lg border border-ink/10 md:grid-cols-7 md:divide-x md:divide-ink/[0.07]">
       {cells.map((c) => (
-        <div key={c.label} className={cn("min-w-0 px-4 py-3", c.wide && "col-span-2")}>
+        <div key={c.label} className={cn("min-w-0 px-3.5 py-2.5", c.wide && "col-span-2")}>
           <dt className="text-[11px] font-medium uppercase tracking-wide text-ink/45">{c.label}</dt>
           <dd className="mt-1 text-sm">{c.value}</dd>
         </div>

@@ -5,7 +5,7 @@ import { Avatar } from "@eunomia/ui";
 import { Heading } from "@eunomia/ui";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { FormatDate } from "@eunomia/ui";
-import { Lock, Database, Server, Calendar, ArrowUpRight } from "lucide-react";
+import { Lock, Database, Calendar, ArrowUpRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@eunomia/ui";
 import { Badge } from "@eunomia/ui";
 import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
@@ -151,11 +151,11 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   return (
     <Card
       variant="interactive"
-      className={`h-full flex flex-col justify-between max-w-lg transition-all duration-200 ${unavailableCatalogClasses} ${
+      className={`h-full flex flex-col justify-between transition-all duration-200 ${unavailableCatalogClasses} ${
         connected && !ownCatalog ? "border-emerald-500/30 hover:border-emerald-500/60" : ""
       }`}
     >
-      <CardHeader className="pb-3 space-y-3">
+      <CardHeader className="p-4 pb-3 space-y-2.5">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Avatar src={avatarImg} />
@@ -187,26 +187,16 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
           )}
         </div>
 
-        <div className="pt-1">
-          {headingLink}
-          <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-            This is the catalog of{" "}
-            <span className="capitalize text-foreground/90 font-medium">{organizationName}</span>.
-            Browse published datasets, distributions, and associated dataservices.
-          </p>
-        </div>
+        {headingLink}
       </CardHeader>
 
-      <CardFooter className="pt-3 flex items-center justify-between gap-3 text-xs border-t border-ink/5 bg-background-800/20 rounded-b-xl">
+      <CardFooter className="px-4 py-2 flex items-center justify-between gap-3 text-xs border-t border-ink/5 bg-background-800/20 rounded-b-xl">
         <div className="flex items-center gap-1 text-muted-foreground text-xs">
           <Calendar className="h-3 w-3 opacity-60" />
           <FormatDate date={displayDate} />
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-0.5 rounded-md bg-ink/5 text-xs text-muted-foreground">
-            <Server className="h-3 w-3 text-brand-sky" /> 1 service
-          </span>
           {/* Unknown until the catalog is asked for: no count rather than a guess. */}
           {displayDatasetNr !== undefined && (
             <span className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-0.5 rounded-md bg-ink/5 text-xs text-muted-foreground">

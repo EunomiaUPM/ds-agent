@@ -1,20 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Network } from "lucide-react";
 import CatalogItem from "shared/src/components/ui/catalog-item";
 import { PageHeader } from "@eunomia/ui";
-import { Heading } from "@eunomia/ui";
 import { Button } from "@eunomia/ui";
 import { PageLayout } from "@eunomia/ui";
 import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
 import { usePeerConnections } from "shared/src/data/peerConnection";
-import { Card, CardContent } from "@eunomia/ui";
-import { eunomiaLogoLight as logoImg } from "@eunomia/ui";
-import { eunomiaLogoDark as logoImgDark } from "@eunomia/ui";
-import { useTheme } from "@eunomia/ui";
 import { useGetMyself } from "shared/src/data/orval/participants/participants";
 
+const TITLE = "Catalog Browser";
+const DESCRIPTION =
+  "Public catalogs of the dataspace and the catalogs of the participants you have access to.";
+
 const RouteComponent = () => {
-  const { resolvedTheme } = useTheme();
   const federated = useFederatedCatalog();
   const connections = usePeerConnections();
 
@@ -25,33 +23,29 @@ const RouteComponent = () => {
   if (federated.state === "loading" || connections.isLoading || myself.isLoading) {
     return (
       <PageLayout>
-        <div>Loading...</div>
+        <PageHeader title={TITLE} description={DESCRIPTION} />
+        <p className="text-sm text-muted-foreground">Loading...</p>
       </PageLayout>
     );
   }
 
   if (federated.state === "no-authority") {
     return (
-      <PageLayout className="overlayContainer">
-        <Card className="overlayContent h-fit">
-          <div className="contentLogo">
-            <img src={resolvedTheme === "dark" ? logoImg : logoImgDark} alt="Eunomia Logo" />
-          </div>
-          <CardContent className="contentMessage">
-            <div className="messageGroup">
-              <Heading level="h2">You haven't joined a Dataspace yet</Heading>
-              <p className="text-sm text-muted-foreground">
-                Add an authority to discover other participants and browse their catalogs.
-              </p>
-            </div>
-          </CardContent>
-          <Link to="/authority/new" className="contentFooter">
-            <Button>
-              Join a Dataspace
+      <PageLayout>
+        <PageHeader title={TITLE} description={DESCRIPTION} />
+        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-ink/15 px-6 py-10 text-center">
+          <Network className="h-8 w-8 text-muted-foreground/50" />
+          <h2 className="text-sm font-semibold text-ink/90">You haven't joined a dataspace yet</h2>
+          <p className="max-w-sm text-xs text-muted-foreground">
+            Add an authority to discover other participants and browse their catalogs.
+          </p>
+          <Link to="/authority/new" className="mt-2">
+            <Button size="sm">
+              Join a dataspace
               <ArrowRight />
             </Button>
           </Link>
-        </Card>
+        </div>
       </PageLayout>
     );
   }
@@ -81,60 +75,43 @@ const RouteComponent = () => {
 
   return (
     <PageLayout>
-      <PageHeader
-        title="Catalog Browser"
-        description="Public catalogs of the dataspace and the catalogs of the participants you have access to."
-      />
-      <p className="h-4 my-2 text-sm text-muted-foreground">
-        {firstPeer && "Pick a participant to request access and browse its catalog."}
-      </p>
-      <div className="grid grid-cols-3 gap-5">
-        {agents.map((p) => {
-          const highlighted = p === firstPeer;
+      <PageHeader title={TITLE} description={DESCRIPTION} />
+      {firstPeer && (
+        <p className="text-sm text-muted-foreground">
+          Pick a participant to request access and browse its catalog.
+        </p>
+      )}
+      {agents.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-ink/15 px-6 py-10 text-center text-sm text-muted-foreground">
+          The authority lists no participants yet.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {agents.map((p) => {
+            const highlighted = p === firstPeer;
 
-          return (
-            <div
-              key={p.participant_id}
-              // Same width and corners as the card, so the highlight fits it.
-              className={`max-w-lg rounded-xl ${
-                highlighted ? "ring-2 ring-secondary-400 shadow-md animate-pulse" : ""
-              }`}
-            >
-              <CatalogItem
-                organizationName={p.participant_nick ?? "Unknown"}
-                id={p.participant_id ?? null}
-                connection={connections.statusOf(p.participant_id)}
-                approvedGrant={connections.approvedGrantOf(p.participant_id)}
-                participant={p}
-                pendingGrantId={connections.pendingGrantOf(p.participant_id)?.id}
-                ownCatalog={isOwn(p.participant_id)}
-              />
-            </div>
-          );
-        })}
-        <CatalogItem
-          date={"5/19/2022"}
-          datasetNumber={17}
-          organizationName={"Another participant"}
-          id={null}
-          title={"Meteorology Stations in Madrid Catalog"}
-        />
-        <CatalogItem
-          date={"12/08/2025"}
-          datasetNumber={23}
-          organizationName={"Another participant"}
-          id={null}
-          title={"Parking Ocupation in Ávila Catalog"}
-        />
-        <CatalogItem
-          date={"2/2/2024"}
-          datasetNumber={31}
-          organizationName={"Another participant"}
-          id={null}
-          title={"Population Growth in Spain 2026 Catalog"}
-        />
-      </div>
-      <div className="h-4" />
+            return (
+              <div
+                key={p.participant_id}
+                // Same corners as the card, so the highlight fits it.
+                className={`rounded-xl ${
+                  highlighted ? "ring-2 ring-secondary-400 shadow-md animate-pulse" : ""
+                }`}
+              >
+                <CatalogItem
+                  organizationName={p.participant_nick ?? "Unknown"}
+                  id={p.participant_id ?? null}
+                  connection={connections.statusOf(p.participant_id)}
+                  approvedGrant={connections.approvedGrantOf(p.participant_id)}
+                  participant={p}
+                  pendingGrantId={connections.pendingGrantOf(p.participant_id)?.id}
+                  ownCatalog={isOwn(p.participant_id)}
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
     </PageLayout>
   );
 };

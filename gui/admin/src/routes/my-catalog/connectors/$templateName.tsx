@@ -18,7 +18,7 @@
 import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { GitBranchPlus, History, Sparkles, Trash2 } from "lucide-react";
+import { Copy, GitBranchPlus, History, KeyRound, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Badge,
@@ -47,6 +47,7 @@ import {
   extractPrimaryProtocol,
   groupConnectorTemplates,
 } from "shared/src/components/connector/ConnectorSpecView";
+import { ConnectorTemplateModel } from "shared/src/components/connector/connectorTemplateModel";
 import { InstantiateConnectorDialog } from "shared/src/components/connector/InstantiateConnectorDialog";
 import {
   getGetConnectorTemplateQueryKey,
@@ -96,6 +97,12 @@ function ConnectorTemplateDetailPage() {
 
   const mode = extractInteractionMode(shown.interaction);
   const protocol = extractPrimaryProtocol(shown.interaction);
+  const builtIns = ConnectorTemplateModel.builtInPlaceholders({
+    authentication: shown.authentication,
+    interaction: shown.interaction,
+    parameters: shown.parameters ?? [],
+  });
+  const refLabel = `${shown.name}@${shown.version}`;
 
   const goToVersion = (ver: string) =>
     navigate({
@@ -167,7 +174,7 @@ function ConnectorTemplateDetailPage() {
               </SelectContent>
             </Select>
             <Button onClick={() => setInstantiateOpen(true)}>
-              <Sparkles /> Instantiate on distribution…
+              <Sparkles /> Instantiate…
             </Button>
             <Button asChild variant="outline">
               <Link
@@ -186,14 +193,25 @@ function ConnectorTemplateDetailPage() {
 
       <FieldGrid
         columns={4}
-        className="mb-6"
+        className="mb-4"
         fields={[
           {
             label: "Reference",
             value: (
-              <code className="font-mono text-xs">
-                {shown.name}@{shown.version}
-              </code>
+              <span className="inline-flex items-center gap-1.5">
+                <code className="font-mono text-xs">{refLabel}</code>
+                <button
+                  type="button"
+                  title="Copy reference"
+                  onClick={() => {
+                    navigator.clipboard.writeText(refLabel);
+                    toast.success("Copied reference");
+                  }}
+                  className="text-ink/40 hover:text-ink"
+                >
+                  <Copy className="h-3 w-3" />
+                </button>
+              </span>
             ),
           },
           {
@@ -211,33 +229,29 @@ function ConnectorTemplateDetailPage() {
         ]}
       />
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="min-w-0 space-y-6">
-          <section className="rounded-xl border border-ink/10 bg-ink/[0.012] p-5">
-            <h2 className="mb-1 text-sm font-semibold">Blueprint specification</h2>
-            <p className="mb-4 text-xs text-ink/50">
-              Unexpanded interaction and authentication template with{" "}
-              <code className="font-mono">{"{{__PARAM__}}"}</code> placeholders.
-            </p>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_19rem]">
+        <div className="min-w-0 space-y-4">
+          <section className="rounded-lg border border-ink/10 p-4">
+            <h2 className="mb-2 text-sm font-semibold">Specification</h2>
             <Tabs defaultValue="structure">
               <TabsList>
                 <TabsTrigger value="structure">Structure</TabsTrigger>
                 <TabsTrigger value="json">Raw JSON</TabsTrigger>
               </TabsList>
-              <TabsContent value="structure" className="pt-4">
+              <TabsContent value="structure" className="pt-3">
                 <ConnectorSpecView
                   interaction={shown.interaction}
                   authentication={shown.authentication}
                 />
               </TabsContent>
-              <TabsContent value="json" className="pt-4">
+              <TabsContent value="json" className="pt-3">
                 <JsonViewer value={shown} />
               </TabsContent>
             </Tabs>
           </section>
 
-          <section className="rounded-xl border border-ink/10 bg-ink/[0.012] p-5">
-            <div className="mb-3 flex items-center gap-2">
+          <section className="rounded-lg border border-ink/10 p-4">
+            <div className="mb-2.5 flex items-center gap-2">
               <h2 className="text-sm font-semibold">Declared parameters</h2>
               <span className="rounded-full bg-ink/[0.07] px-2 py-0.5 text-xs text-ink/60">
                 {shown.parameters?.length ?? 0}
@@ -247,18 +261,39 @@ function ConnectorTemplateDetailPage() {
           </section>
         </div>
 
-        <aside className="space-y-6">
-          <section className="rounded-xl border border-ink/10 bg-ink/[0.012]">
-            <header className="border-b border-ink/[0.07] px-4 py-3">
+        <aside className="space-y-4">
+          {builtIns.length > 0 && (
+            <section className="rounded-lg border border-ink/10">
+              <header className="border-b border-ink/[0.07] px-3 py-2">
+                <h2 className="flex items-center gap-2 text-sm font-semibold">
+                  <KeyRound className="h-4 w-4 text-ink/45" />
+                  Runtime bindings
+                  <span className="rounded-full bg-ink/[0.07] px-1.5 text-xs font-normal text-ink/60">
+                    {builtIns.length}
+                  </span>
+                </h2>
+              </header>
+              <ul className="divide-y divide-ink/[0.06] px-3 py-1">
+                {builtIns.map((name) => (
+                  <li key={name} className="py-1.5 font-mono text-xs text-ink/80 break-all">
+                    {`{{__${name}__}}`}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <section className="rounded-lg border border-ink/10">
+            <header className="border-b border-ink/[0.07] px-3 py-2">
               <h2 className="flex items-center gap-2 text-sm font-semibold">
                 <History className="h-4 w-4 text-ink/45" />
-                Version history
+                Versions
                 <span className="rounded-full bg-ink/[0.07] px-1.5 text-xs font-normal text-ink/60">
                   {versions.length}
                 </span>
               </h2>
             </header>
-            <div className="p-3">
+            <div className="p-2">
               <ol className="space-y-0.5">
                 {versions.map((v, i) => (
                   <li key={v.version ?? String(i)}>

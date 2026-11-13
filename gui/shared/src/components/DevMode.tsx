@@ -54,41 +54,25 @@ export const DevMode = ({ className }: { className?: string }) => {
 
   if (!theme || import.meta.env.PROD) return null;
 
+  // Host and port only: the full gateway URL stays in the tooltip.
+  const gatewayHost = api_gateway?.replace(/^https?:\/\//, "").split("/")[0];
+
   return (
     <div
       className={cn(
-        "rounded-xl border p-2.5 bg-ink/[0.03] dark:bg-ink/[0.06] shadow-2xs space-y-1 transition-all text-xs font-mono",
-        "group-data-[collapsible=icon]:p-1.5 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center",
+        "flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs",
+        "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-1",
         theme.border,
         className,
       )}
-      title={`GUI Dev Mode ON\nGateway: ${api_gateway || "default"}`}
+      title={`GUI dev mode\nGateway: ${api_gateway || "default"}`}
     >
-      <div className="flex items-center justify-between gap-1.5">
-        <div className="flex items-center gap-1.5">
-          <span className={cn("h-2 w-2 rounded-full shrink-0 animate-pulse", theme.bg)} />
-          <span className="font-semibold text-foreground tracking-tight text-xs group-data-[collapsible=icon]:hidden">
-            GUI Dev Mode
-          </span>
-        </div>
-        <span
-          className={cn(
-            "text-[9px] uppercase px-1 py-0.2 rounded font-bold group-data-[collapsible=icon]:hidden",
-            theme.bg,
-            "text-black font-sans",
-          )}
-        >
-          ON
+      <span className={cn("h-2 w-2 shrink-0 rounded-full", theme.bg)} />
+      <span className="font-medium text-foreground group-data-[collapsible=icon]:hidden">Dev</span>
+      {gatewayHost && (
+        <span className="truncate font-mono text-muted-foreground group-data-[collapsible=icon]:hidden">
+          {gatewayHost}
         </span>
-      </div>
-
-      {api_gateway && (
-        <div className="flex flex-col gap-0.5 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-          <span className="opacity-70 font-sans">Gateway</span>
-          <span className="font-mono select-all break-all leading-snug text-foreground/85">
-            {api_gateway}
-          </span>
-        </div>
       )}
     </div>
   );

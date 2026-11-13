@@ -44,9 +44,16 @@ impl GatewayHttpRouter {
         Self { ctx }
     }
 
+    /// Builds the console router including the root redirect to `/admin/`.
     pub fn console_router(self) -> Router {
         Router::new()
             .route(routes::ROOT, get(FrontendHandlers::console_root))
+            .merge(self.admin_router())
+    }
+
+    /// Builds the `/admin` console and BFF API routes without binding `/`.
+    pub fn admin_router(self) -> Router {
+        Router::new()
             .route(routes::CONSOLE_INDEX, get(FrontendHandlers::static_asset))
             .nest(routes::CONSOLE, self.router())
     }

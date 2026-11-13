@@ -31,6 +31,7 @@ use keystore::KeystoreModule;
 use negotiation_agent::setup::{NegotiationAgentModule, NegotiationPorts};
 use ymir::boot::seeders::BootSeeder;
 use ymir::boot::workers::BackgroundWorker;
+use ymir::config::traits::{ApiConfigTrait, CommonConfigTrait};
 use ymir::module_loader::module_group::ModuleGroup;
 use ymir::module_loader::root_context::RootContext;
 use ymir::module_loader::service_module::ServiceModuleTrait;
@@ -41,9 +42,12 @@ use tonic::service::RoutesBuilder;
 use transfer_agent::setup::{TransferAgentModule, TransferPorts};
 use ymir::errors::Outcome;
 
+use crate::http::LandingRouter;
+
 /// Every agent module of the process, plus the auth ports and the own-wallet onboarding.
 pub struct MonolithModule {
     modules: ModuleGroup,
+    api_base: String,
     auth_ports: AuthPorts,
     public_resolvers: Vec<Arc<dyn PublicResolverTrait>>,
     self_participant: SelfParticipantOnboarder,
@@ -99,10 +103,12 @@ impl MonolithModule {
                 &transfer_ports,
             ))
             .register(events)
-            .register(BffModule::compose(config.gateway()?, root))
+            .register(BffModule::compose(config.gateway()?, root).without_root())
             .register(KeystoreModule::compose(config, root, bus));
+        let api_base = config.common().get_api_version();
         Ok(Self {
             modules,
+            api_base,
             auth_ports,
             public_resolvers,
             self_participant,
@@ -146,7 +152,13 @@ impl ServiceModuleTrait for MonolithModule {
     }
 
     fn http(&self) -> Option<(String, Router)> {
-        self.modules.http()
+        let landing = LandingRouter::for_api_base(&self.api_base).router();
+        let router = match self.modules.http() {
+            Some((prefix, router)) if prefix.is_empty() => router.merge(landing),
+            Some((prefix, router)) => Router::new().nest(&prefix, router).merge(landing),
+            None => landing,
+        };
+        Some((String::new(), router))
     }
 
     fn grpc(&self, routes: &mut RoutesBuilder) {

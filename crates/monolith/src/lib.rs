@@ -25,4 +25,5 @@
 pub const SERVICE_NAME: &str = "agent";
 /// Name shown in the boot banner.
 pub const SERVICE_BIG_NAME: &str = "Agent";
+pub mod http;
 pub mod setup;

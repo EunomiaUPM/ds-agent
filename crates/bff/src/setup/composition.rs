@@ -28,6 +28,7 @@ use crate::setup::context::AppContext;
 /// Composable service module integrating the BFF gateway and admin frontend.
 pub struct BffModule {
     ctx: Arc<AppContext>,
+    redirect_root: bool,
 }
 
 impl BffModule {
@@ -36,8 +37,18 @@ impl BffModule {
         Self::new(Arc::new(AppContext::build(config, root)))
     }
 
+    /// Wraps an already initialized context with root redirect enabled.
     pub fn new(ctx: Arc<AppContext>) -> Self {
-        Self { ctx }
+        Self {
+            ctx,
+            redirect_root: true,
+        }
+    }
+
+    /// Omits the `GET /` redirect so the host binary can mount its own root handler.
+    pub fn without_root(mut self) -> Self {
+        self.redirect_root = false;
+        self
     }
 }
 
@@ -47,9 +58,12 @@ impl ServiceModuleTrait for BffModule {
     }
 
     fn http(&self) -> Option<(String, Router)> {
-        Some((
-            String::new(),
-            GatewayHttpRouter::new(self.ctx.clone()).console_router(),
-        ))
+        let router = GatewayHttpRouter::new(self.ctx.clone());
+        let http = if self.redirect_root {
+            router.console_router()
+        } else {
+            router.admin_router()
+        };
+        Some((String::new(), http))
     }
 }

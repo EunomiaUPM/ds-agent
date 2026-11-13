@@ -47,3 +47,29 @@ async fn module_mounts_at_root_and_serves_frontend_config() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
+
+/// Disabling root leaves `GET /` unbound while keeping `/admin/` and `/admin/api/fe-config`.
+#[tokio::test]
+async fn module_without_root_leaves_root_unmounted_and_keeps_admin() {
+    let app_ctx = Arc::new(AppContext::new(gateway_config(8080), None));
+    let module = BffModule::new(app_ctx).without_root();
+
+    let (prefix, router) = module.http().expect("http routes present");
+    assert_eq!(prefix, "");
+    let port = serve(router).await;
+
+    let root = http_client()
+        .get(&format!("http://127.0.0.1:{port}/"), None)
+        .await
+        .unwrap();
+    assert_eq!(root.status(), StatusCode::NOT_FOUND);
+
+    let admin = http_client()
+        .get(
+            &format!("http://127.0.0.1:{port}/admin/api/fe-config"),
+            None,
+        )
+        .await
+        .unwrap();
+    assert_eq!(admin.status(), StatusCode::OK);
+}

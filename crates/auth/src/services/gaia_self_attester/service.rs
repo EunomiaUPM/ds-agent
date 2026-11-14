@@ -105,6 +105,7 @@ impl GaiaSelfAttester {
         let holder_did = identity.did().id();
 
         let now = Utc::now();
+        // TODO: Gaia-X uses the https URL where the credential is published as its id (plan row 44).
         let credential_id = format!("urn:uuid:{}", Uuid::new_v4());
         let doc = VcDocumentBuilder::new(&vc_type, W3cDataModelVersion::default())
             .id(&credential_id)

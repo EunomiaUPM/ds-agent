@@ -1,5 +1,5 @@
 import { AlertCircle, CheckCircle2, Info, Loader2, Search } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { PageHeader } from "@eunomia/ui";
 import { PageLayout } from "@eunomia/ui";
@@ -39,6 +39,7 @@ import {
   TooltipTrigger,
 } from "@eunomia/ui";
 import { WizardDialog } from "@eunomia/ui";
+import { GlobalInfoContext } from "shared/src/context/GlobalInfoContext";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 
@@ -72,7 +73,23 @@ interface DidService {
 const toBrowserHost = (url: string): string =>
   url.replace(/(^https?:\/\/)host\.docker\.internal/, "$1127.0.0.1");
 
-const DEMO_AUTHORITY_URL = "https://dev-dataspaces.dit.upm.es";
+/** Predefined authority: the local heimdall (from the host in dev, from Docker in mini) or the deployed one. */
+const DEV_AUTHORITY_URL = "http://127.0.0.1:1500";
+const MINI_AUTHORITY_URL = "http://host.docker.internal:1500";
+const PROD_AUTHORITY_URL = "https://dev-dataspaces.dit.upm.es";
+
+/** From the agent's own address (`fe-config`): 127.0.0.1 in dev, host.docker.internal in mini. */
+const demoAuthorityUrl = (agentBase: string | undefined): string => {
+  let host = "";
+  try {
+    host = new URL(agentBase ?? "").hostname;
+  } catch {
+    return PROD_AUTHORITY_URL;
+  }
+  if (host === "127.0.0.1" || host === "localhost") return DEV_AUTHORITY_URL;
+  if (host === "host.docker.internal" || host.endsWith(".localhost")) return MINI_AUTHORITY_URL;
+  return PROD_AUTHORITY_URL;
+};
 const DEMO_AUTHORITY_NICK = "Heimdall";
 const DEMO_VC_TYPE_ID = "DataSpaceParticipant_jwt_vc_json";
 const DEMO_VC_TYPE_LABEL = "Data Space Participant (JWT)";
@@ -132,6 +149,7 @@ function NewAuthorityRequest() {
     services: DidService[];
   } | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  const globalInfoContext = useContext(GlobalInfoContext);
 
   // wizard state: 0 = closed, 1 = URL/Nickname, 2 = Discover, 3 = VC type
   const [wizardStep, setWizardStep] = useState<0 | 1 | 2 | 3>(1);
@@ -264,7 +282,7 @@ function NewAuthorityRequest() {
                 type="button"
                 size="sm"
                 onClick={() => {
-                  form.setValue("url", DEMO_AUTHORITY_URL);
+                  form.setValue("url", demoAuthorityUrl(globalInfoContext?.api_gateway_dsp_base));
                   form.setValue("nick", DEMO_AUTHORITY_NICK);
                   setWizardStep(2);
                 }}

@@ -1059,6 +1059,63 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/gaia/compliance:
+    post:
+      tags:
+      - Gaia Self-Attester
+      operationId: requestGaiaCompliance
+      summary: Ask a Gaia-X compliance service for a compliance credential
+      description: |
+        The wallet sends the legal person, the gx:Issuer and the newest registration number in
+        one presentation (application/vp+jwt, ?vcid=) and stores the credential it gets back.
+        Root only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GaiaComplianceForm'
+      responses:
+        '200':
+          description: The compliance credential, stored in the wallet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletCredential'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/gaia/dispatcher:
+    post:
+      tags:
+      - Gaia Self-Attester
+      operationId: presentToGaiaDispatcher
+      summary: Answer a Gaia-X Dispatcher presentation request
+      description: |
+        Presents to the openid4vp request the Dispatcher shows and, when it answers with a
+        credential offer, claims the credential. Root only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OidcUri'
+      responses:
+        '200':
+          description: Presented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GaiaDispatcherOutcome'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/gate/access:
     post:
       tags: *id004
@@ -1620,6 +1677,30 @@ components:
       - Approved
       - Rejected
       - Finalized
+    GaiaComplianceForm:
+      type: object
+      required:
+      - url
+      properties:
+        url:
+          type: string
+          description: Compliance service that takes the presentation by POST
+          examples:
+          - https://compliance.lab.gaia-x.eu/main/api/credential-offers/standard-compliance
+        vcid:
+          type: string
+          description: Id of the credential to issue; a new urn:uuid when absent
+    GaiaDispatcherOutcome:
+      type: object
+      required:
+      - received
+      properties:
+        received:
+          type: boolean
+          description: Whether the Dispatcher answered with a credential offer that was claimed
+        redirect_uri:
+          type: string
+          description: Where the Dispatcher continues, when it sent no offer
     OidcUri:
       type: object
       required:
